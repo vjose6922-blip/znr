@@ -1,7 +1,6 @@
 (function() {
   'use strict';
 
-  // ========== Verificación y respaldo de funciones globales ==========
   if (typeof window.optimizeDriveUrl !== 'function') {
     window.optimizeDriveUrl = function(url, size) { return url; };
     console.warn('⚠️ optimizeDriveUrl no definida, usando identidad');
@@ -35,7 +34,6 @@
     console.warn('⚠️ showTemporaryMessage no definida');
   }
 
-  // ========== Constantes y variables ==========
   const PAGE_SIZE = 15;
   let allCommunityProducts = [];
   let filteredProducts = [];
@@ -44,7 +42,6 @@
   let gridContainer, catSelect, vendorSelect, paginationDiv;
   let debounceTimer = null;
 
-  // ========== Modo Inspector ==========
   let inspectorMode = false;
 
   async function initInspectorMode() {
@@ -64,7 +61,6 @@
       if (data.ok === true) {
         inspectorMode = true;
         console.log('🛡️ Modo inspector activado');
-        // Añadir banner visible
         const banner = document.createElement('div');
         banner.id = 'inspector-banner';
         banner.style.cssText = `
@@ -74,9 +70,8 @@
           font-size: 13px; font-weight: 700; letter-spacing: 0.5px;
           box-shadow: 0 2px 10px rgba(0,0,0,0.3);
         `;
-        banner.innerHTML = '🛡️ MODO INSPECTOR ADMIN — Puedes eliminar cualquier producto';
+        banner.innerHTML = '🛡️ MODO ADMIN';
         document.body.prepend(banner);
-        // Compensar el banner en el header
         const header = document.querySelector('.app-header');
         if (header) header.style.marginTop = '38px';
       } else {
@@ -87,7 +82,6 @@
     }
   }
 
-  // ========== Funciones para filtros desde URL ==========
   function getFiltersFromURL() {
     const urlParams = new URLSearchParams(window.location.search);
     return {
@@ -102,7 +96,6 @@
     const category = catSelect ? catSelect.value : '';
     const vendor = vendorSelect ? vendorSelect.value : '';
     const params = new URLSearchParams();
-    // Preservar parámetro inspector si está activo
     if (new URLSearchParams(window.location.search).get('inspector') === '1') {
       params.set('inspector', '1');
     }
@@ -122,7 +115,6 @@
     return (value != null) ? String(value) : '';
   }
 
-  // ========== Carga de productos ==========
   async function loadCommunityProducts() {
     if (!window.API_URL) {
       console.error('API_URL no definida');
@@ -177,13 +169,12 @@
     }
   }
 
-  // ========== Llenar selects ==========
   function populateFilters() {
     if (catSelect) {
       const categories = new Set();
       allCommunityProducts.forEach(p => { if (p.categoria) categories.add(safeString(p.categoria)); });
       const currentVal = catSelect.value;
-      catSelect.innerHTML = '<option value="">📁 Todas las categorías</option>';
+      catSelect.innerHTML = '<option value="">Todas las categorías</option>';
       Array.from(categories).sort().forEach(cat => {
         const opt = document.createElement('option');
         opt.value = cat;
@@ -200,7 +191,7 @@
         if (p.vendedor_nombre) vendors.set(safeString(p.vendedor_nombre), safeString(p.vendedor_nombre));
       });
       const currentVal = vendorSelect.value;
-      vendorSelect.innerHTML = '<option value="">🏪 Todos los vendedores</option>';
+      vendorSelect.innerHTML = '<option value="">Todos los vendedores</option>';
       Array.from(vendors.keys()).sort().forEach(v => {
         const opt = document.createElement('option');
         opt.value = v;
@@ -212,7 +203,6 @@
     }
   }
 
-  // ========== Aplicar filtros ==========
   function applyFilters() {
     try {
       const searchTerm = getSearchValue();
@@ -240,7 +230,6 @@
     }
   }
 
-  // ========== Renderizar productos ==========
   function renderProducts() {
     if (!gridContainer) return;
     try {
@@ -269,7 +258,6 @@
     }
   }
 
-  // ========== Eliminar producto (inspector) ==========
   async function deleteProductInspector(productId, productName, cardElement) {
     const token = localStorage.getItem('admin_token') || sessionStorage.getItem('admin_token') || '';
     if (!token) {
@@ -299,13 +287,11 @@
           const data = await res.json();
           if (!data.ok) throw new Error(data.error || 'Error al eliminar');
 
-          // Remover del DOM con animación
           cardElement.style.transition = 'opacity 0.3s, transform 0.3s';
           cardElement.style.opacity = '0';
           cardElement.style.transform = 'scale(0.9)';
           setTimeout(() => cardElement.remove(), 320);
 
-          // Remover del array local
           allCommunityProducts = allCommunityProducts.filter(p => String(p.id) !== String(productId));
           filteredProducts = filteredProducts.filter(p => String(p.id) !== String(productId));
 
@@ -320,9 +306,7 @@
     });
   }
 
-  // ========== Reportar producto ==========
   function showReportDialog(product) {
-    // Crear modal de reporte personalizado
     const modal = document.createElement('div');
     modal.className = 'custom-alert-modal';
     modal.style.zIndex = '100000';
@@ -364,7 +348,6 @@
     `;
     document.body.appendChild(modal);
 
-    // Mostrar campo "otro" al seleccionarlo
     const radioOtro = modal.querySelector('#report-radio-otro');
     const otroField = modal.querySelector('#report-otro-field');
     modal.querySelectorAll('input[name="report-reason"]').forEach(radio => {
@@ -429,7 +412,6 @@
     }
   }
 
-  // ========== Crear tarjeta de producto ==========
   function createCommunityCard(product) {
     try {
       const card = document.createElement('div');
@@ -441,7 +423,7 @@
       const stockNum = Number(product.stock) || 0;
       const hasStock = stockNum > 0;
       const stockClass = !hasStock ? 'out-stock' : (stockNum <= 5 ? 'low-stock' : '');
-      const stockText = !hasStock ? '❌ Sin stock' : (stockNum <= 5 ? `⚠️ Últimas ${stockNum}` : `✅ ${stockNum} disponibles`);
+      const stockText = !hasStock ? '❌ Sin stock' : (stockNum <= 5 ? `⚠️ Últimas ${stockNum}` : `Stock ${stockNum} `);
       const vendorName = safeString(product.vendedor_nombre);
       const vendorTel = safeString(product.vendedor_tel);
       const waLink = vendorTel ? `https://wa.me/52${vendorTel}?text=${encodeURIComponent('Hola, vi tu producto "' + safeString(product.nombre) + '" en Z&R Comunidad')}` : '#';
@@ -455,14 +437,14 @@
           <div class="comunidad-card-name" title="${window.escapeHtml(safeString(product.nombre))}">${window.escapeHtml(safeString(product.nombre))}</div>
           <div class="comunidad-card-price">${window.formatCurrency(product.precio)}</div>
           <div class="comunidad-card-meta">
-            ${product.categoria ? `📂 ${window.escapeHtml(safeString(product.categoria))} · ` : ''}
+            ${product.categoria ? ` ${window.escapeHtml(safeString(product.categoria))} · ` : ''}
             <span class="stock-badge ${stockClass}">${stockText}</span>
-            ${product.talla ? ` · 📏 ${window.escapeHtml(safeString(product.talla))}` : ''}
+            ${product.talla ? ` ·  ${window.escapeHtml(safeString(product.talla))}` : ''}
           </div>
           ${vendorName ? `
             <div class="comunidad-vendor-line">
               🏪 ${window.escapeHtml(vendorName)}
-              ${vendorTel ? `<a href="${waLink}" target="_blank" rel="noopener" style="color:#25d366; font-weight:600; text-decoration:none;">💬 Contactar</a>` : ''}
+              ${vendorTel ? `<a href="${waLink}" target="_blank" rel="noopener" style="color:#25d366; font-weight:600; text-decoration:none;">💬 Contacto</a>` : ''}
               <button class="btn-report" title="Reportar producto" aria-label="Reportar" style="background:none;border:none;cursor:pointer;font-size:15px;padding:2px 4px;color:#aaa;line-height:1;flex-shrink:0;" >🚩</button>
             </div>
           ` : `
@@ -479,7 +461,7 @@
               data-talla="${window.escapeHtml(safeString(product.talla || ''))}"
               data-vendedor="${window.escapeHtml(vendorName)}"
               data-vendortel="${window.escapeHtml(vendorTel)}">
-              ${!hasStock ? 'Sin stock' : '🛒 Añadir al carrito'}
+              ${!hasStock ? 'Sin stock' : '🛒 Añadir'}
             </button>
             <div class="comunidad-extra-btns">
               ${inspectorMode ? `<button class="btn-inspector-delete" title="Eliminar (Admin)" aria-label="Eliminar producto">🗑️ Eliminar</button>` : ''}
@@ -488,7 +470,6 @@
         </div>
       `;
 
-      // Evento: abrir modal de imagen
       const imgWrapper = card.querySelector('.comunidad-card-img-wrapper');
       if (imgWrapper && window.openImageModal) {
         imgWrapper.addEventListener('click', (e) => {
@@ -497,7 +478,6 @@
         });
       }
 
-      // Evento: añadir al carrito
       const addBtn = card.querySelector('.comunidad-add-btn');
       if (addBtn && hasStock && window.addToCart) {
         addBtn.addEventListener('click', (e) => {
@@ -518,7 +498,6 @@
         });
       }
 
-      // Evento: reportar
       const reportBtn = card.querySelector('.btn-report');
       if (reportBtn) {
         reportBtn.addEventListener('click', (e) => {
@@ -527,7 +506,6 @@
         });
       }
 
-      // Evento: eliminar (inspector)
       if (inspectorMode) {
         const deleteBtn = card.querySelector('.btn-inspector-delete');
         if (deleteBtn) {
@@ -545,7 +523,6 @@
     }
   }
 
-  // ========== Paginación ==========
   function renderPagination() {
     if (!paginationDiv) return;
     const totalPages = Math.ceil(filteredProducts.length / PAGE_SIZE);
@@ -576,7 +553,6 @@
     }
   }
 
-  // ========== Lazy loading de imágenes ==========
   function initLazyImages() {
     if (!('IntersectionObserver' in window)) return;
     const observer = new IntersectionObserver((entries) => {
@@ -595,7 +571,6 @@
     document.querySelectorAll('.comunidad-card-img[data-src]').forEach(img => observer.observe(img));
   }
 
-  // ========== Eventos de filtros ==========
   function bindFilterChangeEvents() {
     const searchInput = document.getElementById('comunidad-search');
     const catSelectEl = document.getElementById('comunidad-cat');
@@ -616,7 +591,6 @@
     if (vendorSelectEl) vendorSelectEl.addEventListener('change', updateHandler);
   }
 
-  // ========== Inicializar carrito y UI común ==========
   function initCartAndUI() {
     if (typeof window.loadCartFromStorage === 'function') window.loadCartFromStorage();
     if (typeof window.renderCart === 'function') window.renderCart();
@@ -653,7 +627,6 @@
     }
   }
 
-  // ========== Estilos para botones nuevos ==========
   function injectStyles() {
     if (document.getElementById('comunidad-extra-styles')) return;
     const style = document.createElement('style');
@@ -713,7 +686,6 @@
     document.head.appendChild(style);
   }
 
-  // ========== Punto de entrada ==========
   async function initComunidad() {
     injectStyles();
 
@@ -727,7 +699,6 @@
       return;
     }
 
-    // Inicializar inspector (async, antes de cargar productos)
     await initInspectorMode();
 
     bindFilterChangeEvents();
