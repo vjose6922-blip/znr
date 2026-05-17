@@ -1356,8 +1356,13 @@ function doAdminLogout() {
 (function () {
   'use strict';
 
-  function getApi()   { return window.ADMIN_API_URL || window.API_URL || ''; }
-  function getToken() { return sessionStorage.getItem('admin_token') || ''; }
+
+    function getApi()   { return ADMIN_API_URL; }  // referencia directa a la const del scope externo
+function getToken() { 
+  return sessionStorage.getItem('admin_token') 
+      || localStorage.getItem('admin_token') 
+      || ''; 
+}
 
 
   const STYLES = `
