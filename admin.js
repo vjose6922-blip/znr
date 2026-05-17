@@ -1569,16 +1569,18 @@ function getToken() {
   async function rechazarVendedor(uid) {
     await _vendorAction(uid, 'rechazarVendedor', '❌ Vendedor rechazado');
   }
-  async function _vendorAction(uid, action, msg) {
-    try {
-      const params = new URLSearchParams({ action, uid, token: getToken() });
-      const res    = await fetch(getApi(), {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: params.toString()
-      });
-      const data = await res.json();
-      if (!data.ok) throw new Error(data.error);
+ async function _vendorAction(uid, action, msg) {
+  try {
+    const params = new URLSearchParams({ action, uid, token: getToken() });
+    console.log('📤 Enviando:', { action, uid, token: getToken(), api: getApi() }); // ← AGREGA
+    const res = await fetch(getApi(), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: params.toString()
+    });
+    const data = await res.json();
+    console.log('📥 Respuesta del backend:', data); // ← AGREGA
+    if (!data.ok) throw new Error(data.error);
       if (typeof showTemporaryMessage === 'function') showTemporaryMessage(msg, 'success');
       loadVendors();
     } catch (err) {
