@@ -1144,6 +1144,12 @@ async function checkNotifications() {
 
     lastNotifCount = count;
 
+    // Actualizar tab badge en notificaciones.html
+    if (typeof window._updateNotifTabBadge === 'function') window._updateNotifTabBadge('solicitudes', count);
+    // Actualizar badge secundario si existe (notificaciones.html header)
+    const secBadge = document.getElementById('notif-badge-header');
+    if (secBadge) secBadge.textContent = count;
+
     // Actualizar panel lateral de notificaciones si está abierto
     const panel = document.getElementById('admin-notif-panel');
     if (panel && panel.classList.contains('open')) {
@@ -1671,29 +1677,55 @@ function doAdminLogout() {
         return;
       }
 
-      container.innerHTML = reportes.map(r => `
-        <div class="reporte-row" id="rrow-${escapeHtml(String(r.reporteId || r.id || ''))}">
-          <div class="info">
-            <strong>🛍️ ${escapeHtml(r.nombreProducto || '—')}</strong>
-            <span>🚩 ${escapeHtml(r.motivo || '—')}</span><br>
-            <span>📅 ${r.timestamp ? new Date(r.timestamp).toLocaleString() : '—'}</span>
-            ${r.telefonoUsuario ? `<br><span>📱 ${escapeHtml(r.telefonoUsuario)}</span>` : ''}
+      container.innerHTML = reportes.map(r => {
+        const imgSrc = r.imagen1 || r.imagen || '';
+        const imgOpt = imgSrc && typeof optimizeDriveUrl === 'function' ? optimizeDriveUrl(imgSrc, 160) : imgSrc;
+        const vendorUid   = escapeHtml(r.vendedor_uid   || r.vendedorUid   || '');
+        const vendorNombre= escapeHtml(r.vendedor_nombre || r.nombreVendedor || r.vendedorNombre || '');
+        const vendorTel   = escapeHtml(r.vendedor_tel   || r.telefonoVendedor || '');
+        const productId   = escapeHtml(String(r.productId || ''));
+        const reporteId   = escapeHtml(String(r.reporteId || r.id || ''));
+        const nombre      = escapeHtml(r.nombreProducto || '—');
+        const precio      = r.precio ? '$' + Number(r.precio).toLocaleString() : '';
+        const categoria   = escapeHtml(r.categoria || '');
+        return `
+        <div class="reporte-card" id="rrow-${reporteId}">
+          <!-- Fila superior: imagen + detalles -->
+          <div class="reporte-card-top">
+            ${imgSrc ? `<img src="${escapeHtml(imgOpt)}" class="reporte-card-img" onerror="this.src=''" loading="lazy" onclick="window.open('${escapeHtml(imgSrc)}','_blank')">` : '<div class="reporte-card-img-placeholder">📦</div>'}
+            <div class="reporte-card-info">
+              <div class="reporte-card-nombre">${nombre}</div>
+              <div class="reporte-card-meta">
+                ${precio ? `<span class="rmeta-chip price">💲${precio}</span>` : ''}
+                ${categoria ? `<span class="rmeta-chip">${categoria}</span>` : ''}
+                <span class="rmeta-chip motivo">🚩 ${escapeHtml(r.motivo || '—')}</span>
+              </div>
+              ${vendorNombre ? `
+              <div class="reporte-card-vendedor">
+                <span>🏪 <strong>${vendorNombre}</strong></span>
+                ${vendorTel ? `<a href="https://wa.me/${vendorTel.replace(/\D/g,'')}" target="_blank" rel="noopener" style="color:#25d366;font-size:12px;">💬 ${vendorTel}</a>` : ''}
+              </div>` : ''}
+              <div style="font-size:11px;color:#aaa;margin-top:4px;">
+                📅 ${r.timestamp ? new Date(r.timestamp).toLocaleString() : '—'}
+                ${r.telefonoUsuario ? ` · 📱 Reportó: ${escapeHtml(r.telefonoUsuario)}` : ''}
+              </div>
+            </div>
           </div>
-          <div class="actions">
-            <a class="btn-ver-producto" href="comunidad.html?inspector=1#product-${escapeHtml(String(r.productId || ''))}" target="_blank">
-              👁️ Ver producto
-            </a>
+          <!-- Acciones -->
+          <div class="reporte-card-actions">
+            <a class="btn-ver-producto" href="comunidad.html?inspector=1#product-${productId}" target="_blank">👁️ Ver</a>
+            ${vendorUid ? `<button class="btn-suspend" onclick="AdminComunidad.suspenderVendedor('${vendorUid}', '${vendorNombre}')">⏸️ Suspender vendedor</button>` : ''}
             <button class="btn-del-desde-reporte"
-              onclick="AdminComunidad.eliminarProductoDesdeReporte('${escapeHtml(String(r.productId || ''))}', '${escapeHtml(r.nombreProducto || '')}', '${escapeHtml(String(r.reporteId || r.id || ''))}')">
+              onclick="AdminComunidad.eliminarProductoDesdeReporte('${productId}', '${nombre}', '${reporteId}')">
               🗑️ Eliminar producto
             </button>
             <button class="btn-marcar-revisado"
-              onclick="AdminComunidad.marcarReporteRevisado('${escapeHtml(String(r.reporteId || r.id || ''))}')">
+              onclick="AdminComunidad.marcarReporteRevisado('${reporteId}')">
               ✅ Revisado
             </button>
           </div>
-        </div>
-      `).join('');
+        </div>`;
+      }).join('');
     } catch (err) {
       container.innerHTML = `<p style="color:#ef4444">Error: ${escapeHtml(err.message)}</p>`;
     }
@@ -1878,6 +1910,20 @@ function doAdminLogout() {
         if (rpBtn) rpBtn.addEventListener('click', () => loadPendingProducts());
         const rrBtn = document.getElementById('refresh-reportes-btn');
         if (rrBtn) rrBtn.addEventListener('click', () => loadReportes());
+        // Botón recargar solicitudes — dispara el mecanismo de notifications-optimized.js
+        const rsBtn = document.getElementById('refresh-solicitudes-btn');
+        if (rsBtn) rsBtn.addEventListener('click', () => {
+          // notifications-optimized.js expone window.NotifManager o dispara un custom event
+          if (window.NotifManager && typeof window.NotifManager.reload === 'function') {
+            window.NotifManager.reload();
+          } else {
+            // Fallback: recargar directamente via checkNotifications (disponible en admin.js)
+            checkNotifications();
+            // También forzar recarga del contenedor de notificaciones si existe
+            const notifContainer = document.getElementById('notifications');
+            if (notifContainer) notifContainer.dispatchEvent(new CustomEvent('zr-reload'));
+          }
+        });
       }, 400);
     });
   }
