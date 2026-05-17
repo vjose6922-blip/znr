@@ -1642,11 +1642,7 @@ connect-src 'self' https://script.google.com https://script.googleusercontent.co
 
         <h2>Lista de Productos</h2>
 
-        <a href="comunidad.html?inspector=1" target="_blank"
-           style="display:inline-flex;align-items:center;gap:6px;padding:8px 18px;border-radius:30px;background:linear-gradient(135deg,#3b1f5f,#7c3aed);color:white;font-size:13px;font-weight:700;text-decoration:none;box-shadow:0 2px 8px rgba(59,31,95,0.3);transition:all 0.2s;"
-           title="Abrir Comunidad como inspector admin para eliminar productos">
-          🛡️ Modo Inspector (Comunidad)
-        </a>
+
 
       </div>
 
@@ -1746,6 +1742,19 @@ connect-src 'self' https://script.google.com https://script.googleusercontent.co
       <span class="npi-badge" id="notif-panel-reportes-count">—</span>
     </a>
     <a href="notificaciones.html" style="display:block;margin-top:8px;padding:12px;background:linear-gradient(135deg,#ff4f81,#ff7a4f);color:#fff;font-weight:700;border-radius:12px;text-align:center;text-decoration:none;font-size:14px;">Ver todas las notificaciones →</a>
+
+    <hr style="border:none;border-top:1px solid rgba(255,255,255,.08);margin:16px 0;">
+    <p style="font-size:11px;color:#666;text-transform:uppercase;letter-spacing:.06em;margin:0 0 10px;">Herramientas</p>
+
+    <a href="comunidad.html?inspector=1" target="_blank" class="notif-panel-item" style="margin-bottom:10px;">
+      <span class="npi-icon">🛡️</span>
+      <span class="npi-label">Modo Inspector (Comunidad)</span>
+    </a>
+
+    <button onclick="closeAdminNotifPanel(); openVendorStatsGlobal();" class="notif-panel-item" style="width:100%;text-align:left;border:1px solid rgba(255,255,255,.06);cursor:pointer;margin-bottom:0;">
+      <span class="npi-icon">📊</span>
+      <span class="npi-label">Estadísticas de Vendedores</span>
+    </button>
   </div>
 </div>
 <style>
@@ -1771,24 +1780,101 @@ function closeAdminNotifPanel() {
 }
 async function loadNotifPanelCounts() {
   const token = sessionStorage.getItem('admin_token') || '';
-  const api   = window.ADMIN_API_URL || '';
-  if (!api || !token) return;
+  const api   = window.ADMIN_API_URL || 'https://script.google.com/macros/s/AKfycbzNshrt3zldBNiyoB8x36ktCEO02H0cKxebiTuK7UAbsgd5R9biaCW7W4ihm1aVOJG7ww/exec';
   try {
-    const [vRes, pRes, rRes] = await Promise.all([
-      fetch(`${api}?action=vendedoresAdmin&token=${encodeURIComponent(token)}`).then(r=>r.json()).catch(()=>({})),
-      fetch(`${api}?action=listarComunidad&pendientes=true&token=${encodeURIComponent(token)}`).then(r=>r.json()).catch(()=>({})),
-      fetch(`${api}?action=obtenerReportes&token=${encodeURIComponent(token)}`).then(r=>r.json()).catch(()=>({})),
+    const [nRes, vRes, pRes, rRes] = await Promise.all([
+      fetch(`${api}?action=notifications`).then(r=>r.json()).catch(()=>({})),
+      token ? fetch(`${api}?action=vendedoresAdmin&token=${encodeURIComponent(token)}`).then(r=>r.json()).catch(()=>({})) : Promise.resolve({}),
+      token ? fetch(`${api}?action=listarComunidad&pendientes=true&token=${encodeURIComponent(token)}`).then(r=>r.json()).catch(()=>({})) : Promise.resolve({}),
+      token ? fetch(`${api}?action=obtenerReportes&token=${encodeURIComponent(token)}`).then(r=>r.json()).catch(()=>({})) : Promise.resolve({}),
     ]);
+    // Solicitudes pendientes
+    const solCount = (nRes.notifications||[]).filter(n=>n.STATUS==='pending').length;
+    setBadge('notif-panel-solicitudes-count', solCount);
+    // También actualizar el badge principal del header
+    const mainBadge = document.getElementById('notif-badge');
+    if (mainBadge) mainBadge.textContent = solCount;
     setBadge('notif-panel-vendors-count',  (vRes.vendors  ||[]).filter(v=>v.estado==='pendiente').length);
     setBadge('notif-panel-pending-count',  (pRes.products ||pRes.pendientes||[]).length);
     setBadge('notif-panel-reportes-count', (rRes.reportes ||[]).length);
-  } catch(e) {}
+  } catch(e) { console.warn('loadNotifPanelCounts error:', e); }
 }
 function setBadge(id, count) {
   const el = document.getElementById(id);
   if (!el) return;
   el.textContent = count;
   el.classList.toggle('zero', count === 0);
+}
+
+// Estadísticas globales de vendedores (desde panel lateral)
+async function openVendorStatsGlobal() {
+  const token = sessionStorage.getItem('admin_token') || '';
+  const api   = window.ADMIN_API_URL || 'https://script.google.com/macros/s/AKfycbzNshrt3zldBNiyoB8x36ktCEO02H0cKxebiTuK7UAbsgd5R9biaCW7W4ihm1aVOJG7ww/exec';
+  let modal = document.getElementById('global-vendor-stats-modal');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'global-vendor-stats-modal';
+    modal.style.cssText = 'display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);backdrop-filter:blur(5px);z-index:19999;align-items:center;justify-content:center;';
+    modal.innerHTML = `
+      <div style="background:#fff;border-radius:22px;padding:28px;max-width:500px;width:93%;max-height:85vh;overflow-y:auto;position:relative;box-shadow:0 24px 64px rgba(0,0,0,.3);">
+        <button onclick="document.getElementById('global-vendor-stats-modal').style.display='none'"
+          style="position:absolute;top:14px;right:14px;background:#f0f0f5;border:none;width:36px;height:36px;border-radius:50%;font-size:17px;cursor:pointer;color:#666;">✕</button>
+        <h3 style="margin:0 0 18px;font-size:19px;">📊 Estadísticas de Vendedores</h3>
+        <div id="gvs-summary" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:20px;"></div>
+        <div id="gvs-list"></div>
+      </div>`;
+    document.body.appendChild(modal);
+    modal.addEventListener('click', e => { if (e.target===modal) modal.style.display='none'; });
+  }
+  modal.style.display = 'flex';
+  document.getElementById('gvs-summary').innerHTML = '<p style="color:#aaa;grid-column:span 3;text-align:center;">Cargando...</p>';
+  document.getElementById('gvs-list').innerHTML = '';
+  try {
+    const [vRes, pRes] = await Promise.all([
+      fetch(`${api}?action=vendedoresAdmin&token=${encodeURIComponent(token)}`).then(r=>r.json()).catch(()=>({})),
+      fetch(`${api}?action=listarComunidad&token=${encodeURIComponent(token)}`).then(r=>r.json()).catch(()=>({})),
+    ]);
+    const vendors  = vRes.vendors  || [];
+    const products = pRes.products || pRes.pendientes || [];
+    const activos    = vendors.filter(v=>v.estado==='activo').length;
+    const pendientes = vendors.filter(v=>v.estado==='pendiente').length;
+    const suspendidos= vendors.filter(v=>v.estado==='suspendido'||v.estado==='rechazado').length;
+    document.getElementById('gvs-summary').innerHTML = `
+      <div style="background:#f0fff4;border-radius:14px;padding:14px;text-align:center;">
+        <div style="font-size:24px;font-weight:800;color:#2e7d32;">${activos}</div>
+        <div style="font-size:11px;color:#555;text-transform:uppercase;">Activos</div>
+      </div>
+      <div style="background:#fff8e1;border-radius:14px;padding:14px;text-align:center;">
+        <div style="font-size:24px;font-weight:800;color:#f57f17;">${pendientes}</div>
+        <div style="font-size:11px;color:#555;text-transform:uppercase;">Pendientes</div>
+      </div>
+      <div style="background:#ffebee;border-radius:14px;padding:14px;text-align:center;">
+        <div style="font-size:24px;font-weight:800;color:#c62828;">${suspendidos}</div>
+        <div style="font-size:11px;color:#555;text-transform:uppercase;">Suspendidos</div>
+      </div>`;
+    const listEl = document.getElementById('gvs-list');
+    if (!vendors.length) { listEl.innerHTML = '<p style="color:#aaa;text-align:center;">Sin vendedores</p>'; return; }
+    listEl.innerHTML = vendors.map(v => {
+      const myProds = products.filter(p=>p.vendedor_uid===v.uid);
+      const aprobados = myProds.filter(p=>p.estado==='aprobado').length;
+      const pendProd  = myProds.filter(p=>p.estado==='pendiente').length;
+      const stock = myProds.reduce((s,p)=>s+(Number(p.stock)||0),0);
+      return `<div style="display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid #f0f0f5;">
+        <div style="flex:1;min-width:0;">
+          <div style="font-weight:700;font-size:14px;">${v.nombre||'—'}</div>
+          <div style="font-size:12px;color:#888;">📱 ${v.telefono||'—'} · <span style="color:${v.estado==='activo'?'#2e7d32':'#f57f17'}">${v.estado}</span></div>
+        </div>
+        <div style="text-align:right;flex-shrink:0;">
+          <div style="font-size:13px;font-weight:600;">📦 ${myProds.length} productos</div>
+          <div style="font-size:11px;color:#888;">✅ ${aprobados} aprobados · ⏳ ${pendProd} pend. · Stock: ${stock}</div>
+        </div>
+        ${v.estado==='activo' && typeof AdminComunidad!=='undefined'
+          ? `<button onclick="AdminComunidad.suspenderVendedor('${v.uid}','${v.nombre}')" class="btn-suspend" style="flex-shrink:0;">⏸️</button>` : ''}
+      </div>`;
+    }).join('');
+  } catch(e) {
+    document.getElementById('gvs-summary').innerHTML = `<p style="color:#ef4444;grid-column:span 3;">Error: ${e.message}</p>`;
+  }
 }
 </script>
 
