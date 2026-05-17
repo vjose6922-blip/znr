@@ -1569,24 +1569,42 @@ function getToken() {
   async function rechazarVendedor(uid) {
     await _vendorAction(uid, 'rechazarVendedor', '❌ Vendedor rechazado');
   }
- async function _vendorAction(uid, action, msg) {
+
+    async function _vendorAction(uid, action, msg) {
   try {
     const params = new URLSearchParams({ action, uid, token: getToken() });
-    console.log('📤 Enviando:', { action, uid, token: getToken(), api: getApi() }); // ← AGREGA
-    const res = await fetch(getApi(), {
+    const res    = await fetch(getApi(), {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body: params.toString()
     });
     const data = await res.json();
-    console.log('📥 Respuesta del backend:', data); // ← AGREGA
     if (!data.ok) throw new Error(data.error);
-      if (typeof showTemporaryMessage === 'function') showTemporaryMessage(msg, 'success');
-      loadVendors();
-    } catch (err) {
-      if (typeof showTemporaryMessage === 'function') showTemporaryMessage('❌ ' + err.message, 'error');
+
+    // ── NUEVO: si es aprobación, abrir WhatsApp con la contraseña temporal ──
+    if (action === 'aprobarVendedor' && data.codigo && data.telefono) {
+      const vendorRow = document.getElementById(`vrow-${uid}`);
+      const nombre = vendorRow
+        ? vendorRow.querySelector('.info strong')?.textContent?.trim() || 'Vendedor'
+        : 'Vendedor';
+      const mensaje =
+        `🎉 *¡Cuenta aprobada!* 🎉\n\n` +
+        `Hola ${nombre}, tu cuenta de vendedor en Z&R Comunidad ha sido *aprobada*.\n\n` +
+        `*Tu contraseña temporal es:* ${data.codigo}\n\n` +
+        `Puedes cambiarla después de iniciar sesión.\n\n` +
+        `👉 Accede aquí: znr.com/vendedor.html\n\n` +
+        `¡Bienvenido! 🚀`;
+      const waUrl = `https://wa.me/52${data.telefono}?text=${encodeURIComponent(mensaje)}`;
+      window.open(waUrl, '_blank');
     }
+    // ────────────────────────────────────────────────────────────────────────
+
+    if (typeof showTemporaryMessage === 'function') showTemporaryMessage(msg, 'success');
+    loadVendors();
+  } catch (err) {
+    if (typeof showTemporaryMessage === 'function') showTemporaryMessage('❌ ' + err.message, 'error');
   }
+    }
 
 
   async function loadPendingProducts() {
