@@ -1572,14 +1572,14 @@ function getToken() {
 
 
 
-
-async function _vendorAction(uid, action, msg) {
+    async function _vendorAction(uid, action, msg) {
   try {
     const params = new URLSearchParams({ action, uid, token: getToken() });
 
-    // Abrir ventana ANTES del fetch para evitar bloqueo de popups
+    // Abrir ventana ANTES del fetch para evitar bloqueo de popups (solo desktop)
+    const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
     let waWindow = null;
-    if (action === 'aprobarVendedor') {
+    if (action === 'aprobarVendedor' && !isMobile) {
       waWindow = window.open('', '_blank');
       if (waWindow) waWindow.document.write('<p style="font-family:sans-serif;padding:20px">⏳ Aprobando vendedor, un momento...</p>');
     }
@@ -1595,8 +1595,8 @@ async function _vendorAction(uid, action, msg) {
       throw new Error(data.error);
     }
 
-    // Redirigir la ventana ya abierta a WhatsApp
-    if (action === 'aprobarVendedor' && data.codigo && data.telefono && waWindow) {
+    // Enviar WhatsApp con contraseña temporal al aprobar
+    if (action === 'aprobarVendedor' && data.codigo && data.telefono) {
       const vendorRow = document.getElementById(`vrow-${uid}`);
       const nombre = vendorRow
         ? vendorRow.querySelector('.info strong')?.textContent?.trim() || 'Vendedor'
@@ -1608,7 +1608,13 @@ async function _vendorAction(uid, action, msg) {
         `Puedes cambiarla después de iniciar sesión.\n\n` +
         `👉 Accede aquí: znr.com/vendedor.html\n\n` +
         `¡Bienvenido! 🚀`;
-      waWindow.location.href = `https://wa.me/52${data.telefono}?text=${encodeURIComponent(mensaje)}`;
+
+      if (isMobile) {
+        if (waWindow) waWindow.close();
+        window.location.href = `whatsapp://send?phone=52${data.telefono}&text=${encodeURIComponent(mensaje)}`;
+      } else {
+        if (waWindow) waWindow.location.href = `https://wa.me/52${data.telefono}?text=${encodeURIComponent(mensaje)}`;
+      }
     }
 
     if (typeof showTemporaryMessage === 'function') showTemporaryMessage(msg, 'success');
@@ -1616,7 +1622,9 @@ async function _vendorAction(uid, action, msg) {
   } catch (err) {
     if (typeof showTemporaryMessage === 'function') showTemporaryMessage('❌ ' + err.message, 'error');
   }
-}
+    }
+
+
 
     
 
