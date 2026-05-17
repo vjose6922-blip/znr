@@ -1570,19 +1570,33 @@ function getToken() {
     await _vendorAction(uid, 'rechazarVendedor', '❌ Vendedor rechazado');
   }
 
-    async function _vendorAction(uid, action, msg) {
+
+
+
+async function _vendorAction(uid, action, msg) {
   try {
     const params = new URLSearchParams({ action, uid, token: getToken() });
-    const res    = await fetch(getApi(), {
+
+    // Abrir ventana ANTES del fetch para evitar bloqueo de popups
+    let waWindow = null;
+    if (action === 'aprobarVendedor') {
+      waWindow = window.open('', '_blank');
+      if (waWindow) waWindow.document.write('<p style="font-family:sans-serif;padding:20px">⏳ Aprobando vendedor, un momento...</p>');
+    }
+
+    const res  = await fetch(getApi(), {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body: params.toString()
     });
     const data = await res.json();
-    if (!data.ok) throw new Error(data.error);
+    if (!data.ok) {
+      if (waWindow) waWindow.close();
+      throw new Error(data.error);
+    }
 
-    // ── NUEVO: si es aprobación, abrir WhatsApp con la contraseña temporal ──
-    if (action === 'aprobarVendedor' && data.codigo && data.telefono) {
+    // Redirigir la ventana ya abierta a WhatsApp
+    if (action === 'aprobarVendedor' && data.codigo && data.telefono && waWindow) {
       const vendorRow = document.getElementById(`vrow-${uid}`);
       const nombre = vendorRow
         ? vendorRow.querySelector('.info strong')?.textContent?.trim() || 'Vendedor'
@@ -1594,17 +1608,17 @@ function getToken() {
         `Puedes cambiarla después de iniciar sesión.\n\n` +
         `👉 Accede aquí: znr.com/vendedor.html\n\n` +
         `¡Bienvenido! 🚀`;
-      const waUrl = `https://wa.me/52${data.telefono}?text=${encodeURIComponent(mensaje)}`;
-      window.open(waUrl, '_blank');
+      waWindow.location.href = `https://wa.me/52${data.telefono}?text=${encodeURIComponent(mensaje)}`;
     }
-    // ────────────────────────────────────────────────────────────────────────
 
     if (typeof showTemporaryMessage === 'function') showTemporaryMessage(msg, 'success');
     loadVendors();
   } catch (err) {
     if (typeof showTemporaryMessage === 'function') showTemporaryMessage('❌ ' + err.message, 'error');
   }
-    }
+}
+
+    
 
 
   async function loadPendingProducts() {
