@@ -548,6 +548,7 @@
             Imagen1:   p.imagen1   || '',
             Imagen2:   p.imagen2   || '',
             Imagen3:   p.imagen3   || '',
+            _comunidad: true,
           };
           openImageModal(img, p.id, allImages, productData);
         }
@@ -579,6 +580,7 @@
       const data = await res.json();
       if (!data.ok || !data.products) throw new Error('Sin datos');
       const aprobados = data.products.filter(p => p.estado === 'aprobado').slice(0, PREVIEW_COUNT);
+      window.allCommunityProductsIndexed = data.products.filter(p => p.estado === 'aprobado'); // expuesto para el modal
       grid.innerHTML = '';
       if (!aprobados.length) {
         grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:24px;color:#aaa">Pronto habrá productos de la comunidad aquí.</div>';
@@ -690,4 +692,4 @@ window.addEventListener('looksWishlistUpdated', () => {
 
     
 </body>
-</html>
+  </html>
