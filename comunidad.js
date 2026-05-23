@@ -135,6 +135,7 @@
 
       allCommunityProducts = data.products || [];
       allCommunityProducts = allCommunityProducts.filter(p => p.estado === 'aprobado');
+      window.allCommunityProductsIndexed = allCommunityProducts; // expuesto para el modal
       filteredProducts = [...allCommunityProducts];
       currentPage = 1;
 
@@ -500,6 +501,7 @@
               Imagen1:   product.imagen1   || '',
               Imagen2:   product.imagen2   || '',
               Imagen3:   product.imagen3   || '',
+              _comunidad: true,
             };
             window.openImageModal(imgUrl, product.id, allImages, productData);
           }
