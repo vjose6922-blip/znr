@@ -115,6 +115,54 @@
     return (value != null) ? String(value) : '';
   }
 
+  // ── Cache key exclusivo para comunidad (distinto del catálogo principal) ──
+  const COMUNIDAD_CACHE_KEY = 'zr_comunidad_cache';
+  const COMUNIDAD_CACHE_MAX_AGE = 600000; // 10 min
+
+  function getComunidadCache() {
+    try {
+      const raw = localStorage.getItem(COMUNIDAD_CACHE_KEY);
+      if (!raw) return null;
+      const { data, timestamp } = JSON.parse(raw);
+      if (Date.now() - timestamp > COMUNIDAD_CACHE_MAX_AGE) {
+        localStorage.removeItem(COMUNIDAD_CACHE_KEY);
+        return null;
+      }
+      return data && data.length > 0 ? data : null;
+    } catch(e) { return null; }
+  }
+
+  function setComunidadCache(products) {
+    try {
+      localStorage.setItem(COMUNIDAD_CACHE_KEY, JSON.stringify({
+        data: products,
+        timestamp: Date.now()
+      }));
+    } catch(e) { console.warn('No se pudo guardar caché de comunidad:', e); }
+  }
+
+  function _applyProductsAndRender(products, urlFilters) {
+    allCommunityProducts = products.filter(p => p.estado === 'aprobado');
+    window.allCommunityProductsIndexed = allCommunityProducts;
+    filteredProducts = [...allCommunityProducts];
+    currentPage = 1;
+    populateFilters();
+
+    if (urlFilters.busqueda) {
+      const si = document.getElementById('comunidad-search');
+      if (si) si.value = urlFilters.busqueda;
+    }
+    if (urlFilters.categoria && catSelect) {
+      const ok = Array.from(catSelect.options).some(o => o.value === urlFilters.categoria);
+      if (ok) catSelect.value = urlFilters.categoria;
+    }
+    if (urlFilters.vendedor && vendorSelect) {
+      const ok = Array.from(vendorSelect.options).some(o => o.value === urlFilters.vendedor);
+      if (ok) vendorSelect.value = urlFilters.vendedor;
+    }
+    applyFilters();
+  }
+
   async function loadCommunityProducts() {
     if (!window.API_URL) {
       console.error('API_URL no definida');
@@ -122,47 +170,60 @@
       return;
     }
     if (isLoading) return;
+
+    const urlFilters = getFiltersFromURL();
+
+    // ── 1. Servir caché inmediatamente si existe ───────────────────────────
+    const cached = getComunidadCache();
+    if (cached) {
+      _applyProductsAndRender(cached, urlFilters);
+      console.log('📦 Comunidad: mostrando desde caché, actualizando en fondo...');
+    } else {
+      // Sin caché: mostrar indicador de carga
+      if (typeof window.showLoader === 'function') window.showLoader('Cargando comunidad...');
+      if (gridContainer) gridContainer.innerHTML = '<div style="grid-column:1/-1; text-align:center; padding:40px;">🔄 Cargando productos de la comunidad...</div>';
+    }
+
+    // ── 2. Sin internet: quedarse con lo que hay ───────────────────────────
+    if (!navigator.onLine) {
+      if (typeof window.hideLoader === 'function') window.hideLoader();
+      if (cached) {
+        if (typeof window.showTemporaryMessage === 'function')
+          window.showTemporaryMessage('📡 Sin conexión — mostrando productos en caché', 'info');
+      } else {
+        if (gridContainer) gridContainer.innerHTML = '<div style="grid-column:1/-1; text-align:center; padding:40px; color:#ef4444;">📡 Sin conexión y sin caché.<br><button onclick="location.reload()" style="margin-top:12px; padding:8px 20px; border-radius:30px; border:none; background:#ff4f81; color:white; cursor:pointer;">Reintentar</button></div>';
+      }
+      return;
+    }
+
+    // ── 3. Fetch en fondo (o primer carga) ────────────────────────────────
     isLoading = true;
-
-    if (typeof window.showLoader === 'function') window.showLoader('Cargando comunidad...');
-    if (gridContainer) gridContainer.innerHTML = '<div style="grid-column:1/-1; text-align:center; padding:40px;">🔄 Cargando productos de la comunidad...</div>';
-
     try {
       const url = `${window.API_URL}?action=listarComunidad`;
       const res = await fetch(url);
       const data = await res.json();
       if (!data.ok) throw new Error(data.error || 'Error al cargar');
 
-      allCommunityProducts = data.products || [];
-      allCommunityProducts = allCommunityProducts.filter(p => p.estado === 'aprobado');
-      window.allCommunityProductsIndexed = allCommunityProducts; // expuesto para el modal
-      filteredProducts = [...allCommunityProducts];
-      currentPage = 1;
+      const fresh = data.products || [];
+      setComunidadCache(fresh);
 
-      populateFilters();
-
-      const urlFilters = getFiltersFromURL();
-      if (urlFilters.busqueda) {
-        const searchInput = document.getElementById('comunidad-search');
-        if (searchInput) searchInput.value = urlFilters.busqueda;
+      // Solo re-renderizar si los datos cambiaron (evita parpadeo innecesario)
+      if (JSON.stringify(fresh) !== JSON.stringify(cached)) {
+        _applyProductsAndRender(fresh, urlFilters);
       }
-      if (urlFilters.categoria && catSelect) {
-        const optionExists = Array.from(catSelect.options).some(opt => opt.value === urlFilters.categoria);
-        if (optionExists) catSelect.value = urlFilters.categoria;
-      }
-      if (urlFilters.vendedor && vendorSelect) {
-        const optionExists = Array.from(vendorSelect.options).some(opt => opt.value === urlFilters.vendedor);
-        if (optionExists) vendorSelect.value = urlFilters.vendedor;
-      }
-
-      applyFilters();
     } catch (err) {
       console.error('Error en loadCommunityProducts:', err);
-      if (gridContainer) {
-        gridContainer.innerHTML = `<div style="grid-column:1/-1; text-align:center; padding:40px; color:#ef4444;">
-          ❌ Error al cargar productos de la comunidad.<br>
-          <button onclick="location.reload()" style="margin-top:12px; padding:8px 20px; border-radius:30px; border:none; background:#ff4f81; color:white; cursor:pointer;">Reintentar</button>
-        </div>`;
+      if (cached) {
+        // Ya hay algo visible; solo avisar sutilmente
+        if (typeof window.showTemporaryMessage === 'function')
+          window.showTemporaryMessage('⚠️ No se pudo actualizar. Mostrando versión en caché.', 'info');
+      } else {
+        if (gridContainer) {
+          gridContainer.innerHTML = `<div style="grid-column:1/-1; text-align:center; padding:40px; color:#ef4444;">
+            ❌ Error al cargar productos de la comunidad.<br>
+            <button onclick="location.reload()" style="margin-top:12px; padding:8px 20px; border-radius:30px; border:none; background:#ff4f81; color:white; cursor:pointer;">Reintentar</button>
+          </div>`;
+        }
       }
     } finally {
       isLoading = false;
@@ -763,6 +824,18 @@
     initCartAndUI();
     loadCommunityProducts();
   }
+
+
+  // ── Cuando se recupere la conexión, actualizar comunidad ──────────────────
+  window.addEventListener('online', () => {
+    console.log('🟢 Comunidad: conexión recuperada, actualizando...');
+    if (typeof window.showTemporaryMessage === 'function')
+      window.showTemporaryMessage('🟢 Conexión recuperada. Actualizando...', 'success');
+    setTimeout(() => {
+      isLoading = false; // liberar por si quedó bloqueado
+      loadCommunityProducts();
+    }, 1500);
+  });
 
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', initComunidad);
