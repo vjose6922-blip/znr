@@ -1,9 +1,6 @@
 <!DOCTYPE html>
-
 <html lang="es">
-
 <head>
-
   <meta charset="UTF-8" />
 <meta http-equiv="Content-Security-Policy" content="
   default-src 'self';
@@ -19,9 +16,7 @@ connect-src 'self' https://script.google.com https://script.googleusercontent.co
   worker-src 'self' blob:;
   child-src 'self' blob:;
 ">
-
  <title>Panel Administrador - Z&R</title>
-
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <link rel="preconnect" href="https://script.google.com" crossorigin>
   <link rel="preconnect" href="https://lh3.googleusercontent.com" crossorigin>
@@ -40,159 +35,81 @@ connect-src 'self' https://script.google.com https://script.googleusercontent.co
   * {
     box-sizing: border-box;
   }
-
-  
-
   .admin-header {
-
     background: rgba(5, 3, 10, 0.95) !important;
-
     backdrop-filter: blur(18px) !important;
-
     border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
-
   }
-
-
 
 .app-header {
-
   flex-wrap: nowrap;    
-
 }
-
-
 
 .header-left {
-
   flex-shrink: 1;        
-
   min-width: 0;          
-
 }
-
-
 
 .header-right {
-
   flex-shrink: 0;    
-
   flex-wrap: nowrap;    
-
 }
 
-
-
-    
-
   .admin-header .app-title,
-
   .admin-header .app-subtitle {
-
     color: white !important;
-
   }
-
-  
 
   .admin-main {
-
     background: linear-gradient(180deg, #0b0714 0%, #1a1528 100%);
-
     min-height: calc(100vh - 64px);
-
     padding: 12px;
-
     width: 100%;
-
   }
 
   
-
   @media (min-width: 768px) {
-
     .admin-main {
-
       max-width: 1200px;
-
       margin: 0 auto;
-
       padding: 20px;
-
     }
-
   }
-
-  
 
   .admin-card {
-
     background: rgba(255, 255, 255, 0.98);
-
     border-radius: 16px;
-
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-
     margin-bottom: 16px;
-
     overflow: hidden;
-
     width: 100%;
-
   }
-
-  
 
   .admin-card-header {
-
     padding: 14px 16px;
-
     background: linear-gradient(135deg, #3b1f5f, #5a3b8a);
-
     color: white !important;
-
     display: flex;
-
     justify-content: space-between;
-
     align-items: center;
-
     flex-wrap: wrap;
-
     gap: 8px;
-
   }
-
-  
 
   .admin-card-header h2 {
-
     color: white !important;
-
     font-size: 18px;
-
     margin: 0;
-
   }
 
-  
-
   .admin-card-header .text-button {
-
     color: white !important;
-
     background: rgba(255,255,255,0.2);
-
     padding: 6px 12px;
-
     border-radius: 20px;
-
     font-size: 12px;
-
     border: none;
-
     cursor: pointer;
-
   }
 
   
@@ -1243,127 +1160,69 @@ connect-src 'self' https://script.google.com https://script.googleusercontent.co
   }
 
 </style>
-
-  
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 </head>
-
 <body class="admin-body">
-
   <div id="global-loader" class="global-loader hidden">
-
     <div class="loader-spinner"></div>
-
     <div class="loader-text">Cargando...</div>
-
   </div>
 
 
-
   <header class="app-header admin-header">
-
     <div class="header-left">
-
       <div class="logo-touch-area">
-
         <span class="logo-mark">Z&R</span>
-
       </div>
-
       <div class="header-text">
-
         <h1 class="app-title">Admin</h1>
-
         <p class="app-subtitle">Gestión</p>
-
       </div>
-
     </div>
 
     <div class="header-right">
-
       <a href="index.html" class="icon-button" style="text-decoration: none; display: inline-flex; align-items: center;">🏠</a>
-
          <button class="icon-button" id="offline-status-btn" style="position: relative;" title="Estado offline">
-
         📡
-
         <span id="offline-pending-badge" style="
-
             position: absolute;
-
             top: -5px;
-
             right: -5px;
-
             background: #ff4f81;
-
             color: white;
-
             border-radius: 50%;
-
             width: 18px;
-
             height: 18px;
-
             font-size: 10px;
-
             display: none;
-
             align-items: center;
-
             justify-content: center;
-
         ">0</span></button>
-
       <button class="icon-button" id="admin-refresh-btn" style="background: rgba(255,255,255,0.1);" title="Actualizar lista de productos">🔄️</button>
-
-      <button class="icon-button" id="admin-analytics-btn" style="background: rgba(255,255,255,0.1);" title="Gráficas y estadísticas">📊</button>
-
       <button class="icon-button" id="admin-logout-btn" style="background: rgba(255,255,255,0.1);" title="Cerrar sesión">🚪</button>
-
     </div>
-
   </header>
 
 
 
   <main class="admin-main" id="admin-login-view">
-
     <div class="admin-card" style="max-width: 400px; margin: 40px auto;">
-
       <div class="admin-card-header" style="text-align: center;">
-
         <h2>Administrador</h2>
-
         <p style="color: rgba(255,255,255,0.8); margin-top: 8px;">Ingresa tus credenciales para continuar</p>
-
       </div>
-
       <form id="admin-login-form" class="form-vertical">
-
         <div class="form-row">
-
           <label>Contraseña</label>
-
           <input type="password" id="admin-password" required placeholder="Ingresa tu contraseña" />
-
         </div>
-
         <div class="form-row">
-
           <label>Token</label>
-
           <input type="password" id="admin-token" required placeholder="Ingresa tu token" />
-
         </div>
-
         <button type="submit" class="primary-button full-width" style="margin-top: 10px;">Ingresar</button>
-
       </form>
-
     </div>
-
   </main>
 
 
