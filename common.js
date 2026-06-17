@@ -2862,118 +2862,78 @@ async function clientCancelOrder(requestId) {
       try {
         showLoader('Cancelando pedido...');
 
-        // Actualización optimista (local)
+        // Actualización optimista
         const orders = loadOrders();
         const idx = orders.findIndex(o => o.requestId === requestId);
         const prevStatus = idx !== -1 ? orders[idx].status : null;
-        if (idx !== -1) {
-          orders[idx].status = 'cancelled';
-          saveOrders(orders);
-        }
+        if (idx !== -1) { orders[idx].status = 'cancelled'; saveOrders(orders); }
         const list = document.getElementById('up-orders-list');
-        if (list) {
-          list.innerHTML = renderOrders();
-          attachOrderCancelListeners();
-        }
+        if (list) list.innerHTML = renderOrders();
+        attachOrderCancelListeners();
 
-        // Llamada al backend
-        let response;
+        // Enviar al backend
+        let gasOk = false;
         try {
           const res = await fetch(API_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ action: 'clientCancelRequest', requestId, phone })
           });
-          response = await res.json();
+
+          // 🔍 LEE LA RESPUESTA COMO TEXTO PRIMERO
+          const responseText = await res.text();
+          console.log('📨 Respuesta cruda del servidor:', responseText);
+
+          let data;
+          try {
+            data = JSON.parse(responseText);
+          } catch (parseError) {
+            console.error('❌ No se pudo parsear JSON:', responseText);
+            // Si no es JSON, mostrar el texto como error
+            throw new Error('El servidor devolvió: ' + responseText.substring(0, 200));
+          }
+
+          if (data && data.ok && data.cancelled) {
+            gasOk = true;
+          } else if (data && data.ok && data.alreadyConfirmed) {
+            // Revertir
+            if (idx !== -1 && prevStatus) {
+              const all = loadOrders();
+              const i2 = all.findIndex(o => o.requestId === requestId);
+              if (i2 !== -1) { all[i2].status = 'confirmado'; saveOrders(all); }
+              if (list) list.innerHTML = renderOrders();
+              attachOrderCancelListeners();
+            }
+            hideLoader();
+            showTemporaryMessage('Tu pedido ya fue confirmado. Usa el botón de WhatsApp para solicitar la cancelación al admin.', 'warning', 6000);
+            return;
+          } else {
+            throw new Error(data?.error || 'Error desconocido del servidor');
+          }
+
         } catch (fetchErr) {
-          console.error('Error en fetch:', fetchErr);
-          // Revertir optimismo si falló la red
+          // Revertir cambio optimista
           if (idx !== -1 && prevStatus) {
             const all = loadOrders();
             const i2 = all.findIndex(o => o.requestId === requestId);
-            if (i2 !== -1) {
-              all[i2].status = prevStatus;
-              saveOrders(all);
-            }
-            if (list) {
-              list.innerHTML = renderOrders();
-              attachOrderCancelListeners();
-            }
-          }
-          showTemporaryMessage('Error de conexión. No se pudo cancelar.', 'error');
-          hideLoader();
-          return;
-        }
-
-        // Validar respuesta
-        if (!response || typeof response.ok === 'undefined') {
-          throw new Error('Respuesta inválida del servidor');
-        }
-
-        if (response.ok === false) {
-          throw new Error(response.error || 'Error desconocido');
-        }
-
-        // Si ya estaba confirmado
-        if (response.alreadyConfirmed) {
-          // Revertir optimismo y mostrar mensaje
-          if (idx !== -1 && prevStatus) {
-            const all = loadOrders();
-            const i2 = all.findIndex(o => o.requestId === requestId);
-            if (i2 !== -1) {
-              all[i2].status = 'confirmado';
-              saveOrders(all);
-            }
-            if (list) {
-              list.innerHTML = renderOrders();
-              attachOrderCancelListeners();
-            }
-          }
-          showTemporaryMessage('Tu pedido ya fue confirmado. Usa el botón de WhatsApp para solicitar la cancelación al admin.', 'warning');
-          hideLoader();
-          return;
-        }
-
-        // Cancelación exitosa
-        if (response.cancelled) {
-          showTemporaryMessage('Pedido cancelado correctamente.', 'success');
-          // Refrescar lista de pedidos desde el servidor
-          if (list) {
-            list.innerHTML = '<p style="text-align:center;color:var(--color-text-muted);padding:20px;">⏳ Actualizando pedidos...</p>';
-            await refreshOrderStatuses();
-            list.innerHTML = renderOrders();
+            if (i2 !== -1) { all[i2].status = prevStatus; saveOrders(all); }
+            if (list) list.innerHTML = renderOrders();
             attachOrderCancelListeners();
           }
-        } else {
-          throw new Error('No se pudo cancelar el pedido');
+          hideLoader();
+          showTemporaryMessage('Error al cancelar: ' + fetchErr.message, 'error');
+          return;
         }
+
+        hideLoader();
+        if (gasOk) showTemporaryMessage('Pedido cancelado correctamente.', 'success');
 
       } catch (err) {
-        console.error('Error en clientCancelOrder:', err);
-        showTemporaryMessage('Error al cancelar: ' + err.message, 'error');
-        // Revertir optimismo si algo falló
-        const orders = loadOrders();
-        const idx = orders.findIndex(o => o.requestId === requestId);
-        if (idx !== -1 && orders[idx].status === 'cancelled') {
-          orders[idx].status = 'pendiente';
-          saveOrders(orders);
-          const list = document.getElementById('up-orders-list');
-          if (list) {
-            list.innerHTML = renderOrders();
-            attachOrderCancelListeners();
-          }
-        }
-      } finally {
         hideLoader();
+        showTemporaryMessage('Error inesperado: ' + err.message, 'error');
       }
     }
   });
-}
-
-function jsonResponse(obj) {
-  return ContentService
-    .createTextOutput(JSON.stringify(obj))
-    .setMimeType(ContentService.MimeType.JSON);
 }
 
 
