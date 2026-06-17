@@ -2851,76 +2851,132 @@ async function clientCancelOrder(requestId) {
     showTemporaryMessage('No se encontró tu número de teléfono. Intenta de nuevo desde el carrito.', 'error');
     return;
   }
+
   showCustomConfirm({
-    title:       '¿Cancelar pedido?',
-    message:     '¿Estás seguro de que deseas cancelar el pedido ' + requestId + '? Esta acción no se puede deshacer.',
-    icon:        '🗑️',
+    title: '¿Cancelar pedido?',
+    message: '¿Estás seguro de que deseas cancelar el pedido ' + requestId + '? Esta acción no se puede deshacer.',
+    icon: '🗑️',
     confirmText: 'Sí, cancelar',
-    cancelText:  'No',
+    cancelText: 'No',
     onConfirm: async () => {
       try {
         showLoader('Cancelando pedido...');
 
-        // Actualización optimista — actualizar UI antes de esperar al GAS
+        // Actualización optimista (local)
         const orders = loadOrders();
-        const idx    = orders.findIndex(o => o.requestId === requestId);
+        const idx = orders.findIndex(o => o.requestId === requestId);
         const prevStatus = idx !== -1 ? orders[idx].status : null;
-        if (idx !== -1) { orders[idx].status = 'cancelled'; saveOrders(orders); }
+        if (idx !== -1) {
+          orders[idx].status = 'cancelled';
+          saveOrders(orders);
+        }
         const list = document.getElementById('up-orders-list');
-        if (list) list.innerHTML = renderOrders();
-        attachOrderCancelListeners();
+        if (list) {
+          list.innerHTML = renderOrders();
+          attachOrderCancelListeners();
+        }
 
-        // Intentar confirmar en el GAS
-        let gasOk = false;
+        // Llamada al backend
+        let response;
         try {
-          const res  = await fetch(API_URL, {
+          const res = await fetch(API_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ action: 'clientCancelRequest', requestId, phone })
           });
-          const data = await res.json();
-          if (data.ok && data.cancelled) {
-            gasOk = true;
-          } else if (data.ok && data.alreadyConfirmed) {
-            // Revertir — el pedido ya fue confirmado
-            if (idx !== -1 && prevStatus) {
-              const all = loadOrders();
-              const i2  = all.findIndex(o => o.requestId === requestId);
-              if (i2 !== -1) { all[i2].status = 'confirmado'; saveOrders(all); }
-              if (list) list.innerHTML = renderOrders();
+          response = await res.json();
+        } catch (fetchErr) {
+          console.error('Error en fetch:', fetchErr);
+          // Revertir optimismo si falló la red
+          if (idx !== -1 && prevStatus) {
+            const all = loadOrders();
+            const i2 = all.findIndex(o => o.requestId === requestId);
+            if (i2 !== -1) {
+              all[i2].status = prevStatus;
+              saveOrders(all);
+            }
+            if (list) {
+              list.innerHTML = renderOrders();
               attachOrderCancelListeners();
             }
-            hideLoader();
-            showTemporaryMessage('Tu pedido ya fue confirmado. Usa el botón de WhatsApp para solicitar la cancelación al admin.', 'warning', 6000);
-            return;
-          } else {
-            // Revertir — error del GAS
-            if (idx !== -1 && prevStatus) {
-              const all = loadOrders();
-              const i2  = all.findIndex(o => o.requestId === requestId);
-              if (i2 !== -1) { all[i2].status = prevStatus; saveOrders(all); }
-              if (list) list.innerHTML = renderOrders();
-              attachOrderCancelListeners();
-            }
-            hideLoader();
-            window.originalAlert('GAS: ' + JSON.stringify(data));
-            return;
           }
-       } catch(fetchErr) {
-          window.originalAlert('Fetch falló: ' + String(fetchErr));
-          gasOk = true;
+          showTemporaryMessage('Error de conexión. No se pudo cancelar.', 'error');
+          hideLoader();
+          return;
         }
 
-        hideLoader();
-        if (gasOk) showTemporaryMessage('Pedido cancelado correctamente.', 'success');
+        // Validar respuesta
+        if (!response || typeof response.ok === 'undefined') {
+          throw new Error('Respuesta inválida del servidor');
+        }
 
-      } catch(err) {
+        if (response.ok === false) {
+          throw new Error(response.error || 'Error desconocido');
+        }
+
+        // Si ya estaba confirmado
+        if (response.alreadyConfirmed) {
+          // Revertir optimismo y mostrar mensaje
+          if (idx !== -1 && prevStatus) {
+            const all = loadOrders();
+            const i2 = all.findIndex(o => o.requestId === requestId);
+            if (i2 !== -1) {
+              all[i2].status = 'confirmado';
+              saveOrders(all);
+            }
+            if (list) {
+              list.innerHTML = renderOrders();
+              attachOrderCancelListeners();
+            }
+          }
+          showTemporaryMessage('Tu pedido ya fue confirmado. Usa el botón de WhatsApp para solicitar la cancelación al admin.', 'warning');
+          hideLoader();
+          return;
+        }
+
+        // Cancelación exitosa
+        if (response.cancelled) {
+          showTemporaryMessage('Pedido cancelado correctamente.', 'success');
+          // Refrescar lista de pedidos desde el servidor
+          if (list) {
+            list.innerHTML = '<p style="text-align:center;color:var(--color-text-muted);padding:20px;">⏳ Actualizando pedidos...</p>';
+            await refreshOrderStatuses();
+            list.innerHTML = renderOrders();
+            attachOrderCancelListeners();
+          }
+        } else {
+          throw new Error('No se pudo cancelar el pedido');
+        }
+
+      } catch (err) {
+        console.error('Error en clientCancelOrder:', err);
+        showTemporaryMessage('Error al cancelar: ' + err.message, 'error');
+        // Revertir optimismo si algo falló
+        const orders = loadOrders();
+        const idx = orders.findIndex(o => o.requestId === requestId);
+        if (idx !== -1 && orders[idx].status === 'cancelled') {
+          orders[idx].status = 'pendiente';
+          saveOrders(orders);
+          const list = document.getElementById('up-orders-list');
+          if (list) {
+            list.innerHTML = renderOrders();
+            attachOrderCancelListeners();
+          }
+        }
+      } finally {
         hideLoader();
-        window.originalAlert('Error inesperado: ' + String(err));
       }
     }
   });
 }
+
+function jsonResponse(obj) {
+  return ContentService
+    .createTextOutput(JSON.stringify(obj))
+    .setMimeType(ContentService.MimeType.JSON);
+}
+
+
 
 function attachOrderCancelListeners() {
   document.querySelectorAll('.up-order-cancel-btn').forEach(btn => {
