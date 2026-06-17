@@ -2730,7 +2730,33 @@ if (orders.length > 50) orders.length = 50;
 localStorage.setItem(ORDERS_KEY, JSON.stringify(orders));
 } catch {}
 }
+function saveOrders(orders) {
+try { localStorage.setItem(ORDERS_KEY, JSON.stringify(orders)); } catch {}
+}
 window.saveOrderToHistory = saveOrder;
+
+async function refreshOrderStatuses() {
+try {
+const orders = loadOrders();
+if (!orders.length) return;
+const toCheck = orders.filter(o => o.status === 'pendiente' || o.status === 'pending');
+if (!toCheck.length) return;
+await Promise.allSettled(toCheck.map(async o => {
+try {
+const res  = await fetch(`${API_URL}?action=checkRequestStatus&requestId=${encodeURIComponent(o.requestId)}`);
+const data = await res.json();
+if (!data.ok) return;
+const map = { pending:'pendiente', approved:'confirmado', cancelled:'cancelled', rejected:'rejected' };
+const newStatus = map[data.status] || data.status;
+if (newStatus !== o.status) {
+  const all = loadOrders();
+  const idx = all.findIndex(x => x.requestId === o.requestId);
+  if (idx !== -1) { all[idx].status = newStatus; saveOrders(all); }
+}
+} catch {}
+}));
+} catch {}
+}
 function detectSection(product) {
 const hay = [product.Nombre||'', product.Categoria||'', product.Descripcion||'']
 .join(' ').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
@@ -2782,22 +2808,127 @@ const items = (o.items||[]).map(i=>`
 <span>${_upEsc(i.name||'Producto')}</span>
 <span class="up-order-qty">x${i.quantity||1} · $${(i.price||0).toLocaleString()}</span>
 </div>`).join('');
-const statusColor = {pendiente:'#f59e0b',confirmado:'#22c55e',cancelado:'#ef4444'}[o.status]||'#888';
+// Status: cancelled = cliente canceló, rejected = admin canceló, confirmed = confirmado
+const statusMap = {
+  pendiente:  { color:'#f59e0b', icon:'⏳', label:'pendiente'       },
+  confirmado: { color:'#22c55e', icon:'✅', label:'confirmado'       },
+  cancelled:  { color:'#ef4444', icon:'❌', label:'Cancelación'      },
+  rejected:   { color:'#9ca3af', icon:'🚫', label:'Cancelado'        },
+  cancelado:  { color:'#9ca3af', icon:'🚫', label:'Cancelado'        }
+};
+const st = statusMap[o.status] || { color:'#f59e0b', icon:'⏳', label: o.status||'pendiente' };
+// Botón de acción según status
+let actionBtn = '';
+if (o.status === 'pendiente') {
+  actionBtn = `<button class="up-order-cancel-btn" data-request-id="${_upEsc(o.requestId)}" style="margin-top:10px;width:100%;padding:8px;border:none;border-radius:10px;background:#fee2e2;color:#dc2626;font-size:13px;font-weight:600;cursor:pointer;">✕ Cancelar pedido</button>`;
+} else if (o.status === 'confirmado') {
+  const adminPhone = (typeof WHATSAPP_NUMBER !== 'undefined' ? WHATSAPP_NUMBER : '');
+  const itemsList  = (o.items||[]).map(i=>`• ${i.name} x${i.quantity}`).join('\n');
+  const msg = encodeURIComponent(`Hola, quisiera solicitar la *cancelación* de mi pedido:\n\n*ID:* ${o.requestId||''}\n*Productos:*\n${itemsList}\n*Total:* $${(o.total||0).toLocaleString()}\n\nEste pedido ya fue confirmado. ¿Es posible cancelarlo?`);
+  actionBtn = `<a href="https://wa.me/${adminPhone}?text=${msg}" target="_blank" style="display:block;margin-top:10px;padding:8px;border-radius:10px;background:#fff3cd;color:#92400e;font-size:13px;font-weight:600;text-align:center;text-decoration:none;">📩 Solicitar cancelación al admin</a>`;
+}
 return `
-<div class="up-order-card">
+<div class="up-order-card" data-order-id="${_upEsc(o.requestId||'')}">
 <div class="up-order-header">
 <div>
 <span class="up-order-id">${_upEsc(o.requestId||'—')}</span>
 <span class="up-order-date">${date}</span>
 </div>
-<span class="up-order-status" style="color:${statusColor}">
-${o.status==='confirmado'?'':o.status==='cancelado'?'':'⏳'} ${_upEsc(o.status||'pendiente')}
+<span class="up-order-status" style="color:${st.color};font-weight:600;">
+${st.icon} ${st.label}
 </span>
 </div>
 <div class="up-order-items">${items}</div>
 <div class="up-order-total">Total: <strong>$${(o.total||0).toLocaleString()}</strong></div>
+${actionBtn}
 </div>`;
 }).join('');
+}
+
+async function clientCancelOrder(requestId) {
+  const phone = localStorage.getItem('client_phone') || '';
+  if (!phone) {
+    mostrarMensajeFlotante('No se encontró tu número de teléfono. Intenta de nuevo desde el carrito.', 'error');
+    return;
+  }
+  showCustomConfirm({
+    title:       '¿Cancelar pedido?',
+    message:     '¿Estás seguro de que deseas cancelar el pedido ' + requestId + '? Esta acción no se puede deshacer.',
+    icon:        '🗑️',
+    confirmText: 'Sí, cancelar',
+    cancelText:  'No',
+    onConfirm: async () => {
+      try {
+        showLoader('Cancelando pedido...');
+
+        // Actualización optimista — actualizar UI antes de esperar al GAS
+        const orders = loadOrders();
+        const idx    = orders.findIndex(o => o.requestId === requestId);
+        const prevStatus = idx !== -1 ? orders[idx].status : null;
+        if (idx !== -1) { orders[idx].status = 'cancelled'; saveOrders(orders); }
+        const list = document.getElementById('up-orders-list');
+        if (list) list.innerHTML = renderOrders();
+        attachOrderCancelListeners();
+
+        // Intentar confirmar en el GAS
+        let gasOk = false;
+        try {
+          const res  = await fetch(API_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'clientCancelRequest', requestId, phone })
+          });
+          const data = await res.json();
+          if (data.ok && data.cancelled) {
+            gasOk = true;
+          } else if (data.ok && data.alreadyConfirmed) {
+            // Revertir — el pedido ya fue confirmado
+            if (idx !== -1 && prevStatus) {
+              const all = loadOrders();
+              const i2  = all.findIndex(o => o.requestId === requestId);
+              if (i2 !== -1) { all[i2].status = 'confirmado'; saveOrders(all); }
+              if (list) list.innerHTML = renderOrders();
+              attachOrderCancelListeners();
+            }
+            hideLoader();
+            mostrarMensajeFlotante('Tu pedido ya fue confirmado. Usa el botón de WhatsApp para solicitar la cancelación al admin.', 'warning', 6000);
+            return;
+          } else {
+            // Revertir — error del GAS
+            if (idx !== -1 && prevStatus) {
+              const all = loadOrders();
+              const i2  = all.findIndex(o => o.requestId === requestId);
+              if (i2 !== -1) { all[i2].status = prevStatus; saveOrders(all); }
+              if (list) list.innerHTML = renderOrders();
+              attachOrderCancelListeners();
+            }
+            hideLoader();
+            mostrarMensajeFlotante('GAS respondió: ' + JSON.stringify(data), 'error', 10000);
+            return;
+          }
+        } catch {
+          // Sin conexión o CORS (local) — la UI ya se actualizó optimistamente, dejar así
+          gasOk = true;
+        }
+
+        hideLoader();
+        if (gasOk) mostrarMensajeFlotante('Pedido cancelado correctamente.', 'success');
+
+      } catch(err) {
+        hideLoader();
+        mostrarMensajeFlotante('Error inesperado al cancelar.', 'error');
+      }
+    }
+  });
+}
+
+function attachOrderCancelListeners() {
+  document.querySelectorAll('.up-order-cancel-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const requestId = btn.getAttribute('data-request-id');
+      if (requestId) clientCancelOrder(requestId);
+    });
+  });
 }
 function buildPanel() {
 if (document.getElementById('up-panel')) return;
@@ -2919,8 +3050,22 @@ panel.querySelectorAll('.up-tab').forEach(t=>t.classList.remove('active'));
 panel.querySelectorAll('.up-tab-content').forEach(c=>c.classList.remove('active'));
 tab.classList.add('active');
 panel.querySelector(`[data-content="${tab.dataset.tab}"]`).classList.add('active');
+if (tab.dataset.tab === 'pedidos') {
+  const list = document.getElementById('up-orders-list');
+  if (list) {
+    list.innerHTML = '<p style="text-align:center;color:var(--color-text-muted);padding:20px;font-size:13px;">⏳ Actualizando pedidos...</p>';
+    refreshOrderStatuses()
+      .catch(() => {})
+      .finally(() => {
+        list.innerHTML = renderOrders();
+        attachOrderCancelListeners();
+      });
+  }
+}
 });
 });
+// Enganchar listeners de cancelación al abrir el panel (tab pedidos activo por defecto no lo es, pero por si acaso)
+attachOrderCancelListeners();
 panel.querySelectorAll('.up-theme-btn').forEach(btn=>{
 btn.addEventListener('click',()=>{
 panel.querySelectorAll('.up-theme-btn').forEach(b=>b.classList.remove('active'));
@@ -3025,6 +3170,46 @@ panel.classList.remove('visible');
 ov.classList.remove('visible');
 setTimeout(()=>{ panel.remove(); ov.remove(); }, 280);
 }
+
+function openPanelOnTab(tabName) {
+  // Si ya hay un panel, cerrarlo y esperar a que la animación termine (280ms + margen)
+  const existing = document.getElementById('up-panel');
+  if (existing) {
+    closePanel();
+    setTimeout(() => _buildAndActivateTab(tabName), 320);
+  } else {
+    _buildAndActivateTab(tabName);
+  }
+}
+
+function _buildAndActivateTab(tabName) {
+  buildPanel();
+  // Esperar un frame para que el DOM esté listo
+  requestAnimationFrame(() => {
+    const panel = document.getElementById('up-panel');
+    if (!panel) return;
+    const targetTab = panel.querySelector(`.up-tab[data-tab="${tabName}"]`);
+    if (!targetTab) return;
+    panel.querySelectorAll('.up-tab').forEach(t => t.classList.remove('active'));
+    panel.querySelectorAll('.up-tab-content').forEach(c => c.classList.remove('active'));
+    targetTab.classList.add('active');
+    const content = panel.querySelector(`[data-content="${tabName}"]`);
+    if (content) content.classList.add('active');
+    if (tabName === 'pedidos') {
+      const list = document.getElementById('up-orders-list');
+      if (!list) return;
+      list.innerHTML = '<p style="text-align:center;color:var(--color-text-muted);padding:20px;font-size:13px;">⏳ Actualizando pedidos...</p>';
+      // refreshOrderStatuses puede fallar en file:// — igual renderizamos
+      refreshOrderStatuses()
+        .catch(() => {})
+        .finally(() => {
+          list.innerHTML = renderOrders();
+          attachOrderCancelListeners();
+        });
+    }
+  });
+}
+window.openPanelOnTab = openPanelOnTab;
 document.addEventListener('keydown', e=>{ if(e.key==='Escape') closePanel(); });
 function wirePrefsButton() {
 if (location.pathname.includes('admin') || location.pathname.includes('notificaciones')) return;
