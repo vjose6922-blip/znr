@@ -2908,7 +2908,8 @@ async function clientCancelOrder(requestId) {
             showTemporaryMessage('Tu pedido ya fue confirmado. Usa el botón de WhatsApp para solicitar la cancelación al admin.', 'warning', 6000);
             return;
           } else {
-            throw new Error(data?.error || 'Error desconocido del servidor');
+
+            throw new Error(data?.error || ('Respuesta inesperada: ' + JSON.stringify(data)));
           }
 
         } catch (fetchErr) {
