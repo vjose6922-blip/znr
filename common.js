@@ -1,4 +1,4 @@
-// SVG Sprite loader — injects icon definitions once
+// SVG Sprite loader — injects icon 
 (function(){
   if(document.getElementById('zr-svg-sprite')) return;
   const d=document.createElement('div');
