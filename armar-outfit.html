@@ -1,0 +1,892 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+ <meta charset="UTF-8" />
+<meta http-equiv="Content-Security-Policy" content="
+ default-src 'self';
+ script-src 'self' 'unsafe-inline';
+ style-src 'self' 'unsafe-inline';
+ img-src 'self' data: blob: https://lh3.googleusercontent.com https://drive.google.com https://placehold.co https://via.placeholder.com;
+ connect-src 'self' https://script.google.com https://script.googleusercontent.com https://wttr.in;
+ font-src 'self';
+ frame-src 'none';
+ frame-ancestors 'none';
+ object-src 'none';
+ base-uri 'self';
+ worker-src 'self' blob:;
+ child-src 'self' blob:;
+">
+ <title>Z&R - Armar Outfit</title>
+ <meta name="viewport" content="width=device-width, initial-scale=1" />
+ <link rel="preconnect" href="https://script.google.com" crossorigin>
+ <link rel="preconnect" href="https://lh3.googleusercontent.com" crossorigin>
+ <link rel="dns-prefetch" href="https://script.google.com">
+ <link rel="dns-prefetch" href="https://lh3.googleusercontent.com">
+ <link rel="preload" href="styles.css" as="style">
+ <link rel="stylesheet" href="styles.css" />
+ <link rel="manifest" href="manifest.json">
+ <meta name="theme-color" content="#1e2128">
+ <link rel="icon" type="image/png" sizes="32x32" href="icons/icon-32x32.png">
+ <link rel="icon" type="image/png" sizes="16x16" href="icons/icon-16x16.png">
+ <link rel="shortcut icon" href="icons/favicon.ico">
+ <link rel="apple-touch-icon" sizes="152x152" href="icons/icon-152x152.png">
+ <link rel="apple-touch-icon" sizes="120x120" href="icons/icon-120x120.png">
+ <meta name="apple-mobile-web-app-capable" content="yes">
+ <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+ <meta name="apple-mobile-web-app-title" content="Z&R">
+ <meta name="mobile-web-app-capable" content="yes">
+ <meta name="msapplication-TileImage" content="icons/icon-144x144.png">
+ <meta name="msapplication-TileColor" content="#1e2128">
+
+ <style>
+  /* ===== Armar Outfit — estilos exclusivos de esta página (prefijo ob-) ===== */
+
+  /* Fix: evita que el deslizar el carrusel dispare el gesto de navegación
+     del navegador (swipe back/forward) y deje un espacio en blanco. */
+  html, body { overscroll-behavior-x: none; }
+
+  .ob-main { padding: 4px 0 16px; }
+
+  /* ---- Barra de filtros (fija arriba del contenido, no flotante) ---- */
+  .ob-filterbar { padding: 8px 16px 2px; display:flex; flex-direction:column; gap:9px; }
+
+  .ob-mode-switch { display:flex; background: var(--color-surface-2); border-radius: 999px; padding:3px; gap:3px; }
+  .ob-mode-btn {
+    flex:1; border:none; background:transparent; padding:8px 0; border-radius:999px;
+    font-size: 13px; font-weight:700; color:var(--color-text-muted); cursor:pointer;
+    transition: background .2s, color .2s;
+  }
+  .ob-mode-btn.active { background: linear-gradient(135deg, #ff4f81, #ff7a4f); color:#fff; }
+
+  .ob-chip-row { display:flex; gap:7px; overflow-x:auto; scrollbar-width:none; padding-bottom:1px; }
+  .ob-chip-row::-webkit-scrollbar { display:none; }
+  .ob-chip-label { font-size:10.5px; font-weight:700; letter-spacing:.03em; text-transform:uppercase; color:var(--color-text-soft); margin:0 0 -3px 2px; }
+  .ob-chip {
+    flex: 0 0 auto; border: 1.5px solid var(--color-border-subtle); background: var(--color-surface);
+    color: var(--color-text-main); padding: 6px 14px; border-radius: 999px;
+    font-size: 12px; font-weight: 600; cursor: pointer; white-space: nowrap;
+    transition: background .2s, border-color .2s, color .2s;
+  }
+  .ob-chip.active { background: var(--color-accent-solid); border-color: var(--color-accent-solid); color:#fff; }
+
+  .ob-section { margin: 16px 0 26px; }
+  .ob-section[hidden] { display:none; }
+
+  .ob-section-header { display:flex; align-items:center; gap:10px; padding: 0 16px; margin-bottom: 10px; }
+  .ob-section-badge {
+    width: 26px; height: 26px; min-width:26px; border-radius: 50%;
+    background: linear-gradient(135deg, var(--color-accent-solid), var(--color-primary));
+    color: #fff; font-size: 13px; font-weight: 700;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .ob-section-titles { flex: 1; min-width:0; }
+  .ob-section-title { margin:0; font-size: 16px; font-weight: 700; color: var(--color-text-main); }
+  .ob-section-hint { margin:1px 0 0; font-size: 12px; color: var(--color-text-soft); }
+  .ob-section-count { font-size: 11px; color: var(--color-text-muted); white-space:nowrap; }
+
+  .ob-track-wrapper {
+    overflow-x: auto; overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    overscroll-behavior-x: contain; /* fix espacio en blanco */
+  }
+  .ob-track-wrapper::-webkit-scrollbar { display:none; }
+
+  .ob-track {
+  display: flex;
+  align-items: flex-end;
+  gap: 14px;
+  padding: 6px 0; /* ← sin padding lateral fijo */
+  min-width: 100%; /* ← para que ocupe todo el ancho */
+  width: fit-content; /* ← para que se ajuste al contenido */
+}
+
+  .ob-card {
+    flex: 0 0 144px;
+    width: 144px;
+    scroll-snap-align: center;
+    background: var(--color-surface);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-soft);
+    padding: 10px 10px 12px;
+    cursor: pointer;
+    opacity: .45;
+    transform: scale(.82);
+    transition: transform .25s ease, opacity .25s ease, box-shadow .25s ease;
+    border: 1.5px solid transparent;
+  }
+  .ob-card.active { opacity: 1; transform: scale(1); border-color: var(--color-accent-solid); }
+  .ob-card-img-wrap {
+    width: 100%; aspect-ratio: 1/1; border-radius: var(--radius-md);
+    overflow: hidden; background: var(--color-surface-2);
+    margin-bottom: 8px;
+  }
+  .ob-card-img-wrap img { width:100%; height:100%; object-fit: cover; display:block; }
+  .ob-card-name {
+    font-size: 12.5px; font-weight: 600; color: var(--color-text-main);
+    line-height: 1.25; max-height: 30px; overflow: hidden;
+    display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient: vertical;
+  }
+  .ob-card-price { font-size: 13px; font-weight: 700; color: var(--color-accent); margin-top: 3px; }
+  .ob-card-size { font-size: 10.5px; color: var(--color-text-soft); margin-top: 2px; }
+
+  .ob-empty {
+    margin: 0 16px; padding: 22px 16px; text-align:center;
+    background: var(--color-surface-2); border-radius: var(--radius-lg);
+    color: var(--color-text-muted); font-size: 13px;
+  }
+
+  .ob-skeleton-track { display:flex; gap:14px; padding: 6px 16px; }
+  .ob-skeleton-card {
+    flex: 0 0 144px; width:144px; height: 210px; border-radius: var(--radius-lg);
+    background: linear-gradient(110deg, var(--color-surface-2) 8%, var(--color-surface-3) 18%, var(--color-surface-2) 33%);
+    background-size: 200% 100%; animation: ob-shimmer 1.4s linear infinite;
+  }
+  @keyframes ob-shimmer { to { background-position-x: -200%; } }
+
+  /* ---- Barra resumen flotante ---- */
+  .ob-summary {
+    position: fixed; left: 0; right: 0; bottom: 70px; z-index: 95;
+    background: var(--color-surface);
+    border-top: 1px solid var(--color-border-subtle);
+    box-shadow: 0 -8px 24px rgba(0,0,0,0.25);
+    padding: 10px 14px;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .ob-summary-slots { display:flex; gap: 6px; }
+  .ob-summary-slot {
+    width: 38px; height: 38px; border-radius: 10px; overflow:hidden;
+    background: var(--color-surface-2); border: 1.5px solid var(--color-border-subtle);
+    display:flex; align-items:center; justify-content:center;
+    font-size: 10px; color: var(--color-text-soft);
+  }
+  .ob-summary-slot img { width:100%; height:100%; object-fit:cover; }
+  .ob-summary-mid { flex:1; min-width:0; }
+  .ob-summary-total-label { font-size: 10.5px; color: var(--color-text-soft); }
+  .ob-summary-total { font-size: 16px; font-weight: 800; color: var(--color-text-main); }
+  .ob-summary-actions { display:flex; flex-direction: column; gap:6px; }
+  .ob-btn-add {
+    border:none; border-radius: var(--radius-pill, 999px); padding: 9px 16px;
+    background: linear-gradient(135deg, #ff4f81, #ff7a4f); color:#fff;
+    font-weight:700; font-size: 12.5px; cursor:pointer; white-space:nowrap;
+  }
+  .ob-btn-wa {
+    border:none; border-radius: var(--radius-pill, 999px); padding: 6px 14px;
+    background: rgba(37,211,102,0.12); color:#25D366;
+    font-weight:600; font-size: 11px; cursor:pointer; white-space:nowrap;
+    display:flex; align-items:center; gap:5px; justify-content:center;
+  }
+
+  .ob-reset-btn { background: var(--header-icon-bg); }
+
+  @media (min-width: 480px) {
+    .ob-card { flex: 0 0 168px; width: 168px; }
+    .ob-track { padding: 6px calc(50% - 84px); scroll-padding: 0 calc(50% - 84px); }
+  }
+ </style>
+</head>
+<body class="theme-aeromexico">
+
+ <div id="global-loader" class="global-loader hidden">
+ <div class="loader-spinner"></div>
+ <div class="loader-text">Cargando...</div>
+ </div>
+
+ <header class="app-header">
+ <div class="header-left">
+ <a class="logo-touch-area" href="outfit.html" aria-label="Volver">
+ <span class="logo-mark">Z&R</span>
+ </a>
+ <div class="header-text">
+ <h1 class="app-title">Armar Outfit</h1>
+ <p class="app-subtitle">Desliza y combina tu look</p>
+ </div>
+ </div>
+ <div class="header-right">
+ <button class="icon-button ob-reset-btn" id="ob-reset-btn" aria-label="Reiniciar selección" title="Reiniciar"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" aria-hidden="true"><use href="#ic-refresh"/></svg></button>
+ </div>
+ </header>
+
+ <!-- Barra de filtros: siempre visible, sin modal -->
+ <div class="ob-filterbar">
+  <div class="ob-mode-switch" id="ob-mode-switch">
+   <button class="ob-mode-btn active" data-modo="conjunto">👕 Conjunto</button>
+   <button class="ob-mode-btn" data-modo="vestido">👗 Vestido</button>
+  </div>
+
+  <div>
+   <p class="ob-chip-label">Género</p>
+   <div class="ob-chip-row" id="ob-chips-genero">
+    <button class="ob-chip active" data-genero="todos">Todos</button>
+    <button class="ob-chip" data-genero="mujer">Mujer</button>
+    <button class="ob-chip" data-genero="hombre">Hombre</button>
+   </div>
+  </div>
+
+  <div>
+   <p class="ob-chip-label">Estilo</p>
+   <div class="ob-chip-row" id="ob-chips-estilo">
+    <button class="ob-chip active" data-estilo="todos">Todos</button>
+    <button class="ob-chip" data-estilo="casual">Casual</button>
+    <button class="ob-chip" data-estilo="formal">Formal</button>
+    <button class="ob-chip" data-estilo="deportivo">Deportivo</button>
+   </div>
+  </div>
+ </div>
+
+ <main class="ob-main">
+
+  <div class="ob-section" data-section="torso" id="ob-section-torso">
+   <div class="ob-section-header">
+    <span class="ob-section-badge" id="ob-badge-torso">1</span>
+    <div class="ob-section-titles">
+     <h2 class="ob-section-title" id="ob-title-torso">Torso</h2>
+     <p class="ob-section-hint" id="ob-hint-torso">Playeras, camisas, sudaderas, chamarras…</p>
+    </div>
+    <span class="ob-section-count" id="ob-count-torso"></span>
+   </div>
+   <div class="ob-track-wrapper" id="ob-wrap-torso">
+    <div class="ob-skeleton-track"><div class="ob-skeleton-card"></div><div class="ob-skeleton-card"></div><div class="ob-skeleton-card"></div></div>
+   </div>
+  </div>
+
+  <div class="ob-section" data-section="piernas" id="ob-section-piernas">
+   <div class="ob-section-header">
+    <span class="ob-section-badge" id="ob-badge-piernas">2</span>
+    <div class="ob-section-titles">
+     <h2 class="ob-section-title" id="ob-title-piernas">Piernas</h2>
+     <p class="ob-section-hint" id="ob-hint-piernas">Pantalones, jeans, shorts, faldas…</p>
+    </div>
+    <span class="ob-section-count" id="ob-count-piernas"></span>
+   </div>
+   <div class="ob-track-wrapper" id="ob-wrap-piernas">
+    <div class="ob-skeleton-track"><div class="ob-skeleton-card"></div><div class="ob-skeleton-card"></div><div class="ob-skeleton-card"></div></div>
+   </div>
+  </div>
+
+  <div class="ob-section" data-section="pies" id="ob-section-pies">
+   <div class="ob-section-header">
+    <span class="ob-section-badge" id="ob-badge-pies">3</span>
+    <div class="ob-section-titles">
+     <h2 class="ob-section-title" id="ob-title-pies">Pies</h2>
+     <p class="ob-section-hint" id="ob-hint-pies">Tenis, botas, sandalias, zapatos…</p>
+    </div>
+    <span class="ob-section-count" id="ob-count-pies"></span>
+   </div>
+   <div class="ob-track-wrapper" id="ob-wrap-pies">
+    <div class="ob-skeleton-track"><div class="ob-skeleton-card"></div><div class="ob-skeleton-card"></div><div class="ob-skeleton-card"></div></div>
+   </div>
+  </div>
+
+ </main>
+
+ <!-- Barra resumen del outfit armado -->
+ <div class="ob-summary" id="ob-summary">
+  <div class="ob-summary-slots">
+   <div class="ob-summary-slot" id="ob-slot-torso">—</div>
+   <div class="ob-summary-slot" id="ob-slot-piernas">—</div>
+   <div class="ob-summary-slot" id="ob-slot-pies">—</div>
+  </div>
+  <div class="ob-summary-mid">
+   <div class="ob-summary-total-label">Total del outfit</div>
+   <div class="ob-summary-total" id="ob-summary-total">$0</div>
+  </div>
+  <div class="ob-summary-actions">
+   <button class="ob-btn-add" id="ob-add-cart-btn"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" aria-hidden="true" style="vertical-align:-2px;margin-right:4px;"><use href="#ic-cart"/></svg>Agregar al carrito</button>
+   <button class="ob-btn-wa" id="ob-share-wa-btn"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" aria-hidden="true"><use href="#ic-whatsapp"/></svg>Compartir</button>
+  </div>
+ </div>
+
+<!-- Bottom Navigation -->
+<nav class="bottom-nav">
+ <button class="bottom-nav-item" data-page="outfit" id="nav-outfit">
+ <span class="nav-icon"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" aria-hidden="true"><use href="#ic-outfit"/></svg></span>
+ <span>Inicio</span>
+ </button>
+
+ <button class="bottom-nav-item" data-page="catalogo" id="nav-catalogo">
+ <span class="nav-icon"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" aria-hidden="true"><use href="#ic-catalog"/></svg></span>
+ <span>Catálogo</span>
+ </button>
+
+ <button class="bottom-nav-item" data-page="comunidad" id="nav-comunidad">
+ <span class="nav-icon"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" aria-hidden="true"><use href="#ic-community"/></svg></span>
+ <span>Comunidad</span>
+ </button>
+
+ <button class="bottom-nav-item" id="nav-cart">
+ <div class="badge-wrapper">
+ <span class="nav-icon"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" aria-hidden="true"><use href="#ic-cart"/></svg></span>
+ <span class="bottom-nav-badge" id="bottom-cart-count">0</span>
+ </div>
+ <span>Carrito</span>
+ </button>
+
+ <button class="bottom-nav-item" id="nav-wishlist">
+ <div class="badge-wrapper">
+ <span class="nav-icon"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" aria-hidden="true"><use href="#ic-heart"/></svg></span>
+ <span class="bottom-nav-badge" id="bottom-wishlist-count">0</span>
+ </div>
+ <span>Favoritos</span>
+ </button>
+</nav>
+
+ <aside class="cart-drawer" id="cart-drawer" aria-hidden="true">
+ <div class="cart-header">
+ <h2>Tu carrito</h2>
+ <button class="icon-button" id="close-cart-btn" aria-label="Cerrar carrito"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" aria-hidden="true"><use href="#ic-x"/></svg></button>
+ </div>
+ <div class="cart-body" id="cart-items-container"></div>
+ <div class="cart-footer">
+ <div class="cart-summary-row">
+ <span>Subtotal</span>
+ <span id="cart-subtotal">$0</span>
+ </div>
+ <div class="cart-summary-row total">
+ <span>Total</span>
+ <span id="cart-total">$0</span>
+ </div>
+ <div id="saved-phone-container" style="display:none;">
+ <div class="cart-info-row">
+ <span> <span id="saved-phone-display"></span></span>
+ <button id="change-phone-btn" class="cart-link-btn">Cambiar</button>
+ </div>
+ </div>
+ <div class="cart-delivery-block" id="cart-delivery-block">
+ <div class="cart-delivery-header">
+ <span class="cart-delivery-icon"></span>
+ <div class="cart-delivery-text">
+ <strong id="cart-delivery-title">Dirección de entrega</strong>
+ <span id="cart-delivery-subtitle" class="cart-delivery-sub">Opcional — para envío a domicilio</span>
+ </div>
+ <button id="cart-add-address-btn" class="cart-link-btn">Añadir</button>
+ </div>
+ <div id="saved-address-container" style="display:none;">
+ <div class="cart-address-display">
+ <span id="saved-address-display"></span>
+ <button id="change-address-btn" class="cart-link-btn">Editar</button>
+ </div>
+ </div>
+ <div id="cart-shipping-status"></div>
+ </div>
+ <button id="request-purchase-btn" class="primary-button full-width" style="background: linear-gradient(135deg, #25D366, #128C7E); margin-top: 8px;">Solicitar compra</button>
+ <button id="view-orders-btn" onclick="if(typeof openPanelOnTab==='function')openPanelOnTab('pedidos')" style="width:100%;margin-top:8px;padding:8px;border:none;background:transparent;color:var(--color-text-muted);font-size:12px;cursor:pointer;text-decoration:underline;">Ver mis pedidos</button>
+ </div>
+ </aside>
+
+ <div class="overlay" id="overlay" aria-hidden="true"></div>
+ <div class="image-modal" id="image-modal"></div>
+
+ <script src="api-config.js" defer></script>
+ <script src="common.js" defer></script>
+ <script src="error-monitor.js" defer></script>
+ <script src="cache-manager.js" defer></script>
+ <script src="offline-manager.js" defer></script>
+
+ <script defer>
+(function () {
+'use strict';
+
+// ===== CONSTANTES Y ESTADO =====
+const SECTION_KEYS = ['torso', 'piernas', 'pies'];
+const sectionProducts = { torso: [], piernas: [], pies: [] };
+const sectionById = { torso: new Map(), piernas: new Map(), pies: new Map() };
+const outfitState = { torso: null, piernas: null, pies: null };
+let scrollRaf = {};
+let CLASSIFIED = [];
+let productosCargados = false;
+
+const FILTERS_KEY = 'zr_ob_filters';
+const filters = loadFilters();
+
+function loadFilters() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(FILTERS_KEY));
+    return Object.assign({ modo: 'conjunto', genero: 'todos', estilo: 'todos' }, saved || {});
+  } catch (e) { return { modo: 'conjunto', genero: 'todos', estilo: 'todos' }; }
+}
+function saveFilters() {
+  try { localStorage.setItem(FILTERS_KEY, JSON.stringify(filters)); } catch (e) {}
+}
+
+// ===== FUNCIONES DE CLASIFICACIÓN =====
+function _obNorm(s) {
+  return (s || '').toString().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+}
+function _obHay(p) {
+  return [p.Nombre, p.Categoria, p.Descripcion].map(x => _obNorm(x || '')).join(' ');
+}
+const GENERO_KEYWORDS = {
+  mujer: ['mujer', 'dama', 'femenino', 'women', 'woman', 'girl', 'nina', 'femme'],
+  hombre: ['hombre', 'caballero', 'masculino', 'men', 'man', 'varonil', 'boy', 'nino']
+};
+const ESTILO_KEYWORDS = {
+  formal: ['formal', 'vestir', 'oficina', 'elegante', 'ejecutivo', 'gala', 'etiqueta'],
+  deportivo: ['deportivo', 'sport', 'gym', 'atletico', 'training', 'correr', 'jogger'],
+  casual: ['casual', 'diario', 'urbano', 'relajado']
+};
+const VESTIDO_KEYWORDS = ['vestido', 'vestidos', 'dress'];
+
+function detectGenero(p) {
+  const hay = _obHay(p);
+  if (GENERO_KEYWORDS.hombre.some(k => hay.includes(k))) return 'hombre';
+  if (GENERO_KEYWORDS.mujer.some(k => hay.includes(k))) return 'mujer';
+  return 'unisex';
+}
+function detectEstilo(p) {
+  const hay = _obHay(p);
+  for (const key of Object.keys(ESTILO_KEYWORDS)) {
+    if (ESTILO_KEYWORDS[key].some(k => hay.includes(k))) return key;
+  }
+  return 'sin-estilo';
+}
+function detectVestido(p) {
+  const hay = _obHay(p);
+  return VESTIDO_KEYWORDS.some(k => hay.includes(k));
+}
+function matchesGenero(g, filtro) { return filtro === 'todos' || g === filtro || g === 'unisex'; }
+function matchesEstilo(e, filtro) { return filtro === 'todos' || e === filtro || e === 'sin-estilo'; }
+
+// ===== FUNCIONES DE RENDER =====
+function cardThumb(p) {
+  const url = (typeof optimizeDriveUrl === 'function')
+    ? optimizeDriveUrl(p.Imagen1 || '', 200)
+    : (p.Imagen1 || '');
+  return url || 'https://placehold.co/200x200/3b1f5f/white?text=Sin+Imagen';
+}
+
+function renderEmpty(key, filtersActive) {
+  const wrap = document.getElementById('ob-wrap-' + key);
+  if (!wrap) return;
+  const msg = filtersActive
+    ? 'No hay prendas que coincidan con tus filtros en esta categoría.'
+    : 'Aún no hay prendas disponibles en esta categoría.';
+  wrap.innerHTML = '<div class="ob-empty">' + msg + '</div>';
+  const countEl = document.getElementById('ob-count-' + key);
+  if (countEl) countEl.textContent = '';
+}
+
+function renderSection(key, items) {
+  const wrap = document.getElementById('ob-wrap-' + key);
+  if (!wrap) return;
+  const filtersActive = filters.genero !== 'todos' || filters.estilo !== 'todos';
+  if (!items.length) {
+    sectionProducts[key] = [];
+    sectionById[key] = new Map();
+    outfitState[key] = null;
+    renderEmpty(key, filtersActive);
+    updateSummary();
+    return;
+  }
+
+  sectionProducts[key] = items;
+  const byId = new Map();
+  items.forEach(p => byId.set(String(p.ID), p));
+  sectionById[key] = byId;
+
+  const countEl = document.getElementById('ob-count-' + key);
+  if (countEl) countEl.textContent = items.length + (items.length === 1 ? ' opción' : ' opciones');
+
+  // Crear track
+  const track = document.createElement('div');
+  track.className = 'ob-track';
+  track.id = 'ob-track-' + key;
+
+  items.forEach((p, idx) => {
+    const card = document.createElement('div');
+    card.className = 'ob-card' + (idx === 0 ? ' active' : '');
+    card.dataset.pid = String(p.ID);
+    const name = escapeHtml(p.Nombre || 'Producto');
+    const talla = escapeHtml(p.Talla || '');
+    card.innerHTML =
+      '<div class="ob-card-img-wrap"><img src="' + cardThumb(p) + '" alt="' + name + '" loading="lazy"></div>' +
+      '<div class="ob-card-name">' + name + '</div>' +
+      '<div class="ob-card-price">' + formatCurrency(p.Precio) + '</div>' +
+      (talla ? '<div class="ob-card-size">Talla ' + talla + '</div>' : '');
+    track.appendChild(card);
+  });
+
+  wrap.innerHTML = '';
+  wrap.appendChild(track);
+
+  // 🔥 CALCULAR PADDING DINÁMICO
+  const updateTrackPadding = () => {
+    const firstCard = track.firstElementChild;
+    const lastCard = track.lastElementChild;
+    if (!firstCard || !lastCard) return;
+    const wrapWidth = wrap.clientWidth;
+    const cardWidth = firstCard.offsetWidth;
+    const gap = 14; // mismo gap que en CSS
+    const totalCards = items.length;
+    const trackWidth = totalCards * cardWidth + (totalCards - 1) * gap;
+    
+    // Si el track es más ancho que el contenedor, aplicar padding para centrar
+    if (trackWidth > wrapWidth) {
+      const padding = Math.max(0, (wrapWidth - cardWidth) / 2);
+      track.style.paddingLeft = padding + 'px';
+      track.style.paddingRight = padding + 'px';
+    } else {
+      // Si no hay scroll, centrar todo el track
+      const padding = (wrapWidth - trackWidth) / 2;
+      track.style.paddingLeft = Math.max(0, padding) + 'px';
+      track.style.paddingRight = Math.max(0, padding) + 'px';
+    }
+  };
+
+  updateTrackPadding();
+  const resizeObserver = new ResizeObserver(() => updateTrackPadding());
+  resizeObserver.observe(wrap);
+  track._resizeObserver = resizeObserver;
+
+  // Inicializar estado
+  outfitState[key] = items[0];
+
+  // ==== EVENTO CLICK (scroll manual) ====
+  track.addEventListener('click', (e) => {
+    const card = e.target.closest('.ob-card');
+    if (!card) return;
+    const pid = card.dataset.pid;
+    const product = sectionById[key].get(pid);
+    if (!product) return;
+
+    // Actualizar estado y clases
+    outfitState[key] = product;
+    updateSummary();
+    Array.from(track.children).forEach(c => c.classList.remove('active'));
+    card.classList.add('active');
+
+    // Calcular offset para centrar la tarjeta
+    const wrapRect = wrap.getBoundingClientRect();
+    const cardRect = card.getBoundingClientRect();
+    let offset = cardRect.left - wrapRect.left + wrap.scrollLeft - (wrapRect.width / 2) + (cardRect.width / 2);
+
+    // Limitar offset al máximo permitido (sin espacios en blanco)
+    const maxScroll = track.scrollWidth - wrap.clientWidth;
+    offset = Math.max(0, Math.min(offset, maxScroll));
+
+    wrap.scrollTo({ left: offset, behavior: 'smooth' });
+
+    // Forzar selección después del scroll
+    setTimeout(() => {
+      Array.from(track.children).forEach(c => c.classList.remove('active'));
+      card.classList.add('active');
+    }, 400);
+  });
+
+  // ==== EVENTO SCROLL (deslizar) ====
+  wrap.addEventListener('scroll', () => {
+    if (scrollRaf[key]) return;
+    scrollRaf[key] = requestAnimationFrame(() => {
+      scrollRaf[key] = null;
+      updateActiveCard(key, track);
+    });
+  }, { passive: true });
+
+  updateSummary();
+}
+
+
+
+function updateActiveCard(key, track) {
+  const wrapRect = track.parentElement.getBoundingClientRect();
+  const centerX = wrapRect.left + wrapRect.width / 2;
+  let closest = null;
+  let closestDist = Infinity;
+  Array.from(track.children).forEach(card => {
+    const r = card.getBoundingClientRect();
+    const dist = Math.abs((r.left + r.width / 2) - centerX);
+    if (dist < closestDist) { closestDist = dist; closest = card; }
+    card.classList.remove('active');
+  });
+  if (closest) {
+    closest.classList.add('active');
+    const pid = closest.dataset.pid;
+    const product = sectionById[key].get(pid);
+    if (product) { outfitState[key] = product; updateSummary(); }
+  }
+}
+
+function activeKeys() {
+  return filters.modo === 'vestido' ? ['torso', 'pies'] : ['torso', 'piernas', 'pies'];
+}
+
+function renderSlot(key) {
+  const slot = document.getElementById('ob-slot-' + key);
+  if (!slot) return;
+  const product = outfitState[key];
+  if (!product) { slot.innerHTML = '—'; return; }
+  slot.innerHTML = '<img src="' + cardThumb(product) + '" alt="">';
+}
+
+function updateSummary() {
+  const piernasSlot = document.getElementById('ob-slot-piernas');
+  if (piernasSlot) piernasSlot.style.display = (filters.modo === 'vestido') ? 'none' : '';
+
+  const keys = activeKeys();
+  SECTION_KEYS.forEach(renderSlot);
+  const total = keys.reduce((sum, k) => {
+    const p = outfitState[k];
+    return sum + (p ? Number(p.Precio || 0) : 0);
+  }, 0);
+  const totalEl = document.getElementById('ob-summary-total');
+  if (totalEl) totalEl.textContent = formatCurrency(total);
+}
+
+function renumberBadges() {
+  const torsoBadge = document.getElementById('ob-badge-torso');
+  const piernasBadge = document.getElementById('ob-badge-piernas');
+  const piesBadge = document.getElementById('ob-badge-pies');
+  if (torsoBadge) torsoBadge.textContent = '1';
+  if (filters.modo === 'vestido') {
+    if (piesBadge) piesBadge.textContent = '2';
+  } else {
+    if (piernasBadge) piernasBadge.textContent = '2';
+    if (piesBadge) piesBadge.textContent = '3';
+  }
+}
+
+function setSectionLabel(key, title, hint) {
+  const t = document.getElementById('ob-title-' + key);
+  const h = document.getElementById('ob-hint-' + key);
+  if (t) t.textContent = title;
+  if (h) h.textContent = hint;
+}
+
+function applyFiltersAndRender() {
+  const pools = { torso: [], piernas: [], pies: [], vestido: [] };
+  CLASSIFIED.forEach(x => {
+    if (!matchesGenero(x.genero, filters.genero)) return;
+    if (!matchesEstilo(x.estilo, filters.estilo)) return;
+    pools[x.section].push(x.p);
+  });
+
+  const piernasSectionEl = document.getElementById('ob-section-piernas');
+
+  if (filters.modo === 'vestido') {
+    if (piernasSectionEl) piernasSectionEl.hidden = true;
+    setSectionLabel('torso', 'Vestido', 'Vestidos completos para tu look');
+    renderSection('torso', pools.vestido);
+  } else {
+    if (piernasSectionEl) piernasSectionEl.hidden = false;
+    setSectionLabel('torso', 'Torso', 'Playeras, camisas, sudaderas, chamarras…');
+    renderSection('torso', pools.torso);
+    renderSection('piernas', pools.piernas);
+  }
+  renderSection('pies', pools.pies);
+  renumberBadges();
+
+  // Mostrar mensaje si no hay productos en ninguna sección
+  const hasItems = Object.values(pools).some(arr => arr.length > 0);
+  if (!hasItems && CLASSIFIED.length > 0) {
+    showTemporaryMessage('No hay productos que coincidan con los filtros actuales', 'info');
+  } else if (CLASSIFIED.length === 0) {
+    showTemporaryMessage('No se encontraron productos en el catálogo. Revisa tu conexión.', 'error');
+  }
+}
+
+function buildSections(products) {
+  if (!products || products.length === 0) {
+    CLASSIFIED = [];
+    applyFiltersAndRender();
+    return;
+  }
+  CLASSIFIED = products
+    .filter(p => Number(p.Stock ?? p.stock ?? 0) > 0)
+    .map(p => {
+      const vestido = detectVestido(p);
+      const section = vestido ? 'vestido' : (typeof detectSection === 'function' ? detectSection(p) : null);
+      return { p: p, section: section, genero: detectGenero(p), estilo: detectEstilo(p) };
+    })
+    .filter(x => !!x.section);
+  applyFiltersAndRender();
+}
+
+// ===== INICIALIZACIÓN PRINCIPAL =====
+function init() {
+  // Reflejar filtros guardados en los botones
+  document.querySelectorAll('.ob-mode-btn').forEach(b => b.classList.toggle('active', b.dataset.modo === filters.modo));
+  document.querySelectorAll('#ob-chips-genero .ob-chip').forEach(b => b.classList.toggle('active', b.dataset.genero === filters.genero));
+  document.querySelectorAll('#ob-chips-estilo .ob-chip').forEach(b => b.classList.toggle('active', b.dataset.estilo === filters.estilo));
+
+  // Mostrar mensaje de carga
+  const wrapTorso = document.getElementById('ob-wrap-torso');
+  if (wrapTorso) wrapTorso.innerHTML = '<div class="ob-skeleton-track"><div class="ob-skeleton-card"></div><div class="ob-skeleton-card"></div></div>';
+  const wrapPiernas = document.getElementById('ob-wrap-piernas');
+  if (wrapPiernas) wrapPiernas.innerHTML = '<div class="ob-skeleton-track"><div class="ob-skeleton-card"></div><div class="ob-skeleton-card"></div></div>';
+  const wrapPies = document.getElementById('ob-wrap-pies');
+  if (wrapPies) wrapPies.innerHTML = '<div class="ob-skeleton-track"><div class="ob-skeleton-card"></div><div class="ob-skeleton-card"></div></div>';
+
+  window.loadProductsUnified({
+    onProducts: (products, fromCache) => {
+      productosCargados = true;
+      if (fromCache) showTemporaryMessage('Cargando desde caché...', 'info');
+      buildSections(products);
+    },
+    onError: (err) => {
+      productosCargados = false;
+      showTemporaryMessage('Error al cargar productos: ' + (err.message || 'intenta de nuevo'), 'error');
+      // Mostrar mensaje en las secciones
+      SECTION_KEYS.forEach(k => renderEmpty(k, false));
+    }
+  });
+}
+
+// ===== LISTENERS DE FILTROS =====
+document.querySelectorAll('.ob-mode-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.ob-mode-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    filters.modo = btn.dataset.modo;
+    saveFilters();
+    applyFiltersAndRender();
+  });
+});
+document.querySelectorAll('#ob-chips-genero .ob-chip').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('#ob-chips-genero .ob-chip').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    filters.genero = btn.dataset.genero;
+    saveFilters();
+    applyFiltersAndRender();
+  });
+});
+document.querySelectorAll('#ob-chips-estilo .ob-chip').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('#ob-chips-estilo .ob-chip').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    filters.estilo = btn.dataset.estilo;
+    saveFilters();
+    applyFiltersAndRender();
+  });
+});
+
+// ===== BOTONES DE ACCIÓN =====
+const addCartBtn = document.getElementById('ob-add-cart-btn');
+if (addCartBtn) {
+  addCartBtn.addEventListener('click', () => {
+    const chosen = activeKeys().map(k => outfitState[k]).filter(Boolean);
+    if (!chosen.length) {
+      showTemporaryMessage('Selecciona al menos una prenda', 'error');
+      return;
+    }
+    chosen.forEach(p => { if (typeof addToCart === 'function') addToCart(p); });
+    showTemporaryMessage('Outfit agregado al carrito', 'success');
+  });
+}
+
+const shareBtn = document.getElementById('ob-share-wa-btn');
+if (shareBtn) {
+  shareBtn.addEventListener('click', () => {
+    const chosen = activeKeys().map(k => outfitState[k]).filter(Boolean);
+    if (!chosen.length) {
+      showTemporaryMessage('Selecciona al menos una prenda', 'error');
+      return;
+    }
+    const lines = chosen.map(p => '• ' + (p.Nombre || 'Producto') + ' — ' + formatCurrency(p.Precio));
+    const total = chosen.reduce((s, p) => s + Number(p.Precio || 0), 0);
+    const msg = 'Hola, armé este outfit en Z&R y me interesa:\n\n' + lines.join('\n') + '\n\nTotal: ' + formatCurrency(total);
+    const number = (typeof WHATSAPP_NUMBER !== 'undefined') ? WHATSAPP_NUMBER : '';
+    window.open('https://wa.me/' + number + '?text=' + encodeURIComponent(msg), '_blank');
+  });
+}
+
+const resetBtn = document.getElementById('ob-reset-btn');
+if (resetBtn) {
+  resetBtn.addEventListener('click', () => {
+    SECTION_KEYS.forEach(key => {
+      const wrap = document.getElementById('ob-wrap-' + key);
+      if (wrap) wrap.scrollTo({ left: 0, behavior: 'smooth' });
+    });
+    setTimeout(() => {
+      SECTION_KEYS.forEach(key => {
+        const items = sectionProducts[key];
+        if (items && items.length) outfitState[key] = items[0];
+      });
+      updateSummary();
+    }, 350);
+  });
+}
+
+// ===== INICIO =====
+document.addEventListener('DOMContentLoaded', init);
+
+// ===== CARRITO (común) =====
+document.addEventListener('DOMContentLoaded', function () {
+  if (typeof loadCartFromStorage === 'function') loadCartFromStorage();
+  if (typeof renderCart === 'function') renderCart();
+  if (typeof updateSavedPhoneDisplay === 'function') updateSavedPhoneDisplay();
+
+  const closeCartBtn = document.getElementById('close-cart-btn');
+  if (closeCartBtn) {
+    closeCartBtn.addEventListener('click', () => {
+      if (typeof window.closeCartDrawer === 'function') window.closeCartDrawer();
+    });
+  }
+
+  const overlay = document.getElementById('overlay');
+  if (overlay) {
+    overlay.addEventListener('click', () => {
+      if (typeof window.closeCartDrawer === 'function') window.closeCartDrawer();
+      if (typeof closeImageModal === 'function') closeImageModal();
+      overlay.classList.remove('visible');
+    });
+  }
+
+  window.addEventListener('cartUpdated', () => {
+    if (typeof renderCart === 'function') renderCart();
+    if (typeof updateCartBadge === 'function') updateCartBadge();
+  });
+});
+
+// ===== BOTTOM NAVIGATION =====
+document.addEventListener('DOMContentLoaded', function () {
+  function updateBottomBadges() {
+    const cartCount = document.getElementById('bottom-cart-count');
+    const wishlistCount = document.getElementById('bottom-wishlist-count');
+    if (cartCount) {
+      const cart = JSON.parse(localStorage.getItem('cart') || '{}');
+      const total = Object.values(cart).reduce((s, i) => s + (i.quantity || 0), 0);
+      cartCount.textContent = total;
+    }
+    if (wishlistCount) {
+      const wishlistLooks = JSON.parse(localStorage.getItem('zr_looks_wishlist') || '[]');
+      wishlistCount.textContent = wishlistLooks.length;
+    }
+  }
+
+  const navCatalogo = document.getElementById('nav-catalogo');
+  if (navCatalogo) navCatalogo.addEventListener('click', () => { window.location.href = 'catalogo.html'; });
+
+  const navOutfit = document.getElementById('nav-outfit');
+  if (navOutfit) navOutfit.addEventListener('click', () => { window.location.href = 'outfit.html'; });
+
+  const navComunidad = document.getElementById('nav-comunidad');
+  if (navComunidad) navComunidad.addEventListener('click', () => { window.location.href = 'comunidad.html'; });
+
+  const navCart = document.getElementById('nav-cart');
+  if (navCart) {
+    navCart.addEventListener('click', (e) => {
+      e.preventDefault();
+      if (typeof openCartDrawer === 'function') openCartDrawer();
+    });
+  }
+
+  const navWishlist = document.getElementById('nav-wishlist');
+  if (navWishlist) {
+    navWishlist.addEventListener('click', (e) => {
+      e.preventDefault();
+      window.location.href = 'outfit.html';
+    });
+  }
+
+  window.addEventListener('cartUpdated', updateBottomBadges);
+  window.addEventListener('storage', updateBottomBadges);
+  updateBottomBadges();
+});
+
+})();
+</script>
+
+</body>
+</html>

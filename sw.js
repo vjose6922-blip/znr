@@ -3,7 +3,7 @@
 //   • Añadidas nuevas páginas de vendedor al caché estático
 // ─────────────────────────────────────────────────────────────────────────────
 
-const CACHE_NAME    = 'zr-cache-v12';   // ← incrementado: admin-comunidad.js añadido al caché
+const CACHE_NAME    = 'zr-cache-v13';   // ← incrementado: armar-outfit.html añadido al caché
 const DYNAMIC_CACHE = 'zr-dynamic-v11';
 const OFFLINE_URL   = '/ZNR/offline.html';
 
@@ -12,6 +12,7 @@ const STATIC_ASSETS = [
   '/ZNR/index.html',
   '/ZNR/catalogo.html',
   '/ZNR/outfit.html',
+  '/ZNR/armar-outfit.html',
   '/ZNR/comunidad.html',
   '/ZNR/vendedor.html',
   '/ZNR/admin.html',
@@ -117,8 +118,8 @@ async function cacheFirst(request) {
 
 async function networkOnly(request) {
   try { return await fetch(request); }
-  catch (err) {
-    return new Response(JSON.stringify({ ok: false, error: 'Sin conexión con el servidor' }), {
+  catch {
+    return new Response(JSON.stringify(null), {
       status: 503, headers: { 'Content-Type': 'application/json' }
     });
   }
