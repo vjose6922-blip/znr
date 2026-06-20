@@ -120,6 +120,8 @@
     -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
     overscroll-behavior-x: contain; /* fix espacio en blanco */
+    scroll-snap-type: x mandatory; /* obliga a que el scroll se detenga centrado en una card */
+    scroll-padding: 0 calc(50% - 72px); /* permite que la 1ra/última card lleguen al centro */
   }
   .ob-track-wrapper::-webkit-scrollbar { display:none; }
 
@@ -127,7 +129,7 @@
   display: flex;
   align-items: flex-end;
   gap: 14px;
-  padding: 6px 0; /* ← sin padding lateral fijo */
+  padding: 6px calc(50% - 72px); /* espacio lateral = mitad de la card, para poder centrar la 1ra/última */
   min-width: 100%; /* ← para que ocupe todo el ancho */
   width: fit-content; /* ← para que se ajuste al contenido */
 }
@@ -223,7 +225,8 @@
 
   @media (min-width: 480px) {
     .ob-card { flex: 0 0 168px; width: 168px; }
-    .ob-track { padding: 6px calc(50% - 84px); scroll-padding: 0 calc(50% - 84px); }
+    .ob-track { padding: 6px calc(50% - 84px); }
+    .ob-track-wrapper { scroll-padding: 0 calc(50% - 84px); }
   }
  </style>
 </head>
@@ -885,7 +888,9 @@ function openFiltersDrawer() {
 }
 function closeFiltersDrawer() {
   const drawer = document.getElementById('ob-filters-drawer');
+  const overlay = document.getElementById('overlay');
   if (drawer) { drawer.classList.remove('open'); drawer.setAttribute('aria-hidden', 'true'); }
+  if (overlay) overlay.classList.remove('visible');
 }
 window.closeFiltersDrawer = closeFiltersDrawer;
 
