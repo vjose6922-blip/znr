@@ -86,10 +86,21 @@ let inspectorMode = false;
 async function initInspectorMode() {
 const urlParams = new URLSearchParams(window.location.search);
 if (urlParams.get('inspector') !== '1') return;
-const token = sessionStorage.getItem('admin_token') || '';
+// El token puede venir en la URL (lo manda admin.html al abrir la pestaña,
+// porque sessionStorage no siempre viaja a una pestaña nueva) o ya estar
+// guardado en esta pestaña si se volvió a cargar la página.
+const tokenFromUrl = urlParams.get('token') || '';
+const token = tokenFromUrl || sessionStorage.getItem('admin_token') || '';
 if (!token) {
 console.log(' Modo inspector: sin token de admin, acceso denegado');
 return;
+}
+if (tokenFromUrl) {
+sessionStorage.setItem('admin_token', tokenFromUrl);
+// Quitar el token de la URL visible (no lo dejamos en el historial del navegador)
+const cleanUrl = new URL(window.location.href);
+cleanUrl.searchParams.delete('token');
+history.replaceState(null, '', cleanUrl.toString());
 }
 try {
 const api = window.API_URL || '';
