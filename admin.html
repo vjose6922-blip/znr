@@ -1842,8 +1842,8 @@ async function openVendorStatsGlobal() {
  document.getElementById('gvs-list').innerHTML = '';
  try {
  const [vRes, pRes] = await Promise.all([
- fetch(api, { method: "POST", headers: {"Content-Type":"application/json"}, body: JSON.stringify({ action: "vendedoresAdmin", token: token }) }).then(r=>r.json()).catch(()=>({})),
- fetch(api, { method: "POST", headers: {"Content-Type":"application/json"}, body: JSON.stringify({ action: "listarComunidad", token: token }) }).then(r=>r.json()).catch(()=>({})),
+ fetch(api + '?' + new URLSearchParams({ action: "vendedoresAdmin", token: token }).toString()).then(r=>r.json()).catch(()=>({})),
+ fetch(api + '?' + new URLSearchParams({ action: "listarComunidad", token: token }).toString()).then(r=>r.json()).catch(()=>({})),
  ]);
  const vendors  = vRes.vendors  || [];
  const products = pRes.products || pRes.pendientes || [];
@@ -2235,4 +2235,4 @@ async function renderAnalyticsCharts() {
 }
 </script>
 </body>
-</html>
+                                                  </html>
