@@ -1,3 +1,4 @@
+
 (function() {
 const COMUNIDAD_CACHE_KEY = 'zr_comunidad_data';
 const COMUNIDAD_CACHE_TTL_SESSION = 5 * 60 * 1000;   // 5 min — session (fast)
@@ -92,7 +93,7 @@ return;
 }
 try {
 const api = window.API_URL || '';
-const res = await fetch(api, { method: "POST", headers: {"Content-Type":"application/json"}, body: JSON.stringify({ action: "verificarAdmin", token: token }) });
+const res = await fetch(api + "?" + new URLSearchParams({ action: "verificarAdmin", token: token }).toString());
 const data = await res.json();
 if (data.ok === true) {
 inspectorMode = true;
