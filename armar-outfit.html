@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -40,15 +39,14 @@
  <meta name="msapplication-TileColor" content="#1e2128">
 
  <style>
-  /* ===== Armar Outfit — estilos exclusivos de esta página (prefijo ob-) ===== */
+  
 
-  /* Fix: evita que el deslizar el carrusel dispare el gesto de navegación
-     del navegador (swipe back/forward) y deje un espacio en blanco. */
+  
   html, body { overscroll-behavior-x: none; }
 
   .ob-main { padding: 2px 0 180px; }
 
-  /* ---- Barra de filtros (fija arriba del contenido, no flotante) ---- */
+  
   .ob-filterbar { padding: 6px 16px 0; display:flex; flex-direction:column; gap:6px; }
 
   .ob-mode-switch { display:flex; background: var(--color-surface-2); border-radius: 999px; padding:3px; gap:3px; }
@@ -89,7 +87,7 @@
     font-size: 10.5px; font-weight: 700; border-radius: 999px; padding: 1px 7px; line-height: 1.5;
   }
 
-  /* ---- Contenido del drawer de filtros (Género / Estilo / Tallas) ---- */
+  
   .ob-filter-group { margin-bottom: 20px; }
   .ob-filter-group:last-child { margin-bottom: 4px; }
   .ob-talla-list { display:flex; flex-direction:column; gap:10px; }
@@ -119,9 +117,9 @@
     overflow-x: auto; overflow-y: hidden;
     -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
-    overscroll-behavior-x: contain; /* fix espacio en blanco */
-    scroll-snap-type: x mandatory; /* obliga a que el scroll se detenga centrado en una card */
-    scroll-padding: 0 calc(50% - 72px); /* permite que la 1ra/última card lleguen al centro */
+    overscroll-behavior-x: contain; 
+    scroll-snap-type: x mandatory; 
+    scroll-padding: 0 calc(50% - 72px); 
   }
   .ob-track-wrapper::-webkit-scrollbar { display:none; }
 
@@ -129,9 +127,9 @@
   display: flex;
   align-items: flex-end;
   gap: 14px;
-  padding: 6px calc(50% - 72px); /* espacio lateral = mitad de la card, para poder centrar la 1ra/última */
-  min-width: 100%; /* ← para que ocupe todo el ancho */
-  width: fit-content; /* ← para que se ajuste al contenido */
+  padding: 6px calc(50% - 72px); 
+  min-width: 100%; 
+  width: fit-content; 
 }
 
   .ob-card {
@@ -157,7 +155,7 @@
   }
   .ob-card-img-wrap img { width:100%; height:100%; object-fit: contain; display:block; }
 
-  /* ---- Info de la prenda: solo visible al tocar la card activa ---- */
+  
   .ob-card-info {
     position: absolute; inset: 0;
     background: rgba(0,0,0,0.64);
@@ -189,7 +187,7 @@
   }
   @keyframes ob-shimmer { to { background-position-x: -200%; } }
 
-  /* ---- Barra resumen flotante ---- */
+  
   .ob-summary {
     position: fixed; left: 0; right: 0; bottom: 70px; z-index: 95;
     background: var(--color-surface);
@@ -253,7 +251,7 @@
  </div>
  </header>
 
- <!-- Barra de filtros: solo el switch + botón que abre el menú de filtros -->
+ 
  <div class="ob-filterbar">
   <div class="ob-mode-switch" id="ob-mode-switch">
    <button class="ob-mode-btn active" data-modo="conjunto">Conjunto</button>
@@ -274,7 +272,6 @@
    </div>
   </div>
 
-
   <div class="ob-section" data-section="piernas" id="ob-section-piernas">
    <div class="ob-track-wrapper" id="ob-wrap-piernas">
     <div class="ob-skeleton-track"><div class="ob-skeleton-card"></div><div class="ob-skeleton-card"></div><div class="ob-skeleton-card"></div></div>
@@ -289,7 +286,7 @@
 
  </main>
 
- <!-- Barra resumen del outfit armado -->
+ 
  <div class="ob-summary" id="ob-summary">
   <div class="ob-summary-slots">
    <div class="ob-summary-slot" id="ob-slot-torso">—</div>
@@ -306,7 +303,6 @@
   </div>
  </div>
 
-<!-- Bottom Navigation -->
 <nav class="bottom-nav">
  <button class="bottom-nav-item" data-page="outfit" id="nav-outfit">
  <span class="nav-icon"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" aria-hidden="true"><use href="#ic-outfit"/></svg></span>
@@ -451,7 +447,6 @@
 (function () {
 'use strict';
 
-// ===== CONSTANTES Y ESTADO =====
 const SECTION_KEYS = ['torso', 'piernas', 'pies'];
 const sectionProducts = { torso: [], piernas: [], pies: [] };
 const sectionById = { torso: new Map(), piernas: new Map(), pies: new Map() };
@@ -476,7 +471,6 @@ function saveFilters() {
   try { localStorage.setItem(FILTERS_KEY, JSON.stringify(filters)); } catch (e) {}
 }
 
-// ===== FUNCIONES DE CLASIFICACIÓN =====
 function _obNorm(s) {
   return (s || '').toString().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 }
@@ -515,7 +509,6 @@ function matchesTalla(p, filtro) {
   return talla.split(/[,\/]/).map(t => t.trim()).includes(filtro);
 }
 
-// ===== FUNCIONES DE RENDER =====
 function cardThumb(p) {
   const url = (typeof optimizeDriveUrl === 'function')
     ? optimizeDriveUrl(p.Imagen1 || '', 200)
@@ -555,7 +548,6 @@ function renderSection(key, items) {
   const countEl = document.getElementById('ob-count-' + key);
   if (countEl) countEl.textContent = items.length + (items.length === 1 ? ' opción' : ' opciones');
 
-  // Crear track
   const track = document.createElement('div');
   track.className = 'ob-track';
   track.id = 'ob-track-' + key;
@@ -581,10 +573,8 @@ function renderSection(key, items) {
   wrap.innerHTML = '';
   wrap.appendChild(track);
 
-  // Inicializar estado
   outfitState[key] = items[0];
 
-  // ==== EVENTO CLICK ====
   track.addEventListener('click', (e) => {
     const card = e.target.closest('.ob-card');
     if (!card) return;
@@ -592,14 +582,12 @@ function renderSection(key, items) {
     const product = sectionById[key].get(pid);
     if (!product) return;
 
-    // Si ya es la tarjeta en foco: solo alterna su info (no afecta a las de los lados)
     if (card.classList.contains('active')) {
       const info = card.querySelector('.ob-card-info');
       if (info) info.classList.toggle('show');
       return;
     }
 
-    // Tarjeta lateral: la selecciona y la centra (comportamiento de siempre)
     Array.from(track.children).forEach(c => {
       c.classList.remove('active');
       const i = c.querySelector('.ob-card-info');
@@ -609,11 +597,9 @@ function renderSection(key, items) {
     outfitState[key] = product;
     updateSummary();
 
-    // Centrar usando el motor nativo de scroll-snap (simétrico en ambas direcciones)
     card.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
   });
 
-  // ==== EVENTO SCROLL (deslizar) ====
   wrap.addEventListener('scroll', () => {
     if (scrollRaf[key]) return;
     scrollRaf[key] = requestAnimationFrame(() => {
@@ -624,8 +610,6 @@ function renderSection(key, items) {
 
   updateSummary();
 }
-
-
 
 function updateActiveCard(key, track) {
   const wrapRect = track.parentElement.getBoundingClientRect();
@@ -685,8 +669,6 @@ function applyFiltersAndRender() {
   const piernasSectionEl = document.getElementById('ob-section-piernas');
   const torsoPool = filters.modo === 'vestido' ? pools.vestido : pools.torso;
 
-  // Cada select de talla se llena con las opciones disponibles ANTES de aplicar
-  // su propio filtro de talla (igual que género/estilo), para no auto-eliminar opciones.
   populateTallaFilter('torso', torsoPool);
   populateTallaFilter('piernas', pools.piernas);
   populateTallaFilter('pies', pools.pies);
@@ -702,7 +684,6 @@ function applyFiltersAndRender() {
   renderSection('pies', pools.pies.filter(p => matchesTalla(p, filters.talla.pies)));
   updateFiltersBadge();
 
-  // Mostrar mensaje si no hay productos en ninguna sección
   const hasItems = Object.values(pools).some(arr => arr.length > 0);
   if (!hasItems && CLASSIFIED.length > 0) {
     showTemporaryMessage('No hay productos que coincidan con los filtros actuales', 'info');
@@ -763,14 +744,12 @@ function populateTallaFilter(key, items) {
   if (safeVal !== currentVal) { filters.talla[key] = safeVal; saveFilters(); }
 }
 
-// ===== INICIALIZACIÓN PRINCIPAL =====
 function init() {
-  // Reflejar filtros guardados en los botones
+
   document.querySelectorAll('.ob-mode-btn').forEach(b => b.classList.toggle('active', b.dataset.modo === filters.modo));
   document.querySelectorAll('#ob-chips-genero .ob-chip').forEach(b => b.classList.toggle('active', b.dataset.genero === filters.genero));
   document.querySelectorAll('#ob-chips-estilo .ob-chip').forEach(b => b.classList.toggle('active', b.dataset.estilo === filters.estilo));
 
-  // Mostrar mensaje de carga
   const wrapTorso = document.getElementById('ob-wrap-torso');
   if (wrapTorso) wrapTorso.innerHTML = '<div class="ob-skeleton-track"><div class="ob-skeleton-card"></div><div class="ob-skeleton-card"></div></div>';
   const wrapPiernas = document.getElementById('ob-wrap-piernas');
@@ -787,13 +766,12 @@ function init() {
     onError: (err) => {
       productosCargados = false;
       showTemporaryMessage('Error al cargar productos: ' + (err.message || 'intenta de nuevo'), 'error');
-      // Mostrar mensaje en las secciones
+
       SECTION_KEYS.forEach(k => renderEmpty(k, false));
     }
   });
 }
 
-// ===== LISTENERS DE FILTROS =====
 document.querySelectorAll('.ob-mode-btn').forEach(btn => {
   btn.addEventListener('click', () => {
     document.querySelectorAll('.ob-mode-btn').forEach(b => b.classList.remove('active'));
@@ -832,7 +810,6 @@ SECTION_KEYS.forEach(key => {
   }
 });
 
-// ===== MENÚ DE FILTROS (drawer) =====
 function openFiltersDrawer() {
   const drawer = document.getElementById('ob-filters-drawer');
   const overlay = document.getElementById('overlay');
@@ -866,7 +843,6 @@ if (filtersClearBtn) {
   });
 }
 
-// ===== BOTONES DE ACCIÓN =====
 const addCartBtn = document.getElementById('ob-add-cart-btn');
 if (addCartBtn) {
   addCartBtn.addEventListener('click', () => {
@@ -913,10 +889,8 @@ if (resetBtn) {
   });
 }
 
-// ===== INICIO =====
 document.addEventListener('DOMContentLoaded', init);
 
-// ===== CARRITO (común) =====
 document.addEventListener('DOMContentLoaded', function () {
   if (typeof loadCartFromStorage === 'function') loadCartFromStorage();
   if (typeof renderCart === 'function') renderCart();
@@ -945,7 +919,6 @@ document.addEventListener('DOMContentLoaded', function () {
   });
 });
 
-// ===== BOTTOM NAVIGATION =====
 document.addEventListener('DOMContentLoaded', function () {
   function updateBottomBadges() {
     const cartCount = document.getElementById('bottom-cart-count');

@@ -32,7 +32,6 @@ if (typeof escapeHtml !== 'function') {
   };
 }
 
-
 let currentPage = 1;
 let totalPages = 1;
 let isLoading = false;
@@ -79,7 +78,7 @@ const allCancelled = group.notifications.every(n => n.status === 'cancelled');
 if (allConfirmed) return 'confirmed';
 if (allRejected)  return 'rejected';
 if (allCancelled) return 'cancelled';
-// Mixto: si hay algún cancelled y ningún pending/confirmed → cancelled
+
 const hasPending   = group.notifications.some(n => n.status === 'pending');
 const hasConfirmed = group.notifications.some(n => n.status === 'confirmed');
 const hasCancelled = group.notifications.some(n => n.status === 'cancelled');
@@ -202,15 +201,6 @@ container.appendChild(fragment);
 initLazyImagesInNotifications();
 }
 
-
-
-
-
-
-
-
-
-
 async function loadNotificationsOptimized(forceRefresh = false) {
   if (typeof API_URL === 'undefined') {
     return;
@@ -218,7 +208,7 @@ async function loadNotificationsOptimized(forceRefresh = false) {
   if (isLoading) return;
   isLoading = true;
   
-  // Mostrar skeleton solo si no hay datos en caché
+
   const container = document.getElementById("notifications");
   const hasCached = !forceRefresh && getCachedNotifications();
   if (!hasCached) showSkeletonNotifications();
@@ -227,7 +217,6 @@ async function loadNotificationsOptimized(forceRefresh = false) {
     const token = sessionStorage.getItem("admin_token") || "";
     if (!token) throw new Error("No token");
 
-    // Construir URL con token y acción GET
     const params = new URLSearchParams({
       action: "notificationsBatch",
       page: "1",
@@ -249,7 +238,7 @@ async function loadNotificationsOptimized(forceRefresh = false) {
 
   } catch (err) {
     console.error(err);
-    // Intentar usar caché
+
     const fallback = getCachedNotifications();
     if (fallback && fallback.groups) {
       processAndRenderNotifications(fallback);
@@ -262,9 +251,6 @@ async function loadNotificationsOptimized(forceRefresh = false) {
     hideSkeletonNotifications();
   }
 }
-
-
-
 
 function processAndRenderNotifications(data) {
 if (!data.groups) {
@@ -304,7 +290,6 @@ if (status === 'rejected')  return 'Rechazado';
 if (status === 'cancelled') return 'Cancelado por cliente';
 return hasStock ? 'Pendiente' : 'Sin stock';
 }
-
 
 function createOptimizedNotificationCard(group) {
   const card = document.createElement("div");
@@ -654,13 +639,12 @@ showTemporaryMessage(err.message, 'error');
 }
 }
 }
-// ========== INICIALIZACIÓN SIMPLE Y DIRECTA ==========
+
 document.addEventListener("DOMContentLoaded", () => {
-  // Cargar inmediatamente con fetch GET + token
+
   loadNotificationsOptimized();
   startAutoRefresh();
 
-  // Botones de refresh
   document.querySelectorAll('.refresh-btn, #refresh-solicitudes-btn, #main-refresh-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       invalidateNotificationsCache();
@@ -674,7 +658,6 @@ window.addEventListener('beforeunload', () => {
   if (lazyImageObserver) lazyImageObserver.disconnect();
 });
 
-// Exportaciones necesarias
 window.removeOutOfStockNotifications = removeOutOfStockNotifications;
 window.confirmGroupPurchase = confirmGroupPurchase;
 window.cancelGroupPurchase = cancelGroupPurchase;

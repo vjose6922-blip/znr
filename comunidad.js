@@ -1,25 +1,22 @@
-
 (function() {
 const COMUNIDAD_CACHE_KEY = 'zr_comunidad_data';
-const COMUNIDAD_CACHE_TTL_SESSION = 5 * 60 * 1000;   // 5 min — session (fast)
-const COMUNIDAD_CACHE_TTL_LOCAL   = 30 * 60 * 1000;  // 30 min — persistent (like catálogo)
+const COMUNIDAD_CACHE_TTL_SESSION = 5 * 60 * 1000;
+const COMUNIDAD_CACHE_TTL_LOCAL   = 30 * 60 * 1000;
 const renderPage = renderProducts;
 
-// Write to both session (fast) and local (persistent across visits)
 function setComunidadCache(products) {
   const payload = JSON.stringify({ data: products, timestamp: Date.now(), version: '1.1' });
   try { sessionStorage.setItem(COMUNIDAD_CACHE_KEY, payload); } catch(e) {}
   try { localStorage.setItem(COMUNIDAD_CACHE_KEY, payload); } catch(e) {}
 }
 
-// Read: session first (freshest), fall back to localStorage for cold start
 function getComunidadCache() {
   try {
-    // 1) Try sessionStorage (same-tab, always fresh)
+
     let raw = sessionStorage.getItem(COMUNIDAD_CACHE_KEY);
     let ttl = COMUNIDAD_CACHE_TTL_SESSION;
     let store = 'session';
-    // 2) Cold start: fall back to localStorage
+
     if (!raw) {
       raw = localStorage.getItem(COMUNIDAD_CACHE_KEY);
       ttl = COMUNIDAD_CACHE_TTL_LOCAL;
@@ -86,9 +83,7 @@ let inspectorMode = false;
 async function initInspectorMode() {
 const urlParams = new URLSearchParams(window.location.search);
 if (urlParams.get('inspector') !== '1') return;
-// El token puede venir en la URL (lo manda admin.html al abrir la pestaña,
-// porque sessionStorage no siempre viaja a una pestaña nueva) o ya estar
-// guardado en esta pestaña si se volvió a cargar la página.
+
 const tokenFromUrl = urlParams.get('token') || '';
 const token = tokenFromUrl || sessionStorage.getItem('admin_token') || '';
 if (!token) {
@@ -97,7 +92,7 @@ return;
 }
 if (tokenFromUrl) {
 sessionStorage.setItem('admin_token', tokenFromUrl);
-// Quitar el token de la URL visible (no lo dejamos en el historial del navegador)
+
 const cleanUrl = new URL(window.location.href);
 cleanUrl.searchParams.delete('token');
 history.replaceState(null, '', cleanUrl.toString());
@@ -134,13 +129,16 @@ const urlParams = new URLSearchParams(window.location.search);
 return {
 busqueda: urlParams.get('busqueda') || '',
 categoria: urlParams.get('categoria') || '',
-vendedor: urlParams.get('vendedor') || ''
+vendedor: urlParams.get('vendedor') || '',
+soloPro: urlParams.get('soloPro') === '1'
 };
 }
 function updateURLWithFilters() {
 const searchTerm = getSearchValue();
 const category = catSelect ? catSelect.value : '';
 const vendor = vendorSelect ? vendorSelect.value : '';
+const soloProEl = document.getElementById('comunidad-solo-pro');
+const soloPro = soloProEl ? soloProEl.checked : false;
 const params = new URLSearchParams();
 if (new URLSearchParams(window.location.search).get('inspector') === '1') {
 params.set('inspector', '1');
@@ -148,6 +146,7 @@ params.set('inspector', '1');
 if (searchTerm) params.set('busqueda', searchTerm);
 if (category) params.set('categoria', category);
 if (vendor) params.set('vendedor', vendor);
+if (soloPro) params.set('soloPro', '1');
 const newURL = `${window.location.pathname}${params.toString() ? '?' + params.toString() : ''}`;
 window.history.replaceState({}, '', newURL);
 }
@@ -158,7 +157,6 @@ return input ? input.value.trim().toLowerCase() : '';
 function safeString(value) {
 return (value != null) ? String(value) : '';
 }
-
 
 async function fetchWithRetry(fn, maxAttempts = 3, delays = [2000, 5000, 10000]) {
 for (let attempt = 0; attempt < maxAttempts; attempt++) {
@@ -183,11 +181,6 @@ const cards = Array.from({length: count}, () => `
 container.innerHTML = cards;
 }
 
-
-
-
-
-
 async function loadCommunityProducts() {
   if (!window.API_URL) {
     console.error('API_URL no definida');
@@ -199,7 +192,6 @@ async function loadCommunityProducts() {
 
   const cachedProducts = getComunidadCache();
 
-  // --- Helper local para reintentos (por si no existe globalmente) ---
   const localFetchWithRetry = async (fn, maxAttempts = 3, delays = [2000, 5000, 10000]) => {
     for (let attempt = 0; attempt < maxAttempts; attempt++) {
       try {
@@ -217,7 +209,6 @@ async function loadCommunityProducts() {
       const url = window.API_URL;
       console.log("🔍 Cargando comunidad desde:", url);
 
-      // 1) Intentar con POST
       let data;
       let usedGet = false;
       try {
@@ -237,7 +228,7 @@ async function loadCommunityProducts() {
         console.log("✅ Respuesta POST recibida:", data);
       } catch (postErr) {
         console.warn("⚠️ Falló POST para listarComunidad, intentando con GET...", postErr);
-        // 2) Fallback a GET
+
         try {
           const getUrl = new URL(url);
           getUrl.searchParams.set('action', 'listarComunidad');
@@ -294,7 +285,6 @@ async function loadCommunityProducts() {
     }
   }
 
-  // --- Lógica principal con caché ---
   if (cachedProducts && cachedProducts.length > 0) {
     allCommunityProducts = cachedProducts;
     window.allCommunityProductsIndexed = allCommunityProducts;
@@ -308,6 +298,12 @@ async function loadCommunityProducts() {
       const searchInput = document.getElementById('comunidad-search');
       if (searchInput) searchInput.value = urlFilters.busqueda;
       filteredProducts = filterProducts(cachedProducts, urlFilters);
+    }
+    if (urlFilters.soloPro) {
+      const soloProEl = document.getElementById('comunidad-solo-pro');
+      const soloProLabel = document.getElementById('comunidad-pro-label');
+      if (soloProEl) soloProEl.checked = true;
+      if (soloProLabel) soloProLabel.classList.add('active');
     }
 
     renderPage();
@@ -340,6 +336,12 @@ async function loadCommunityProducts() {
       const optionExists = Array.from(vendorSelect.options).some(opt => opt.value === urlFilters.vendedor);
       if (optionExists) vendorSelect.value = urlFilters.vendedor;
     }
+    if (urlFilters.soloPro) {
+      const soloProEl = document.getElementById('comunidad-solo-pro');
+      const soloProLabel = document.getElementById('comunidad-pro-label');
+      if (soloProEl) soloProEl.checked = true;
+      if (soloProLabel) soloProLabel.classList.add('active');
+    }
     applyFilters();
 
   } catch (err) {
@@ -357,13 +359,6 @@ async function loadCommunityProducts() {
     if (typeof window.hideLoader === 'function') window.hideLoader();
   }
 }
-
-
-
-
-
-
-
 
 function populateFilters() {
 if (catSelect) {
@@ -402,6 +397,8 @@ try {
 const searchTerm = getSearchValue();
 const category = catSelect ? catSelect.value : '';
 const vendor = vendorSelect ? vendorSelect.value : '';
+const soloProEl = document.getElementById('comunidad-solo-pro');
+const soloPro = soloProEl ? soloProEl.checked : false;
 filteredProducts = allCommunityProducts.filter(p => {
 const nombre = safeString(p.nombre);
 const descripcion = safeString(p.descripcion);
@@ -412,7 +409,8 @@ nombre.toLowerCase().includes(searchTerm) ||
 descripcion.toLowerCase().includes(searchTerm);
 const matchCategory = !category || (categoria === category);
 const matchVendor = !vendor || (vendedorNombre === vendor);
-return matchSearch && matchCategory && matchVendor;
+const matchPro = !soloPro || p.vendedor_plan === 'plus';
+return matchSearch && matchCategory && matchVendor && matchPro;
 });
 currentPage = 1;
 renderProducts();
@@ -615,6 +613,7 @@ const waLink = vendorTel ? `https://wa.me/52${vendorTel}?text=${encodeURICompone
 card.innerHTML = `
 <div class="product-slider" style="position:relative;cursor:pointer;">
 <span class="product-badge" style="position:absolute;top:8px;left:8px;font-size:9px;padding:2px 8px;background:var(--color-primary,#3b1f5f);color:#fff;border-radius:20px;font-weight:800;z-index:1;">Comunidad</span>
+${product.vendedor_plan === 'plus' ? '<span style="position:absolute;top:30px;left:8px;font-size:9px;padding:2px 8px;background:linear-gradient(135deg,#7c3aed,#a855f7);color:#fff;border-radius:20px;font-weight:800;z-index:1;">PRO</span>' : ''}
 ${inspectorMode ? '<span style="position:absolute;top:8px;right:8px;z-index:2;"><button class="btn-inspector-delete" title="Eliminar (Admin)" style="background:var(--color-error,#ef4444);color:#fff;border:none;border-radius:20px;padding:2px 8px;font-size:11px;cursor:pointer;"></button></span>' : ''}
 <img class="product-img-main" src="${esc(imgUrl)}" alt="${esc(safeString(product.nombre))}" loading="lazy"
 style="width:100%;aspect-ratio:1;object-fit:contain;display:block;background:var(--color-surface-2,#f5f5f8);" onerror="this.onerror=null;this.src='placeholder.svg'">
@@ -693,7 +692,7 @@ if (inspectorMode) {
 const deleteBtn = card.querySelector('.btn-inspector-delete');
 if (deleteBtn) deleteBtn.addEventListener('click', (e) => { e.stopPropagation(); deleteProductInspector(product.id, safeString(product.nombre), card); });
 }
-// Botón compartir en cards de comunidad
+
 const shareBtn = card.querySelector('.btn-share-comunidad');
 if (shareBtn) shareBtn.addEventListener('click', (e) => {
 e.stopPropagation();
@@ -754,6 +753,8 @@ function bindFilterChangeEvents() {
 const searchInput = document.getElementById('comunidad-search');
 const catSelectEl = document.getElementById('comunidad-cat');
 const vendorSelectEl = document.getElementById('comunidad-vendor');
+const soloProEl = document.getElementById('comunidad-solo-pro');
+const soloProLabel = document.getElementById('comunidad-pro-label');
 const updateHandler = () => {
 applyFilters();
 updateURLWithFilters();
@@ -766,6 +767,12 @@ debounceTimer = setTimeout(updateHandler, 400);
 }
 if (catSelectEl) catSelectEl.addEventListener('change', updateHandler);
 if (vendorSelectEl) vendorSelectEl.addEventListener('change', updateHandler);
+if (soloProEl) {
+soloProEl.addEventListener('change', () => {
+if (soloProLabel) soloProLabel.classList.toggle('active', soloProEl.checked);
+updateHandler();
+});
+}
 }
 function initCartAndUI() {
 if (typeof window.loadCartFromStorage === 'function') window.loadCartFromStorage();

@@ -1,36 +1,22 @@
-/**
- * Z&R Error Monitor
- * Captures functional errors silently and logs them to Google Sheets via GAS
- * Only reports errors that affect real functionality — not user input mistakes
- */
 (function () {
 'use strict';
 
 const EM_KEY       = 'zr_error_queue';
-const EM_MAX_LOCAL = 50;      // max errors stored locally before flush
-const EM_DEBOUNCE  = 3000;    // ms between repeated identical errors
+const EM_MAX_LOCAL = 50;
+const EM_DEBOUNCE  = 3000;
 
-let _lastErrors = {};         // debounce map: message → timestamp
-let _queue      = [];         // pending errors not yet sent
+let _lastErrors = {};
+let _queue      = [];
 
-// ── Public API ────────────────────────────────────────────────────────────────
 window.ZRMonitor = {
   report,
   flush,
 };
 
-/**
- * Report a functional error.
- * @param {string} level   'CRÍTICO' | 'ERROR'
- * @param {string} source  e.g. 'comunidad.js', 'index.html'
- * @param {string} action  e.g. 'loadProducts', 'loginVendedor'
- * @param {string} message Human-readable description
- */
 function report(level, source, action, message) {
   const key = `${source}:${action}:${message}`;
   const now = Date.now();
 
-  // Debounce — skip if same error reported within 3s
   if (_lastErrors[key] && now - _lastErrors[key] < EM_DEBOUNCE) return;
   _lastErrors[key] = now;
 
@@ -44,15 +30,12 @@ function report(level, source, action, message) {
     ua:      navigator.userAgent.slice(0, 80),
   };
 
-  // Store locally
   _queue.push(entry);
   persistQueue();
 
-  // Try to send immediately if API is available
   sendEntry(entry);
 }
 
-// ── Internal ──────────────────────────────────────────────────────────────────
 function persistQueue() {
   try {
     const stored = loadQueue();
@@ -86,7 +69,7 @@ async function sendEntry(entry) {
       body:    params.toString(),
     });
   } catch (_) {
-    // Network unavailable — entry already persisted locally, will flush later
+
   }
 }
 
@@ -97,12 +80,10 @@ async function flush() {
   localStorage.removeItem(EM_KEY);
 }
 
-// Flush pending local errors on page load (catches offline-session errors)
 window.addEventListener('load', () => setTimeout(flush, 4000));
 
-// ── Global JS error catcher ───────────────────────────────────────────────────
 window.addEventListener('error', (e) => {
-  // Skip ResizeObserver and benign cross-origin errors
+
   if (!e.message || e.message.includes('ResizeObserver') || e.message.includes('Script error')) return;
   report('ERROR', e.filename ? e.filename.split('/').pop() : 'global', 'uncaughtError', e.message);
 });
@@ -115,7 +96,6 @@ window.addEventListener('unhandledrejection', (e) => {
 
 })();
 
-// ── Admin panel functions (loaded in admin.html context) ─────────────────────
 let _cachedErrorLog = [];
 
 function toggleErrorMonitor() {
@@ -133,7 +113,6 @@ async function loadErrorLog() {
   if (!list) return;
   list.innerHTML = '<p style="color:var(--color-text-muted);text-align:center;padding:20px">Cargando...</p>';
 
-  // Also merge locally stored errors not yet sent
   const local = (() => { try { return JSON.parse(localStorage.getItem('zr_error_queue') || '[]'); } catch(_){return[];} })();
 
   try {
@@ -146,7 +125,7 @@ async function loadErrorLog() {
 
     _cachedErrorLog = [...(data.errors || []), ...local].sort((a, b) => new Date(b.ts) - new Date(a.ts));
   } catch (_) {
-    // If GAS function not implemented yet, show local errors only
+
     _cachedErrorLog = local.sort((a, b) => new Date(b.ts) - new Date(a.ts));
   }
 
@@ -161,7 +140,6 @@ function renderErrorLog() {
 
   const entries = filter === 'all' ? _cachedErrorLog : _cachedErrorLog.filter(e => e.level === filter || e.nivel === filter);
 
-  // Update badge
   const critCount = _cachedErrorLog.filter(e => (e.level || e.nivel) === 'CRÍTICO').length;
   if (badge) { badge.textContent = critCount; badge.style.display = critCount ? 'inline-block' : 'none'; }
 

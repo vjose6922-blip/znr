@@ -1,12 +1,6 @@
-/**
- * admin-comunidad.js
- * Módulo AdminComunidad extraído de admin.js para uso exclusivo en notificaciones.html.
- * Depende de: api-config.js (API_URL, gasGet, gasPost, getToken), common.js (escapeHtml, showTemporaryMessage, showCustomConfirm, showCustomAlert)
- */
-
 (function () {
 
-  /* ── Estilos propios del módulo ────────────────────────────────────────── */
+  
   const STYLES = `
 <style id="admin-comunidad-styles">
 .vendor-row, .pending-product-row {
@@ -50,7 +44,7 @@
 #reportes-badge { display:inline-flex;align-items:center;justify-content:center;background:#ef4444;color:#fff;border-radius:50%;width:18px;height:18px;font-size:10px;font-weight:700;margin-left:6px;vertical-align:middle; }
 </style>`;
 
-  /* ── Helpers locales ───────────────────────────────────────────────────── */
+  
   function _escapeHtml(str) {
     if (typeof escapeHtml === 'function') return escapeHtml(str);
     if (!str) return '';
@@ -82,7 +76,7 @@
     return url;
   }
 
-  /* ── init ──────────────────────────────────────────────────────────────── */
+  
   function init() {
     if (!_getToken()) return;
     if (!document.getElementById('admin-comunidad-styles')) {
@@ -93,7 +87,7 @@
     loadReportes();
   }
 
-  /* ── Vendedores ────────────────────────────────────────────────────────── */
+  
   async function loadVendors() {
     const container = document.getElementById('admin-vendors-list');
     if (!container) return;
@@ -233,7 +227,7 @@
       .catch(err => { grid.innerHTML = `<p style="color:#ef4444;grid-column:span 2">Error: ${_escapeHtml(err.message)}</p>`; });
   }
 
-  /* ── Productos pendientes ──────────────────────────────────────────────── */
+  
   async function loadPendingProducts() {
     const container = document.getElementById('admin-pending-list');
     if (!container) return;
@@ -291,7 +285,7 @@
     } catch (err) { _msg(' ' + err.message, 'error'); }
   }
 
-  /* ── Reportes ──────────────────────────────────────────────────────────── */
+  
   async function loadReportes() {
     const container = document.getElementById('admin-reportes-list');
     if (!container) return;
@@ -383,7 +377,7 @@
     } catch (err) { _msg(' ' + err.message, 'error'); }
   }
 
-  /* ── Exportar API pública ──────────────────────────────────────────────── */
+  
   window.AdminComunidad = {
     init,
     loadVendors,
@@ -400,7 +394,7 @@
     updateReportesBadge
   };
 
-  /* ── Auto-init en notificaciones.html ─────────────────────────────────── */
+  
   document.addEventListener('DOMContentLoaded', () => {
     setTimeout(() => {
       init();

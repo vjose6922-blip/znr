@@ -1,21 +1,21 @@
 :root {
-  /* ── Dark mode — Eye-care palette (blue-gray base, ~6500K neutral warm) ── */
-  /* Base: #1e2128 — avoids pure black, reduces halation; same family as VS Code "One Dark" / Tokyo Night */
-  --color-primary: #a78bfa;         /* violet pastel, readable on dark */
+  
+  
+  --color-primary: #a78bfa;         
   --color-primary-soft: #7c5cbf;
-  --color-accent: #f472b6;          /* rose pastel — softer than #ff4f81 on dark */
-  --color-accent-solid: #ff4f81;    /* kept for buttons/CTAs that need more punch */
+  --color-accent: #f472b6;          
+  --color-accent-solid: #ff4f81;    
   --color-accent-soft: rgba(244,114,182,0.15);
   --color-bg: #1e2128;
-  --color-surface: #252831;         /* cards, drawers — slightly lighter than base */
+  --color-surface: #252831;         
   --color-surface-2: rgba(255,255,255,0.04);
   --color-surface-3: rgba(255,255,255,0.07);
   --color-border-subtle: rgba(255,255,255,0.07);
-  --color-text-primary: #dde1e8;   /* brighter for dark mode readability */
+  --color-text-primary: #dde1e8;   
   --color-text-main: #dde1e8;
   --color-text-muted: rgba(221,225,232,0.80);
   --color-text-soft: rgba(221,225,232,0.58);
-  /* Status — desaturated for dark comfort */
+  
   --color-success: #4ade80;
   --color-success-bg: rgba(74,222,128,0.10);
   --color-error: #f87171;
@@ -24,7 +24,7 @@
   --color-warning-bg: rgba(251,146,60,0.10);
   --color-info: #60a5fa;
   --color-info-bg: rgba(96,165,250,0.10);
-  /* Gradients */
+  
   --gradient-accent: linear-gradient(135deg, #f472b6, #fb923c);
   --gradient-primary: linear-gradient(135deg, #2d2f3a, #1e2128);
   --shadow-soft: 0 8px 24px rgba(0,0,0,0.45);
@@ -40,7 +40,7 @@
   --z-fab: 90;
   --z-overlay: 150;
   --z-modal: 300;
-  /* Page backgrounds — subtle gradient, no harsh purple */
+  
   --page-bg: linear-gradient(160deg, #252831 0%, #1e2128 40%, #1a1d24 100%);
   --page-bg-linear: linear-gradient(180deg, #252831 0%, #1e2128 60%, #1a1d24 100%);
   --header-footer-bg: rgba(30,33,40,0.96);
@@ -57,22 +57,22 @@
 }
 
 [data-theme="light"] {
-  /* ── Light mode — Clean white palette, high readability ── */
-  --color-primary: #6d28d9;         /* violet — readable on white */
+  
+  --color-primary: #6d28d9;         
   --color-primary-soft: #8b5cf6;
-  --color-accent: #e11d6a;          /* rose more saturated for light bg */
+  --color-accent: #e11d6a;          
   --color-accent-solid: #e11d6a;
   --color-accent-soft: rgba(225,29,106,0.10);
   --color-bg: #ffffff;
   --color-surface: #ffffff;
-  --color-surface-2: #f6f7f9;       /* very subtle gray for cards */
+  --color-surface-2: #f6f7f9;       
   --color-surface-3: #edeef2;
   --color-border-subtle: #e2e4ea;
-  --color-text-primary: #111318;   /* near-black, not pure — easier on eyes */
+  --color-text-primary: #111318;   
   --color-text-main: #111318;
   --color-text-muted: #4b5563;
   --color-text-soft: #6b7280;
-  /* Status */
+  
   --color-success: #16a34a;
   --color-success-bg: #dcfce7;
   --color-error: #dc2626;
@@ -81,11 +81,11 @@
   --color-warning-bg: #fef3c7;
   --color-info: #2563eb;
   --color-info-bg: #dbeafe;
-  /* Gradients */
+  
   --gradient-accent: linear-gradient(135deg, #e11d6a, #f97316);
   --gradient-primary: linear-gradient(135deg, #6d28d9, #8b5cf6);
   --shadow-soft: 0 4px 16px rgba(17,19,24,0.10);
-  /* Page — pure white with faint top tint */
+  
   --page-bg: linear-gradient(160deg, #f8f9ff 0%, #ffffff 40%, #fafafa 100%);
   --page-bg-linear: linear-gradient(180deg, #f8f9ff 0%, #ffffff 60%, #fafafa 100%);
   --header-footer-bg: rgba(255,255,255,0.97);
@@ -110,7 +110,6 @@ html, body {
   overflow-x: hidden;
 }
 
-/* ── Utility: status chips used throughout all pages ───────────────────────── */
 body {
   margin: 0;
   padding: 0;
@@ -277,7 +276,6 @@ body {
 .text-button { border: none; background: transparent; color: var(--color-primary-soft); font-size: 13px; font-weight: 500; cursor: pointer; padding: 4px 8px; }
 .full-width { width: 100%; }
 
-
 .looks-nav {
   position: relative;
   width: 100%;
@@ -343,7 +341,6 @@ body {
   color: #d6366b;
 }
 
-/* ===== WEATHER WIDGET - posición absoluta al fondo del nav ===== */
 .weather-widget {
   position: absolute !important;
   bottom: 4px !important;
@@ -382,7 +379,6 @@ body {
   opacity: 0.9;
 }
 
-/* ===== MEDIA QUERIES ===== */
 @media (min-width: 1025px) {
   .weather-widget { bottom: 14px; left: 16px; padding: 6px 16px; }
   .weather-temp   { font-size: 19px; }
@@ -403,7 +399,6 @@ body {
   .weather-temp   { font-size: 14px; }
   .weather-feels  { font-size: 11px; }
 }
-
 
 .filters-bar { padding: 6px 10px; top: 75px; z-index: 10; background-color: transparent; backdrop-filter: blur(10px); width: 100%; max-width: 100%; box-sizing: border-box; overflow-x: auto; overflow-y: hidden; white-space: nowrap; }
 .filters-bar::-webkit-scrollbar { height: 3px; }
@@ -461,7 +456,6 @@ body {
 .products-container.layout-grid .primary-button { padding: 6px 4px; font-size: 12.5px; flex: 1; text-align: center; }
 .products-container.layout-grid .product-badge { font-size: 10px; padding: 3px 8px; top: 6px; left: 6px; }
 
-
 .looks-grid {
   display: flex;
   flex-direction: column;
@@ -494,7 +488,6 @@ body {
   margin: 0;
   padding: 0;
 }
-
 
 .look-info {
   padding: 6px;
@@ -594,7 +587,6 @@ body {
   color: #ff4f81;
   margin: 0;
 }
-
 
 .look-product-size {
   font-size: 10px;
@@ -728,7 +720,6 @@ body {
   height: 100%;
 }
 
-
 .looks-grid.layout-grid .look-image {
   height: auto;
   max-heigh: 100px;
@@ -820,7 +811,6 @@ body {
   margin: 0;
 }
 
-
 .looks-grid.layout-grid .look-product-size {
   font-size: 9px !important;
   padding: 1px 3px !important;
@@ -883,7 +873,6 @@ body {
   
 }
 
-
 .empty-looks {
   text-align: center;
   padding: 60px 20px;
@@ -919,13 +908,9 @@ body {
   border-color: var(--color-primary);
 }
 
-
-
-
 .weather-text {
   font-weight: 500;
 }
-
 
 .pagination-section { padding: 8px 16px 80px; display: flex; justify-content: center; }
 #pagination, .admin-pagination { display: flex; justify-content: center; gap: 8px; margin: 25px 0; flex-wrap: wrap; }
@@ -996,11 +981,9 @@ body {
 .admin-stat-value { font-size: 28px; font-weight: 700; display: block; }
 .admin-stat-label { font-size: 12px; opacity: 0.9; margin-top: 4px; display: block; }
 
-
 @media (min-width: 768px) and (max-width: 1023px) { .products-container { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; max-width: 800px; margin: 0 auto; padding: 20px 16px 80px; } .cart-drawer { border-radius: 18px 0 0 18px; top: 10px; bottom: 10px; } .admin-main { max-width: 720px; margin: 0 auto; } .footer-content { flex-direction: row; justify-content: space-between; text-align: left; } }
 @media (min-width: 1024px) { .products-container { display: grid; grid-template-columns: repeat(4, 1fr); gap: 24px; max-width: 1400px; margin: 0 auto; padding: 24px 24px 80px; } .product-card { height: 100%; display: flex; flex-direction: column; } .product-info { flex: 1; display: flex; flex-direction: column; } .product-description { flex: 1; } .products-container.layout-grid { grid-template-columns: repeat(4, 1fr) !important; } }
 @media (max-width: 768px) { .filters-bar { padding: 6px 10px; } .filters-row-top { flex-direction: row; gap: 12px; } .gender-select { width: auto; min-width: 120px; } .filters-row-bottom select { padding: 6px 10px; font-size: 13.8px; } .admin-stats-grid { grid-template-columns: repeat(3, 1fr); gap: 8px; } .admin-stat-card { padding: 10px 6px; } .admin-stat-value { font-size: 18px; } .admin-stat-label { font-size: 9px; } }
-
 
 .request-card {
   background: var(--color-surface);
@@ -1055,7 +1038,6 @@ body {
   background: #fff5f5;
   opacity: 0.7;
 }
-
 
 .request-product-info {
   flex: 1;
@@ -1148,7 +1130,6 @@ body {
   color: var(--color-text-muted);
   padding: 60px;
 }
-
 
 .admin-main {
   max-width: 900px;
@@ -1282,7 +1263,6 @@ body {
   flex-wrap: wrap;
 }
 
-/* admin-card-header con soporte responsive */
 .admin-card-header {
   display: flex;
   justify-content: space-between;
@@ -1291,7 +1271,6 @@ body {
   flex-wrap: wrap;
   gap: 0.5rem;
 }
-
 
 .admin-pagination {
   display: flex;
@@ -1454,7 +1433,6 @@ body {
   margin: 0;
 }
 
-/* filter pill buttons usan .filter-pill, no .icon-button */
 .global-loader {
   position: fixed;
   top: 0;
@@ -1528,7 +1506,6 @@ body {
   transform: scale(0.92);
 }
 
-
 .skeleton-card {
   background: var(--color-surface);
   border-radius: 16px;
@@ -1584,7 +1561,6 @@ body {
   100% { transform: scale(1); color: #ff4f81; }
 }
 
-
 .look-images-container {
   display: flex;
   flex-direction: column;
@@ -1623,7 +1599,6 @@ body {
   transform: scale(1.02);
 }
 
-
 .look-slot-image.empty {
   display: flex;
   align-items: center;
@@ -1654,7 +1629,6 @@ body {
   transition: transform 0.2s ease, box-shadow 0.2s ease;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 }
-
 
 .looks-grid.layout-grid .skeleton-images-container {
   flex-direction: column;
@@ -1749,14 +1723,12 @@ body {
   color: white;
 }
 
-/* Animación para el badge de notificaciones */
 @keyframes pulse {
   0% { transform: scale(1); }
   50% { transform: scale(1.2); background: #ff9800; }
   100% { transform: scale(1); }
 }
 
-/* ===== MODALES PERSONALIZADOS (desde common.js) ===== */
 .custom-alert-modal {
   position: fixed;
   top: 0;
@@ -1826,13 +1798,11 @@ body {
 }
 .custom-alert-input:focus { outline: none; border-color: #ff4f81; box-shadow: 0 0 0 3px rgba(255, 79, 129, 0.1); }
 
-/* ===== ANIMACIONES ===== */
 @keyframes modalFadeIn { from { opacity: 0; } to { opacity: 1; } }
 @keyframes modalFadeOut { from { opacity: 1; } to { opacity: 0; } }
 @keyframes contentScaleIn { from { transform: scale(0.95); opacity: 0; } to { transform: scale(1); opacity: 1; } }
 @keyframes contentScaleOut { from { transform: scale(1); opacity: 1; } to { transform: scale(0.95); opacity: 0; } }
 
-/* ===== MODAL PRIVACIDAD ===== */
 .privacy-modal {
   position: fixed;
   top: 0;
@@ -1889,7 +1859,6 @@ body {
 @keyframes slideUpModal { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
-/* ===== MENSAJES TEMPORALES COMPLETOS ===== */
 .temporary-message {
   position: fixed;
   bottom: 80px;
@@ -1904,25 +1873,21 @@ body {
   animation: slideUpMsg 0.3s ease;
 }
 
-/* Éxito - VERDE (para cuando agregas a favoritos o al carrito) */
 .temporary-message.success {
   background: linear-gradient(135deg, #22c55e, #16a34a);
   color: white;
 }
 
-/* Información - VERDE CLARO (para mensajes informativos) */
 .temporary-message.info {
   background: linear-gradient(135deg, #22c55e, #16a34a);
   color: white;
 }
 
-/* Error - ROJO */
 .temporary-message.error {
   background: linear-gradient(135deg, #ef4444, #dc2626);
   color: white;
 }
 
-/* Advertencia - NARANJA (opcional) */
 .temporary-message.warning {
   background: linear-gradient(135deg, #f97316, #ea580c);
   color: white;
@@ -1938,7 +1903,6 @@ body {
     transform: translateX(-50%) translateY(0);
   }
 }
-
 
 .look-images-container {
   display: flex;
@@ -1978,7 +1942,6 @@ body {
   transform: scale(1.02);
 }
 
-
 .look-slot-image.empty {
   display: flex;
   align-items: center;
@@ -2009,7 +1972,6 @@ body {
   transition: transform 0.2s ease, box-shadow 0.2s ease;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 }
-
 
 .looks-grid.layout-grid .skeleton-images-container {
   flex-direction: column;
@@ -2110,10 +2072,6 @@ body {
   100% { transform: scale(1); }
 }
 
-
-/* ===== FORZAR VISIBILIDAD DEL NÚMERO GUARDADO EN MÓVIL ===== */
-/* Este bloque debe ir al FINAL de tu archivo styles.css */
-
 #saved-phone-container {
   display: block !important;
   font-size: 12px !important;
@@ -2156,7 +2114,6 @@ body {
   color: var(--color-accent) !important;
 }
 
-/* Forzar visibilidad en cualquier tamaño de pantalla */
 @media screen and (max-width: 480px) {
   #saved-phone-container {
     display: block !important;
@@ -2169,12 +2126,10 @@ body {
   }
 }
 
-/* Asegurar que el botón change-phone-btn sea clickeable */
 #change-phone-btn {
   pointer-events: auto !important;
   touch-action: manipulation !important;
 }
-
 
 .wishlist-badge {
   min-width: 20px;
@@ -2189,7 +2144,6 @@ body {
   justify-content: center;
 }
 
-/* ===== WISHLIST BUTTON ESTILOS ===== */
 .wishlist-btn {
   position: absolute;
   top: 12px;
@@ -2227,12 +2181,10 @@ body {
   text-shadow: 0 0 2px rgba(255,79,129,0.3);
 }
 
-/* Wishlist Drawer - mismo tamaño que cart */
 .cart-drawer.open {
   transform: translateX(0);
 }
 
-/* Wishlist item en móvil */
 @media (max-width: 768px) {
   .cart-drawer {
     max-width: 100%;
@@ -2249,7 +2201,6 @@ body {
   }
 }
 
-/* Estilos para items del wishlist */
 #wishlist-items-container .cart-item,
 #wishlist-looks-container .cart-item {
   background: var(--color-surface);
@@ -2350,10 +2301,6 @@ body {
   opacity: 0.7;
 }
 
-
-/* Estilos para imágenes de productos en looks */
-
-
 .look-product-item {
   display: flex;
   align-items: center;
@@ -2392,7 +2339,6 @@ body {
   margin-top: 2px;
 }
 
-/* Look wishlist button */
 .look-wishlist-btn {
   background: rgba(255,255,255,0.95);
   border: none;
@@ -2415,7 +2361,6 @@ body {
 .look-wishlist-btn:hover {
   transform: scale(1.05);
 }
-
 
 .cart-delivery-block {
   margin: 10px 0 6px;
@@ -2504,8 +2449,6 @@ body {
 [data-theme="light"] .cart-address-display { color: rgba(0,0,0,.65); border-color: rgba(0,0,0,.08); }
 [data-theme="light"] .cart-shipping-hint { color: rgba(0,0,0,.45); background: rgba(0,0,0,.04); }
 
-
-/* ===== BADGE DE ENVÍO EN TARJETA DE PRODUCTO ===== */
 .shipping-badge {
   display: inline-flex;
   align-items: center;
@@ -2525,9 +2468,6 @@ body {
   color: #64b5f6;
 }
 
-/* ===== INFORMACIÓN DE ENVÍO EN EL CARRITO ===== */
-
-
 @keyframes fadeInShipping {
   from {
     opacity: 0;
@@ -2539,7 +2479,6 @@ body {
   }
 }
 
-/* Ajuste responsive para móvil */
 @media (max-width: 480px) {
   .shipping-badge {
     font-size: 9px;
@@ -2550,8 +2489,6 @@ body {
   
 }
 
-
-/* ===== FILTROS DE NOTIFICACIONES ===== */
 .notifications-filters {
   display: flex;
   gap: 10px;
@@ -2578,7 +2515,6 @@ body {
   transform: scale(0.96);
 }
 
-/* Badge de estado del grupo */
 .group-status-badge {
   display: inline-flex;
   align-items: center;
@@ -2610,7 +2546,6 @@ body {
   color: #ef4444;
 }
 
-/* Badge de completado en acciones */
 .completed-badge {
   display: inline-block;
   padding: 10px 20px;
@@ -2636,7 +2571,6 @@ body {
   color: #ef4444;
 }
 
-/* Responsive para filtros */
 @media (max-width: 480px) {
   .notifications-filters {
     gap: 6px;
@@ -2655,7 +2589,6 @@ body {
   }
 }
 
-/* Animación de carga para los filtros */
 @keyframes filterBadgePulse {
   0% { transform: scale(1); }
   50% { transform: scale(1.05); }
@@ -2666,23 +2599,16 @@ body {
   animation: filterBadgePulse 0.3s ease;
 }
 
-
 .status-confirmed {
   background: #e8f5e9;
   color: #22c55e;
 }
 
-/* Filtros */
-
-
-/* Animaciones para Offline Manager */
 @keyframes fadeOutDown {
     from { opacity: 1; transform: translateX(-50%) translateY(0); }
     to { opacity: 0; transform: translateX(-50%) translateY(20px); }
 }
 
-
-/* ===== BOTTOM NAVIGATION BAR ===== */
 .bottom-nav {
   position: fixed;
   bottom: 0;
@@ -2746,8 +2672,6 @@ body {
   padding: 0 4px;
 }
 
-
-/* ── Filter chips ──────────────────────────────────────────── */
 .active-filter-chips {
   display: flex;
   flex-wrap: wrap;
@@ -2779,10 +2703,9 @@ body {
 .chip-x { opacity: .7; font-size: 10px; }
 .chip-x::after { content: '✕'; }
 
-/* ── Dirección guardada en carrito ─────────────────────────── */
 #saved-address-container { color: #888; }
 #saved-address-container button { font-size: 11px; }
-/* ── Skeleton screens — producto card (catálogo & comunidad) ─────────────── */
+
 .skeleton-product-card {
   background: var(--color-surface, #252831);
   border-radius: 16px;
@@ -2809,7 +2732,6 @@ body {
 .skeleton-product-card .sk-line.sk-price  { width: 45%; }
 .skeleton-product-card .sk-line.sk-badge  { width: 30%; height: 20px; border-radius: 10px; }
 
-/* ── Botón compartir en product cards ───────────────────────────────────────── */
 .share-btn {
   background: rgba(255,255,255,.06);
   border: 1px solid rgba(255,255,255,.1);
@@ -2825,10 +2747,6 @@ body {
   flex-shrink: 0;
 }
 .share-btn:hover { background: rgba(255,255,255,.12); transform: scale(1.1); }
-
-/* ══════════════════════════════════════════════════════════════════════════════
-   ADMIN — Toggle vista lista / cuadrícula
-══════════════════════════════════════════════════════════════════════════════ */
 
 .admin-card-header {
   display: flex;
@@ -2868,8 +2786,6 @@ body {
   color: #fff;
 }
 
-/* ── Grid de productos (modo cuadrícula) ─────────────────────────────────── */
-
 .admin-products-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -2884,8 +2800,6 @@ body {
 @media (min-width: 1024px) {
   .admin-products-grid { grid-template-columns: repeat(4, 1fr); }
 }
-
-/* ── Tarjeta de producto en modo grid ───────────────────────────────────── */
 
 .admin-product-card {
   background: var(--color-surface);
@@ -2902,7 +2816,6 @@ body {
   box-shadow: 0 6px 20px rgba(0,0,0,.12);
 }
 
-/* Imagen */
 .admin-card-img-wrap {
   position: relative;
   width: 100%;
@@ -2930,7 +2843,6 @@ body {
   color: var(--color-text-muted);
 }
 
-/* Badges superpuestos */
 .admin-card-badge-status {
   position: absolute;
   top: 7px;
@@ -2988,8 +2900,6 @@ animation: badge-scroll 3s linear infinite;
 100% {transform: translateX(-100%); }
 }
 
-
-/* Cuerpo de la tarjeta */
 .admin-card-body {
   padding: 10px 10px 8px;
   flex: 1;
@@ -3025,7 +2935,6 @@ animation: badge-scroll 3s linear infinite;
 .admin-card-stock.stock-zero { color: var(--color-error); }
 .admin-card-stock.stock-low  { color: var(--color-warning); }
 
-/* Botones de acción */
 .admin-card-actions {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -3061,17 +2970,11 @@ animation: badge-scroll 3s linear infinite;
   color: var(--color-error);
 }
 
-/* =====================================================
-   CARD TEXT CONTRAST — ensures readability both themes
-   ===================================================== */
-
-/* Product cards — overrides necesarios por selectores más específicos en layout-grid */
 .product-name        { color: var(--color-text-main) !important; }
 .product-description { color: var(--color-text-muted) !important; }
 .product-sizes       { color: var(--color-text-main) !important; }
 .product-category    { color: var(--color-text-soft) !important; }
 
-/* Look / Outfit cards */
 .look-title       { color: var(--color-text-main) !important; }
 .look-description { color: var(--color-text-muted) !important; }
 .look-total-label { color: var(--color-text-muted) !important; }
@@ -3082,24 +2985,18 @@ animation: badge-scroll 3s linear infinite;
 .look-product-size { color: var(--color-text-soft) !important; }
 .look-products-title { color: var(--color-text-muted) !important; background: var(--color-surface-2) !important; }
 
-/* Comunidad cards — vendor name, info text */
 .product-info .product-name { font-weight: 700; }
 
-/* Light theme: slightly stronger card shadow for depth */
 [data-theme="light"] .product-card,
 [data-theme="light"] .look-card {
   box-shadow: 0 2px 12px rgba(17,19,24,0.10), 0 1px 3px rgba(17,19,24,0.06);
 }
 
-/* Dark theme: softer glow */
 [data-theme="dark"] .product-card,
 [data-theme="dark"] .look-card {
   box-shadow: 0 4px 18px rgba(0,0,0,0.40);
 }
 
-/* Filter/badge chips in cards */
-
-/* ── Global button SVG alignment ── */
 button svg, a.hero-btn svg, .primary-button svg, .btn-primary svg,
 .btn-secondary svg, .btn-danger svg, .text-button svg {
   vertical-align: middle;

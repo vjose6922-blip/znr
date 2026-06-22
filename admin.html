@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -43,15 +42,11 @@ connect-src 'self' https://script.google.com https://script.googleusercontent.co
 
  }
 
-
-
 .app-header {
 
  flex-wrap: nowrap;  
 
 }
-
-
 
 .header-left {
 
@@ -61,8 +56,6 @@ connect-src 'self' https://script.google.com https://script.googleusercontent.co
 
 }
 
-
-
 .header-right {
 
  flex-shrink: 0;  
@@ -70,8 +63,6 @@ connect-src 'self' https://script.google.com https://script.googleusercontent.co
  flex-wrap: nowrap;  
 
 }
-
-
 
  
 
@@ -1233,7 +1224,6 @@ connect-src 'self' https://script.google.com https://script.googleusercontent.co
 
 <body class="admin-body">
 
-
  <div id="global-loader" class="global-loader hidden">
 
  <div class="loader-spinner"></div>
@@ -1241,8 +1231,6 @@ connect-src 'self' https://script.google.com https://script.googleusercontent.co
  <div class="loader-text">Cargando...</div>
 
  </div>
-
-
 
  <header class="app-header admin-header">
 
@@ -1276,8 +1264,6 @@ connect-src 'self' https://script.google.com https://script.googleusercontent.co
  </div>
 
  </header>
-
-
 
  <main class="admin-main" id="admin-login-view">
 
@@ -1317,8 +1303,6 @@ connect-src 'self' https://script.google.com https://script.googleusercontent.co
 
  </main>
 
-
-
  <main class="admin-main" id="admin-panel-view" hidden>
 
  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; flex-wrap: wrap; gap: 12px;">
@@ -1332,8 +1316,6 @@ connect-src 'self' https://script.google.com https://script.googleusercontent.co
  
 
  </div>
-
-
 
  <div class="admin-stats-grid">
 
@@ -1643,7 +1625,7 @@ connect-src 'self' https://script.google.com https://script.googleusercontent.co
 
  </section>
 
- <!-- ── Error Monitor Panel ─────────────────────────── -->
+ 
  <section class="admin-card" id="admin-error-monitor" style="margin-top:24px">
   <div class="admin-card-header" style="cursor:pointer;user-select:none" onclick="toggleErrorMonitor()">
    <h2 style="display:flex;align-items:center;gap:10px">
@@ -1674,8 +1656,6 @@ connect-src 'self' https://script.google.com https://script.googleusercontent.co
  </section>
 
  </main>
-
-
 
  
 <div id="admin-notif-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);backdrop-filter:blur(3px);z-index:9300;" onclick="closeAdminNotifPanel()"></div>
@@ -1731,16 +1711,10 @@ connect-src 'self' https://script.google.com https://script.googleusercontent.co
  <span class="npi-label">Gráficas y Estadísticas</span>
  </button>
 
-
 <button class="notif-panel-item" id="offline-status-btn" style="width:100%;text-align:left;border:1px solid rgba(255,255,255,.06);cursor:pointer;margin-bottom:10px;">
  <span class="npi-icon"></span>
  <span class="npi-label">Pendientes por cargar</span>
  </button>
-
-
-
-
-
 
  </div>
 </div>
@@ -1754,149 +1728,221 @@ connect-src 'self' https://script.google.com https://script.googleusercontent.co
 </style>
 <script>
 function openAdminNotifPanel() {
- const panel = document.getElementById('admin-notif-panel');
- const ov  = document.getElementById('admin-notif-overlay');
- panel.style.display = 'flex';
- ov.style.display  = 'block';
- 
- loadNotifPanelCounts();
+  const panel = document.getElementById('admin-notif-panel');
+  const ov  = document.getElementById('admin-notif-overlay');
+  panel.style.display = 'flex';
+  ov.style.display  = 'block';
+  loadNotifPanelCounts();
 }
 function closeAdminNotifPanel() {
- document.getElementById('admin-notif-panel').style.display = 'none';
- document.getElementById('admin-notif-overlay').style.display = 'none';
+  document.getElementById('admin-notif-panel').style.display = 'none';
+  document.getElementById('admin-notif-overlay').style.display = 'none';
 }
 async function loadNotifPanelCounts() {
- const token = sessionStorage.getItem('admin_token') || '';
- const api  = window.API_URL || window.ADMIN_API_URL || '';
- try {
- const gasGet = (params) => fetch(api + '?' + new URLSearchParams(params).toString()).then(r=>r.json()).catch(()=>({}));
- const [nRes, vRes, pRes, rRes] = await Promise.all([
- gasGet({ action: 'notificationsBatch', page: 1, pageSize: 200, noCache: false }),
- token ? gasGet({ action: 'vendedoresAdmin', token }) : Promise.resolve({}),
- token ? gasGet({ action: 'productosPendientes', token }) : Promise.resolve({}),
- token ? gasGet({ action: 'obtenerReportes', token }) : Promise.resolve({}),
- ]);
- 
- // Contar solicitudes con stock disponible en estado pendiente
- const groups = nRes.groups || [];
- const solCount = groups.filter(g => g.notifications && g.notifications.some(n => n.status === 'pending' && n.hasStock)).length;
- const vendCount = (vRes.vendors||[]).filter(v=>v.estado==='pendiente').length;
- const pendCount = (pRes.products||[]).length;
- const repCount  = (rRes.reportes||[]).length;
- 
- setBadge('notif-panel-solicitudes-count', solCount);
- setBadge('notif-panel-vendors-count',  vendCount);
- setBadge('notif-panel-pending-count',  pendCount);
- setBadge('notif-panel-reportes-count', repCount);
- 
- // Badge principal: número total + animación si hay pendientes
- const totalCount = solCount + vendCount + pendCount + repCount;
- const mainBadge = document.getElementById('notif-badge');
- if (mainBadge) {
- mainBadge.textContent = totalCount > 0 ? totalCount : '0';
- if (totalCount > 0) {
- mainBadge.classList.add('has-notifs');
- mainBadge.title = totalCount + ' notificaciones pendientes';
- } else {
- mainBadge.classList.remove('has-notifs');
- mainBadge.title = '';
- }
- }
- // También actualizar el badge en notificaciones.html si está abierto
- if (typeof window._updateNotifTabBadge === 'function') {
- window._updateNotifTabBadge('solicitudes', solCount);
- window._updateNotifTabBadge('vendors', vendCount);
- window._updateNotifTabBadge('pending', pendCount);
- window._updateNotifTabBadge('reportes', repCount);
- }
- } catch(e) { console.warn('loadNotifPanelCounts error:', e); }
+  const token = sessionStorage.getItem('admin_token') || '';
+  const api  = window.API_URL || window.ADMIN_API_URL || '';
+  try {
+    const gasGet = (params) => fetch(api + '?' + new URLSearchParams(params).toString()).then(r=>r.json()).catch(()=>({}));
+    const [nRes, vRes, pRes, rRes] = await Promise.all([
+      gasGet({ action: 'notificationsBatch', page: 1, pageSize: 200, noCache: false }),
+      token ? gasGet({ action: 'vendedoresAdmin', token }) : Promise.resolve({}),
+      token ? gasGet({ action: 'productosPendientes', token }) : Promise.resolve({}),
+      token ? gasGet({ action: 'obtenerReportes', token }) : Promise.resolve({}),
+    ]);
+    const groups = nRes.groups || [];
+    const solCount = groups.filter(g => g.notifications && g.notifications.some(n => n.status === 'pending' && n.hasStock)).length;
+    const vendCount = (vRes.vendors||[]).filter(v=>v.estado==='pendiente').length;
+    const pendCount = (pRes.products||[]).length;
+    const repCount  = (rRes.reportes||[]).length;
+    setBadge('notif-panel-solicitudes-count', solCount);
+    setBadge('notif-panel-vendors-count',  vendCount);
+    setBadge('notif-panel-pending-count',  pendCount);
+    setBadge('notif-panel-reportes-count', repCount);
+    const totalCount = solCount + vendCount + pendCount + repCount;
+    const mainBadge = document.getElementById('notif-badge');
+    if (mainBadge) {
+      mainBadge.textContent = totalCount > 0 ? totalCount : '0';
+      if (totalCount > 0) {
+        mainBadge.classList.add('has-notifs');
+        mainBadge.title = totalCount + ' notificaciones pendientes';
+      } else {
+        mainBadge.classList.remove('has-notifs');
+        mainBadge.title = '';
+      }
+    }
+    if (typeof window._updateNotifTabBadge === 'function') {
+      window._updateNotifTabBadge('solicitudes', solCount);
+      window._updateNotifTabBadge('vendors', vendCount);
+      window._updateNotifTabBadge('pending', pendCount);
+      window._updateNotifTabBadge('reportes', repCount);
+    }
+  } catch(e) { console.warn('loadNotifPanelCounts error:', e); }
 }
 function setBadge(id, count) {
- const el = document.getElementById(id);
- if (!el) return;
- el.textContent = count;
- el.classList.toggle('zero', count === 0);
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.textContent = count;
+  el.classList.toggle('zero', count === 0);
 }
 
 function openInspectorMode() {
- const token = sessionStorage.getItem('admin_token') || '';
- if (!token) { if (window.showTemporaryMessage) window.showTemporaryMessage('Sin sesión de admin', 'error'); return; }
- const url = 'comunidad.html?inspector=1&token=' + encodeURIComponent(token);
- window.open(url, '_blank');
+  const token = sessionStorage.getItem('admin_token') || '';
+  if (!token) { if (window.showTemporaryMessage) window.showTemporaryMessage('Sin sesión de admin', 'error'); return; }
+  const url = 'comunidad.html?inspector=1&token=' + encodeURIComponent(token);
+  window.open(url, '_blank');
 }
 
+window.openVendorStatsGlobal = async function() {
+  const token = sessionStorage.getItem('admin_token') || '';
+  const api  = window.API_URL || window.ADMIN_API_URL || '';
+  let modal = document.getElementById('global-vendor-stats-modal');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'global-vendor-stats-modal';
+    modal.style.cssText = 'display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);backdrop-filter:blur(5px);z-index:19999;align-items:center;justify-content:center;';
+    modal.innerHTML = `
+      <div style="background:#fff;border-radius:22px;padding:28px;max-width:500px;width:93%;max-height:85vh;overflow-y:auto;position:relative;box-shadow:0 24px 64px rgba(0,0,0,.3);">
+        <button onclick="document.getElementById('global-vendor-stats-modal').style.display='none'" style="position:absolute;top:14px;right:14px;background:#f0f0f5;border:none;width:36px;height:36px;border-radius:50%;font-size:17px;cursor:pointer;color:#666;">✕</button>
+        <h3 style="margin:0 0 18px;font-size:19px;">📊 Estadísticas de Vendedores</h3>
+        <div id="gvs-summary" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:20px;"></div>
+        <div id="gvs-list"></div>
+      </div>`;
+    document.body.appendChild(modal);
+    modal.addEventListener('click', e => { if (e.target===modal) modal.style.display='none'; });
+  }
+  modal.style.display = 'flex';
+  document.getElementById('gvs-summary').innerHTML = '<p style="color:#aaa;grid-column:span 3;text-align:center;">Cargando...</p>';
+  document.getElementById('gvs-list').innerHTML = '';
+  try {
+    const [vRes, pRes] = await Promise.all([
+      fetch(api + '?' + new URLSearchParams({ action: "vendedoresAdmin", token: token }).toString()).then(r=>r.json()).catch(()=>({})),
+      fetch(api + '?' + new URLSearchParams({ action: "listarComunidad", token: token }).toString()).then(r=>r.json()).catch(()=>({}))
+    ]);
+    const vendors  = vRes.vendors  || [];
+    const products = pRes.products || pRes.pendientes || [];
+    const activos  = vendors.filter(v=>v.estado==='activo').length;
+    const pendientes = vendors.filter(v=>v.estado==='pendiente').length;
+    const suspendidos= vendors.filter(v=>v.estado==='suspendido'||v.estado==='rechazado').length;
+    document.getElementById('gvs-summary').innerHTML = `
+      <div style="background:#f0fff4;border-radius:14px;padding:14px;text-align:center;">
+        <div style="font-size:24px;font-weight:800;color:#2e7d32;">${activos}</div>
+        <div style="font-size:11px;color:#555;text-transform:uppercase;">Activos</div>
+      </div>
+      <div style="background:#fff8e1;border-radius:14px;padding:14px;text-align:center;">
+        <div style="font-size:24px;font-weight:800;color:#f57f17;">${pendientes}</div>
+        <div style="font-size:11px;color:#555;text-transform:uppercase;">Pendientes</div>
+      </div>
+      <div style="background:#ffebee;border-radius:14px;padding:14px;text-align:center;">
+        <div style="font-size:24px;font-weight:800;color:#c62828;">${suspendidos}</div>
+        <div style="font-size:11px;color:#555;text-transform:uppercase;">Suspendidos</div>
+      </div>`;
+    const listEl = document.getElementById('gvs-list');
+    if (!vendors.length) { listEl.innerHTML = '<p style="color:#aaa;text-align:center;">Sin vendedores</p>'; return; }
+    listEl.innerHTML = vendors.map(v => {
+      const myProds = products.filter(p=>p.vendedor_uid===v.uid);
+      const aprobados = myProds.filter(p=>p.estado==='aprobado').length;
+      const pendProd  = myProds.filter(p=>p.estado==='pendiente').length;
+      const stock = myProds.reduce((s,p)=>s+(Number(p.stock)||0),0);
+      const esPlus    = v.plan === 'plus';
+      const limite    = v.limite != null ? v.limite : (esPlus ? 200 : 2);
+      const actuales  = v.productosActuales != null ? v.productosActuales : myProds.length;
+      const diasRestantes = v.planVence ? Math.ceil((new Date(v.planVence) - new Date()) / 86400000) : null;
+      const planBadge = esPlus
+        ? `<span style="background:linear-gradient(135deg,#7c3aed,#a855f7);color:#fff;font-size:10px;font-weight:700;padding:2px 8px;border-radius:999px;margin-left:6px;">PLUS</span>`
+        : `<span style="background:#eee;color:#999;font-size:10px;font-weight:700;padding:2px 8px;border-radius:999px;margin-left:6px;">FREE</span>`;
+      const venceTxt = (esPlus && diasRestantes != null)
+        ? `<div style="font-size:10px;color:${diasRestantes<=7?'#c62828':'#888'};margin-top:2px;">vence en ${diasRestantes}d</div>`
+        : '';
+      return `<div style="display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid #f0f0f5;flex-wrap:wrap;" data-uid="${v.uid}" data-nombre="${escapeHtml(v.nombre||'')}" data-plan="${v.plan||'free'}">
+        <div style="flex:1;min-width:0;">
+          <div style="font-weight:700;font-size:14px;">${escapeHtml(v.nombre||'—')}${planBadge}</div>
+          <div style="font-size:12px;color:#888;"> ${escapeHtml(v.telefono||'—')} · <span style="color:${v.estado==='activo'?'#2e7d32':'#f57f17'}">${escapeHtml(v.estado)}</span></div>
+          ${venceTxt}
+        </div>
+        <div style="text-align:right;flex-shrink:0;">
+          <div style="font-size:13px;font-weight:600;"> ${actuales}/${limite} productos</div>
+          <div style="font-size:11px;color:#888;"> ${aprobados} aprobados · ⏳ ${pendProd} pend. · Stock: ${stock}</div>
+        </div>
+        <div style="display:flex;gap:6px;flex-shrink:0;">
+          <button class="btn-toggle-plan" data-uid="${v.uid}" data-plan="${v.plan||'free'}" data-nombre="${escapeHtml(v.nombre||'')}" style="background:${esPlus?'#f3e8ff':'#ede9fe'};color:#7c3aed;border:none;border-radius:10px;padding:6px 10px;font-size:11px;font-weight:700;cursor:pointer;">${esPlus?'Quitar Plus':'Activar Plus'}</button>
+          ${v.estado==='activo' && typeof AdminComunidad!=='undefined' ? `<button onclick="AdminComunidad.suspenderVendedor('${v.uid}','${escapeHtml(v.nombre)}')" class="btn-suspend" style="background:var(--color-surface-3);border:1px solid var(--color-border-subtle);color:var(--color-text-muted);border-radius:10px;padding:6px 10px;font-size:11px;font-weight:600;cursor:pointer;">⏸</button>` : ''}
+        </div>
+      </div>`;
+    }).join('');
 
-async function openVendorStatsGlobal() {
- const token = sessionStorage.getItem('admin_token') || '';
- const api  = window.API_URL || window.ADMIN_API_URL || '';
- let modal = document.getElementById('global-vendor-stats-modal');
- if (!modal) {
- modal = document.createElement('div');
- modal.id = 'global-vendor-stats-modal';
- modal.style.cssText = 'display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);backdrop-filter:blur(5px);z-index:19999;align-items:center;justify-content:center;';
- modal.innerHTML = `
- <div style="background:#fff;border-radius:22px;padding:28px;max-width:500px;width:93%;max-height:85vh;overflow-y:auto;position:relative;box-shadow:0 24px 64px rgba(0,0,0,.3);">
- <button onclick="document.getElementById('global-vendor-stats-modal').style.display='none'" style="display:flex;align-items:center;justify-content:center;"
- style="position:absolute;top:14px;right:14px;background:#f0f0f5;border:none;width:36px;height:36px;border-radius:50%;font-size:17px;cursor:pointer;color:#666;"></button>
- <h3 style="margin:0 0 18px;font-size:19px;">Estadísticas de Vendedores</h3>
- <div id="gvs-summary" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:20px;"></div>
- <div id="gvs-list"></div>
- </div>`;
- document.body.appendChild(modal);
- modal.addEventListener('click', e => { if (e.target===modal) modal.style.display='none'; });
- }
- modal.style.display = 'flex';
- document.getElementById('gvs-summary').innerHTML = '<p style="color:#aaa;grid-column:span 3;text-align:center;">Cargando...</p>';
- document.getElementById('gvs-list').innerHTML = '';
- try {
- const [vRes, pRes] = await Promise.all([
- fetch(api + '?' + new URLSearchParams({ action: "vendedoresAdmin", token: token }).toString()).then(r=>r.json()).catch(()=>({})),
- fetch(api + '?' + new URLSearchParams({ action: "listarComunidad", token: token }).toString()).then(r=>r.json()).catch(()=>({})),
- ]);
- const vendors  = vRes.vendors  || [];
- const products = pRes.products || pRes.pendientes || [];
- const activos  = vendors.filter(v=>v.estado==='activo').length;
- const pendientes = vendors.filter(v=>v.estado==='pendiente').length;
- const suspendidos= vendors.filter(v=>v.estado==='suspendido'||v.estado==='rechazado').length;
- document.getElementById('gvs-summary').innerHTML = `
- <div style="background:#f0fff4;border-radius:14px;padding:14px;text-align:center;">
- <div style="font-size:24px;font-weight:800;color:#2e7d32;">${activos}</div>
- <div style="font-size:11px;color:#555;text-transform:uppercase;">Activos</div>
- </div>
- <div style="background:#fff8e1;border-radius:14px;padding:14px;text-align:center;">
- <div style="font-size:24px;font-weight:800;color:#f57f17;">${pendientes}</div>
- <div style="font-size:11px;color:#555;text-transform:uppercase;">Pendientes</div>
- </div>
- <div style="background:#ffebee;border-radius:14px;padding:14px;text-align:center;">
- <div style="font-size:24px;font-weight:800;color:#c62828;">${suspendidos}</div>
- <div style="font-size:11px;color:#555;text-transform:uppercase;">Suspendidos</div>
- </div>`;
- const listEl = document.getElementById('gvs-list');
- if (!vendors.length) { listEl.innerHTML = '<p style="color:#aaa;text-align:center;">Sin vendedores</p>'; return; }
- listEl.innerHTML = vendors.map(v => {
- const myProds = products.filter(p=>p.vendedor_uid===v.uid);
- const aprobados = myProds.filter(p=>p.estado==='aprobado').length;
- const pendProd  = myProds.filter(p=>p.estado==='pendiente').length;
- const stock = myProds.reduce((s,p)=>s+(Number(p.stock)||0),0);
- return `<div style="display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid #f0f0f5;">
- <div style="flex:1;min-width:0;">
- <div style="font-weight:700;font-size:14px;">${v.nombre||'—'}</div>
- <div style="font-size:12px;color:#888;"> ${v.telefono||'—'} · <span style="color:${v.estado==='activo'?'#2e7d32':'#f57f17'}">${v.estado}</span></div>
- </div>
- <div style="text-align:right;flex-shrink:0;">
- <div style="font-size:13px;font-weight:600;"> ${myProds.length} productos</div>
- <div style="font-size:11px;color:#888;"> ${aprobados} aprobados · ⏳ ${pendProd} pend. · Stock: ${stock}</div>
- </div>
- ${v.estado==='activo' && typeof AdminComunidad!=='undefined'
- ? `<button onclick="AdminComunidad.suspenderVendedor('${v.uid}','${v.nombre}')" class="btn-suspend" style="flex-shrink:0;"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" aria-hidden="true"><use href="#ic-suspend"/></svg></button>` : ''}
- </div>`;
- }).join('');
- } catch(e) {
- document.getElementById('gvs-summary').innerHTML = `<p style="color:#ef4444;grid-column:span 3;">Error: ${e.message}</p>`;
- }
-}
+    listEl.querySelectorAll('.btn-toggle-plan').forEach(btn => {
+      btn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        const uid = this.dataset.uid;
+        const nombre = this.dataset.nombre;
+        const currentPlan = this.dataset.plan;
+        window.togglePlanVendedor(uid, nombre, currentPlan);
+      });
+    });
+  } catch(e) {
+    document.getElementById('gvs-summary').innerHTML = `<p style="color:#ef4444;grid-column:span 3;">Error: ${escapeHtml(e.message)}</p>`;
+  }
+};
+
+window.togglePlanVendedor = async function(uid, nombre, currentPlan) {
+  const token = sessionStorage.getItem('admin_token') || '';
+  const api   = window.API_URL || window.ADMIN_API_URL || '';
+
+  if (!api) {
+    if (window.showTemporaryMessage) window.showTemporaryMessage('API no disponible', 'error');
+    return;
+  }
+  if (!token) {
+    if (window.showTemporaryMessage) window.showTemporaryMessage('Token no encontrado. Re-inicia sesión.', 'error');
+    return;
+  }
+
+  const nuevoPlan = currentPlan === 'plus' ? 'free' : 'plus';
+  let dias = 20;
+
+  if (nuevoPlan === 'plus') {
+
+  } else {
+
+    if (!confirm(`¿Quitar el plan Plus a "${nombre}"? Se ocultarán productos si excede el límite.`)) {
+      return;
+    }
+  }
+
+  try {
+    if (window.showLoader) window.showLoader('Actualizando plan...');
+    const params = new URLSearchParams();
+    params.append('action', 'marcarVendedorPlan');
+    params.append('uid', uid);
+    params.append('plan', nuevoPlan);
+    params.append('dias', String(dias));
+    params.append('token', token);
+
+    const res = await fetch(api, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: params.toString()
+    });
+    const data = await res.json();
+    if (!data.ok) throw new Error(data.error || 'Error del servidor');
+
+    const mensaje = nuevoPlan === 'plus'
+      ? `✅ Plan Plus activado por ${dias} días para ${nombre}`
+      : `✅ Plan Plus removido de ${nombre}`;
+
+    if (window.showTemporaryMessage) window.showTemporaryMessage(mensaje, 'success');
+    else alert(mensaje);
+
+    window.openVendorStatsGlobal();
+
+  } catch (err) {
+    if (window.showTemporaryMessage) window.showTemporaryMessage('❌ ' + err.message, 'error');
+    else alert('Error: ' + err.message);
+  } finally {
+    if (window.hideLoader) window.hideLoader();
+  }
+};
 </script>
-
  <script src="api-config.js"></script>
  <script src="common.js" defer></script>
 <script src="cache-manager.js" defer></script>
@@ -1922,325 +1968,5 @@ async function openVendorStatsGlobal() {
 
  </script>
 
-
-<script>
-// Analytics Modal + Offline + Global Badge Refresh
-document.addEventListener('DOMContentLoaded', () => {
- const offlineBtn = document.getElementById('offline-status-btn');
- if (offlineBtn) {
- offlineBtn.addEventListener('click', () => {
- const isOnline = navigator.onLine;
- const cachedOk = window.CacheManager && window.CacheManager.isOfflineModeAvailable ? window.CacheManager.isOfflineModeAvailable() : false;
- const pendingBadge = document.getElementById('offline-pending-badge');
- const pendingCount = pendingBadge ? parseInt(pendingBadge.textContent || '0') : 0;
- let msg = isOnline ? ' Conectado\n Caché: ' + (cachedOk ? 'Disponible' : 'Sin caché') : ' Sin conexión\n Modo offline: ' + (cachedOk ? 'Activo' : 'Sin datos');
- if (pendingCount > 0) msg += '\n⏳ Pendientes: ' + pendingCount;
- if (typeof showCustomAlert === 'function') showCustomAlert({ title: ' Conexión', message: msg, confirmText: 'OK' });
- else alert(msg);
- });
- }
- const analyticsBtn = document.getElementById('admin-analytics-btn');
- if (analyticsBtn) analyticsBtn.addEventListener('click', openAnalyticsModal);
-
- window.refreshAllAdminBadges = function() {
- if (typeof loadNotifPanelCounts === 'function') loadNotifPanelCounts();
- if (typeof checkNotifications === 'function') checkNotifications();
- };
-});
-
-let _analyticsCharts = {};
-let _analyticsPeriod = 'week'; // day | week | month | year
-
-function openAnalyticsModal() {
- let overlay = document.getElementById('zr-analytics-overlay');
- if (overlay) { overlay.style.display = 'flex'; renderAnalyticsCharts(); return; }
- overlay = document.createElement('div');
- overlay.id = 'zr-analytics-overlay';
- overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px;';
- overlay.innerHTML = `
- <div style="background:#12101f;border-radius:24px;width:100%;max-width:740px;max-height:92vh;overflow-y:auto;padding:24px;position:relative;box-shadow:0 24px 64px rgba(0,0,0,.6);">
- <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
- <div>
- <h2 style="margin:0;font-size:20px;color:#fff;">Artículos Vendidos</h2>
- <p style="margin:4px 0 0;font-size:12px;color:#888;">Basado en solicitudes de compra confirmadas</p>
- </div>
- <button id="close-analytics-modal" style="background:rgba(255,255,255,.1);border:none;color:var(--color-text-muted);width:36px;height:36px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;"><svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" aria-hidden="true"><use href="#ic-x"/></svg></button>
- </div>
-
- <!-- Period selector -->
- <div style="display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap;">
- ${['day','week','month','year'].map(p => {
- const labels = {day:' Hoy', week:' Esta semana', month:' Este mes', year:' Este año'};
- return `<button class="analytics-period-btn" data-period="${p}"
- style="padding:8px 16px;border:2px solid ${p==='week'?'#ff4f81':'rgba(255,255,255,.12)'};background:${p==='week'?'rgba(255,79,129,.15)':'transparent'};color:${p==='week'?'#ff4f81':'#aaa'};border-radius:30px;cursor:pointer;font-size:12px;font-weight:600;transition:all .2s;">${labels[p]}</button>`;
- }).join('')}
- </div>
-
- <div id="analytics-loading" style="text-align:center;padding:40px;color:#aaa;">Cargando ventas...</div>
- <div id="analytics-content" style="display:none;">
- <!-- KPI cards -->
- <div id="analytics-kpi-row" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px;margin-bottom:24px;"></div>
-
- <!-- Main sales chart -->
- <div style="background:rgba(255,255,255,.04);border-radius:16px;padding:16px;margin-bottom:20px;">
- <h3 id="chart-sales-title" style="font-size:13px;color:#aaa;margin:0 0 14px;font-weight:600;">Artículos vendidos</h3>
- <canvas id="chart-sales-main" height="180"></canvas>
- </div>
-
- <!-- Top products -->
- <div style="background:rgba(255,255,255,.04);border-radius:16px;padding:16px;margin-bottom:20px;">
- <h3 style="font-size:13px;color:#aaa;margin:0 0 14px;font-weight:600;">Top 8 artículos más vendidos</h3>
- <canvas id="chart-top-products" height="200"></canvas>
- </div>
-
- <!-- Category breakdown -->
- <div style="background:rgba(255,255,255,.04);border-radius:16px;padding:16px;">
- <h3 style="font-size:13px;color:#aaa;margin:0 0 14px;font-weight:600;">Ventas por categoría</h3>
- <canvas id="chart-sales-category" height="200"></canvas>
- </div>
- </div>
- </div>`;
- overlay.addEventListener('click', e => { if (e.target === overlay) overlay.style.display = 'none'; });
- document.body.appendChild(overlay);
- overlay.querySelector('#close-analytics-modal').addEventListener('click', () => overlay.style.display = 'none');
-
- // Period button events
- overlay.querySelectorAll('.analytics-period-btn').forEach(btn => {
- btn.addEventListener('click', () => {
- overlay.querySelectorAll('.analytics-period-btn').forEach(b => {
- b.style.borderColor = 'rgba(255,255,255,.12)';
- b.style.background = 'transparent';
- b.style.color = '#aaa';
- });
- btn.style.borderColor = '#ff4f81';
- btn.style.background = 'rgba(255,79,129,.15)';
- btn.style.color = '#ff4f81';
- _analyticsPeriod = btn.dataset.period;
- renderAnalyticsCharts();
- });
- });
-
- renderAnalyticsCharts();
-}
-
-// Build date range for each period
-function _getAnalyticsPeriodRange(period) {
- const now = new Date();
- let start, labels = [], groupFn;
-
- if (period === 'day') {
- // Last 24 hours by hour
- start = new Date(now); start.setHours(now.getHours() - 23, 0, 0, 0);
- for (let i = 23; i >= 0; i--) {
- const d = new Date(now); d.setHours(now.getHours() - i, 0, 0, 0);
- labels.push(d.getHours() + ':00');
- }
- groupFn = d => { const dd = new Date(d); return dd.getHours() + ':00'; };
- } else if (period === 'week') {
- // Last 7 days
- start = new Date(now); start.setDate(now.getDate() - 6); start.setHours(0,0,0,0);
- const dayNames = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
- for (let i = 6; i >= 0; i--) {
- const d = new Date(now); d.setDate(now.getDate() - i);
- labels.push(dayNames[d.getDay()] + ' ' + d.getDate());
- }
- groupFn = d => { const dd = new Date(d); const dayNames2 = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb']; return dayNames2[dd.getDay()] + ' ' + dd.getDate(); };
- } else if (period === 'month') {
- // Last 30 days grouped by week
- start = new Date(now); start.setDate(now.getDate() - 29); start.setHours(0,0,0,0);
- for (let i = 0; i < 5; i++) {
- const d = new Date(start); d.setDate(start.getDate() + i*7);
- labels.push('Sem ' + (i+1));
- }
- groupFn = d => {
- const dd = new Date(d);
- const diff = Math.floor((dd - start) / (7*24*3600*1000));
- return 'Sem ' + (Math.min(diff, 4) + 1);
- };
- } else { // year
- // Last 12 months
- start = new Date(now); start.setMonth(now.getMonth() - 11); start.setDate(1); start.setHours(0,0,0,0);
- const monthNames = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
- for (let i = 11; i >= 0; i--) {
- const d = new Date(now); d.setMonth(now.getMonth() - i);
- labels.push(monthNames[d.getMonth()]);
- }
- groupFn = d => { const dd = new Date(d); return ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'][dd.getMonth()]; };
- }
-
- return { start, labels, groupFn };
-}
-
-async function renderAnalyticsCharts() {
- const loading = document.getElementById('analytics-loading');
- const content = document.getElementById('analytics-content');
- if (loading) loading.style.display = 'block';
- if (content) content.style.display = 'none';
- Object.values(_analyticsCharts).forEach(c => { try { c.destroy(); } catch(e){} });
- _analyticsCharts = {};
- try {
- const api = window.API_URL || window.ADMIN_API_URL || '';
- const token = sessionStorage.getItem('admin_token') || '';
-
- // Fetch notifications (purchase orders) — confirmed ones are "sold"
- const [notifRes, prodRes] = await Promise.all([
- fetch(`${api}?action=notificationsBatch&page=1&pageSize=500&noCache=true`).then(r=>r.json()).catch(()=>({})),
- fetch(`${api}?action=list`).then(r=>r.json()).catch(()=>({}))
- ]);
-
- const groups  = notifRes.groups  || [];
- const products = prodRes.products || [];
-
- // Extract confirmed/sold items with timestamps
- const soldItems = [];
- groups.forEach(g => {
- if (!g.notifications) return;
- g.notifications.forEach(n => {
- if (n.status === 'confirmed') {
- const ts = n.timestamp || n.date || g.timestamp || '';
- if (ts) soldItems.push({
- date: ts,
- nombre: n.productName || n.nombre || g.productName || '—',
- categoria: n.categoria || n.category || g.categoria || 'Sin categoría',
- precio: Number(n.price || n.precio || g.precio || 0),
- qty: Number(n.qty || n.cantidad || 1)
- });
- }
- });
- });
-
- const { start, labels, groupFn } = _getAnalyticsPeriodRange(_analyticsPeriod);
-
- // Build sales by time label
- const salesByLabel = {};
- labels.forEach(l => { salesByLabel[l] = 0; });
- const productCount = {};
- const categoryCount = {};
- let totalSold = 0, totalRevenue = 0, todaySold = 0;
- const todayStr = new Date().toDateString();
-
- soldItems.forEach(item => {
- const d = new Date(item.date);
- if (isNaN(d.getTime()) || d < start) return;
- const lbl = groupFn(d);
- if (salesByLabel[lbl] !== undefined) salesByLabel[lbl] += item.qty;
- productCount[item.nombre] = (productCount[item.nombre] || 0) + item.qty;
- categoryCount[item.categoria] = (categoryCount[item.categoria] || 0) + item.qty;
- totalSold += item.qty;
- totalRevenue += item.precio * item.qty;
- if (d.toDateString() === todayStr) todaySold += item.qty;
- });
-
- // Fallback: if no confirmed notifications, show inventory stats
- const hasRealSales = totalSold > 0;
- if (!hasRealSales) {
- // Simulate with stock data as reference
- products.forEach(p => {
- const cat = p.Categoria || 'Sin categoría';
- categoryCount[cat] = (categoryCount[cat] || 0) + 1;
- productCount[p.Nombre || '—'] = (productCount[p.Nombre || '—'] || 0) + 1;
- });
- }
-
- // KPI row
- const periodTitles = {day:'hoy', week:'esta semana', month:'este mes', year:'este año'};
- const kpiRow = document.getElementById('analytics-kpi-row');
- if (kpiRow) kpiRow.innerHTML = [
- { i:'', v: totalSold, l:'Vendidos ' + periodTitles[_analyticsPeriod] },
- { i:'', v:'$'+totalRevenue.toLocaleString('es-MX'), l:'Ingresos' },
- { i:'', v: todaySold, l:'Vendidos hoy' },
- { i:'', v: products.length, l:'Productos activos' }
- ].map(s=>`<div style="background:rgba(255,255,255,.05);border-radius:14px;padding:14px;text-align:center;border:1px solid rgba(255,255,255,.07);">
- <div style="font-size:22px;">${s.i}</div>
- <div style="font-size:20px;font-weight:800;color:#ff4f81;margin:6px 0;">${s.v}</div>
- <div style="font-size:10px;color:#777;text-transform:uppercase;letter-spacing:.05em;">${s.l}</div>
- </div>`).join('');
-
- // Update chart title
- const titleTitles = {day:'Artículos vendidos — últimas 24h', week:'Artículos vendidos — últimos 7 días', month:'Artículos vendidos — últimos 30 días', year:'Artículos vendidos — últimos 12 meses'};
- const chartTitle = document.getElementById('chart-sales-title');
- if (chartTitle) chartTitle.textContent = ' ' + titleTitles[_analyticsPeriod];
-
- const COLORS = ['#ff4f81','#ff7a4f','#ffd166','#06d6a0','#118ab2','#7b5ea7','#ef476f','#4ecdc4'];
- const chartDefaults = {
- responsive: true,
- plugins: { legend: { display: false } },
- scales: {
- x: { ticks: { color:'#888', font:{size:10} }, grid: { color:'rgba(255,255,255,.04)' } },
- y: { ticks: { color:'#888', stepSize:1, precision:0 }, grid: { color:'rgba(255,255,255,.06)' }, beginAtZero:true }
- }
- };
-
- // Main sales chart
- const ctx1 = document.getElementById('chart-sales-main');
- if (ctx1 && typeof Chart !== 'undefined') {
- const salesData = labels.map(l => salesByLabel[l] || 0);
- const hasData = salesData.some(v => v > 0);
- _analyticsCharts.main = new Chart(ctx1, {
- type: 'bar',
- data: {
- labels,
- datasets: [{
- data: hasData ? salesData : labels.map(() => 0),
- backgroundColor: 'rgba(255,79,129,.7)',
- borderColor: '#ff4f81',
- borderWidth: 2,
- borderRadius: 8,
- label: 'Artículos vendidos'
- }]
- },
- options: {
- ...chartDefaults,
- plugins: {
- legend: { display: false },
- tooltip: { callbacks: { label: ctx => ` ${ctx.raw} artículo${ctx.raw !== 1 ? 's' : ''}` } }
- }
- }
- });
- }
-
- // Top products
- const topProds = Object.entries(productCount).sort((a,b)=>b[1]-a[1]).slice(0,8);
- const ctx2 = document.getElementById('chart-top-products');
- if (ctx2 && typeof Chart !== 'undefined' && topProds.length) {
- _analyticsCharts.top = new Chart(ctx2, {
- type: 'bar',
- data: {
- labels: topProds.map(([n]) => n.substring(0,22)),
- datasets: [{ data: topProds.map(([,v])=>v), backgroundColor: COLORS, borderRadius: 8 }]
- },
- options: { ...chartDefaults, indexAxis: 'y' }
- });
- }
-
- // Category chart
- const catEntries = Object.entries(categoryCount).sort((a,b)=>b[1]-a[1]).slice(0,8);
- const ctx3 = document.getElementById('chart-sales-category');
- if (ctx3 && typeof Chart !== 'undefined' && catEntries.length) {
- _analyticsCharts.cat = new Chart(ctx3, {
- type: 'doughnut',
- data: {
- labels: catEntries.map(([c])=>c),
- datasets: [{ data: catEntries.map(([,v])=>v), backgroundColor: COLORS, borderWidth: 2, borderColor: '#12101f' }]
- },
- options: { responsive:true, plugins:{ legend:{ position:'bottom', labels:{ color:'#aaa', font:{size:11}, padding:10 } } } }
- });
- }
-
- if (!hasRealSales) {
- const noDataNote = document.createElement('div');
- noDataNote.style.cssText = 'text-align:center;padding:12px;color:#888;font-size:12px;background:rgba(255,220,100,.06);border-radius:12px;margin-bottom:16px;border:1px solid rgba(255,220,100,.12);';
- noDataNote.innerHTML = ' Sin ventas confirmadas en el período. Las gráficas de categorías y productos muestran el inventario actual como referencia.';
- const kpiRow2 = document.getElementById('analytics-kpi-row');
- if (kpiRow2 && kpiRow2.parentNode) kpiRow2.parentNode.insertBefore(noDataNote, kpiRow2.nextSibling);
- }
-
- if (loading) loading.style.display = 'none';
- if (content) content.style.display = 'block';
- } catch(err) {
- if (loading) loading.innerHTML = '<p style="color:#ef4444;text-align:center;padding:30px;">Error: ' + err.message + '</p>';
- }
-}
-</script>
 </body>
-              </html>
+</html>

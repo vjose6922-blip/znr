@@ -866,11 +866,11 @@ const lookProducts = Object.values(look.products || {}).filter(Boolean);
 const lines = lookProducts.map(p => `• ${p.name}${p.price ? ' — $' + Number(p.price).toLocaleString() : ''}`).join('\n');
 const url = `${window.location.origin}${window.location.pathname}`;
 const text = `👗 ${lookName}\n${lines}\n¡Míralo en Z&R!`;
-// Usa la función unificada de common.js
+
 if (typeof shareContent === 'function') {
   shareContent({ title: lookName, text, url });
 } else {
-  // Fallback por si common.js aún no cargó
+
   navigator.clipboard?.writeText(`${text}\n${url}`)
     .then(() => showTemporaryMessage?.('✓ Enlace copiado', 'success'))
     .catch(() => {});

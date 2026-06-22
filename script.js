@@ -209,9 +209,6 @@ const genderMap = {
 return genderMap[categoriaLower] || null;
 }
 
-
-
-
 function _renderAfterLoad(products) {
   _suppressFilterEvents = true;
   try {
@@ -240,14 +237,6 @@ function _renderAfterLoad(products) {
   }
 }
 
-
-
-
-
-
-
-
-
 async function fetchProducts(force = false) {
 window.loadProductsUnified({
 force,
@@ -262,9 +251,6 @@ onError() {
 }
 });
 }
-
-
-
 
 function populateSizeFilter(genderValue = '', categoryValue = '') {
   const sizeSelect = document.getElementById('size-filter');
@@ -300,12 +286,6 @@ function populateSizeFilter(genderValue = '', categoryValue = '') {
   }
 }
 
-
-
-
-
-
-
 function applyFilters() {
   _suppressFilterEvents = false;
 
@@ -336,11 +316,6 @@ function applyFilters() {
   updateFilterChips({ searchValue, categoryValue, genderValue, sortValue, sizeValue });
   renderProductsPage(true);
 }
-
-
-
-
-
 
 function updateFilterChips({ searchValue, categoryValue, genderValue, sortValue, sizeValue = '' }) {
 const bar = document.getElementById('active-filter-chips');
@@ -375,7 +350,6 @@ chips[Number(idx)].clear();
 });
 });
 }
-
 
 function populateCategoryFilter(genderFilter = null) {
   const select = document.getElementById("category-filter");
@@ -414,9 +388,6 @@ function populateCategoryFilter(genderFilter = null) {
     _suppressFilterEvents = false;
   }
 }
-
-
-
 
 function renderProductsPage(reset = false) {
 const container = document.getElementById("products-container");
@@ -594,7 +565,7 @@ Talla: addBtn.dataset.productTalla
 });
 }
 actions.appendChild(addBtn);
-// Botón compartir
+
 const shareBtn = document.createElement('button');
 shareBtn.className = 'share-btn';
 shareBtn.setAttribute('aria-label', `Compartir ${safeNombre}`);
@@ -730,7 +701,7 @@ await fetch(API_URL, {
 method: "POST",
 body: JSON.stringify({ action: "createNotification", items: notificationItems, requestId: requestId })
 });
-// Guardar en historial de pedidos
+
 if (typeof window.saveOrderToHistory === 'function') {
 window.saveOrderToHistory({
 requestId,
@@ -761,7 +732,7 @@ const response = await fetch(`${API_URL}?action=checkRequestStatus&requestId=${r
 const data = await response.json();
 if (data.ok && data.status === 'approved' && data.paymentLink) {
 clearInterval(interval);
-// Actualizar status en historial local
+
 if (typeof loadOrders === 'function' && typeof saveOrders === 'function') {
   const orders = loadOrders();
   const idx = orders.findIndex(o => o.requestId === requestId);
@@ -865,10 +836,10 @@ window.history.replaceState({}, document.title, window.location.pathname);
 document.addEventListener("DOMContentLoaded", () => {
 fetchProducts();
 startGlobalSliderInterval();
-           // === BÚSQUEDA CORREGIDA ===
+
       let searchInput = document.getElementById("search-input");
       if (searchInput) {
-        // Clonar para eliminar listeners fantasmas (como hicimos con los selects)
+
         const newSearchInput = searchInput.cloneNode(true);
         searchInput.parentNode.replaceChild(newSearchInput, searchInput);
         searchInput = newSearchInput;
@@ -886,14 +857,13 @@ startGlobalSliderInterval();
 });
       }
 
-      // --- GÉNERO (con clonación para evitar listeners duplicados) ---
       const genderFilter = document.getElementById("gender-filter");
       if (genderFilter) {
         const newGenderFilter = genderFilter.cloneNode(true);
         genderFilter.parentNode.replaceChild(newGenderFilter, genderFilter);
         newGenderFilter.addEventListener("change", () => {
           try {
-            _suppressFilterEvents = false; // forzar
+            _suppressFilterEvents = false;
             populateCategoryFilter(newGenderFilter.value);
             populateSizeFilter(newGenderFilter.value, '');
             _suppressFilterEvents = false;
@@ -905,7 +875,6 @@ startGlobalSliderInterval();
         });
       }
 
-      // --- CATEGORÍA (con clonación y forzado) ---
       const categoryFilter = document.getElementById("category-filter");
       if (categoryFilter) {
         const newCategoryFilter = categoryFilter.cloneNode(true);
@@ -924,8 +893,6 @@ startGlobalSliderInterval();
         });
       }
 
-
-
 const sizeSelect = document.getElementById("size-filter");
 if (sizeSelect) {
   sizeSelect.addEventListener("change", () => {
@@ -933,11 +900,6 @@ if (sizeSelect) {
     applyFilters();
   });
 }
-
-
-
-
-
 
        const sortSelect = document.getElementById("sort-select");
       if (sortSelect) sortSelect.addEventListener("change", () => applyFilters());

@@ -104,7 +104,6 @@ return;
 
 showLoader('Verificando...');
 
-// Admin path: primer campo exactamente 6 dígitos
 const esAdmin = /^\d{6}$/.test(firstField);
 
 if (esAdmin) {
@@ -133,11 +132,15 @@ hideLoader();
 return;
 }
 
-// Vendor path
 try {
 const res = await apiFetch({ action: 'loginVendedor', telefono: firstField, password: secondField });
 if (!res.ok) throw new Error();
-vendorSession = { token: res.token, uid: res.uid, nombre: res.nombre };
+vendorSession = {
+token: res.token, uid: res.uid, nombre: res.nombre, confiable: res.confiable,
+plan: res.plan || 'free', planVence: res.planVence || null,
+limiteProductos: res.limiteProductos || 20, productosActuales: res.productosActuales || 0,
+logo: res.logo || ''
+};
 sessionStorage.setItem('vendor_session', JSON.stringify(vendorSession));
 showPanel();
 } catch (_) {
@@ -199,7 +202,97 @@ btn.addEventListener('click', showChangePasswordModal);
 header.appendChild(btn);
 }
 loadMyProducts();
+renderVendorPlanPanel();
 }
+
+function renderVendorPlanPanel() {
+const el = document.getElementById('vendor-plan-panel');
+if (!el || !vendorSession) return;
+const esPlus   = vendorSession.plan === 'plus';
+const limite   = vendorSession.limiteProductos || (esPlus ? 200 : 20);
+const actuales = vendorSession.productosActuales || 0;
+const pct = Math.min(100, Math.round((actuales / limite) * 100));
+const diasRestantes = vendorSession.planVence
+? Math.ceil((new Date(vendorSession.planVence) - new Date()) / 86400000)
+: null;
+
+const planBadge = esPlus
+? `<span style="background:linear-gradient(135deg,#7c3aed,#a855f7);color:#fff;font-size:11px;font-weight:700;padding:3px 10px;border-radius:999px;">PLUS</span>`
+: `<span style="background:#eee;color:#999;font-size:11px;font-weight:700;padding:3px 10px;border-radius:999px;">FREE</span>`;
+
+let renovacionHTML = '';
+if (esPlus && diasRestantes != null && diasRestantes <= 7) {
+renovacionHTML = `<div style="margin-top:8px;background:#fff8e1;color:#92702a;font-size:12px;border-radius:10px;padding:8px 12px;">
+ Tu plan Plus vence en ${diasRestantes} día${diasRestantes === 1 ? '' : 's'}. Contacta al admin para renovarlo y no perder tu visibilidad.
+</div>`;
+}
+
+let logoHTML = '';
+if (esPlus) {
+logoHTML = `<div style="margin-top:10px;display:flex;align-items:center;gap:10px;">
+ ${vendorSession.logo
+ ? `<img src="${escapeHtml(optimizeDriveUrl(vendorSession.logo, 60))}" alt="Logo" style="width:44px;height:44px;border-radius:50%;object-fit:cover;border:1.5px solid #eee;">`
+ : `<div style="width:44px;height:44px;border-radius:50%;background:#f3e8ff;color:#7c3aed;display:flex;align-items:center;justify-content:center;font-weight:700;">${escapeHtml((vendorSession.nombre||'?')[0].toUpperCase())}</div>`}
+ <button class="btn-secondary" style="font-size:12px;" onclick="document.getElementById('logo-file-input').click()">
+ ${vendorSession.logo ? 'Cambiar logo' : 'Subir logo de tu negocio'}
+ </button>
+</div>`;
+} else {
+const numeroAdmin = '528671781272';
+const mensajePlus = encodeURIComponent(`Hola, soy ${vendorSession.nombre} (vendedor en Z&R Comunidad). Quiero información para activar el plan Plus.`);
+logoHTML = `<div style="margin-top:8px;font-size:12px;color:#999;">Con Plus puedes subir el logo de tu negocio, aparecer destacado y aprobación instantánea.</div>
+<a href="https://wa.me/${numeroAdmin}?text=${mensajePlus}" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:6px;margin-top:10px;padding:8px 14px;border-radius:999px;background:linear-gradient(135deg,#7c3aed,#a855f7);color:#fff;font-size:12.5px;font-weight:700;text-decoration:none;">
+ Quiero el plan Plus
+</a>`;
+}
+
+el.innerHTML = `
+<div style="background:#f8f8fc;border-radius:14px;padding:12px 14px;">
+ <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
+ <div style="font-size:13px;font-weight:600;">${actuales}/${limite} productos usados</div>
+ ${planBadge}
+ </div>
+ <div style="background:#e6e6ee;border-radius:999px;height:6px;margin-top:8px;overflow:hidden;">
+ <div style="background:${pct >= 100 ? '#c62828' : '#7c3aed'};height:100%;width:${pct}%;"></div>
+ </div>
+ ${renovacionHTML}
+ ${logoHTML}
+</div>`;
+
+const logoInput = document.getElementById('logo-file-input');
+if (logoInput && !logoInput._wired) {
+logoInput._wired = true;
+logoInput.addEventListener('change', async (e) => {
+const file = e.target.files && e.target.files[0];
+if (!file) return;
+if (vendorSession.plan !== 'plus') {
+showTemporaryMessage('El logo es exclusivo del plan Plus', 'error');
+return;
+}
+showLoader('Subiendo logo...');
+try {
+await uploadVendorLogo(file);
+showTemporaryMessage(' Logo actualizado', 'success');
+renderVendorPlanPanel();
+} catch (err) {
+showTemporaryMessage(' ' + err.message, 'error');
+} finally {
+hideLoader();
+logoInput.value = '';
+}
+});
+}
+}
+
+async function uploadVendorLogo(file) {
+const url = await uploadImageToDrive(file);
+const res = await apiFetch({ action: 'actualizarLogoVendedor', vendorToken: vendorSession.token, logoUrl: url });
+if (!res.ok) throw new Error(res.error || 'No se pudo guardar el logo');
+vendorSession.logo = url;
+sessionStorage.setItem('vendor_session', JSON.stringify(vendorSession));
+return url;
+}
+
 function showChangePasswordModal() {
 if (!vendorSession || !vendorSession.token) {
 showTemporaryMessage('No hay sesión activa', 'error');
@@ -258,6 +351,14 @@ admin: 'true'
 }, 'GET');
 if (!data.ok) throw new Error(data.error);
 const myProducts = (data.products || []).filter(p => p.vendedor_uid === vendorSession.uid);
+
+const ocupados = myProducts.filter(p => p.estado === 'aprobado' || p.estado === 'pendiente').length;
+if (vendorSession) {
+vendorSession.productosActuales = ocupados;
+sessionStorage.setItem('vendor_session', JSON.stringify(vendorSession));
+}
+if (typeof renderVendorPlanPanel === 'function') renderVendorPlanPanel();
+
 if (myProducts.length === 0) {
 container.innerHTML = `<p style="color:#aaa;text-align:center">Aún no has publicado productos.<br>
 <button class="btn-secondary" onclick="switchTab('form')" style="margin-top:12px"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" aria-hidden="true"><use href="#ic-publish"/></svg> Publicar ahora</button></p>`;
@@ -279,7 +380,7 @@ ${thumbs || '<div style="width:56px;height:56px;background:#f5f5f8;border-radius
 <div class="info">
 <strong>${escapeHtml(p.nombre)}</strong>
 <span>$${Number(p.precio).toLocaleString()} · Stock: ${p.stock}</span><br>
-<span class="estado-badge estado-${escapeHtml(p.estado)}">${escapeHtml(p.estado)}</span>
+<span class="estado-badge estado-${escapeHtml(p.estado)}">${p.estado === 'oculto_limite' ? 'Oculto (límite de plan)' : escapeHtml(p.estado)}</span>
 </div>
 <div class="actions">
 <button class="btn-secondary" onclick="editProduct(${p.id})"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" aria-hidden="true"><use href="#ic-edit"/></svg></button>
@@ -390,7 +491,7 @@ uploadedImages = { 1: null, 2: null, 3: null };
 window.triggerUpload = function(n) {
 document.getElementById(`file-${n}`)?.click();
 };
-// Compress image using canvas before upload — max 800px, quality 0.82, WebP preferred
+
 async function compressImage(file) {
   return new Promise((resolve) => {
     const MAX = 800;
@@ -464,7 +565,7 @@ uploadedImages[n] = null;
 selectedFiles[n] = null;
 };
 async function uploadImageToDrive(file) {
-// Compress before upload
+
 const compressed = await compressImage(file);
 const base64 = await fileToBase64(compressed);
 const mime = compressed.type || file.type;
@@ -497,6 +598,14 @@ reader.readAsDataURL(file);
 window.submitProduct = async function() {
 if (!vendorSession || !vendorSession.token) {
 showTemporaryMessage(' Sesión no válida. Vuelve a iniciar sesión.', 'error');
+return;
+}
+const editId = document.getElementById('edit-product-id')?.value;
+if (!editId && (vendorSession.productosActuales || 0) >= (vendorSession.limiteProductos || 20)) {
+const mensaje = vendorSession.plan === 'plus'
+? `Llegaste al límite de ${vendorSession.limiteProductos} productos de tu plan Plus.`
+: `Llegaste al límite de ${vendorSession.limiteProductos} productos del plan gratuito. Pide el plan Plus para subir hasta 200.`;
+showTemporaryMessage(' ' + mensaje, 'error');
 return;
 }
 const nombre = document.getElementById('pNombre')?.value.trim();
@@ -535,7 +644,6 @@ Imagen2: uploadedImages[2] || '',
 Imagen3: uploadedImages[3] || '',
 vendorToken: vendorSession.token
 };
-const editId = document.getElementById('edit-product-id')?.value;
 if (editId) productData.id = editId;
 console.log(" Enviando producto a la API:", productData);
 showLoader('Guardando...');

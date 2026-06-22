@@ -24,22 +24,22 @@
  <link rel="dns-prefetch" href="https://lh3.googleusercontent.com">
  <link rel="preload" href="styles.css" as="style">
  <link rel="stylesheet" href="styles.css" />
- <!-- PWA Meta Tags -->
+ 
  <link rel="manifest" href="manifest.json">
  <meta name="theme-color" content="#1e2128">
- <!-- Favicon -->
+ 
  <link rel="icon" type="image/png" sizes="32x32" href="icons/icon-32x32.png">
  <link rel="icon" type="image/png" sizes="16x16" href="icons/icon-16x16.png">
  <link rel="shortcut icon" href="icons/favicon.ico">
- <!-- iOS / iPadOS -->
+ 
  <link rel="apple-touch-icon" sizes="152x152" href="icons/icon-152x152.png">
  <link rel="apple-touch-icon" sizes="120x120" href="icons/icon-120x120.png">
  <meta name="apple-mobile-web-app-capable" content="yes">
  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
  <meta name="apple-mobile-web-app-title" content="Z&R">
- <!-- Android / Chrome -->
+ 
  <meta name="mobile-web-app-capable" content="yes">
- <!-- Windows / MS Edge -->
+ 
  <meta name="msapplication-TileImage" content="icons/icon-144x144.png">
  <meta name="msapplication-TileColor" content="#1e2128">
 </head>
@@ -72,7 +72,6 @@
   <div id="weather-widget" class="weather-widget loading"></div>
 </div>
 
-<!-- Bottom Navigation -->
 <nav class="bottom-nav">
  <button class="bottom-nav-item" data-page="outfit" id="nav-outfit">
  <span class="nav-icon"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" aria-hidden="true"><use href="#ic-outfit"/></svg></span>
@@ -105,8 +104,6 @@
  <span>Favoritos</span>
  </button>
 </nav>
-
-
 
  <a href="armar-outfit.html" style="display:flex;align-items:center;gap:12px;margin:12px 16px;padding:14px 16px;border-radius:18px;background:linear-gradient(135deg, rgba(255,79,129,0.16), rgba(167,139,250,0.16));border:1px solid var(--color-border-subtle);text-decoration:none;">
  <span style="font-size:22px;line-height:1;">✨</span>
@@ -145,14 +142,14 @@
  <span>Total</span>
  <span id="cart-total">$0</span>
  </div>
- <!-- Phone saved -->
+ 
  <div id="saved-phone-container" style="display:none;">
  <div class="cart-info-row">
  <span> <span id="saved-phone-display"></span></span>
  <button id="change-phone-btn" class="cart-link-btn"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 002.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 01-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 00-1.091-.852H4.5A2.25 2.25 0 002.25 4.5v2.25z"/></svg> Cambiar</button>
  </div>
  </div>
- <!-- Delivery section — always visible -->
+ 
  <div class="cart-delivery-block" id="cart-delivery-block">
  <div class="cart-delivery-header">
  <span class="cart-delivery-icon"></span>
@@ -178,7 +175,7 @@
 
  <div class="overlay" id="overlay" aria-hidden="true"></div>
 
- <!-- image-modal is built dynamically by initImageModalControls() in common.js -->
+ 
  <div class="image-modal" id="image-modal"></div>
 
  <script src="api-config.js" defer></script>
@@ -189,21 +186,18 @@
 <script src="looks.js" defer></script>
 
  <script defer>
-// ===== VARIABLES GLOBALES =====
+
 let cartInitialized = false;
 
-// ===== FUNCIONES AUXILIARES =====
 function updateLooksWishlistBadge() {
  const count = JSON.parse(localStorage.getItem('zr_looks_wishlist') || '[]').length;
  const badge = document.getElementById("wishlist-count-looks");
  if (badge) badge.textContent = count;
 }
 
-// ===== DOM CONTENT LOADED =====
 document.addEventListener("DOMContentLoaded", () => {
  console.log(" Inicializando página con modales personalizados...");
 
- // Exponer funciones globales
  window.changePhoneNumber = changePhoneNumber;
  window.updateSavedPhoneDisplay = updateSavedPhoneDisplay;
  window.openCartDrawer = openCartDrawer;
@@ -211,7 +205,6 @@ document.addEventListener("DOMContentLoaded", () => {
  window.renderCart = renderCart;
  window.addToCart = addToCart;
 
- // Botón flotante del carrito
  const floatingCartBtn = document.getElementById("floating-cart-btn");
  if (floatingCartBtn) {
  const newBtn = floatingCartBtn.cloneNode(true);
@@ -224,7 +217,6 @@ document.addEventListener("DOMContentLoaded", () => {
  });
  }
 
- // Botón cerrar carrito
  const closeCartBtn = document.getElementById("close-cart-btn");
  if (closeCartBtn) {
  const newBtn = closeCartBtn.cloneNode(true);
@@ -237,7 +229,6 @@ document.addEventListener("DOMContentLoaded", () => {
  });
  }
 
- // Overlay (cierra todo)
  const overlay = document.getElementById("overlay");
  if (overlay) {
  const newOverlay = overlay.cloneNode(true);
@@ -258,7 +249,6 @@ document.addEventListener("DOMContentLoaded", () => {
  });
  }
 
- // Inicializar carrito (solo una vez)
  if (!cartInitialized) {
  if (typeof loadCartFromStorage === "function") loadCartFromStorage();
  if (typeof renderCart === "function") renderCart();
@@ -266,17 +256,14 @@ document.addEventListener("DOMContentLoaded", () => {
  cartInitialized = true;
  }
 
- // Inicializar badge de wishlist de looks
  updateLooksWishlistBadge();
 });
 
-// ===== EVENTO CART UPDATED =====
 window.addEventListener("cartUpdated", () => {
  if (typeof renderCart === "function") renderCart();
  if (typeof updateCartBadge === "function") updateCartBadge();
 });
 
-// ===== WISHLIST DE LOOKS - BOTÓN FLOTANTE =====
 const floatingWishlistLooksBtn = document.getElementById("floating-wishlist-looks-btn");
 if (floatingWishlistLooksBtn) {
  floatingWishlistLooksBtn.addEventListener("click", () => {
@@ -288,7 +275,6 @@ if (floatingWishlistLooksBtn) {
  });
 }
 
-// ===== WISHLIST DE LOOKS - CERRAR =====
 const closeWishlistLooksBtn = document.getElementById("close-wishlist-looks-btn");
 if (closeWishlistLooksBtn) {
  closeWishlistLooksBtn.addEventListener("click", () => {
@@ -299,7 +285,6 @@ if (closeWishlistLooksBtn) {
  });
 }
 
-// ===== WISHLIST DE LOOKS - AGREGAR TODO AL CARRITO =====
 const addAllLooksToCartBtn = document.getElementById("add-all-looks-to-cart");
 if (addAllLooksToCartBtn) {
  addAllLooksToCartBtn.addEventListener("click", () => {
@@ -313,17 +298,15 @@ if (addAllLooksToCartBtn) {
  });
 }
 
-// ===== ACTUALIZAR BADGE POR EVENTO STORAGE =====
 window.addEventListener('storage', (e) => {
  if (e.key === 'zr_looks_wishlist') updateLooksWishlistBadge();
 });
 
-// ===== BOTTOM NAVIGATION =====
 document.addEventListener('DOMContentLoaded', function() {
  const bottomNav = document.querySelector('.bottom-nav');
  if (!bottomNav) return;
  
- // Actualizar contadores (badges)
+
  function updateBottomBadges() {
  const cartCount = document.getElementById('bottom-cart-count');
  const wishlistCount = document.getElementById('bottom-wishlist-count');
@@ -340,7 +323,7 @@ document.addEventListener('DOMContentLoaded', function() {
  }
  }
  
- // Navegación
+
  const navCatalogo = document.getElementById('nav-catalogo');
  const navOutfit = document.getElementById('nav-outfit');
  const navCart = document.getElementById('nav-cart');
@@ -368,7 +351,7 @@ document.addEventListener('DOMContentLoaded', function() {
  });
  }
  
- // Wishlist de LOOKS desde la barra inferior
+
  if (navWishlist) {
  navWishlist.addEventListener('click', (e) => {
  e.preventDefault();
@@ -380,14 +363,13 @@ document.addEventListener('DOMContentLoaded', function() {
  });
  }
  
- // Escuchar eventos para actualizar badges
+
  window.addEventListener('cartUpdated', updateBottomBadges);
  window.addEventListener('storage', updateBottomBadges);
  
- // Inicializar badges
+
  updateBottomBadges();
 });
-
 
  
  </script>
@@ -407,10 +389,6 @@ document.addEventListener('DOMContentLoaded', function() {
  </div>
  </div>
  </footer>
-
-
-
-
 
 </body>
 </html>

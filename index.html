@@ -25,19 +25,19 @@
  <link rel="stylesheet" href="styles.css" />
  <link rel="manifest" href="manifest.json">
  <meta name="theme-color" content="#1e2128">
- <!-- Favicon -->
+ 
  <link rel="icon" type="image/png" sizes="32x32" href="icons/icon-32x32.png">
  <link rel="icon" type="image/png" sizes="16x16" href="icons/icon-16x16.png">
  <link rel="shortcut icon" href="icons/favicon.ico">
- <!-- iOS / iPadOS -->
+ 
  <link rel="apple-touch-icon" sizes="152x152" href="icons/icon-152x152.png">
  <link rel="apple-touch-icon" sizes="120x120" href="icons/icon-120x120.png">
  <meta name="apple-mobile-web-app-capable" content="yes">
  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
  <meta name="apple-mobile-web-app-title" content="Z&R">
- <!-- Android / Chrome -->
+ 
  <meta name="mobile-web-app-capable" content="yes">
- <!-- Windows / MS Edge -->
+ 
  <meta name="msapplication-TileImage" content="icons/icon-144x144.png">
  <meta name="msapplication-TileColor" content="#1e2128">
  <style>
@@ -344,7 +344,7 @@
 
  </style>
  <style>
- /* Fixed header override for this page */
+ 
  .app-header { position: fixed !important; top: 0; left: 0; right: 0; width: 100%; box-sizing: border-box; }
  body { padding-top: var(--header-height, 64px); }
  </style>
@@ -411,7 +411,6 @@
 
  <div style="text-align:center; margin-bottom: 10px;">
 
-
  <a href="comunidad.html" class="hero-btn hero-btn-primary" style="display: inline-block; margin 10px; box-shadow: 0 15px 30px rgba(0,0,0,0.15);">Ver Más</a>
 
  </div>
@@ -425,14 +424,12 @@
  </div>
 </section>
 
-
 <section>
  <h2 class="section-title">Vistos Recientemente</h2>
  <div class="recent-products">
  <div class="recent-scroll" id="recent-products"></div>
  </div>
  </section>
-
 
  
  <section>
@@ -479,7 +476,6 @@
  </div>
  </footer>
 
-
  <aside class="cart-drawer" id="cart-drawer" aria-hidden="true">
  <div class="cart-header">
  <h2>Tu carrito</h2>
@@ -492,7 +488,7 @@
  <div id="saved-phone-container" style="font-size: 11px; text-align: center; margin: 8px 0; display: none;">Número guardado: <span id="saved-phone-display"></span>
  <button id="change-phone-btn" style="background: none; border: none; color: #ff4f81; cursor: pointer;"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 002.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 01-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 00-1.091-.852H4.5A2.25 2.25 0 002.25 4.5v2.25z"/></svg> Cambiar</button>
  </div>
- <!-- Delivery section — always visible -->
+ 
  <div class="cart-delivery-block" id="cart-delivery-block">
  <div class="cart-delivery-header">
  <span class="cart-delivery-icon"></span>
@@ -528,7 +524,7 @@
 </aside>
 
  <div class="overlay" id="overlay"></div>
- <!-- image-modal is built dynamically by initImageModalControls() in common.js -->
+ 
  <div class="image-modal" id="image-modal"></div>
 
  <script src="api-config.js" defer></script>
@@ -538,7 +534,7 @@
 <script src="offline-manager.js" defer></script>
 <script>
 (function() {
- // Lazy load de looks.js — solo cuando la sección es visible
+
  const looksSection = document.getElementById('home-looks-container');
  if (!looksSection) return;
  const obs = new IntersectionObserver(function(entries) {
@@ -555,9 +551,7 @@
 </script>
 <script src="home.js" defer></script>
 
-
 <script>
-
 
 (function() {
  const PREVIEW_COUNT = 6;
@@ -607,7 +601,6 @@
  </div>
  </div>`;
 
- // Click imagen → modal
  const sliderEl = card.querySelector('.product-slider');
  if (sliderEl) {
  sliderEl.style.cursor = 'pointer';
@@ -632,7 +625,6 @@
  });
  }
 
- // Click agregar
  card.querySelector('.home-com-add-btn')?.addEventListener('click', (e) => {
  e.stopPropagation();
  if (typeof addToCart === 'function') {
@@ -657,7 +649,7 @@
  const data = await res.json();
  if (!data.ok || !data.products) throw new Error('Sin datos');
  const aprobados = data.products.filter(p => p.estado === 'aprobado').slice(0, PREVIEW_COUNT);
- window.allCommunityProductsIndexed = data.products.filter(p => p.estado === 'aprobado'); // expuesto para el modal
+ window.allCommunityProductsIndexed = data.products.filter(p => p.estado === 'aprobado');
  grid.innerHTML = '';
  if (!aprobados.length) {
  grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:24px;color:var(--color-text-muted)">Pronto habrá productos de la comunidad aquí.</div>';
@@ -665,7 +657,6 @@
  }
  aprobados.forEach(p => grid.appendChild(buildComunidadCard(p)));
 
- // Aplicar layout guardado
  const savedLayout = localStorage.getItem('products_layout') || 'grid';
  if (savedLayout === 'grid') grid.classList.add('layout-grid');
  else grid.classList.remove('layout-grid');
@@ -679,7 +670,6 @@
  setTimeout(loadHomeComunidad, 500);
  });
 
- // Escuchar cambios de layout del panel de ajustes
  window.addEventListener('layoutChanged', (e) => {
  const grid = document.getElementById('home-comunidad-grid');
  if (!grid) return;
@@ -690,9 +680,8 @@
 
 </script>
 
-
  <script>
- // Layout: aplicar preferencia guardada a featured-products al cargar
+
  document.addEventListener('DOMContentLoaded', () => {
  const layout = localStorage.getItem('products_layout') || 'grid';
  const fp = document.getElementById('featured-products');
@@ -706,7 +695,7 @@
  if (layout === 'grid') looksContainer.classList.add('layout-grid');
  else looksContainer.classList.remove('layout-grid');
  }
- // Escuchar cambios del panel de ajustes
+
  window.addEventListener('layoutChanged', (e) => {
  if (fp) {
  if (e.detail.layout === 'grid') fp.classList.add('layout-grid');
@@ -729,12 +718,6 @@
  });
  }
  </script>
-
-
-
-
-
-
 
  <script>
 
@@ -763,9 +746,6 @@ window.addEventListener('looksWishlistUpdated', () => {
 });
 
  </script>
-
-
-
 
  
 

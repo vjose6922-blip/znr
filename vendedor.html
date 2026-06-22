@@ -104,6 +104,7 @@
  .estado-aprobado  { background: #e8f5e9; color: #2e7d32; }
  .estado-pendiente { background: #fff8e1; color: #f57f17; }
  .estado-rechazado { background: #ffebee; color: #c62828; }
+ .estado-oculto_limite { background: #f3e8ff; color: #7c3aed; }
 
  .img-upload-row{ display: flex; gap: 10px; flex-wrap: wrap; }
  .img-upload-slot{
@@ -142,13 +143,12 @@
  .terms { font-size: 11px; color: #aaa; margin-top: 16px; line-height: 1.5; text-align: center; }
  </style>
  <style>
- /* Fixed header override for this page */
+ 
  .app-header { position: fixed !important; top: 0; left: 0; right: 0; width: 100%; box-sizing: border-box; }
  body { padding-top: var(--header-height, 64px); }
  </style>
 </head>
 <body class="theme-aeromexico">
-
 
  <div id="global-loader" class="global-loader hidden">
  <div class="loader-spinner"></div>
@@ -224,6 +224,8 @@
  <h2>Mis productos
  <button id="share-vendor-link" class="btn-secondary" style="font-size:12px; margin-left:10px;"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" aria-hidden="true"><use href="#ic-share"/></svg> Compartir mi tienda</button>
  </h2>
+ <div id="vendor-plan-panel" style="margin:4px 0 16px;"></div>
+ <input type="file" id="logo-file-input" accept="image/*" style="display:none">
  <div id="vendor-products-list" class="vendor-products"></div>
 </div>
  </div>
@@ -292,13 +294,6 @@
  <script src="error-monitor.js" defer></script>
  <script src="vendedor-unificado.js" defer></script>
 
-
-
-
-
-
-
-
  <nav class="bottom-nav">
  <button class="bottom-nav-item" data-page="inicio" id="nav-inicio">
  <span class="nav-icon"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" aria-hidden="true"><use href="#ic-home"/></svg></span>
@@ -319,8 +314,6 @@
  </button>
  </nav>
 
-
-
  <script>
  document.getElementById('nav-inicio')?.addEventListener('click', () => { window.location.href = 'index.html'; });
  document.getElementById('nav-catalogo')?.addEventListener('click', () => { window.location.href = 'catalogo.html'; });
@@ -328,11 +321,6 @@
  document.getElementById('nav-comunidad')?.addEventListener('click', () => { window.location.href = 'comunidad.html'; });
 
  </script>
-
-
-
-
-
 
 </body>
 </html>

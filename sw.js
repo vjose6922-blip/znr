@@ -1,10 +1,4 @@
-
-// ── sw.js — Z&R PWA (con rutas de Comunidad) ────────────────────────────────
-// Cambios respecto a la versión anterior:
-//   • Añadidas nuevas páginas de vendedor al caché estático
-// ─────────────────────────────────────────────────────────────────────────────
-
-const CACHE_NAME    = 'zr-cache-v17';   // ← incrementado: token del modo inspector ahora viaja por URL, no solo sessionStorage
+const CACHE_NAME    = 'zr-cache-v21';
 const DYNAMIC_CACHE = 'zr-dynamic-v11';
 const OFFLINE_URL   = '/ZNR/offline.html';
 
@@ -41,7 +35,6 @@ const STATIC_ASSETS = [
 const IMAGE_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.svg'];
 const API_DOMAINS      = ['script.google.com', 'googleusercontent.com', 'wttr.in', 'openweathermap.org'];
 
-// ─── Instalación ──────────────────────────────────────────────────────────────
 self.addEventListener('install', event => {
   event.waitUntil(
     (async () => {
@@ -61,7 +54,6 @@ self.addEventListener('install', event => {
   );
 });
 
-// ─── Activación ───────────────────────────────────────────────────────────────
 self.addEventListener('activate', event => {
   event.waitUntil(
     (async () => {
@@ -78,7 +70,6 @@ self.addEventListener('activate', event => {
   );
 });
 
-// ─── Estrategias ──────────────────────────────────────────────────────────────
 function getCacheStrategy(request) {
   const url = new URL(request.url);
   if (request.method === 'POST') return 'NETWORK_ONLY';
@@ -167,9 +158,6 @@ async function staleWhileRevalidate(request) {
   return new Response('No disponible', { status: 404 });
 }
 
-// ─── Push, notificationclick, sync, periodicsync ─────────────────────────────
-// (sin cambios respecto a la versión original — copiados para mantener integridad)
-
 self.addEventListener('push', event => {
   const data = event.data ? event.data.json() : {};
   event.waitUntil(
@@ -211,7 +199,7 @@ self.addEventListener('sync', event => {
 self.addEventListener('periodicsync', event => {
   if (event.tag === 'update-products') {
     event.waitUntil(
-      fetch('https://script.google.com/macros/s/AKfycbzNshrt3zldBNiyoB8x36ktCEO02H0cKxebiTuK7UAbsgd5R9biaCW7W4ihm1aVOJG7ww/exec') /* api-config.js no disponible en SW — URL necesaria aquí */
+      fetch('https://script.google.com/macros/s/AKfycbzNshrt3zldBNiyoB8x36ktCEO02H0cKxebiTuK7UAbsgd5R9biaCW7W4ihm1aVOJG7ww/exec') 
         .then(async r => {
           if (r.ok) {
             const cache = await caches.open(CACHE_NAME);

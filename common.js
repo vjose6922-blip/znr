@@ -1,4 +1,3 @@
-// SVG Sprite loader — injects icon 
 (function(){
   if(document.getElementById('zr-svg-sprite')) return;
   const d=document.createElement('div');
@@ -659,7 +658,7 @@ const newQty = localCart[productId].quantity + delta;
 if (newQty <= 0) {
 delete localCart[productId];
 } else {
-// Validar contra stock real del producto
+
 const maxStock = Number(localCart[productId].stock || localCart[productId].Stock || 99);
 if (delta > 0 && localCart[productId].quantity >= maxStock) {
 showTemporaryMessage(` Solo hay ${maxStock} pieza${maxStock === 1 ? '' : 's'} disponible${maxStock === 1 ? '' : 's'}`, 'error');
@@ -1363,9 +1362,6 @@ window.toggleTheme = toggleTheme;
 window.closeImageModal = closeImageModal;
 window.initImageModalControls = initImageModalControls;
 
-// ─── Función unificada de compartir ───────────────────────────────────────────
-// Usada por productos (script.js, comunidad.js) y outfits (looks.js).
-// Parámetros: { id?, title, text, url? }
 function shareContent({ id, title, text, url }) {
   const shareUrl = url || `${window.location.origin}${window.location.pathname}${id ? '#producto-' + id : ''}`;
   const shareTitle = title || 'Z&R';
@@ -1395,7 +1391,6 @@ function shareContent({ id, title, text, url }) {
   }
 }
 
-// Wrapper para mantener compatibilidad con llamadas existentes a shareProduct()
 function shareProduct(id, nombre, precio) {
   const title = nombre || 'Producto Z&R';
   const text = precio
@@ -2808,7 +2803,7 @@ const items = (o.items||[]).map(i=>`
 <span>${_upEsc(i.name||'Producto')}</span>
 <span class="up-order-qty">x${i.quantity||1} · $${(i.price||0).toLocaleString()}</span>
 </div>`).join('');
-// Status: cancelled = cliente canceló, rejected = admin canceló, confirmed = confirmado
+
 const statusMap = {
   pendiente:  { color:'#f59e0b', icon:'⏳', label:'pendiente'       },
   confirmado: { color:'#22c55e', icon:'✅', label:'confirmado'       },
@@ -2817,7 +2812,7 @@ const statusMap = {
   cancelado:  { color:'#9ca3af', icon:'🚫', label:'Cancelado'        }
 };
 const st = statusMap[o.status] || { color:'#f59e0b', icon:'⏳', label: o.status||'pendiente' };
-// Botón de acción según status
+
 let actionBtn = '';
 if (o.status === 'pendiente') {
   actionBtn = `<button class="up-order-cancel-btn" data-request-id="${_upEsc(o.requestId)}" style="margin-top:10px;width:100%;padding:8px;border:none;border-radius:10px;background:#fee2e2;color:#dc2626;font-size:13px;font-weight:600;cursor:pointer;">✕ Cancelar pedido</button>`;
@@ -2862,7 +2857,6 @@ async function clientCancelOrder(requestId) {
       try {
         showLoader('Cancelando pedido...');
 
-        // Actualización optimista
         const orders = loadOrders();
         const idx = orders.findIndex(o => o.requestId === requestId);
         const prevStatus = idx !== -1 ? orders[idx].status : null;
@@ -2871,7 +2865,6 @@ async function clientCancelOrder(requestId) {
         if (list) list.innerHTML = renderOrders();
         attachOrderCancelListeners();
 
-        // Enviar al backend
         let gasOk = false;
         try {
           const res = await fetch(API_URL, {
@@ -2879,7 +2872,6 @@ async function clientCancelOrder(requestId) {
   body: JSON.stringify({ action: 'clientCancelRequest', requestId, phone })
 });
 
-          // 🔍 LEE LA RESPUESTA COMO TEXTO PRIMERO
           const responseText = await res.text();
           console.log('📨 Respuesta cruda del servidor:', responseText);
 
@@ -2897,7 +2889,7 @@ async function clientCancelOrder(requestId) {
           if (data && data.ok && data.cancelled) {
             gasOk = true;
           } else if (data && data.ok && data.alreadyConfirmed) {
-            // Revertir
+
             if (idx !== -1 && prevStatus) {
               const all = loadOrders();
               const i2 = all.findIndex(o => o.requestId === requestId);
@@ -2914,7 +2906,7 @@ async function clientCancelOrder(requestId) {
           }
 
         } catch (fetchErr) {
-          // Revertir cambio optimista
+
           if (idx !== -1 && prevStatus) {
             const all = loadOrders();
             const i2 = all.findIndex(o => o.requestId === requestId);
@@ -2937,8 +2929,6 @@ async function clientCancelOrder(requestId) {
     }
   });
 }
-
-
 
 function attachOrderCancelListeners() {
   document.querySelectorAll('.up-order-cancel-btn').forEach(btn => {
@@ -3082,7 +3072,7 @@ if (tab.dataset.tab === 'pedidos') {
 }
 });
 });
-// Enganchar listeners de cancelación al abrir el panel (tab pedidos activo por defecto no lo es, pero por si acaso)
+
 attachOrderCancelListeners();
 panel.querySelectorAll('.up-theme-btn').forEach(btn=>{
 btn.addEventListener('click',()=>{
@@ -3190,7 +3180,7 @@ setTimeout(()=>{ panel.remove(); ov.remove(); }, 280);
 }
 
 function openPanelOnTab(tabName) {
-  // Si ya hay un panel, cerrarlo y esperar a que la animación termine (280ms + margen)
+
   const existing = document.getElementById('up-panel');
   if (existing) {
     closePanel();
@@ -3202,7 +3192,7 @@ function openPanelOnTab(tabName) {
 
 function _buildAndActivateTab(tabName) {
   buildPanel();
-  // Esperar un frame para que el DOM esté listo
+
   requestAnimationFrame(() => {
     const panel = document.getElementById('up-panel');
     if (!panel) return;
@@ -3217,7 +3207,7 @@ function _buildAndActivateTab(tabName) {
       const list = document.getElementById('up-orders-list');
       if (!list) return;
       list.innerHTML = '<p style="text-align:center;color:var(--color-text-muted);padding:20px;font-size:13px;">⏳ Actualizando pedidos...</p>';
-      // refreshOrderStatuses puede fallar en file:// — igual renderizamos
+
       refreshOrderStatuses()
         .catch(() => {})
         .finally(() => {

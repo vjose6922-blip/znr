@@ -27,13 +27,12 @@ if (!url) throw new Error("API_URL no disponible");
 const savedToken = sessionStorage.getItem("admin_token") || "";
 let res;
 if (method === "GET") {
-// GET with query string — no preflight
+
 const params = Object.assign({ action: "list" }, body || {});
 if (!params.token && savedToken) params.token = savedToken;
 res = await fetch(url + "?" + new URLSearchParams(params).toString());
 } else {
-// POST with form-urlencoded — "simple request", no CORS preflight
-// GAS doPost reads via e.parameter (JSON.parse fails, falls back to e.parameter)
+
 const payload = Object.assign({}, body || {});
 if (!payload.token && savedToken) payload.token = savedToken;
 res = await fetch(url, {
@@ -132,7 +131,6 @@ renderAdminProductsList(pageProducts);
 renderAdminPagination(totalPages);
 }
 
-//  Toggle vista lista / cuadrícula 
 const ADMIN_VIEW_KEY = 'admin_product_view';
 let adminProductView = localStorage.getItem(ADMIN_VIEW_KEY) || 'list';
 
@@ -153,8 +151,6 @@ function initAdminViewToggle() {
    list.id = 'admin-products-list';
  }
 
- // Re-render only if products are loaded; otherwise renderAdminProductsWithFilters
- // will pick up adminProductView automatically when it runs
  if (adminProducts && adminProducts.length > 0) {
    renderAdminProductsWithFilters();
  }
@@ -163,15 +159,13 @@ function initAdminViewToggle() {
  btnList.addEventListener('click', () => applyView('list'));
  btnGrid.addEventListener('click', () => applyView('grid'));
 
- // Aplicar estado inicial (ya existente)
  applyView(adminProductView);
 }
 
-// 
 function renderAdminProductsList(products) {
 const list = document.getElementById("admin-products-list");
 if (!list) return;
-// Delegar al grid si corresponde
+
 if (adminProductView === 'grid') {
 list.className = 'admin-products-grid';
 renderAdminProductsGrid(products, list);
@@ -238,13 +232,11 @@ const nombre = escapeHtml(p.Nombre || 'Sin nombre');
 const cat  = escapeHtml(p.Categoria || '');
 const img  = p.Imagen1 ? escapeHtml(p.Imagen1) : '';
 
-// Badge de estado
 let statusClass, statusLabel;
 if (stock === 0)  { statusClass = 'status-out';  statusLabel = 'Agotado'; }
 else if (stock <= 5) { statusClass = 'status-low';  statusLabel = 'Stock bajo'; }
 else  { statusClass = 'status-active';  statusLabel = 'Activo'; }
 
-// Badge de stock
 let stockClass = '';
 if (stock === 0)  stockClass = 'stock-zero';
 else if (stock <= 5) stockClass = 'stock-low';
@@ -272,7 +264,7 @@ ${cat ? `<span class="admin-card-badge-cat"><span>${cat}</span></span>` : ''}
 </div>`;
 list.appendChild(card);
 });
-// Reutilizar los mismos listeners que el modo lista
+
 document.querySelectorAll('.edit-product-btn').forEach(btn => {
 btn.addEventListener('click', () => {
 const product = adminProducts.find(p =>String(p.ID) === btn.getAttribute('data-id'));
@@ -283,18 +275,13 @@ document.querySelectorAll('.delete-product-btn').forEach(btn => {
 btn.addEventListener('click', () => deleteProduct(btn.getAttribute('data-id')));
 });
 
-
-
-// Al final de renderAdminProductsGrid, antes de cerrar la función
 applyCategoryBadgeScroll();
 if (scrollObserver) {
  scrollObserver.disconnect();
  initBadgeScrollObserver();
 }
 
-
 }
-
 
 function renderAdminPagination(totalPages) {
 const pagination = document.getElementById("admin-pagination");
@@ -355,17 +342,15 @@ function resetProductForm() {
   clearImageUploads();
 }
 
-
-
 function clearProductFormImages() {
-    // Limpiar campos ocultos de imágenes
+
     const imgInputs = ["product-image1", "product-image2", "product-image3"];
     imgInputs.forEach(id => {
         const input = document.getElementById(id);
         if (input) input.value = "";
     });
     
-    // Limpiar previsualizaciones
+
     const previews = ["preview-image-upload-1", "preview-image-upload-2", "preview-image-upload-3"];
     previews.forEach(id => {
         const preview = document.getElementById(id);
@@ -375,7 +360,7 @@ function clearProductFormImages() {
         }
     });
     
-    // Limpiar archivos input file (por si acaso)
+
     const fileInputs = ["image-upload-1", "image-upload-2", "image-upload-3"];
     fileInputs.forEach(id => {
         const fileInput = document.getElementById(id);
@@ -384,10 +369,10 @@ function clearProductFormImages() {
 }
 
 function fillFormForEdit(product) {
-    // 🔁 Primero limpiar cualquier residuo de producto anterior
+
     clearProductFormImages();
     
-    // Llenar los campos del formulario
+
     document.getElementById("product-id").value = product.ID || "";
     document.getElementById("product-name").value = product.Nombre || "";
     document.getElementById("product-price").value = product.Precio || "";
@@ -397,7 +382,7 @@ function fillFormForEdit(product) {
     document.getElementById("product-category").value = product.Categoria || "";
     document.getElementById("product-badge").value = product.Badge || "";
     
-    // Establecer los valores de las URLs de imágenes (campos ocultos)
+
     const img1 = document.getElementById("product-image1");
     if (img1) img1.value = product.Imagen1 || "";
     
@@ -407,10 +392,10 @@ function fillFormForEdit(product) {
     const img3 = document.getElementById("product-image3");
     if (img3) img3.value = product.Imagen3 || "";
     
-    // Cambiar título del formulario
+
     document.getElementById("product-form-title").textContent = "✏️ Editar Producto";
     
-    // Mostrar las previsualizaciones si existen imágenes
+
     if (product.Imagen1) {
         const preview1 = document.getElementById("preview-image-upload-1");
         if (preview1) {
@@ -435,10 +420,9 @@ function fillFormForEdit(product) {
         }
     }
     
-    // Scroll suave al inicio
+
     window.scrollTo({ top: 0, behavior: 'smooth' });
 }
-
 
 async function handleProductFormSubmit(e) {
 e.preventDefault();
@@ -531,10 +515,6 @@ setupImageUpload("image-upload-2", "product-image2", "preview-image-upload-2", "
 setupImageUpload("image-upload-3", "product-image3", "preview-image-upload-3", "progress-image-upload-3");
 }
 
-
-
-
-
 function showLogMessage(msg, isError = false) {
   const logDiv = document.getElementById('upload-log');
   if (!logDiv) return;
@@ -545,11 +525,6 @@ function showLogMessage(msg, isError = false) {
     logDiv.style.display = 'none';
   }, 4000);
 }
-
-
-
-
-
 
 function setupImageUpload(fileInputId, textInputId, previewId, progressId) {
   const fileInput = document.getElementById(fileInputId);
@@ -562,13 +537,11 @@ function setupImageUpload(fileInputId, textInputId, previewId, progressId) {
     return;
   }
 
-  // 🔁 Eliminar cualquier evento anterior y asegurar el nuestro
   fileInput.removeEventListener('change', fileInput._listener);
   const newListener = async () => {
     const file = fileInput.files[0];
     if (!file) return;
 
-    // Validar entorno
     const apiUrl = window.API_URL || ADMIN_API_URL;
     if (!apiUrl) {
       showLogMessage("❌ API_URL no definida", true);
@@ -584,7 +557,7 @@ function setupImageUpload(fileInputId, textInputId, previewId, progressId) {
     if (progress) progress.style.width = "10%";
 
     try {
-      // 1. Leer archivo
+
       const dataUrl = await new Promise((resolve, reject) => {
         const reader = new FileReader();
         reader.onload = e => resolve(e.target.result);
@@ -597,7 +570,6 @@ function setupImageUpload(fileInputId, textInputId, previewId, progressId) {
       }
       if (progress) progress.style.width = "25%";
 
-      // 2. Comprimir
       const base64 = await new Promise((resolve) => {
         const img = new Image();
         img.onload = () => {
@@ -622,7 +594,6 @@ function setupImageUpload(fileInputId, textInputId, previewId, progressId) {
       });
       if (progress) progress.style.width = "50%";
 
-      // 3. Enviar al servidor (form-urlencoded)
       const formData = new URLSearchParams();
       formData.append("action", "uploadImage");
       formData.append("fileName", file.name.replace(/\.[^.]+$/, "") + ".jpg");
@@ -654,16 +625,14 @@ function setupImageUpload(fileInputId, textInputId, previewId, progressId) {
       showLogMessage(`❌ Error: ${err.message}`, true);
       if (progress) progress.style.width = "0%";
     } finally {
-      // 🔄 CRUCIAL: Resetear el input file para que el mismo archivo pueda volver a seleccionarse
+
       fileInput.value = "";
     }
   };
 
-  // Guardar referencia y asignar
   fileInput._listener = newListener;
   fileInput.addEventListener('change', newListener);
 }
-
 
 async function compressImage(file) {
 return new Promise((resolve) => {
@@ -830,10 +799,10 @@ if (hasSession === "true" && savedToken && document.getElementById("admin-panel-
 try {
 const apiUrl = window.API_URL;
 if (!apiUrl) { _forceAdminLogout(); return; }
-// Re-use the same login action — if token is still valid, GAS will confirm it
+
 const res = await fetch(apiUrl + "?" + new URLSearchParams({ action: "verificarAdmin", token: savedToken }).toString());
 const data = await res.json();
-// Accept valid:true OR ok:true (covers both GAS implementations)
+
 if (data && (data.valid === true || data.ok === true)) {
 adminSession = "ok";
 document.getElementById("admin-login-view").hidden = true;
@@ -850,7 +819,7 @@ _forceAdminLogout();
 showTemporaryMessage(" Sesión expirada, inicia sesión de nuevo", "error");
 }
 } catch(e) {
-// Network error or GAS doesn't have verificarAdmin — trust existing session
+
 console.warn("No se pudo verificar sesión con el servidor, confiando en sessionStorage:", e);
 adminSession = "ok";
 document.getElementById("admin-login-view").hidden = true;
@@ -888,15 +857,14 @@ function getToken() {
 return sessionStorage.getItem('admin_token')
 || '';
 }
-// CORS-safe fetch helper for GAS: GET with query params (no preflight)
+
 async function gasGet(params) {
 const url = getApi();
 const qs = new URLSearchParams(params).toString();
 const res = await fetch(url + "?" + qs);
 return res.json();
 }
-// CORS-safe fetch helper for GAS: POST with form-urlencoded (no preflight)
-// GAS doPost reads via e.parameter when JSON.parse fails
+
 async function gasPost(params) {
 const url = getApi();
 const res = await fetch(url, {
@@ -1408,22 +1376,12 @@ if (notifContainer) notifContainer.dispatchEvent(new CustomEvent('zr-reload'));
 }
 })();
 
-
-
-
-
-
-
-
-
-
-// ========== BADGE DE CATEGORÍA: DESPLAZAMIENTO AUTOMÁTICO ==========
 function applyCategoryBadgeScroll() {
  const badges = document.querySelectorAll('.admin-card-badge-cat');
  badges.forEach(badge => {
  const span = badge.querySelector('span');
  if (!span) return;
- // Forzar estilos necesarios para medir correctamente
+
  span.style.display = 'inline-block';
  span.style.whiteSpace = 'nowrap';
  const needsScroll = span.scrollWidth > badge.clientWidth;
@@ -1448,12 +1406,11 @@ function initBadgeScrollObserver() {
  } else {
  badge.classList.remove('scroll');
  }
- // Dejar de observar después de aplicar (opcional, puede seguir observando)
- // scrollObserver.unobserve(badge); // si quieres que solo se aplique una vez
+
  }
  });
  }, { threshold: 0.1 });
- // Observar todos los badges existentes
+
  document.querySelectorAll('.admin-card-badge-cat').forEach(badge => {
  scrollObserver.observe(badge);
  });
@@ -1464,7 +1421,7 @@ function handleResizeForBadges() {
  clearTimeout(resizeTimeout);
  resizeTimeout = setTimeout(() => {
  applyCategoryBadgeScroll();
- // Re-conectar observer por si hay nuevos badges
+
  if (scrollObserver) {
  scrollObserver.disconnect();
  initBadgeScrollObserver();
@@ -1477,11 +1434,6 @@ window.addEventListener('load', () => {
  initBadgeScrollObserver();
  window.addEventListener('resize', handleResizeForBadges);
 });
-
-
-
-
-
 
 window.handleAdminLogin  = handleAdminLogin;
 window.doAdminLogout  = doAdminLogout;
