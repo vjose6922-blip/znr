@@ -1,9 +1,17 @@
 (function() {
 'use strict';
+
+// ──────────────────────────────────────────────
+// CORRECCIÓN: vendorSession ahora es global dentro de este módulo
+// ──────────────────────────────────────────────
+let vendorSession = null;
+
 const API_BASE = window.API_URL || ""
+
 function getAdminToken() {
 return sessionStorage.getItem('admin_token') || '';
 }
+
 async function apiFetch(data, method = 'POST') {
 if (method === 'GET') {
 const params = new URLSearchParams(data);
@@ -21,6 +29,7 @@ body: params.toString()
 });
 return res.json();
 }
+
 function injectStyles(id, css) {
 if (document.getElementById(id)) return;
 const style = document.createElement('style');
@@ -28,6 +37,7 @@ style.id = id;
 style.textContent = css;
 document.head.appendChild(style);
 }
+
 function initVendorPanel() {
 const urlParams = new URLSearchParams(window.location.search);
 if (urlParams.get('register') === '1') {
@@ -36,14 +46,20 @@ const registerTab = document.querySelector('.login-tab[data-tab="register"]');
 if (registerTab) registerTab.click();
 }, 500);
 }
+
 if (!document.getElementById('login-section') && !document.getElementById('panel-section')) return;
-let vendorSession = null;
+
+// Se ELIMINA la declaración local de vendorSession (ya es global)
+// let vendorSession = null;   ← ELIMINADA
+
 let uploadedImages = { 1: null, 2: null, 3: null };
 let selectedFiles = { 1: null, 2: null, 3: null };
+
 const loginTab = document.querySelector('.login-tab[data-tab="login"]');
 const registerTab = document.querySelector('.login-tab[data-tab="register"]');
 const loginContainer = document.getElementById('login-form-container');
 const registerContainer = document.getElementById('register-form-container');
+
 if (loginTab && registerTab) {
 loginTab.addEventListener('click', () => {
 loginTab.classList.add('active');
@@ -57,11 +73,13 @@ loginTab.classList.remove('active');
 loginContainer.style.display = 'none';
 registerContainer.style.display = 'block';
 });
+
 const switchToRegister = document.getElementById('switch-to-register');
 const switchToLogin = document.getElementById('switch-to-login');
 if (switchToRegister) switchToRegister.addEventListener('click', () => registerTab && registerTab.click());
 if (switchToLogin) switchToLogin.addEventListener('click', () => loginTab && loginTab.click());
 }
+
 async function registerVendor() {
 const nombre = document.getElementById('reg-nombre')?.value.trim();
 const phone = document.getElementById('reg-phone')?.value.trim().replace(/\D/g, '');
@@ -91,8 +109,10 @@ btn.textContent = 'Registrarme';
 }
 }
 }
+
 const registerBtn = document.getElementById('register-btn');
 if (registerBtn) registerBtn.addEventListener('click', registerVendor);
+
 async function vendorLogin() {
 const firstField  = document.getElementById('login-phone')?.value.trim();
 const secondField = document.getElementById('login-password')?.value.trim();
@@ -135,17 +155,23 @@ return;
 try {
 const res = await apiFetch({ action: 'loginVendedor', telefono: firstField, password: secondField });
 if (!res.ok) throw new Error();
+// AHORA asignamos a la variable global vendorSession
 vendorSession = {
-token: res.token, uid: res.uid, nombre: res.nombre, confiable: res.confiable,
-plan: res.plan || 'free', planVence: res.planVence || null,
-limiteProductos: res.limiteProductos || 20, productosActuales: res.productosActuales || 0,
+token: res.token,
+uid: res.uid,
+nombre: res.nombre,
+confiable: res.confiable,
+plan: res.plan || 'free',
+planVence: res.planVence || null,
+limiteProductos: res.limiteProductos || 20,
+productosActuales: res.productosActuales || 0,
 logo: res.logo || '',
 descripcion: res.descripcion || '',
 whatsapp: res.whatsapp || '',
 categoria: res.categoria || '',
 fechaRegistro: res.fechaRegistro || ''
 };
-sessionStorage.setItem('vendor_session', JSON.stringify(vendorSession));
+localStorage.setItem('vendor_session', JSON.stringify(vendorSession));
 } catch (_) {
 showTemporaryMessage('Credenciales incorrectas', 'error');
 hideLoader();
@@ -159,8 +185,9 @@ console.error('showPanel error:', e);
 hideLoader();
 }
 }
+
 function vendorLogout() {
-sessionStorage.removeItem('vendor_session');
+localStorage.removeItem('vendor_session');
 sessionStorage.removeItem('admin_session');
 sessionStorage.removeItem('admin_token');
 vendorSession = null;
@@ -170,19 +197,39 @@ if (loginDiv) loginDiv.style.display = 'block';
 if (panelDiv) panelDiv.style.display = 'none';
 const logoutBtn = document.getElementById('logout-btn');
 if (logoutBtn) logoutBtn.style.display = 'none';
+
+const navGuest = document.getElementById('bottom-nav-guest');
+const navVendor = document.getElementById('bottom-nav-vendor');
+if (navVendor) navVendor.style.display = 'none';
+if (navGuest) navGuest.style.display = '';
+
+closeSettingsModal();
 }
+
 function showPanel() {
 const loginDiv = document.getElementById('login-section');
 const panelDiv = document.getElementById('panel-section');
 if (loginDiv) loginDiv.style.display = 'none';
 if (panelDiv) panelDiv.style.display = 'block';
+
 const logoutBtn = document.getElementById('logout-btn');
 if (logoutBtn) logoutBtn.style.display = 'flex';
+
 const nameHeader = document.getElementById('vendor-name-header');
 if (nameHeader && vendorSession) {
 nameHeader.textContent = vendorSession.nombre;
 }
+
 updateVendorAvatar();
+
+const navGuest = document.getElementById('bottom-nav-guest');
+const navVendor = document.getElementById('bottom-nav-vendor');
+if (navGuest) navGuest.style.display = 'none';
+if (navVendor) navVendor.style.display = '';
+
+const cardName = document.getElementById('vendor-card-name');
+if (cardName && vendorSession) cardName.textContent = vendorSession.nombre;
+
 const shareBtn = document.getElementById('share-vendor-link');
 if (shareBtn) {
 const newBtn = shareBtn.cloneNode(true);
@@ -201,17 +248,7 @@ alert('No se pudo copiar. Comparte este enlace:\n' + shareUrl);
 });
 });
 }
-const header = document.querySelector('#tab-products .vendor-section h2');
-if (header && !document.getElementById('change-pwd-btn')) {
-const btn = document.createElement('button');
-btn.id = 'change-pwd-btn';
-btn.textContent = ' Cambiar contraseña';
-btn.className = 'btn-secondary';
-btn.style.marginLeft = '15px';
-btn.style.fontSize = '12px';
-btn.addEventListener('click', showChangePasswordModal);
-header.appendChild(btn);
-}
+
 loadMyProducts();
 renderVendorPlanPanel();
 }
@@ -298,56 +335,10 @@ const url = await uploadImageToDrive(file);
 const res = await apiFetch({ action: 'actualizarLogoVendedor', vendorToken: vendorSession.token, logoUrl: url });
 if (!res.ok) throw new Error(res.error || 'No se pudo guardar el logo');
 vendorSession.logo = url;
-sessionStorage.setItem('vendor_session', JSON.stringify(vendorSession));
+localStorage.setItem('vendor_session', JSON.stringify(vendorSession));
 return url;
 }
 
-function showChangePasswordModal() {
-if (!vendorSession || !vendorSession.token) {
-showTemporaryMessage('No hay sesión activa', 'error');
-return;
-}
-showCustomPrompt({
-title: 'Contraseña actual',
-message: 'Ingresa tu contraseña actual:',
-icon: '',
-defaultValue: '',
-confirmText: 'Siguiente',
-cancelText: 'Cancelar',
-onConfirm: async (oldPwd) => {
-if (!oldPwd) return;
-showCustomPrompt({
-title: 'Nueva contraseña',
-message: 'Escribe tu nueva contraseña (mínimo 6 caracteres):',
-icon: '',
-defaultValue: '',
-confirmText: 'Guardar',
-cancelText: 'Cancelar',
-onConfirm: async (newPwd) => {
-if (!newPwd || newPwd.length < 6) {
-showTemporaryMessage('La contraseña debe tener al menos 6 caracteres', 'error');
-return;
-}
-try {
-showLoader('Actualizando...');
-const res = await apiFetch({
-action: 'cambiarPasswordVendedor',
-vendorUid: vendorSession.uid,
-oldPassword: oldPwd,
-newPassword: newPwd
-});
-if (!res.ok) throw new Error(res.error);
-showTemporaryMessage(' Contraseña cambiada correctamente', 'success');
-} catch (err) {
-showTemporaryMessage(' ' + err.message, 'error');
-} finally {
-hideLoader();
-}
-}
-});
-}
-});
-}
 async function loadMyProducts() {
 const container = document.getElementById('vendor-products-list');
 if (!container) return;
@@ -364,7 +355,7 @@ const myProducts = (data.products || []).filter(p => p.vendedor_uid === vendorSe
 const ocupados = myProducts.filter(p => p.estado === 'aprobado' || p.estado === 'pendiente').length;
 if (vendorSession) {
 vendorSession.productosActuales = ocupados;
-sessionStorage.setItem('vendor_session', JSON.stringify(vendorSession));
+localStorage.setItem('vendor_session', JSON.stringify(vendorSession));
 }
 if (typeof renderVendorPlanPanel === 'function') renderVendorPlanPanel();
 
@@ -426,6 +417,7 @@ window._vendorProducts = myProducts;
 container.innerHTML = `<p style="color:#ef4444">Error: ${escapeHtml(err.message)}</p>`;
 }
 }
+
 window.editProduct = function(id) {
 const p = (window._vendorProducts || []).find(x =>String(x.id) === String(id));
 if (!p) return;
@@ -452,6 +444,7 @@ document.getElementById('cancel-edit-btn').style.display = 'block';
 document.getElementById('submit-product-btn').textContent = ' Guardar cambios';
 switchTab('form');
 };
+
 window.deleteMyProduct = async function(id) {
 const confirmed = await new Promise(resolve => {
 if (typeof showCustomConfirm === 'function') {
@@ -478,6 +471,7 @@ showTemporaryMessage(' ' + err.message, 'error');
 hideLoader();
 }
 };
+
 function cancelEdit() {
 document.getElementById('edit-product-id').value = '';
 document.getElementById('form-title').textContent = ' Publicar producto';
@@ -486,7 +480,9 @@ document.getElementById('submit-product-btn').textContent = ' Publicar producto'
 resetForm();
 switchTab('products');
 }
+
 window.cancelEdit = cancelEdit;
+
 function resetForm() {
 ['pNombre','pPrecio','pStock','pTalla','pDescripcion'].forEach(id => {
 const el = document.getElementById(id);
@@ -497,32 +493,33 @@ if (cat) cat.value = '';
 [1,2,3].forEach(n => clearSlotPreview(n));
 uploadedImages = { 1: null, 2: null, 3: null };
 }
+
 window.triggerUpload = function(n) {
 document.getElementById(`file-${n}`)?.click();
 };
 
 async function compressImage(file) {
-  return new Promise((resolve) => {
-    const MAX = 800;
-    const QUALITY = 0.82;
-    const img = new Image();
-    const url = URL.createObjectURL(file);
-    img.onload = () => {
-      URL.revokeObjectURL(url);
-      let { width: w, height: h } = img;
-      if (w > MAX || h > MAX) {
-        if (w > h) { h = Math.round(h * MAX / w); w = MAX; }
-        else        { w = Math.round(w * MAX / h); h = MAX; }
-      }
-      const canvas = document.createElement('canvas');
-      canvas.width = w; canvas.height = h;
-      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
-      const mime = canvas.toDataURL('image/webp').startsWith('data:image/webp') ? 'image/webp' : 'image/jpeg';
-      canvas.toBlob(blob => resolve(blob || file), mime, QUALITY);
-    };
-    img.onerror = () => resolve(file);
-    img.src = url;
-  });
+return new Promise((resolve) => {
+const MAX = 800;
+const QUALITY = 0.82;
+const img = new Image();
+const url = URL.createObjectURL(file);
+img.onload = () => {
+URL.revokeObjectURL(url);
+let { width: w, height: h } = img;
+if (w > MAX || h > MAX) {
+if (w > h) { h = Math.round(h * MAX / w); w = MAX; }
+else        { w = Math.round(w * MAX / h); h = MAX; }
+}
+const canvas = document.createElement('canvas');
+canvas.width = w; canvas.height = h;
+canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+const mime = canvas.toDataURL('image/webp').startsWith('data:image/webp') ? 'image/webp' : 'image/jpeg';
+canvas.toBlob(blob => resolve(blob || file), mime, QUALITY);
+};
+img.onerror = () => resolve(file);
+img.src = url;
+});
 }
 
 window.handleFileSelect = function(n, input) {
@@ -538,6 +535,7 @@ console.log(`Vista previa actualizada para slot ${n}`);
 };
 reader.readAsDataURL(file);
 };
+
 function setSlotPreview(n, src) {
 const slot = document.getElementById(`slot-${n}`);
 if (!slot) return;
@@ -558,6 +556,7 @@ previewContainer.appendChild(img);
 img.src = src;
 slot.classList.add('has-img');
 }
+
 function clearSlotPreview(n) {
 const slot = document.getElementById(`slot-${n}`);
 if (!slot) return;
@@ -565,6 +564,7 @@ const previewContainer = slot.querySelector('.slot-preview');
 if (previewContainer) previewContainer.remove();
 slot.classList.remove('has-img');
 }
+
 window.removeImg = function(e, n) {
 e.stopPropagation();
 const fileInput = document.getElementById(`file-${n}`);
@@ -573,8 +573,8 @@ clearSlotPreview(n);
 uploadedImages[n] = null;
 selectedFiles[n] = null;
 };
-async function uploadImageToDrive(file) {
 
+async function uploadImageToDrive(file) {
 const compressed = await compressImage(file);
 const base64 = await fileToBase64(compressed);
 const mime = compressed.type || file.type;
@@ -596,6 +596,7 @@ if (!result.ok) throw new Error(result.error || 'Error al subir imagen');
 console.log(" URL de imagen obtenida:", result.url);
 return result.url || `https://drive.google.com/file/d/${result.id}/view`;
 }
+
 function fileToBase64(file) {
 return new Promise((resolve, reject) => {
 const reader = new FileReader();
@@ -604,6 +605,7 @@ reader.onerror = reject;
 reader.readAsDataURL(file);
 });
 }
+
 window.submitProduct = async function() {
 if (!vendorSession || !vendorSession.token) {
 showTemporaryMessage(' Sesión no válida. Vuelve a iniciar sesión.', 'error');
@@ -675,6 +677,7 @@ hideLoader();
 if (btn) btn.disabled = false;
 }
 };
+
 window.switchTab = function(tab) {
 const productsTab = document.getElementById('tab-products');
 const formTab = document.getElementById('tab-form');
@@ -683,27 +686,49 @@ if (formTab) formTab.style.display = tab === 'form' ? 'block' : 'none';
 document.querySelectorAll('.vendor-tab').forEach((el, i) => {
 el.classList.toggle('active', (tab === 'products' && i === 0) || (tab === 'form' && i === 1));
 });
+document.querySelectorAll('#bottom-nav-vendor .bottom-nav-item[data-vendor-page]').forEach(el => {
+el.classList.toggle('active', el.dataset.vendorPage === tab);
+});
 };
-const stored = sessionStorage.getItem('vendor_session');
+
+let stored = localStorage.getItem('vendor_session');
+if (!stored) {
+// Migración: sesiones antiguas que quedaron guardadas en sessionStorage
+stored = sessionStorage.getItem('vendor_session');
 if (stored) {
+localStorage.setItem('vendor_session', stored);
+sessionStorage.removeItem('vendor_session');
+}
+}
+if (stored) {
+try {
 vendorSession = JSON.parse(stored);
 showPanel();
+} catch (_) {
+localStorage.removeItem('vendor_session');
 }
+}
+
 const loginBtn = document.getElementById('login-btn');
 if (loginBtn) loginBtn.addEventListener('click', vendorLogin);
+
 const logoutBtn = document.getElementById('logout-btn');
 if (logoutBtn) logoutBtn.addEventListener('click', vendorLogout);
+
 const passInput = document.getElementById('login-password');
 if (passInput) passInput.addEventListener('keypress', e => { if (e.key === 'Enter') vendorLogin(); });
+
 const submitBtn = document.getElementById('submit-product-btn');
 if (submitBtn) {
 submitBtn.addEventListener('click', window.submitProduct);
 }
+
 const cancelBtn = document.getElementById('cancel-edit-btn');
 if (cancelBtn) {
 cancelBtn.addEventListener('click', window.cancelEdit);
 }
 }
+
 function initPendingVendors() {
 return;
 const STYLES = `
@@ -1053,10 +1078,15 @@ const refreshBtn = document.getElementById('vp-refresh-btn');
 if (refreshBtn) refreshBtn.addEventListener('click', loadVendors);
 loadVendors();
 }
+
 document.addEventListener('DOMContentLoaded', () => {
 initVendorPanel();
 initPendingVendors();
 });
+
+// ──────────────────────────────────────────────
+// Funciones expuestas globalmente (onclick en HTML)
+// ──────────────────────────────────────────────
 
 window.openSettingsModal  = function() { openSettingsModal(); };
 window.closeSettingsModal = function() { closeSettingsModal(); };
@@ -1064,284 +1094,302 @@ window.guardarPerfil      = function() { guardarPerfil(); };
 window.guardarPassword    = function() { guardarPassword(); };
 window.solicitarPlanPlus  = function() { solicitarPlanPlus(); };
 
+// ──────────────────────────────────────────────
+// Funciones de perfil / configuración
+// ──────────────────────────────────────────────
+
 function getInitials(nombre) {
-  if (!nombre) return '?';
-  const words = nombre.trim().split(/\s+/);
-  if (words.length === 1) return words[0].substring(0, 2).toUpperCase();
-  return (words[0][0] + words[words.length - 1][0]).toUpperCase();
+if (!nombre) return '?';
+const words = nombre.trim().split(/\s+/);
+if (words.length === 1) return words[0].substring(0, 2).toUpperCase();
+return (words[0][0] + words[words.length - 1][0]).toUpperCase();
 }
 
 function updateVendorAvatar() {
-  if (!vendorSession) return;
-  const btn = document.getElementById('vendor-avatar-btn');
-  const initEl = document.getElementById('vendor-avatar-initials');
-  const imgEl  = document.getElementById('vendor-avatar-img');
-  if (!btn || !initEl || !imgEl) return;
+if (!vendorSession) return;
+const btn = document.getElementById('vendor-avatar-btn');
+const initEl = document.getElementById('vendor-avatar-initials');
+const imgEl  = document.getElementById('vendor-avatar-img');
+if (!btn || !initEl || !imgEl) return;
 
-  btn.style.display = 'flex';
-  const esPlus = vendorSession.plan === 'plus';
-  const logo   = vendorSession.logo;
+btn.style.display = 'flex';
+const esPlus = vendorSession.plan === 'plus';
+const logo   = vendorSession.logo;
 
-  if (esPlus && logo) {
-    imgEl.src = logo;
-    imgEl.style.display = 'block';
-    initEl.style.display = 'none';
-  } else {
-    imgEl.style.display = 'none';
-    initEl.style.display = 'flex';
-    initEl.textContent = getInitials(vendorSession.nombre);
-  }
+if (esPlus && logo) {
+imgEl.src = logo;
+imgEl.style.display = 'block';
+initEl.style.display = 'none';
+} else {
+imgEl.style.display = 'none';
+initEl.style.display = 'flex';
+initEl.textContent = getInitials(vendorSession.nombre);
+}
 }
 
 function openSettingsModal() {
-  if (!vendorSession) return;
-  const modal = document.getElementById('settings-modal');
-  if (!modal) return;
+if (!vendorSession) return;
+const modal = document.getElementById('settings-modal');
+if (!modal) return;
 
-  document.getElementById('settings-nombre').value      = vendorSession.nombre || '';
-  document.getElementById('settings-descripcion').value = vendorSession.descripcion || '';
-  document.getElementById('settings-whatsapp').value    = vendorSession.whatsapp || '';
-  const catSel = document.getElementById('settings-categoria');
-  if (catSel) catSel.value = vendorSession.categoria || '';
+document.getElementById('settings-nombre').value      = vendorSession.nombre || '';
+document.getElementById('settings-descripcion').value = vendorSession.descripcion || '';
+document.getElementById('settings-whatsapp').value    = vendorSession.whatsapp || '';
+const catSel = document.getElementById('settings-categoria');
+if (catSel) catSel.value = vendorSession.categoria || '';
 
-  document.getElementById('settings-pwd-old').value     = '';
-  document.getElementById('settings-pwd-new').value     = '';
-  document.getElementById('settings-pwd-confirm').value = '';
-  document.getElementById('settings-perfil-msg').textContent = '';
-  document.getElementById('settings-pwd-msg').textContent    = '';
+document.getElementById('settings-pwd-old').value     = '';
+document.getElementById('settings-pwd-new').value     = '';
+document.getElementById('settings-pwd-confirm').value = '';
+document.getElementById('settings-perfil-msg').textContent = '';
+document.getElementById('settings-pwd-msg').textContent    = '';
 
-  const esPlus = vendorSession.plan === 'plus';
+const esPlus = vendorSession.plan === 'plus';
 
-  const placeholderEl = document.getElementById('settings-avatar-placeholder');
-  const photoEl       = document.getElementById('settings-avatar-photo');
-  const changeBtn     = document.getElementById('settings-change-photo-btn');
+const placeholderEl = document.getElementById('settings-avatar-placeholder');
+const photoEl       = document.getElementById('settings-avatar-photo');
+const changeBtn     = document.getElementById('settings-change-photo-btn');
 
-  if (esPlus && vendorSession.logo) {
-    photoEl.src = vendorSession.logo;
-    photoEl.style.display = 'block';
-    placeholderEl.style.display = 'none';
-  } else {
-    placeholderEl.style.display = 'flex';
-    placeholderEl.textContent   = getInitials(vendorSession.nombre);
-    photoEl.style.display       = 'none';
-  }
-  if (changeBtn) changeBtn.style.display = esPlus ? 'flex' : 'none';
+if (esPlus && vendorSession.logo) {
+photoEl.src = vendorSession.logo;
+photoEl.style.display = 'block';
+placeholderEl.style.display = 'none';
+} else {
+placeholderEl.style.display = 'flex';
+placeholderEl.textContent   = getInitials(vendorSession.nombre);
+photoEl.style.display       = 'none';
+}
+if (changeBtn) changeBtn.style.display = esPlus ? 'flex' : 'none';
 
-  document.getElementById('settings-header-name').textContent = vendorSession.nombre || '';
-  const planEl = document.getElementById('settings-header-plan');
-  if (esPlus) {
-    const vence = vendorSession.planVence ? new Date(vendorSession.planVence).toLocaleDateString('es-MX', {day:'2-digit',month:'short',year:'numeric'}) : '—';
-    planEl.innerHTML = '<span style="background:#a855f7;color:#fff;padding:2px 8px;border-radius:999px;font-size:.7rem;font-weight:700;">⭐ Plus</span> <span style="color:#aaa;font-size:.75rem;">· vence ' + vence + '</span>';
-  } else {
-    planEl.innerHTML = '<span style="background:#e5e7eb;color:#555;padding:2px 8px;border-radius:999px;font-size:.7rem;font-weight:600;">Free</span>';
-  }
+document.getElementById('settings-header-name').textContent = vendorSession.nombre || '';
+const planEl = document.getElementById('settings-header-plan');
+if (esPlus) {
+const vence = vendorSession.planVence ? new Date(vendorSession.planVence).toLocaleDateString('es-MX', {day:'2-digit',month:'short',year:'numeric'}) : '—';
+planEl.innerHTML = '<span style="background:#a855f7;color:#fff;padding:2px 8px;border-radius:999px;font-size:.7rem;font-weight:700;">⭐ Plus</span> <span style="color:#aaa;font-size:.75rem;">· vence ' + vence + '</span>';
+} else {
+planEl.innerHTML = '<span style="background:#e5e7eb;color:#555;padding:2px 8px;border-radius:999px;font-size:.7rem;font-weight:600;">Free</span>';
+}
 
-  const planInfoEl = document.getElementById('settings-plan-info');
-  if (planInfoEl) {
-    if (esPlus) {
-      const vence = vendorSession.planVence ? new Date(vendorSession.planVence).toLocaleDateString('es-MX', {day:'2-digit',month:'long',year:'numeric'}) : '—';
-      planInfoEl.innerHTML = '<div style="background:#f5f3ff;border-radius:10px;padding:12px 14px;">' +
-        '<p style="margin:0;font-weight:700;color:#7c3aed;">⭐ Plan Plus activo</p>' +
-        '<p style="margin:4px 0 0;color:#6b7280;font-size:.82rem;">Vence el ' + vence + '</p></div>';
-    } else {
-      planInfoEl.innerHTML = '<div style="background:#f9f9f9;border-radius:10px;padding:12px 14px;">' +
-        '<p style="margin:0;color:#374151;font-size:.85rem;">Estás en el plan <strong>Free</strong>.</p>' +
-        '<p style="margin:4px 0 0;font-size:.82rem;color:#6b7280;">Con Plus obtienes foto de perfil, destacado, logo y aprobación instantánea.</p>' +
-        '<div id="settings-plus-notif" style="margin-top:10px;"></div></div>';
-      setTimeout(() => {
-        const area = document.getElementById('settings-plus-notif');
-        if (area) {
-          area.innerHTML = document.getElementById('vendor-plus-notif-area')?.innerHTML || '';
-        }
-      }, 50);
-    }
-  }
+const planInfoEl = document.getElementById('settings-plan-info');
+if (planInfoEl) {
+if (esPlus) {
+const vence = vendorSession.planVence ? new Date(vendorSession.planVence).toLocaleDateString('es-MX', {day:'2-digit',month:'long',year:'numeric'}) : '—';
+planInfoEl.innerHTML = '<div style="background:#f5f3ff;border-radius:10px;padding:12px 14px;">' +
+'<p style="margin:0;font-weight:700;color:#7c3aed;">⭐ Plan Plus activo</p>' +
+'<p style="margin:4px 0 0;color:#6b7280;font-size:.82rem;">Vence el ' + vence + '</p></div>';
+} else {
+planInfoEl.innerHTML = '<div style="background:#f9f9f9;border-radius:10px;padding:12px 14px;">' +
+'<p style="margin:0;color:#374151;font-size:.85rem;">Estás en el plan <strong>Free</strong>.</p>' +
+'<p style="margin:4px 0 0;font-size:.82rem;color:#6b7280;">Con Plus obtienes foto de perfil, destacado, logo y aprobación instantánea.</p>' +
+'<div id="settings-plus-notif" style="margin-top:10px;"></div></div>';
+setTimeout(() => {
+const area = document.getElementById('settings-plus-notif');
+if (area) {
+area.innerHTML = document.getElementById('vendor-plus-notif-area')?.innerHTML || '';
+}
+}, 50);
+}
+}
 
-  document.getElementById('si-productos').textContent = vendorSession.productosActuales ?? '—';
-  document.getElementById('si-limite').textContent    = vendorSession.limiteProductos ?? '—';
-  document.getElementById('si-uid').textContent       = vendorSession.uid || '—';
-  const fechaEl = document.getElementById('si-fecha');
-  if (fechaEl) {
-    fechaEl.textContent = vendorSession.fechaRegistro
-      ? new Date(vendorSession.fechaRegistro).toLocaleDateString('es-MX', {day:'2-digit',month:'short',year:'numeric'})
-      : '—';
-  }
+document.getElementById('si-productos').textContent = vendorSession.productosActuales ?? '—';
+document.getElementById('si-limite').textContent    = vendorSession.limiteProductos ?? '—';
+document.getElementById('si-uid').textContent       = vendorSession.uid || '—';
+const fechaEl = document.getElementById('si-fecha');
+if (fechaEl) {
+fechaEl.textContent = vendorSession.fechaRegistro
+? new Date(vendorSession.fechaRegistro).toLocaleDateString('es-MX', {day:'2-digit',month:'short',year:'numeric'})
+: '—';
+}
 
-  modal.style.display = 'flex';
-  document.body.style.overflow = 'hidden';
+modal.style.display = 'flex';
+document.body.style.overflow = 'hidden';
 
-  const photoInput = document.getElementById('settings-photo-input');
-  if (photoInput && !photoInput._wiredSettings) {
-    photoInput._wiredSettings = true;
-    photoInput.addEventListener('change', async (e) => {
-      const file = e.target.files && e.target.files[0];
-      if (!file) return;
-      showLoader('Subiendo foto...');
-      try {
-        await uploadVendorLogo(file);
-        showTemporaryMessage('✅ Foto actualizada', 'success');
-        updateVendorAvatar();
-        openSettingsModal();
-      } catch(err) {
-        showTemporaryMessage('⚠️ ' + err.message, 'error');
-      } finally {
-        hideLoader();
-        photoInput.value = '';
-      }
-    });
-  }
+const photoInput = document.getElementById('settings-photo-input');
+if (photoInput && !photoInput._wiredSettings) {
+photoInput._wiredSettings = true;
+photoInput.addEventListener('change', async (e) => {
+const file = e.target.files && e.target.files[0];
+if (!file) return;
+showLoader('Subiendo foto...');
+try {
+await uploadVendorLogo(file);
+showTemporaryMessage('✅ Foto actualizada', 'success');
+updateVendorAvatar();
+openSettingsModal();
+} catch(err) {
+showTemporaryMessage('⚠️ ' + err.message, 'error');
+} finally {
+hideLoader();
+photoInput.value = '';
+}
+});
+}
 }
 
 function closeSettingsModal() {
-  const modal = document.getElementById('settings-modal');
-  if (modal) modal.style.display = 'none';
-  document.body.style.overflow = '';
+const modal = document.getElementById('settings-modal');
+if (modal) modal.style.display = 'none';
+document.body.style.overflow = '';
 }
 
 document.getElementById('settings-modal')?.addEventListener('click', function(e) {
-  if (e.target === this) closeSettingsModal();
+if (e.target === this) closeSettingsModal();
 });
 
 async function guardarPerfil() {
-  const btn = document.getElementById('btn-guardar-perfil');
-  const msg = document.getElementById('settings-perfil-msg');
-  if (!vendorSession) return;
+const btn = document.getElementById('btn-guardar-perfil');
+const msg = document.getElementById('settings-perfil-msg');
+if (!vendorSession) return;
 
-  const nombre     = document.getElementById('settings-nombre').value.trim();
-  const descripcion = document.getElementById('settings-descripcion').value.trim();
-  const whatsapp   = document.getElementById('settings-whatsapp').value.trim();
-  const categoria  = document.getElementById('settings-categoria').value;
+const nombre     = document.getElementById('settings-nombre').value.trim();
+const descripcion = document.getElementById('settings-descripcion').value.trim();
+const whatsapp   = document.getElementById('settings-whatsapp').value.trim();
+const categoria  = document.getElementById('settings-categoria').value;
 
-  if (!nombre || nombre.length < 2) {
-    msg.style.color = '#dc2626'; msg.textContent = 'El nombre debe tener al menos 2 caracteres.'; return;
-  }
+if (!nombre || nombre.length < 2) {
+msg.style.color = '#dc2626'; msg.textContent = 'El nombre debe tener al menos 2 caracteres.'; return;
+}
 
-  btn.disabled = true; btn.textContent = 'Guardando...';
-  msg.textContent = '';
+btn.disabled = true; btn.textContent = 'Guardando...';
+msg.textContent = '';
 
-  try {
-    const res = await apiCall({ action: 'actualizarPerfilVendedor', vendorToken: vendorSession.token, nombre, descripcion, whatsapp, categoria });
-    if (!res.ok) { msg.style.color = '#dc2626'; msg.textContent = res.error || 'Error al guardar.'; return; }
+try {
+const res = await apiCall({ action: 'actualizarPerfilVendedor', vendorToken: vendorSession.token, nombre, descripcion, whatsapp, categoria });
+if (!res.ok) { msg.style.color = '#dc2626'; msg.textContent = res.error || 'Error al guardar.'; return; }
 
-    vendorSession.nombre      = nombre;
-    vendorSession.descripcion = descripcion;
-    vendorSession.whatsapp    = whatsapp;
-    vendorSession.categoria   = categoria;
-    try { localStorage.setItem('vendorSession', JSON.stringify(vendorSession)); } catch(e) {}
+vendorSession.nombre      = nombre;
+vendorSession.descripcion = descripcion;
+vendorSession.whatsapp    = whatsapp;
+vendorSession.categoria   = categoria;
+try { localStorage.setItem('vendor_session', JSON.stringify(vendorSession)); } catch(e) {}
 
-    const nameHeader = document.getElementById('vendor-name-header');
-    if (nameHeader) nameHeader.textContent = nombre;
-    updateVendorAvatar();
-    document.getElementById('settings-header-name').textContent = nombre;
-    const placeholderEl = document.getElementById('settings-avatar-placeholder');
-    if (placeholderEl && placeholderEl.style.display !== 'none') placeholderEl.textContent = getInitials(nombre);
+const nameHeader = document.getElementById('vendor-name-header');
+if (nameHeader) nameHeader.textContent = nombre;
+updateVendorAvatar();
+document.getElementById('settings-header-name').textContent = nombre;
+const placeholderEl = document.getElementById('settings-avatar-placeholder');
+if (placeholderEl && placeholderEl.style.display !== 'none') placeholderEl.textContent = getInitials(nombre);
 
-    msg.style.color = '#16a34a'; msg.textContent = '✅ Cambios guardados';
-  } catch(e) {
-    msg.style.color = '#dc2626'; msg.textContent = 'Error de red.';
-  } finally {
-    btn.disabled = false; btn.textContent = 'Guardar cambios';
-  }
+msg.style.color = '#16a34a'; msg.textContent = '✅ Cambios guardados';
+} catch(e) {
+msg.style.color = '#dc2626'; msg.textContent = 'Error de red.';
+} finally {
+btn.disabled = false; btn.textContent = 'Guardar cambios';
+}
 }
 
 async function guardarPassword() {
-  const btn  = document.getElementById('btn-guardar-pwd');
-  const msg  = document.getElementById('settings-pwd-msg');
-  const oldP = document.getElementById('settings-pwd-old').value;
-  const newP = document.getElementById('settings-pwd-new').value;
-  const conf = document.getElementById('settings-pwd-confirm').value;
+const btn  = document.getElementById('btn-guardar-pwd');
+const msg  = document.getElementById('settings-pwd-msg');
+const oldP = document.getElementById('settings-pwd-old').value;
+const newP = document.getElementById('settings-pwd-new').value;
+const conf = document.getElementById('settings-pwd-confirm').value;
 
-  msg.textContent = '';
-  if (!oldP || !newP || !conf) { msg.style.color = '#dc2626'; msg.textContent = 'Completa todos los campos.'; return; }
-  if (newP.length < 6)         { msg.style.color = '#dc2626'; msg.textContent = 'La nueva contraseña debe tener al menos 6 caracteres.'; return; }
-  if (newP !== conf)           { msg.style.color = '#dc2626'; msg.textContent = 'Las contraseñas no coinciden.'; return; }
+msg.textContent = '';
+if (!oldP || !newP || !conf) { msg.style.color = '#dc2626'; msg.textContent = 'Completa todos los campos.'; return; }
+if (newP.length < 6)         { msg.style.color = '#dc2626'; msg.textContent = 'La nueva contraseña debe tener al menos 6 caracteres.'; return; }
+if (newP !== conf)           { msg.style.color = '#dc2626'; msg.textContent = 'Las contraseñas no coinciden.'; return; }
 
-  btn.disabled = true; btn.textContent = 'Cambiando...';
-  try {
-    const res = await apiCall({ action: 'cambiarPasswordVendedor', vendorToken: vendorSession.token, vendorUid: vendorSession.uid, oldPassword: oldP, newPassword: newP });
-    if (!res.ok) { msg.style.color = '#dc2626'; msg.textContent = res.error || 'Error al cambiar contraseña.'; return; }
-    msg.style.color = '#16a34a'; msg.textContent = '✅ Contraseña actualizada';
-    document.getElementById('settings-pwd-old').value = '';
-    document.getElementById('settings-pwd-new').value = '';
-    document.getElementById('settings-pwd-confirm').value = '';
-  } catch(e) {
-    msg.style.color = '#dc2626'; msg.textContent = 'Error de red.';
-  } finally {
-    btn.disabled = false; btn.textContent = 'Cambiar contraseña';
-  }
+btn.disabled = true; btn.textContent = 'Cambiando...';
+try {
+const res = await apiCall({ action: 'cambiarPasswordVendedor', vendorToken: vendorSession.token, vendorUid: vendorSession.uid, oldPassword: oldP, newPassword: newP });
+if (!res.ok) { msg.style.color = '#dc2626'; msg.textContent = res.error || 'Error al cambiar contraseña.'; return; }
+msg.style.color = '#16a34a'; msg.textContent = '✅ Contraseña actualizada';
+document.getElementById('settings-pwd-old').value = '';
+document.getElementById('settings-pwd-new').value = '';
+document.getElementById('settings-pwd-confirm').value = '';
+} catch(e) {
+msg.style.color = '#dc2626'; msg.textContent = 'Error de red.';
+} finally {
+btn.disabled = false; btn.textContent = 'Cambiar contraseña';
+}
 }
 
 async function loadPlusSolicitudVendedor() {
-  const area = document.getElementById('vendor-plus-notif-area');
-  if (!area || !vendorSession) return;
+const area = document.getElementById('vendor-plus-notif-area');
+if (!area || !vendorSession) return;
 
-  try {
-    const res = await apiCall({ action: 'getPlusSolicitudVendedor', vendorToken: vendorSession.token });
-    const sol = res.solicitud;
+try {
+const res = await apiCall({ action: 'getPlusSolicitudVendedor', vendorToken: vendorSession.token });
+const sol = res.solicitud;
 
-    if (!sol) {
-      area.innerHTML = `<button onclick="solicitarPlanPlus()" id="btn-solicitar-plus"
-        style="display:inline-flex;align-items:center;gap:6px;padding:9px 16px;border-radius:999px;border:none;background:linear-gradient(135deg,#7c3aed,#a855f7);color:#fff;font-size:13px;font-weight:700;cursor:pointer;">
-        ⭐ Solicitar plan Plus
-      </button>`;
-      return;
-    }
+if (!sol) {
+area.innerHTML = `<button onclick="solicitarPlanPlus()" id="btn-solicitar-plus"
+style="display:inline-flex;align-items:center;gap:6px;padding:9px 16px;border-radius:999px;border:none;background:linear-gradient(135deg,#7c3aed,#a855f7);color:#fff;font-size:13px;font-weight:700;cursor:pointer;">
+⭐ Solicitar plan Plus
+</button>`;
+return;
+}
 
-    if (sol.estado === 'pending') {
-      area.innerHTML = `<div style="background:#f3e8ff;border-radius:10px;padding:10px 14px;font-size:12.5px;color:#7c3aed;font-weight:600;">
-        ⏳ Solicitud enviada — en espera de aprobación del administrador.
-      </div>`;
-      return;
-    }
+if (sol.estado === 'pending') {
+area.innerHTML = `<div style="background:#f3e8ff;border-radius:10px;padding:10px 14px;font-size:12.5px;color:#7c3aed;font-weight:600;">
+⏳ Solicitud enviada — en espera de aprobación del administrador.
+</div>`;
+return;
+}
 
-    if (sol.estado === 'approved') {
-      let mpBtn = sol.mp_link
-        ? `<a href="${sol.mp_link}" target="_blank" rel="noopener"
-            style="display:inline-flex;align-items:center;gap:6px;margin-top:8px;padding:8px 16px;border-radius:999px;background:#00b1ea;color:#fff;font-size:12.5px;font-weight:700;text-decoration:none;">
-            💳 Pagar $49 con Mercado Pago
-           </a>` : '';
-      area.innerHTML = `<div style="background:#f0fdf4;border:1px solid #86efac;border-radius:12px;padding:12px 14px;">
-        <p style="margin:0 0 4px;color:#16a34a;font-weight:700;font-size:13px;">✅ ¡Plan Plus aprobado!</p>
-        <p style="margin:0 0 8px;color:#374151;font-size:12px;">Realiza tu pago para activarlo. El admin lo confirmará.</p>
-        <p style="margin:0 0 2px;color:#555;font-size:12px;">Clabe interbancaria:</p>
-        <p style="margin:0 0 8px;font-size:15px;font-weight:700;letter-spacing:.05em;color:#111;font-family:monospace;">${sol.clabe}</p>
-        <p style="margin:0;color:#888;font-size:11px;">Importe: $49 MXN · ${sol.dias} días</p>
-        ${mpBtn}
-      </div>`;
-      return;
-    }
+if (sol.estado === 'approved') {
+let mpBtn = sol.mp_link
+? `<a href="${sol.mp_link}" target="_blank" rel="noopener"
+style="display:inline-flex;align-items:center;gap:6px;margin-top:8px;padding:8px 16px;border-radius:999px;background:#00b1ea;color:#fff;font-size:12.5px;font-weight:700;text-decoration:none;">
+💳 Pagar $49 con Mercado Pago
+</a>` : '';
+area.innerHTML = `<div style="background:#f0fdf4;border:1px solid #86efac;border-radius:12px;padding:12px 14px;">
+<p style="margin:0 0 4px;color:#16a34a;font-weight:700;font-size:13px;">✅ ¡Plan Plus aprobado!</p>
+<p style="margin:0 0 8px;color:#374151;font-size:12px;">Realiza tu pago para activarlo. El admin lo confirmará.</p>
+<p style="margin:0 0 2px;color:#555;font-size:12px;">Clabe interbancaria:</p>
+<p style="margin:0 0 8px;font-size:15px;font-weight:700;letter-spacing:.05em;color:#111;font-family:monospace;">${sol.clabe}</p>
+<p style="margin:0;color:#888;font-size:11px;">Importe: $49 MXN · ${sol.dias} días</p>
+${mpBtn}
+</div>`;
+return;
+}
 
-    if (sol.estado === 'denied') {
-      const motivo = sol.motivo ? `<p style="margin:4px 0 0;color:#6b7280;font-size:12px;">Motivo: ${escapeHtml(sol.motivo)}</p>` : '';
-      area.innerHTML = `<div style="background:#fef2f2;border:1px solid #fca5a5;border-radius:12px;padding:12px 14px;">
-        <p style="margin:0;color:#dc2626;font-weight:700;font-size:13px;">❌ Solicitud rechazada</p>
-        ${motivo}
-        <button onclick="solicitarPlanPlus()" style="margin-top:10px;display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:999px;border:none;background:linear-gradient(135deg,#7c3aed,#a855f7);color:#fff;font-size:12px;font-weight:700;cursor:pointer;">
-          Volver a solicitar
-        </button>
-      </div>`;
-    }
-  } catch(e) {
-    console.warn('loadPlusSolicitudVendedor:', e);
-  }
+if (sol.estado === 'denied') {
+const motivo = sol.motivo ? `<p style="margin:4px 0 0;color:#6b7280;font-size:12px;">Motivo: ${escapeHtml(sol.motivo)}</p>` : '';
+area.innerHTML = `<div style="background:#fef2f2;border:1px solid #fca5a5;border-radius:12px;padding:12px 14px;">
+<p style="margin:0;color:#dc2626;font-weight:700;font-size:13px;">❌ Solicitud rechazada</p>
+${motivo}
+<button onclick="solicitarPlanPlus()" style="margin-top:10px;display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:999px;border:none;background:linear-gradient(135deg,#7c3aed,#a855f7);color:#fff;font-size:12px;font-weight:700;cursor:pointer;">
+Volver a solicitar
+</button>
+</div>`;
+}
+} catch(e) {
+console.warn('loadPlusSolicitudVendedor:', e);
+}
 }
 
 async function solicitarPlanPlus() {
-  const btn = document.getElementById('btn-solicitar-plus');
-  if (btn) { btn.disabled = true; btn.textContent = 'Enviando...'; }
-  try {
-    const res = await apiCall({ action: 'solicitarPlanPlus', vendorToken: vendorSession.token });
-    if (!res.ok) {
-      showTemporaryMessage('⚠️ ' + (res.error || 'Error al enviar'), 'error');
-      if (btn) { btn.disabled = false; btn.innerHTML = '⭐ Solicitar plan Plus'; }
-      return;
-    }
-    showTemporaryMessage('✅ Solicitud enviada', 'success');
-    loadPlusSolicitudVendedor();
-  } catch(e) {
-    showTemporaryMessage('⚠️ Error de red', 'error');
-    if (btn) { btn.disabled = false; btn.innerHTML = '⭐ Solicitar plan Plus'; }
-  }
+const btn = document.getElementById('btn-solicitar-plus');
+if (btn) { btn.disabled = true; btn.textContent = 'Enviando...'; }
+try {
+const res = await apiCall({ action: 'solicitarPlanPlus', vendorToken: vendorSession.token });
+if (!res.ok) {
+showTemporaryMessage('⚠️ ' + (res.error || 'Error al enviar'), 'error');
+if (btn) { btn.disabled = false; btn.innerHTML = '⭐ Solicitar plan Plus'; }
+return;
+}
+showTemporaryMessage('✅ Solicitud enviada', 'success');
+loadPlusSolicitudVendedor();
+} catch(e) {
+showTemporaryMessage('⚠️ Error de red', 'error');
+if (btn) { btn.disabled = false; btn.innerHTML = '⭐ Solicitar plan Plus'; }
+}
+}
+
+// Función auxiliar apiCall (diferente a apiFetch para compatibilidad)
+async function apiCall(data) {
+const params = new URLSearchParams();
+Object.entries(data).forEach(([k, v]) => {
+if (v !== undefined && v !== null) params.append(k, v);
+});
+const res = await fetch(API_BASE, {
+method: 'POST',
+headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+body: params.toString()
+});
+return res.json();
 }
 
 })();

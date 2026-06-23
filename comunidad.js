@@ -630,7 +630,10 @@ style="width:100%;aspect-ratio:1;object-fit:contain;display:block;background:var
 <div class="product-price" style="font-size:16px;">${fmtCurr(product.precio)}</div>
 </div>
 ${vendorName ? `<div style="font-size:11px;color:var(--color-text-muted,#888);margin-top:2px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:4px;">
-<span style="display:flex;align-items:center;gap:5px;">${vendorAvatarHtml} ${esc(vendorName)}</span>
+<span style="display:flex;align-items:center;gap:5px;">
+  ${vendorAvatarHtml}
+  <a href="perfil-vendedor.html?vendedor=${esc(product.vendedor_uid)}" style="color:var(--color-text-main);font-weight:600;text-decoration:none;cursor:pointer;hover:underline;">${esc(vendorName)}</a>
+</span>
 ${vendorTel ? `<a href="${waLink}" target="_blank" rel="noopener" style="color:#25d366;font-weight:600;text-decoration:none;font-size:11px;">Contactar</a>` : ''}
 </div>` : ''}
 ${product.talla ? `<div style="font-size:11px;color:var(--color-text-muted);margin-top:2px;">Info: ${esc(safeString(product.talla))}</div>` : ''}

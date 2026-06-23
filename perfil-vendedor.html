@@ -1,0 +1,612 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Perfil de Vendedor - Z&R</title>
+  <link rel="preload" href="styles.css" as="style">
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#1e2128">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Z&R">
+  <link rel="apple-touch-icon" sizes="152x152" href="icons/icon-152x152.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="icons/icon-32x32.png">
+  <style>
+    /* Estilos específicos del perfil */
+    :root {
+      --profile-header-height: 160px;
+      --avatar-size: 100px;
+    }
+    .profile-page {
+      background: var(--page-bg-linear);
+      min-height: 100vh;
+      padding-bottom: 80px;
+    }
+    .profile-header {
+      position: relative;
+      height: var(--profile-header-height);
+      background: linear-gradient(135deg, #3b1f5f, #7c3aed);
+      overflow: hidden;
+      border-radius: 0 0 28px 28px;
+    }
+.profile-header::after {
+  content: "Z&R";
+  position: absolute;
+  bottom: 20px;
+  right: 30px;
+  font-size: 60px;
+  font-weight: 900;
+  color: rgba(255,255,255,0.08);
+  letter-spacing: 10px;
+  pointer-events: none;
+}
+    .profile-header img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      opacity: 0.6;
+    }
+    .profile-avatar {
+      position: absolute;
+      bottom: 10px;
+      left: 20px;
+      width: var(--avatar-size);
+      height: var(--avatar-size);
+      border-radius: 50%;
+      border: 4px solid var(--color-surface, #fff);
+      background: var(--color-surface-2);
+      overflow: hidden;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+      z-index: 2;
+    }
+    .profile-avatar img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    .profile-avatar .initials {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 40px;
+      font-weight: 700;
+      color: #fff;
+      background: linear-gradient(135deg, #ff4f81, #ff7a4f);
+    }
+    .profile-info {
+      padding: 50px 20px 20px;
+      position: relative;
+    }
+    .profile-name {
+      font-size: 24px;
+      font-weight: 700;
+      margin: 0 0 4px;
+      color: var(--color-text-main);
+    }
+    .profile-category {
+      font-size: 14px;
+      color: var(--color-text-muted);
+      margin-bottom: 8px;
+    }
+    .profile-description {
+      font-size: 14px;
+      color: var(--color-text-muted);
+      line-height: 1.6;
+      margin: 12px 0;
+      max-width: 600px;
+    }
+    .profile-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px 24px;
+      margin: 16px 0 20px;
+      font-size: 13px;
+      color: var(--color-text-soft);
+    }
+    .profile-meta span {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .profile-meta svg {
+      width: 16px;
+      height: 16px;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 2;
+    }
+    .profile-social {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin: 16px 0 24px;
+    }
+    .profile-social a {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 14px;
+      border-radius: 30px;
+      background: var(--color-surface-3);
+      color: var(--color-text-main);
+      text-decoration: none;
+      font-size: 13px;
+      font-weight: 500;
+      transition: background 0.2s;
+    }
+    .profile-social a:hover {
+      background: var(--color-accent-soft);
+      color: var(--color-accent);
+    }
+    .profile-social a svg {
+      width: 16px;
+      height: 16px;
+      fill: currentColor;
+    }
+
+    .profile-wa-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 24px;
+      border-radius: 40px;
+      background: #25D366;
+      color: #fff;
+      font-weight: 700;
+      text-decoration: none;
+      border: none;
+      font-size: 15px;
+      transition: transform 0.2s, box-shadow 0.2s;
+      box-shadow: 0 4px 12px rgba(37,211,102,0.3);
+    }
+    .profile-wa-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(37,211,102,0.4);
+    }
+    .profile-wa-btn svg {
+      width: 20px;
+      height: 20px;
+      fill: currentColor;
+    }
+
+    .profile-products {
+      margin-top: 28px;
+    }
+    .profile-products h2 {
+      font-size: 18px;
+      font-weight: 700;
+      margin-bottom: 16px;
+      color: var(--color-text-main);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .profile-products-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+      gap: 14px;
+    }
+    .profile-product-card {
+      background: var(--color-surface);
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: var(--shadow-soft);
+      transition: transform 0.2s, box-shadow 0.2s;
+      border: 1px solid var(--color-border-subtle);
+    }
+    .profile-product-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+    }
+    .profile-product-card img {
+      width: 100%;
+      aspect-ratio: 1/1;
+      object-fit: contain;
+      background: var(--color-surface-2);
+      padding: 6px;
+    }
+    .profile-product-info {
+      padding: 10px 12px 14px;
+    }
+    .profile-product-name {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--color-text-main);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .profile-product-price {
+      font-size: 15px;
+      font-weight: 700;
+      color: #ff4f81;
+      margin-top: 4px;
+    }
+    .profile-product-talla {
+      font-size: 11px;
+      color: var(--color-text-soft);
+      margin-top: 2px;
+    }
+    .profile-product-add {
+      width: 100%;
+      padding: 6px;
+      border: none;
+      border-radius: 30px;
+      background: var(--color-accent-solid);
+      color: #fff;
+      font-weight: 600;
+      font-size: 12px;
+      cursor: pointer;
+      transition: background 0.2s;
+      margin-top: 8px;
+    }
+    .profile-product-add:hover {
+      background: #ff6b8a;
+    }
+    .profile-product-add:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    .empty-products {
+      text-align: center;
+      padding: 40px;
+      color: var(--color-text-muted);
+      grid-column: 1 / -1;
+    }
+
+    .back-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 16px;
+      border-radius: 30px;
+      background: var(--color-surface-3);
+      color: var(--color-text-main);
+      text-decoration: none;
+      font-size: 14px;
+      font-weight: 500;
+      margin-bottom: 16px;
+      transition: background 0.2s;
+    }
+    .back-link:hover {
+      background: var(--color-surface-2);
+    }
+
+    @media (max-width: 480px) {
+      :root {
+        --profile-header-height: 160px;
+        --avatar-size: 80px;
+      }
+      .profile-avatar {
+        left: 16px;
+        bottom: -30px;
+      }
+      .profile-info {
+        padding-top: 40px;
+      }
+      .profile-name {
+        font-size: 20px;
+      }
+      .profile-products-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 10px;
+      }
+    }
+  </style>
+</head>
+<body class="theme-aeromexico profile-page">
+
+  <div id="global-loader" class="global-loader hidden">
+    <div class="loader-spinner"></div>
+    <div class="loader-text">Cargando perfil...</div>
+  </div>
+
+  <header class="app-header">
+    <div class="header-left">
+      <div class="logo-touch-area">
+        <span class="logo-mark">Z&R</span>
+      </div>
+      <div class="header-text">
+        <h1 class="app-title">Perfil</h1>
+        <p class="app-subtitle" id="profile-subtitle">Vendedor</p>
+      </div>
+    </div>
+    <div class="header-right">
+      <a href="comunidad.html" class="icon-button" aria-label="Volver a comunidad" title="Volver">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" aria-hidden="true"><use href="#ic-x"/></svg>
+      </a>
+    </div>
+  </header>
+
+  <main class="profile-container" id="profile-container">
+    <!-- El contenido se inyectará aquí con JavaScript -->
+    <div style="text-align:center; padding:60px 20px; color: var(--color-text-muted);">
+      <div class="loader-spinner" style="margin:0 auto 20px;"></div>
+      <p>Cargando perfil...</p>
+    </div>
+  </main>
+
+  <footer class="app-footer" style="margin-bottom:70px;">
+    <div class="footer-content">
+      <div class="footer-logo"><span class="logo-mark">Z&R</span></div>
+      <div class="footer-social"><a href="https://www.facebook.com/tu_pagina" target="_blank" class="social-link">Facebook</a></div>
+      <div class="footer-copyright">
+        <p>© 2026 Z&R - Todos los derechos reservados</p>
+        <a href="privacidad.html" style="color:#ff4f81; text-decoration:none;">Privacidad</a> ·
+        <a href="terminos.html" style="color:#ff4f81; text-decoration:none;">Términos</a>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Cargar scripts necesarios -->
+  <script src="api-config.js" defer></script>
+  <script src="common.js" defer></script>
+  <script src="error-monitor.js" defer></script>
+  <script src="cache-manager.js" defer></script>
+
+  <script>
+    (function() {
+      'use strict';
+
+      // Obtener UID de la URL
+      function getVendorUid() {
+        const params = new URLSearchParams(window.location.search);
+        return params.get('vendedor') || params.get('uid');
+      }
+
+      // Mostrar loader
+      function showLoader(text) {
+        const loader = document.getElementById('global-loader');
+        if (loader) {
+          const txt = loader.querySelector('.loader-text');
+          if (txt) txt.textContent = text || 'Cargando...';
+          loader.classList.remove('hidden');
+        }
+      }
+
+      function hideLoader() {
+        const loader = document.getElementById('global-loader');
+        if (loader) loader.classList.add('hidden');
+      }
+
+      // Escapar HTML
+      function esc(str) {
+        if (!str) return '';
+        return String(str)
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;')
+          .replace(/'/g, '&#39;');
+      }
+
+      function formatCurrency(value) {
+        return '$' + Number(value).toLocaleString('es-MX', { minimumFractionDigits: 0 });
+      }
+
+      function optimizeDriveUrl(url, size) {
+        if (!url) return '';
+        const match = url.match(/[-\w]{25,}/);
+        if (match) {
+          const id = match[0];
+          const sz = size || 400;
+          return `https://drive.google.com/thumbnail?id=${id}&sz=w${sz}`;
+        }
+        return url;
+      }
+
+      function renderProfile(data) {
+        const container = document.getElementById('profile-container');
+        if (!container) return;
+
+        const v = data.vendedor;
+        const productos = data.productos || [];
+
+        // Determinar iniciales
+        const initials = (v.nombre || '?')
+          .split(' ')
+          .map(w => w[0])
+          .slice(0, 2)
+          .join('')
+          .toUpperCase();
+
+        // Logo o iniciales
+        const avatarHtml = v.logo
+          ? `<img src="${esc(optimizeDriveUrl(v.logo, 200))}" alt="${esc(v.nombre)}" loading="lazy">`
+          : `<div class="initials">${esc(initials)}</div>`;
+
+        // Fecha de registro
+        let fechaRegistro = '';
+        if (v.fechaRegistro) {
+          const d = new Date(v.fechaRegistro);
+          if (!isNaN(d)) fechaRegistro = d.toLocaleDateString('es-MX', { year: 'numeric', month: 'long', day: 'numeric' });
+        }
+
+        // Redes sociales
+        const socials = [
+          { name: 'Facebook', url: v.facebook, icon: '📘' },
+          { name: 'Twitter',  url: v.twitter,  icon: '🐦' },
+          { name: 'Instagram',url: v.instagram, icon: '📷' },
+          { name: 'TikTok',   url: v.tiktok,   icon: '🎵' }
+        ].filter(s => s.url && s.url.trim() !== '');
+
+        const socialHtml = socials.length > 0
+          ? socials.map(s => `<a href="${esc(s.url)}" target="_blank" rel="noopener">${s.icon} ${s.name}</a>`).join('')
+          : '';
+
+        // Productos
+        let productsHtml = '';
+        if (productos.length === 0) {
+          productsHtml = `<div class="empty-products">Este vendedor aún no tiene productos publicados.</div>`;
+        } else {
+          productsHtml = productos.map(p => {
+            const img = p.imagen1 ? optimizeDriveUrl(p.imagen1, 200) : 'https://placehold.co/200x200/3b1f5f/white?text=Sin+Imagen';
+            const stock = Number(p.stock || 0);
+            const hasStock = stock > 0;
+            const talla = p.talla || '';
+            return `
+              <div class="profile-product-card" data-id="${esc(p.id)}">
+                <img src="${esc(img)}" alt="${esc(p.nombre)}" loading="lazy" onerror="this.src='https://placehold.co/200x200/3b1f5f/white?text=Error'">
+                <div class="profile-product-info">
+                  <div class="profile-product-name" title="${esc(p.nombre)}">${esc(p.nombre)}</div>
+                  <div class="profile-product-price">${formatCurrency(p.precio)}</div>
+                  ${talla ? `<div class="profile-product-talla">Talla: ${esc(talla)}</div>` : ''}
+                  <button class="profile-product-add" data-id="${esc(p.id)}" data-nombre="${esc(p.nombre)}" data-precio="${p.precio}" data-img="${esc(p.imagen1 || '')}" data-talla="${esc(p.talla || '')}" ${!hasStock ? 'disabled' : ''}>
+                    ${hasStock ? 'Añadir' : 'Sin stock'}
+                  </button>
+                </div>
+              </div>
+            `;
+          }).join('');
+        }
+
+        // Construir HTML del perfil
+        container.innerHTML = `
+          <div class="profile-header">
+            <div style="width:100%;height:100%;background:linear-gradient(135deg, #3b1f5f, #7c3aed);"></div>
+            <div class="profile-avatar">
+              ${avatarHtml}
+            </div>
+          </div>
+
+          <div class="profile-info">
+            <a href="comunidad.html" class="back-link">← Volver a Comunidad</a>
+
+            <h1 class="profile-name">${esc(v.nombre || 'Vendedor')}</h1>
+            ${v.categoria ? `<div class="profile-category">${esc(v.categoria)}</div>` : ''}
+            ${v.descripcion ? `<p class="profile-description">${esc(v.descripcion)}</p>` : ''}
+
+            <div class="profile-meta">
+              ${v.telefono ? `<span>${esc(v.telefono)}</span>` : ''}
+              ${v.whatsapp ? `<span>WhatsApp: ${esc(v.whatsapp)}</span>` : ''}
+              ${fechaRegistro ? `<span>Miembro desde ${esc(fechaRegistro)}</span>` : ''}
+            </div>
+
+            ${v.whatsapp ? `
+              <a href="https://wa.me/52${esc(v.whatsapp)}?text=Hola%20${esc(v.nombre)}%2C%20vi%20tu%20perfil%20en%20Z%26R%20y%20me%20interesan%20tus%20productos." target="_blank" rel="noopener" class="profile-wa-btn">
+                <svg viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.117.549 4.107 1.51 5.833L.057 23.57a.75.75 0 00.918.917l5.735-1.453A11.94 11.94 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.75a9.713 9.713 0 01-4.953-1.354l-.355-.21-3.676.932.948-3.557-.23-.368A9.714 9.714 0 012.25 12C2.25 6.615 6.615 2.25 12 2.25S21.75 6.615 21.75 12 17.385 21.75 12 21.75z"/></svg>
+                Contactar por WhatsApp
+              </a>
+            ` : ''}
+
+            ${socialHtml ? `<div class="profile-social">${socialHtml}</div>` : ''}
+
+            <div class="profile-products">
+              <h2>Productos (${productos.length})</h2>
+              <div class="profile-products-grid">
+                ${productsHtml}
+              </div>
+            </div>
+          </div>
+        `;
+
+        // Eventos para los botones "Añadir"
+        container.querySelectorAll('.profile-product-add:not(:disabled)').forEach(btn => {
+          btn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            const id = this.dataset.id;
+            const nombre = this.dataset.nombre;
+            const precio = parseFloat(this.dataset.precio);
+            const img = this.dataset.img;
+            const talla = this.dataset.talla;
+
+            if (typeof addToCart === 'function') {
+              addToCart({
+                ID: id,
+                Nombre: nombre,
+                Precio: precio,
+                Imagen1: img,
+                Talla: talla,
+                _comunidad: true,
+                _vendedor: v.nombre || '',
+                _vendorTel: v.whatsapp || v.telefono || ''
+              });
+              if (typeof showTemporaryMessage === 'function') {
+                showTemporaryMessage(`✅ ${nombre} agregado al carrito`, 'success');
+              }
+            } else {
+              alert('Función addToCart no disponible. Recarga la página.');
+            }
+          });
+        });
+
+        // Actualizar subtítulo del header
+        const sub = document.getElementById('profile-subtitle');
+        if (sub) sub.textContent = v.nombre || 'Vendedor';
+
+        hideLoader();
+      }
+
+      async function fetchProfile(uid) {
+        if (!uid) {
+          const container = document.getElementById('profile-container');
+          if (container) {
+            container.innerHTML = `<div style="text-align:center;padding:40px;color:var(--color-error);">❌ No se especificó el vendedor.</div>`;
+          }
+          hideLoader();
+          return;
+        }
+
+        const apiUrl = window.API_URL;
+        if (!apiUrl) {
+          showTemporaryMessage('Error: API_URL no definida', 'error');
+          hideLoader();
+          return;
+        }
+
+        try {
+          const url = `${apiUrl}?action=obtenerPerfilVendedor&uid=${encodeURIComponent(uid)}`;
+          const response = await fetch(url);
+          const data = await response.json();
+
+          if (!data.ok) {
+            throw new Error(data.error || 'Error al obtener perfil');
+          }
+
+          renderProfile(data);
+        } catch (err) {
+          console.error('Error cargando perfil:', err);
+          const container = document.getElementById('profile-container');
+          if (container) {
+            container.innerHTML = `
+              <div style="text-align:center;padding:40px;color:var(--color-error);">
+                ❌ Error al cargar el perfil: ${esc(err.message)}
+                <br><br>
+                <a href="comunidad.html" class="back-link">← Volver a Comunidad</a>
+              </div>
+            `;
+          }
+          hideLoader();
+        }
+      }
+
+      // Inicio
+      document.addEventListener('DOMContentLoaded', function() {
+        const uid = getVendorUid();
+        if (uid) {
+          showLoader('Cargando perfil...');
+          fetchProfile(uid);
+        } else {
+          const container = document.getElementById('profile-container');
+          if (container) {
+            container.innerHTML = `
+              <div style="text-align:center;padding:60px 20px;color:var(--color-text-muted);">
+                <p style="font-size:20px;">👤</p>
+                <p>No se encontró el vendedor.</p>
+                <a href="comunidad.html" class="back-link" style="margin-top:16px;">← Volver a Comunidad</a>
+              </div>
+            `;
+          }
+          hideLoader();
+        }
+      });
+
+    })();
+  </script>
+</body>
+</html>
