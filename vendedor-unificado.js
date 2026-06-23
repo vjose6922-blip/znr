@@ -139,12 +139,22 @@ vendorSession = {
 token: res.token, uid: res.uid, nombre: res.nombre, confiable: res.confiable,
 plan: res.plan || 'free', planVence: res.planVence || null,
 limiteProductos: res.limiteProductos || 20, productosActuales: res.productosActuales || 0,
-logo: res.logo || ''
+logo: res.logo || '',
+descripcion: res.descripcion || '',
+whatsapp: res.whatsapp || '',
+categoria: res.categoria || '',
+fechaRegistro: res.fechaRegistro || ''
 };
 sessionStorage.setItem('vendor_session', JSON.stringify(vendorSession));
-showPanel();
 } catch (_) {
 showTemporaryMessage('Credenciales incorrectas', 'error');
+hideLoader();
+return;
+}
+try {
+showPanel();
+} catch(e) {
+console.error('showPanel error:', e);
 } finally {
 hideLoader();
 }
@@ -1062,10 +1072,11 @@ function getInitials(nombre) {
 }
 
 function updateVendorAvatar() {
+  if (!vendorSession) return;
   const btn = document.getElementById('vendor-avatar-btn');
   const initEl = document.getElementById('vendor-avatar-initials');
   const imgEl  = document.getElementById('vendor-avatar-img');
-  if (!btn || !vendorSession) return;
+  if (!btn || !initEl || !imgEl) return;
 
   btn.style.display = 'flex';
   const esPlus = vendorSession.plan === 'plus';
