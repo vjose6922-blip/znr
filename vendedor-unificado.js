@@ -172,6 +172,7 @@ const nameHeader = document.getElementById('vendor-name-header');
 if (nameHeader && vendorSession) {
 nameHeader.textContent = vendorSession.nombre;
 }
+updateVendorAvatar();
 const shareBtn = document.getElementById('share-vendor-link');
 if (shareBtn) {
 const newBtn = shareBtn.cloneNode(true);
@@ -238,12 +239,8 @@ logoHTML = `<div style="margin-top:10px;display:flex;align-items:center;gap:10px
  </button>
 </div>`;
 } else {
-const numeroAdmin = '528671781272';
-const mensajePlus = encodeURIComponent(`Hola, soy ${vendorSession.nombre} (vendedor en Z&R Comunidad). Quiero información para activar el plan Plus.`);
 logoHTML = `<div style="margin-top:8px;font-size:12px;color:#999;">Con Plus puedes subir el logo de tu negocio, aparecer destacado y aprobación instantánea.</div>
-<a href="https://wa.me/${numeroAdmin}?text=${mensajePlus}" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:6px;margin-top:10px;padding:8px 14px;border-radius:999px;background:linear-gradient(135deg,#7c3aed,#a855f7);color:#fff;font-size:12.5px;font-weight:700;text-decoration:none;">
- Quiero el plan Plus
-</a>`;
+<div id="vendor-plus-notif-area" style="margin-top:10px;"></div>`;
 }
 
 el.innerHTML = `
@@ -258,6 +255,8 @@ el.innerHTML = `
  ${renovacionHTML}
  ${logoHTML}
 </div>`;
+
+if (!esPlus) loadPlusSolicitudVendedor();
 
 const logoInput = document.getElementById('logo-file-input');
 if (logoInput && !logoInput._wired) {
@@ -1048,4 +1047,284 @@ document.addEventListener('DOMContentLoaded', () => {
 initVendorPanel();
 initPendingVendors();
 });
+
+function getInitials(nombre) {
+  if (!nombre) return '?';
+  const words = nombre.trim().split(/\s+/);
+  if (words.length === 1) return words[0].substring(0, 2).toUpperCase();
+  return (words[0][0] + words[words.length - 1][0]).toUpperCase();
+}
+
+function updateVendorAvatar() {
+  const btn = document.getElementById('vendor-avatar-btn');
+  const initEl = document.getElementById('vendor-avatar-initials');
+  const imgEl  = document.getElementById('vendor-avatar-img');
+  if (!btn || !vendorSession) return;
+
+  btn.style.display = 'flex';
+  const esPlus = vendorSession.plan === 'plus';
+  const logo   = vendorSession.logo;
+
+  if (esPlus && logo) {
+    imgEl.src = logo;
+    imgEl.style.display = 'block';
+    initEl.style.display = 'none';
+  } else {
+    imgEl.style.display = 'none';
+    initEl.style.display = 'flex';
+    initEl.textContent = getInitials(vendorSession.nombre);
+  }
+}
+
+function openSettingsModal() {
+  if (!vendorSession) return;
+  const modal = document.getElementById('settings-modal');
+  if (!modal) return;
+
+  document.getElementById('settings-nombre').value      = vendorSession.nombre || '';
+  document.getElementById('settings-descripcion').value = vendorSession.descripcion || '';
+  document.getElementById('settings-whatsapp').value    = vendorSession.whatsapp || '';
+  const catSel = document.getElementById('settings-categoria');
+  if (catSel) catSel.value = vendorSession.categoria || '';
+
+  document.getElementById('settings-pwd-old').value     = '';
+  document.getElementById('settings-pwd-new').value     = '';
+  document.getElementById('settings-pwd-confirm').value = '';
+  document.getElementById('settings-perfil-msg').textContent = '';
+  document.getElementById('settings-pwd-msg').textContent    = '';
+
+  const esPlus = vendorSession.plan === 'plus';
+
+  const placeholderEl = document.getElementById('settings-avatar-placeholder');
+  const photoEl       = document.getElementById('settings-avatar-photo');
+  const changeBtn     = document.getElementById('settings-change-photo-btn');
+
+  if (esPlus && vendorSession.logo) {
+    photoEl.src = vendorSession.logo;
+    photoEl.style.display = 'block';
+    placeholderEl.style.display = 'none';
+  } else {
+    placeholderEl.style.display = 'flex';
+    placeholderEl.textContent   = getInitials(vendorSession.nombre);
+    photoEl.style.display       = 'none';
+  }
+  if (changeBtn) changeBtn.style.display = esPlus ? 'flex' : 'none';
+
+  document.getElementById('settings-header-name').textContent = vendorSession.nombre || '';
+  const planEl = document.getElementById('settings-header-plan');
+  if (esPlus) {
+    const vence = vendorSession.planVence ? new Date(vendorSession.planVence).toLocaleDateString('es-MX', {day:'2-digit',month:'short',year:'numeric'}) : '—';
+    planEl.innerHTML = '<span style="background:#a855f7;color:#fff;padding:2px 8px;border-radius:999px;font-size:.7rem;font-weight:700;">⭐ Plus</span> <span style="color:#aaa;font-size:.75rem;">· vence ' + vence + '</span>';
+  } else {
+    planEl.innerHTML = '<span style="background:#e5e7eb;color:#555;padding:2px 8px;border-radius:999px;font-size:.7rem;font-weight:600;">Free</span>';
+  }
+
+  const planInfoEl = document.getElementById('settings-plan-info');
+  if (planInfoEl) {
+    if (esPlus) {
+      const vence = vendorSession.planVence ? new Date(vendorSession.planVence).toLocaleDateString('es-MX', {day:'2-digit',month:'long',year:'numeric'}) : '—';
+      planInfoEl.innerHTML = '<div style="background:#f5f3ff;border-radius:10px;padding:12px 14px;">' +
+        '<p style="margin:0;font-weight:700;color:#7c3aed;">⭐ Plan Plus activo</p>' +
+        '<p style="margin:4px 0 0;color:#6b7280;font-size:.82rem;">Vence el ' + vence + '</p></div>';
+    } else {
+      planInfoEl.innerHTML = '<div style="background:#f9f9f9;border-radius:10px;padding:12px 14px;">' +
+        '<p style="margin:0;color:#374151;font-size:.85rem;">Estás en el plan <strong>Free</strong>.</p>' +
+        '<p style="margin:4px 0 0;font-size:.82rem;color:#6b7280;">Con Plus obtienes foto de perfil, destacado, logo y aprobación instantánea.</p>' +
+        '<div id="settings-plus-notif" style="margin-top:10px;"></div></div>';
+      setTimeout(() => {
+        const area = document.getElementById('settings-plus-notif');
+        if (area) {
+          area.innerHTML = document.getElementById('vendor-plus-notif-area')?.innerHTML || '';
+        }
+      }, 50);
+    }
+  }
+
+  document.getElementById('si-productos').textContent = vendorSession.productosActuales ?? '—';
+  document.getElementById('si-limite').textContent    = vendorSession.limiteProductos ?? '—';
+  document.getElementById('si-uid').textContent       = vendorSession.uid || '—';
+  const fechaEl = document.getElementById('si-fecha');
+  if (fechaEl) {
+    fechaEl.textContent = vendorSession.fechaRegistro
+      ? new Date(vendorSession.fechaRegistro).toLocaleDateString('es-MX', {day:'2-digit',month:'short',year:'numeric'})
+      : '—';
+  }
+
+  modal.style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+
+  const photoInput = document.getElementById('settings-photo-input');
+  if (photoInput && !photoInput._wiredSettings) {
+    photoInput._wiredSettings = true;
+    photoInput.addEventListener('change', async (e) => {
+      const file = e.target.files && e.target.files[0];
+      if (!file) return;
+      showLoader('Subiendo foto...');
+      try {
+        await uploadVendorLogo(file);
+        showTemporaryMessage('✅ Foto actualizada', 'success');
+        updateVendorAvatar();
+        openSettingsModal();
+      } catch(err) {
+        showTemporaryMessage('⚠️ ' + err.message, 'error');
+      } finally {
+        hideLoader();
+        photoInput.value = '';
+      }
+    });
+  }
+}
+
+function closeSettingsModal() {
+  const modal = document.getElementById('settings-modal');
+  if (modal) modal.style.display = 'none';
+  document.body.style.overflow = '';
+}
+
+document.getElementById('settings-modal')?.addEventListener('click', function(e) {
+  if (e.target === this) closeSettingsModal();
+});
+
+async function guardarPerfil() {
+  const btn = document.getElementById('btn-guardar-perfil');
+  const msg = document.getElementById('settings-perfil-msg');
+  if (!vendorSession) return;
+
+  const nombre     = document.getElementById('settings-nombre').value.trim();
+  const descripcion = document.getElementById('settings-descripcion').value.trim();
+  const whatsapp   = document.getElementById('settings-whatsapp').value.trim();
+  const categoria  = document.getElementById('settings-categoria').value;
+
+  if (!nombre || nombre.length < 2) {
+    msg.style.color = '#dc2626'; msg.textContent = 'El nombre debe tener al menos 2 caracteres.'; return;
+  }
+
+  btn.disabled = true; btn.textContent = 'Guardando...';
+  msg.textContent = '';
+
+  try {
+    const res = await apiCall({ action: 'actualizarPerfilVendedor', vendorToken: vendorSession.token, nombre, descripcion, whatsapp, categoria });
+    if (!res.ok) { msg.style.color = '#dc2626'; msg.textContent = res.error || 'Error al guardar.'; return; }
+
+    vendorSession.nombre      = nombre;
+    vendorSession.descripcion = descripcion;
+    vendorSession.whatsapp    = whatsapp;
+    vendorSession.categoria   = categoria;
+    try { localStorage.setItem('vendorSession', JSON.stringify(vendorSession)); } catch(e) {}
+
+    const nameHeader = document.getElementById('vendor-name-header');
+    if (nameHeader) nameHeader.textContent = nombre;
+    updateVendorAvatar();
+    document.getElementById('settings-header-name').textContent = nombre;
+    const placeholderEl = document.getElementById('settings-avatar-placeholder');
+    if (placeholderEl && placeholderEl.style.display !== 'none') placeholderEl.textContent = getInitials(nombre);
+
+    msg.style.color = '#16a34a'; msg.textContent = '✅ Cambios guardados';
+  } catch(e) {
+    msg.style.color = '#dc2626'; msg.textContent = 'Error de red.';
+  } finally {
+    btn.disabled = false; btn.textContent = 'Guardar cambios';
+  }
+}
+
+async function guardarPassword() {
+  const btn  = document.getElementById('btn-guardar-pwd');
+  const msg  = document.getElementById('settings-pwd-msg');
+  const oldP = document.getElementById('settings-pwd-old').value;
+  const newP = document.getElementById('settings-pwd-new').value;
+  const conf = document.getElementById('settings-pwd-confirm').value;
+
+  msg.textContent = '';
+  if (!oldP || !newP || !conf) { msg.style.color = '#dc2626'; msg.textContent = 'Completa todos los campos.'; return; }
+  if (newP.length < 6)         { msg.style.color = '#dc2626'; msg.textContent = 'La nueva contraseña debe tener al menos 6 caracteres.'; return; }
+  if (newP !== conf)           { msg.style.color = '#dc2626'; msg.textContent = 'Las contraseñas no coinciden.'; return; }
+
+  btn.disabled = true; btn.textContent = 'Cambiando...';
+  try {
+    const res = await apiCall({ action: 'cambiarPasswordVendedor', vendorToken: vendorSession.token, vendorUid: vendorSession.uid, oldPassword: oldP, newPassword: newP });
+    if (!res.ok) { msg.style.color = '#dc2626'; msg.textContent = res.error || 'Error al cambiar contraseña.'; return; }
+    msg.style.color = '#16a34a'; msg.textContent = '✅ Contraseña actualizada';
+    document.getElementById('settings-pwd-old').value = '';
+    document.getElementById('settings-pwd-new').value = '';
+    document.getElementById('settings-pwd-confirm').value = '';
+  } catch(e) {
+    msg.style.color = '#dc2626'; msg.textContent = 'Error de red.';
+  } finally {
+    btn.disabled = false; btn.textContent = 'Cambiar contraseña';
+  }
+}
+
+async function loadPlusSolicitudVendedor() {
+  const area = document.getElementById('vendor-plus-notif-area');
+  if (!area || !vendorSession) return;
+
+  try {
+    const res = await apiCall({ action: 'getPlusSolicitudVendedor', vendorToken: vendorSession.token });
+    const sol = res.solicitud;
+
+    if (!sol) {
+      area.innerHTML = `<button onclick="solicitarPlanPlus()" id="btn-solicitar-plus"
+        style="display:inline-flex;align-items:center;gap:6px;padding:9px 16px;border-radius:999px;border:none;background:linear-gradient(135deg,#7c3aed,#a855f7);color:#fff;font-size:13px;font-weight:700;cursor:pointer;">
+        ⭐ Solicitar plan Plus
+      </button>`;
+      return;
+    }
+
+    if (sol.estado === 'pending') {
+      area.innerHTML = `<div style="background:#f3e8ff;border-radius:10px;padding:10px 14px;font-size:12.5px;color:#7c3aed;font-weight:600;">
+        ⏳ Solicitud enviada — en espera de aprobación del administrador.
+      </div>`;
+      return;
+    }
+
+    if (sol.estado === 'approved') {
+      let mpBtn = sol.mp_link
+        ? `<a href="${sol.mp_link}" target="_blank" rel="noopener"
+            style="display:inline-flex;align-items:center;gap:6px;margin-top:8px;padding:8px 16px;border-radius:999px;background:#00b1ea;color:#fff;font-size:12.5px;font-weight:700;text-decoration:none;">
+            💳 Pagar $49 con Mercado Pago
+           </a>` : '';
+      area.innerHTML = `<div style="background:#f0fdf4;border:1px solid #86efac;border-radius:12px;padding:12px 14px;">
+        <p style="margin:0 0 4px;color:#16a34a;font-weight:700;font-size:13px;">✅ ¡Plan Plus aprobado!</p>
+        <p style="margin:0 0 8px;color:#374151;font-size:12px;">Realiza tu pago para activarlo. El admin lo confirmará.</p>
+        <p style="margin:0 0 2px;color:#555;font-size:12px;">Clabe interbancaria:</p>
+        <p style="margin:0 0 8px;font-size:15px;font-weight:700;letter-spacing:.05em;color:#111;font-family:monospace;">${sol.clabe}</p>
+        <p style="margin:0;color:#888;font-size:11px;">Importe: $49 MXN · ${sol.dias} días</p>
+        ${mpBtn}
+      </div>`;
+      return;
+    }
+
+    if (sol.estado === 'denied') {
+      const motivo = sol.motivo ? `<p style="margin:4px 0 0;color:#6b7280;font-size:12px;">Motivo: ${escapeHtml(sol.motivo)}</p>` : '';
+      area.innerHTML = `<div style="background:#fef2f2;border:1px solid #fca5a5;border-radius:12px;padding:12px 14px;">
+        <p style="margin:0;color:#dc2626;font-weight:700;font-size:13px;">❌ Solicitud rechazada</p>
+        ${motivo}
+        <button onclick="solicitarPlanPlus()" style="margin-top:10px;display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:999px;border:none;background:linear-gradient(135deg,#7c3aed,#a855f7);color:#fff;font-size:12px;font-weight:700;cursor:pointer;">
+          Volver a solicitar
+        </button>
+      </div>`;
+    }
+  } catch(e) {
+    console.warn('loadPlusSolicitudVendedor:', e);
+  }
+}
+
+async function solicitarPlanPlus() {
+  const btn = document.getElementById('btn-solicitar-plus');
+  if (btn) { btn.disabled = true; btn.textContent = 'Enviando...'; }
+  try {
+    const res = await apiCall({ action: 'solicitarPlanPlus', vendorToken: vendorSession.token });
+    if (!res.ok) {
+      showTemporaryMessage('⚠️ ' + (res.error || 'Error al enviar'), 'error');
+      if (btn) { btn.disabled = false; btn.innerHTML = '⭐ Solicitar plan Plus'; }
+      return;
+    }
+    showTemporaryMessage('✅ Solicitud enviada', 'success');
+    loadPlusSolicitudVendedor();
+  } catch(e) {
+    showTemporaryMessage('⚠️ Error de red', 'error');
+    if (btn) { btn.disabled = false; btn.innerHTML = '⭐ Solicitar plan Plus'; }
+  }
+}
+
 })();

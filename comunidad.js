@@ -599,6 +599,12 @@ const stockNum  = Number(product.stock) || 0;
 const hasStock  = stockNum > 0;
 const vendorName = safeString(product.vendedor_nombre);
 const vendorTel  = safeString(product.vendedor_tel);
+const vendorLogo = safeString(product.vendedor_logo || '');
+const esVendorPlus = product.vendedor_plan === 'plus';
+const vendorInitials = vendorName ? vendorName.trim().split(/\s+/).map(w => w[0]).slice(0,2).join('').toUpperCase() : '?';
+const vendorAvatarHtml = (esVendorPlus && vendorLogo)
+  ? `<img src="${esc(vendorLogo)}" alt="${esc(vendorName)}" style="width:18px;height:18px;border-radius:50%;object-fit:cover;flex-shrink:0;border:1px solid #a855f744;" onerror="this.style.display='none'">`
+  : `<span style="width:18px;height:18px;border-radius:50%;background:#f3e8ff;color:#7c3aed;font-size:9px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;border:1px solid #e9d5ff;">${esc(vendorInitials)}</span>`;
 const waMsg = [
 ` *Hola ${esc(vendorName || 'vendedor')}!*`,
 `Vi tu producto en *Z&R Comunidad* y me interesa:`,
@@ -624,7 +630,7 @@ style="width:100%;aspect-ratio:1;object-fit:contain;display:block;background:var
 <div class="product-price" style="font-size:16px;">${fmtCurr(product.precio)}</div>
 </div>
 ${vendorName ? `<div style="font-size:11px;color:var(--color-text-muted,#888);margin-top:2px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:4px;">
-<span> ${esc(vendorName)}</span>
+<span style="display:flex;align-items:center;gap:5px;">${vendorAvatarHtml} ${esc(vendorName)}</span>
 ${vendorTel ? `<a href="${waLink}" target="_blank" rel="noopener" style="color:#25d366;font-weight:600;text-decoration:none;font-size:11px;">Contactar</a>` : ''}
 </div>` : ''}
 ${product.talla ? `<div style="font-size:11px;color:var(--color-text-muted);margin-top:2px;">Info: ${esc(safeString(product.talla))}</div>` : ''}
