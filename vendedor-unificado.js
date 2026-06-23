@@ -1048,6 +1048,12 @@ initVendorPanel();
 initPendingVendors();
 });
 
+window.openSettingsModal  = function() { openSettingsModal(); };
+window.closeSettingsModal = function() { closeSettingsModal(); };
+window.guardarPerfil      = function() { guardarPerfil(); };
+window.guardarPassword    = function() { guardarPassword(); };
+window.solicitarPlanPlus  = function() { solicitarPlanPlus(); };
+
 function getInitials(nombre) {
   if (!nombre) return '?';
   const words = nombre.trim().split(/\s+/);
