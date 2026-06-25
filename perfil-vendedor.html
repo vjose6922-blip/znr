@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -660,7 +661,7 @@
   { name: 'Twitter',  url: v.twitter,  icon: '<svg width="16" height="16" aria-hidden="true"><use href="#ic-twitter"/></svg>' },
   { name: 'Instagram',url: v.instagram, icon: '<svg width="16" height="16" aria-hidden="true"><use href="#ic-instagram"/></svg>' },
   { name: 'TikTok',   url: v.tiktok,   icon: '<svg width="16" height="16" aria-hidden="true"><use href="#ic-tiktok"/></svg>' }
-].filter(s => s.url && s.url.trim() !== '');
+].map(s => ({ ...s, url: s.url != null ? String(s.url).trim() : '' })).filter(s => s.url !== '');
 
        const socialHtml = socials.map(s => `
   <a href="${esc(s.url)}" target="_blank" rel="noopener">
@@ -926,4 +927,4 @@
     document.addEventListener('DOMContentLoaded', updateCartBadge);
   </script>
 </body>
-</html>
+  </html>
