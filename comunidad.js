@@ -365,7 +365,7 @@ if (catSelect) {
 const categories = new Set();
 allCommunityProducts.forEach(p => { if (p.categoria) categories.add(safeString(p.categoria)); });
 const currentVal = catSelect.value;
-catSelect.innerHTML = '<option value="">Categorías</option>';
+catSelect.innerHTML = '<option value="">Todas las categorías</option>';
 Array.from(categories).sort().forEach(cat => {
 const opt = document.createElement('option');
 opt.value = cat;
@@ -381,7 +381,7 @@ allCommunityProducts.forEach(p => {
 if (p.vendedor_nombre) vendors.set(safeString(p.vendedor_nombre), safeString(p.vendedor_nombre));
 });
 const currentVal = vendorSelect.value;
-vendorSelect.innerHTML = '<option value="">Vendedores</option>';
+vendorSelect.innerHTML = '<option value="">Todos los vendedores</option>';
 Array.from(vendors.keys()).sort().forEach(v => {
 const opt = document.createElement('option');
 opt.value = v;
@@ -597,6 +597,7 @@ const imgUrl  = product.imagen1 ? optUrl(product.imagen1, 400) : 'https://placeh
 const allImages = [product.imagen1, product.imagen2, product.imagen3].filter(Boolean).map(u => optUrl(u, 800));
 const stockNum  = Number(product.stock) || 0;
 const hasStock  = stockNum > 0;
+const esDonativo = product.donado === true || product.donado === 'TRUE' || product.donado === 'true';
 const vendorName = safeString(product.vendedor_nombre);
 const vendorTel  = safeString(product.vendedor_tel);
 const vendorLogo = safeString(product.vendedor_logo || '');
@@ -620,6 +621,7 @@ card.innerHTML = `
 <div class="product-slider" style="position:relative;cursor:pointer;">
 <span class="product-badge" style="position:absolute;top:8px;left:8px;font-size:9px;padding:2px 8px;background:var(--color-primary,#3b1f5f);color:#fff;border-radius:20px;font-weight:800;z-index:1;">Comunidad</span>
 ${product.vendedor_plan === 'plus' ? '<span style="position:absolute;top:30px;left:8px;font-size:9px;padding:2px 8px;background:linear-gradient(135deg,#7c3aed,#a855f7);color:#fff;border-radius:20px;font-weight:800;z-index:1;">PRO</span>' : ''}
+${esDonativo ? '<span style="position:absolute;top:' + (product.vendedor_plan === 'plus' ? '52px' : '30px') + ';left:8px;font-size:9px;padding:2px 8px;background:linear-gradient(135deg,#f97316,#ef4444);color:#fff;border-radius:20px;font-weight:800;z-index:1;">❤️ Donativo</span>' : ''}
 ${inspectorMode ? '<span style="position:absolute;top:8px;right:8px;z-index:2;"><button class="btn-inspector-delete" title="Eliminar (Admin)" style="background:var(--color-error,#ef4444);color:#fff;border:none;border-radius:20px;padding:2px 8px;font-size:11px;cursor:pointer;"></button></span>' : ''}
 <img class="product-img-main" src="${esc(imgUrl)}" alt="${esc(safeString(product.nombre))}" loading="lazy"
 style="width:100%;aspect-ratio:1;object-fit:contain;display:block;background:var(--color-surface-2,#f5f5f8);" onerror="this.onerror=null;this.src='placeholder.svg'">
@@ -635,6 +637,7 @@ ${vendorName ? `<div style="font-size:11px;color:var(--color-text-muted,#888);ma
   <a href="perfil-vendedor.html?vendedor=${esc(product.vendedor_uid)}" style="color:var(--color-text-main);font-weight:600;text-decoration:none;cursor:pointer;hover:underline;">${esc(vendorName)}</a>
 </span>
 ${vendorTel ? `<a href="${waLink}" target="_blank" rel="noopener" style="color:#25d366;font-weight:600;text-decoration:none;font-size:11px;">Contactar</a>` : ''}
+${esDonativo && product.beneficiario_id ? `<button class="btn-ver-beneficiario" data-ben-id="${esc(safeString(product.beneficiario_id))}" style="background:none;border:none;padding:0;color:#f97316;font-weight:600;font-size:11px;cursor:pointer;text-decoration:underline;">❤️ Ver beneficiario</button>` : ''}
 </div>` : ''}
 ${product.talla ? `<div style="font-size:11px;color:var(--color-text-muted);margin-top:2px;">Info: ${esc(safeString(product.talla))}</div>` : ''}
 <div style="display:flex;align-items:center;gap:6px;margin-top:6px;flex-wrap:wrap;">
@@ -653,7 +656,11 @@ data-precio="${product.precio || 0}"
 data-img="${esc(safeString(product.imagen1 || ''))}"
 data-talla="${esc(safeString(product.talla || ''))}"
 data-vendedor="${esc(vendorName)}"
-data-vendortel="${esc(vendorTel)}">
+data-vendortel="${esc(vendorTel)}"
+data-donacion="${esDonativo}"
+data-benid="${esDonativo && product.beneficiario_id ? esc(safeString(product.beneficiario_id)) : ''}"
+data-bennombre="${esDonativo && product._ben_nombre ? esc(safeString(product._ben_nombre)) : ''}"
+data-bencuenta="${esDonativo && product._ben_cuenta ? esc(safeString(product._ben_cuenta)) : ''}">
 ${!hasStock ? '-' : 'Añadir'}
 </button>
 <button class="btn-report" title="Reportar" style="background:var(--color-surface-3);border:none;border-radius:30px;padding:8px 8px;cursor:pointer;color:var(--color-text-muted);display:flex;align-items:center;"><svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" aria-hidden="true"><use href="#ic-flag"/></svg></button>
@@ -690,7 +697,13 @@ window.addToCart({
 ID: addBtn.dataset.id, Nombre: addBtn.dataset.nombre,
 Precio: Number(addBtn.dataset.precio), Imagen1: addBtn.dataset.img,
 Talla: addBtn.dataset.talla, _comunidad: true,
-_vendedor: addBtn.dataset.vendedor, _vendorTel: addBtn.dataset.vendortel
+_vendedor: addBtn.dataset.vendedor, _vendorTel: addBtn.dataset.vendortel,
+_donacion: addBtn.dataset.donacion === 'true',
+_beneficiario: addBtn.dataset.donacion === 'true' ? {
+  id: addBtn.dataset.benid || '',
+  nombre: addBtn.dataset.bennombre || '',
+  cuenta_bancaria: addBtn.dataset.bencuenta || ''
+} : null
 });
 if (window.showTemporaryMessage) window.showTemporaryMessage(` ${addBtn.dataset.nombre} agregado`, 'success');
 });
@@ -707,6 +720,15 @@ if (shareBtn) shareBtn.addEventListener('click', (e) => {
 e.stopPropagation();
 shareProduct(product.id, product.nombre, product.precio);
 });
+
+const benBtn = card.querySelector('.btn-ver-beneficiario');
+if (benBtn) {
+benBtn.addEventListener('click', (e) => {
+e.stopPropagation();
+if (window.openBeneficiarioModal) window.openBeneficiarioModal(benBtn.dataset.benId);
+});
+}
+
 return card;
 } catch (err) {
 console.error('Error creando tarjeta para producto', product.id, err);
@@ -923,4 +945,122 @@ document.addEventListener('DOMContentLoaded', initComunidad);
 } else {
 initComunidad();
 }
+
+// ── Modal: Registro de beneficiario ─────────────────────────
+window.openBeneficiarioRegister = function() {
+  const old = document.getElementById('modal-beneficiario-register');
+  if (old) old.remove();
+  const modal = document.createElement('div');
+  modal.id = 'modal-beneficiario-register';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.65);backdrop-filter:blur(4px);z-index:99999;display:flex;align-items:flex-end;justify-content:center;';
+  modal.innerHTML = `
+    <div style="background:var(--color-surface,#fff);border-radius:20px 20px 0 0;width:100%;max-width:480px;max-height:90vh;overflow-y:auto;padding:24px 20px 36px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+        <h2 style="margin:0;font-size:1rem;font-weight:800;">❤️ Quiero recibir donaciones</h2>
+        <button id="btn-close-ben-reg" style="background:none;border:none;font-size:22px;cursor:pointer;line-height:1;">×</button>
+      </div>
+      <p style="font-size:.8rem;color:#888;margin:0 0 14px;">Completa tu información. El administrador revisará tu solicitud y te contactará por WhatsApp.</p>
+      <div id="ben-reg-msg" style="display:none;padding:10px;border-radius:10px;margin-bottom:12px;font-size:.82rem;"></div>
+      <label style="font-size:.78rem;font-weight:700;color:#888;display:block;margin-bottom:3px;">Nombre completo *</label>
+      <input id="ben-nombre" type="text" placeholder="Tu nombre completo" style="width:100%;box-sizing:border-box;padding:10px 12px;border:1.5px solid #e0e0e0;border-radius:10px;margin-bottom:10px;font-size:.88rem;">
+      <label style="font-size:.78rem;font-weight:700;color:#888;display:block;margin-bottom:3px;">Organización (opcional)</label>
+      <input id="ben-org" type="text" placeholder="Nombre de la organización si aplica" style="width:100%;box-sizing:border-box;padding:10px 12px;border:1.5px solid #e0e0e0;border-radius:10px;margin-bottom:10px;font-size:.88rem;">
+      <label style="font-size:.78rem;font-weight:700;color:#888;display:block;margin-bottom:3px;">Ciudad / Estado *</label>
+      <input id="ben-ubicacion" type="text" placeholder="Ej. Nuevo Laredo, Tamaulipas" style="width:100%;box-sizing:border-box;padding:10px 12px;border:1.5px solid #e0e0e0;border-radius:10px;margin-bottom:10px;font-size:.88rem;">
+      <label style="font-size:.78rem;font-weight:700;color:#888;display:block;margin-bottom:3px;">Facebook (URL o usuario)</label>
+      <input id="ben-facebook" type="text" placeholder="https://facebook.com/tu-pagina" style="width:100%;box-sizing:border-box;padding:10px 12px;border:1.5px solid #e0e0e0;border-radius:10px;margin-bottom:10px;font-size:.88rem;">
+      <label style="font-size:.78rem;font-weight:700;color:#888;display:block;margin-bottom:3px;">¿Para qué necesitas las donaciones? *</label>
+      <textarea id="ben-historia" rows="3" placeholder="Cuéntanos tu historia o propósito..." style="width:100%;box-sizing:border-box;padding:10px 12px;border:1.5px solid #e0e0e0;border-radius:10px;margin-bottom:10px;font-size:.88rem;resize:vertical;"></textarea>
+      <label style="font-size:.78rem;font-weight:700;color:#888;display:block;margin-bottom:3px;">CLABE / Número de cuenta *</label>
+      <input id="ben-cuenta" type="text" placeholder="18 dígitos CLABE o número de cuenta" style="width:100%;box-sizing:border-box;padding:10px 12px;border:1.5px solid #e0e0e0;border-radius:10px;margin-bottom:10px;font-size:.88rem;">
+      <label style="font-size:.78rem;font-weight:700;color:#888;display:block;margin-bottom:3px;">WhatsApp (10 dígitos) *</label>
+      <input id="ben-telefono" type="tel" placeholder="8671234567" maxlength="10" style="width:100%;box-sizing:border-box;padding:10px 12px;border:1.5px solid #e0e0e0;border-radius:10px;margin-bottom:16px;font-size:.88rem;">
+      <button id="btn-submit-ben" style="width:100%;padding:13px;border:none;border-radius:12px;background:linear-gradient(135deg,#f97316,#ef4444);color:#fff;font-weight:800;font-size:.92rem;cursor:pointer;">Enviar solicitud</button>
+    </div>`;
+  document.body.appendChild(modal);
+  document.getElementById('btn-close-ben-reg').onclick = () => modal.remove();
+  modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+  document.getElementById('btn-submit-ben').addEventListener('click', async () => {
+    const showMsg = (txt, ok) => {
+      const el = document.getElementById('ben-reg-msg');
+      el.textContent = txt; el.style.display = 'block';
+      el.style.background = ok ? '#dcfce7' : '#fee2e2';
+      el.style.color = ok ? '#166534' : '#991b1b';
+    };
+    const nombre   = document.getElementById('ben-nombre').value.trim();
+    const tel      = document.getElementById('ben-telefono').value.replace(/\D/g,'');
+    const ubicacion = document.getElementById('ben-ubicacion').value.trim();
+    const historia = document.getElementById('ben-historia').value.trim();
+    const cuenta   = document.getElementById('ben-cuenta').value.trim();
+    if (!nombre)           return showMsg('El nombre es requerido.', false);
+    if (!ubicacion)        return showMsg('La ciudad/estado es requerida.', false);
+    if (!historia)         return showMsg('Cuéntanos tu propósito.', false);
+    if (!cuenta)           return showMsg('La cuenta bancaria es requerida.', false);
+    if (tel.length !== 10) return showMsg('El WhatsApp debe tener 10 dígitos.', false);
+    const btn = document.getElementById('btn-submit-ben');
+    btn.disabled = true; btn.textContent = 'Enviando…';
+    try {
+      const res  = await fetch(window.API_URL, {
+        method:'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({
+          action:'registrarBeneficiario', nombre,
+          organizacion: document.getElementById('ben-org').value.trim(),
+          ubicacion, facebook: document.getElementById('ben-facebook').value.trim(),
+          historia, cuenta_bancaria: cuenta, telefono: tel
+        }).toString()
+      });
+      const data = await res.json();
+      if (data.ok) { showMsg('✅ ¡Solicitud enviada! El administrador te contactará pronto por WhatsApp.', true); btn.textContent = 'Enviado'; }
+      else { showMsg('⚠️ ' + (data.error || 'Error al enviar'), false); btn.disabled = false; btn.textContent = 'Enviar solicitud'; }
+    } catch(err) { showMsg('⚠️ Error de conexión.', false); btn.disabled = false; btn.textContent = 'Enviar solicitud'; }
+  });
+};
+
+// ── Modal: Ver detalle de beneficiario ──────────────────────
+window.openBeneficiarioModal = async function(beneficiarioId) {
+  if (!beneficiarioId) return;
+  const old = document.getElementById('modal-beneficiario-detalle');
+  if (old) old.remove();
+  const modal = document.createElement('div');
+  modal.id = 'modal-beneficiario-detalle';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.65);backdrop-filter:blur(4px);z-index:99999;display:flex;align-items:flex-end;justify-content:center;';
+  modal.innerHTML = `
+    <div style="background:var(--color-surface,#fff);border-radius:20px 20px 0 0;width:100%;max-width:480px;max-height:88vh;overflow-y:auto;padding:24px 20px 32px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+        <h2 style="margin:0;font-size:1rem;font-weight:800;">❤️ Beneficiario</h2>
+        <button id="btn-close-ben-det" style="background:none;border:none;font-size:22px;cursor:pointer;">×</button>
+      </div>
+      <div id="ben-det-body"><p style="color:#aaa;text-align:center;padding:24px 0;">Cargando…</p></div>
+    </div>`;
+  document.body.appendChild(modal);
+  document.getElementById('btn-close-ben-det').onclick = () => modal.remove();
+  modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+  try {
+    const res  = await fetch(window.API_URL + '?' + new URLSearchParams({ action:'obtenerBeneficiario', id: beneficiarioId }));
+    const data = await res.json();
+    const body = document.getElementById('ben-det-body');
+    if (!data.ok || !data.beneficiario) { body.innerHTML = '<p style="color:#ef4444;text-align:center;">No se pudo cargar.</p>'; return; }
+    const b = data.beneficiario;
+    const esc2 = s => String(s||'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    const imgs = [b.imagen1, b.imagen2, b.imagen3].filter(Boolean);
+    body.innerHTML = `
+      ${imgs.length ? `<div style="display:flex;gap:8px;overflow-x:auto;margin-bottom:14px;">${imgs.map(u=>`<img src="${esc2(u)}" style="height:120px;border-radius:10px;object-fit:cover;flex-shrink:0;">`).join('')}</div>` : ''}
+      <h3 style="margin:0 0 4px;font-size:1.05rem;">${esc2(b.nombre)}</h3>
+      ${b.organizacion ? `<p style="margin:0 0 8px;font-size:.8rem;color:#888;">${esc2(b.organizacion)}</p>` : ''}
+      <p style="margin:0 0 6px;font-size:.82rem;"><strong>📍</strong> ${esc2(b.ubicacion)}</p>
+      ${b.facebook ? `<p style="margin:0 0 10px;font-size:.82rem;"><a href="${esc2(b.facebook)}" target="_blank" rel="noopener" style="color:#1877f2;">Facebook →</a></p>` : ''}
+      <div style="background:#fff7ed;border-radius:10px;padding:12px;margin-bottom:14px;">
+        <p style="margin:0;font-size:.85rem;line-height:1.6;">${esc2(b.historia)}</p>
+      </div>
+      <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:12px;">
+        <p style="margin:0 0 4px;font-weight:700;font-size:.8rem;color:#166534;">💳 Datos de pago directo</p>
+        <p style="margin:0;font-size:.88rem;font-family:monospace;letter-spacing:.05em;">${esc2(b.cuenta_bancaria)}</p>
+        <p style="margin:4px 0 0;font-size:.75rem;color:#888;">A nombre de: ${esc2(b.nombre)}</p>
+      </div>`;
+  } catch(err) {
+    const body = document.getElementById('ben-det-body');
+    if (body) body.innerHTML = '<p style="color:#ef4444;text-align:center;">Error de conexión.</p>';
+  }
+};
 })();

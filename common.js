@@ -439,9 +439,7 @@ return result + string + escaped;
 
 function optimizeDriveUrl(url, size = 400) {
 if (!url) return "";
-const match = url.match(/[-\w]{25,}/);
-if (match) {
-const id = match[0];
+
 const screenWidth = window.innerWidth;
 let actualSize;
 if (screenWidth < 480) {
@@ -456,7 +454,20 @@ actualSize = 800;
 if (size && size < actualSize) {
 actualSize = Math.min(size, 800);
 }
-return `https://drive.google.com/thumbnail?id=${id}&sz=w${actualSize}`;
+
+// Si ya viene en formato lh3.googleusercontent.com (el que genera fixDriveLink en el backend),
+// solo ajustamos el tamaño manteniendo el mismo dominio — más estable que drive.google.com/thumbnail,
+// que Google ha estado bloqueando/limitando para uso no autenticado (hotlinking).
+const lh3Match = url.match(/lh3\.googleusercontent\.com\/d\/([-\w]{25,})/);
+if (lh3Match) {
+return `https://lh3.googleusercontent.com/d/${lh3Match[1]}=w${actualSize}-h${actualSize}-c-rw`;
+}
+
+// Cualquier otro link de Drive (ej. /file/d/ o ?id=) → lo normalizamos también a lh3, no a drive.google.com/thumbnail
+const match = url.match(/[-\w]{25,}/);
+if (match) {
+const id = match[0];
+return `https://lh3.googleusercontent.com/d/${id}=w${actualSize}-h${actualSize}-c-rw`;
 }
 return url;
 }

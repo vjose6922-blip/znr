@@ -12,23 +12,144 @@ function getAdminToken() {
 return sessionStorage.getItem('admin_token') || '';
 }
 
-async function apiFetch(data, method = 'POST') {
-if (method === 'GET') {
-const params = new URLSearchParams(data);
-const res = await fetch(`${API_BASE}?${params.toString()}`);
-return res.json();
-}
-const params = new URLSearchParams();
-Object.entries(data).forEach(([k, v]) => {
-if (v !== undefined && v !== null) params.append(k, v);
-});
-const res = await fetch(API_BASE, {
-method: 'POST',
-headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-body: params.toString()
-});
-return res.json();
-}
+window.apiFetch = async function(data, method = 'POST') {
+  const API_BASE = window.API_URL;
+  if (!API_BASE) throw new Error('API_URL no está disponible');
+
+  if (String(method).toUpperCase() === 'GET') {
+    const params = new URLSearchParams();
+    Object.entries(data || {}).forEach(([k, v]) => {
+      if (v !== undefined && v !== null) params.append(k, v);
+    });
+
+    const res = await fetch(`${API_BASE}?${params.toString()}`, {
+      method: 'GET'
+    });
+
+    const text = await res.text();
+    return JSON.parse(text);
+  }
+
+  const params = new URLSearchParams();
+  Object.entries(data || {}).forEach(([k, v]) => {
+    if (v !== undefined && v !== null) params.append(k, v);
+  });
+
+  const res = await fetch(API_BASE, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: params.toString()
+  });
+
+  const text = await res.text();
+  return JSON.parse(text);
+};
+
+window.apiCall = async function(data) {
+  const API_BASE = window.API_URL;
+  if (!API_BASE) throw new Error('API_URL no está disponible');
+
+  const params = new URLSearchParams();
+  Object.entries(data || {}).forEach(([k, v]) => {
+    if (v !== undefined && v !== null) params.append(k, v);
+  });
+
+  const res = await fetch(API_BASE, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: params.toString()
+  });
+
+  const text = await res.text();
+  return JSON.parse(text);
+};
+
+
+
+
+window.debugPanel = {
+  ensure() {
+    let box = document.getElementById('debug-panel-top');
+    if (box) return box;
+
+    box = document.createElement('div');
+    box.id = 'debug-panel-top';
+    box.style.cssText = `
+      position:fixed;
+      top:0;
+      left:0;
+      right:0;
+      z-index:2147483647;
+      background:#111;
+      color:#fff;
+      font:12px/1.45 monospace;
+      max-height:42vh;
+      overflow:auto;
+      box-shadow:0 8px 24px rgba(0,0,0,.35);
+      border-bottom:2px solid #f97316;
+    `;
+
+    box.innerHTML = `
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 10px;background:#1a1a1a;border-bottom:1px solid rgba(255,255,255,.12);position:sticky;top:0;">
+        <div style="font-weight:700;color:#f97316;">DEBUG PANEL</div>
+        <div style="display:flex;gap:8px;">
+          <button id="debug-panel-clear" style="border:none;border-radius:8px;padding:6px 10px;cursor:pointer;background:#333;color:#fff;">Limpiar</button>
+          <button id="debug-panel-close" style="border:none;border-radius:8px;padding:6px 10px;cursor:pointer;background:#ef4444;color:#fff;">Cerrar</button>
+        </div>
+      </div>
+      <div id="debug-panel-body" style="padding:10px;"></div>
+    `;
+
+    document.body.appendChild(box);
+
+    document.getElementById('debug-panel-clear').onclick = () => {
+      const body = document.getElementById('debug-panel-body');
+      if (body) body.innerHTML = '';
+    };
+    document.getElementById('debug-panel-close').onclick = () => box.remove();
+
+    return box;
+  },
+
+  log(title, value = '') {
+    const box = this.ensure();
+    const body = document.getElementById('debug-panel-body');
+    if (!body) return;
+
+    const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({
+      '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+    }[c]));
+
+    const row = document.createElement('div');
+    row.style.cssText = `
+      border:1px solid rgba(255,255,255,.12);
+      border-radius:10px;
+      padding:8px 10px;
+      margin-bottom:8px;
+      background:rgba(255,255,255,.04);
+      white-space:pre-wrap;
+      word-break:break-word;
+    `;
+
+    row.innerHTML = `
+      <div style="color:#f97316;font-weight:700;margin-bottom:4px;">${esc(title)}</div>
+      <div>${esc(value)}</div>
+    `;
+
+    body.appendChild(row);
+    box.scrollTop = box.scrollHeight;
+  }
+};
+
+
+
+
+
+
+
+
+
+
 
 function injectStyles(id, css) {
 if (document.getElementById(id)) return;
@@ -279,7 +400,7 @@ let logoHTML = '';
 if (esPlus) {
 logoHTML = `<div style="margin-top:10px;display:flex;align-items:center;gap:10px;">
  ${vendorSession.logo
- ? `<img src="${escapeHtml(optimizeDriveUrl(vendorSession.logo, 60))}" alt="Logo" style="width:44px;height:44px;border-radius:50%;object-fit:cover;border:1.5px solid #eee;">`
+ ? `<img src="${escapeHtml(optimizeDriveUrl(vendorSession.logo, 60))}" alt="Logo" onerror="this.replaceWith(Object.assign(document.createElement('div'),{innerHTML:'${escapeHtml((vendorSession.nombre||'?')[0].toUpperCase())}',style:'width:44px;height:44px;border-radius:50%;background:#f3e8ff;color:#7c3aed;display:flex;align-items:center;justify-content:center;font-weight:700;'}))" style="width:44px;height:44px;border-radius:50%;object-fit:cover;border:1.5px solid #eee;">`
  : `<div style="width:44px;height:44px;border-radius:50%;background:#f3e8ff;color:#7c3aed;display:flex;align-items:center;justify-content:center;font-weight:700;">${escapeHtml((vendorSession.nombre||'?')[0].toUpperCase())}</div>`}
  <button class="btn-secondary" style="font-size:12px;" onclick="document.getElementById('logo-file-input').click()">
  ${vendorSession.logo ? 'Cambiar logo' : 'Subir logo de tu negocio'}
@@ -337,6 +458,16 @@ if (!res.ok) throw new Error(res.error || 'No se pudo guardar el logo');
 vendorSession.logo = url;
 localStorage.setItem('vendor_session', JSON.stringify(vendorSession));
 return url;
+}
+
+function updateDonacionesBadge() {
+const el = document.getElementById('donaciones-count-badge');
+if (!el) return;
+const productos = window._vendorProducts || [];
+const activas = productos.filter(p => p.donado === true || p.donado === 'TRUE' || p.donado === 'true').length;
+el.textContent = activas > 0 ? `(${activas} activa${activas === 1 ? '' : 's'})` : '';
+el.style.color = '#f97316';
+el.style.fontWeight = '700';
 }
 
 async function loadMyProducts() {
@@ -413,6 +544,7 @@ onerror="this.style.display='none'">`).join('');
 mo.style.display = 'flex';
 };
 window._vendorProducts = myProducts;
+updateDonacionesBadge();
 } catch (err) {
 container.innerHTML = `<p style="color:#ef4444">Error: ${escapeHtml(err.message)}</p>`;
 }
@@ -1203,6 +1335,8 @@ fechaEl.textContent = vendorSession.fechaRegistro
 
 modal.style.display = 'flex';
 document.body.style.overflow = 'hidden';
+if (typeof loadBeneficiarioDonaciones === 'function') loadBeneficiarioDonaciones();
+updateDonacionesBadge();
 
 const photoInput = document.getElementById('settings-photo-input');
 if (photoInput && !photoInput._wiredSettings) {
@@ -1409,18 +1543,238 @@ if (btn) { btn.disabled = false; btn.innerHTML = '⭐ Solicitar plan Plus'; }
 }
 }
 
-// Función auxiliar apiCall (diferente a apiFetch para compatibilidad)
 async function apiCall(data) {
-const params = new URLSearchParams();
-Object.entries(data).forEach(([k, v]) => {
-if (v !== undefined && v !== null) params.append(k, v);
-});
-const res = await fetch(API_BASE, {
-method: 'POST',
-headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-body: params.toString()
-});
-return res.json();
+  const API_BASE = window.API_URL;
+  if (!API_BASE) throw new Error('API_URL no está disponible');
+
+  const params = new URLSearchParams();
+  Object.entries(data || {}).forEach(([k, v]) => {
+    if (v !== undefined && v !== null) params.append(k, v);
+  });
+
+  const res = await fetch(API_BASE, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: params.toString()
+  });
+
+  const text = await res.text();
+  try {
+    return JSON.parse(text);
+  } catch (_) {
+    throw new Error('La API devolvió una respuesta no válida');
+  }
 }
 
 })();
+// ── Secciones colapsables del panel de ajustes ───────────────
+window.toggleSettingsSection = function(btn) {
+  const body = btn.nextElementSibling;
+  const open = btn.classList.toggle('open');
+  body.style.display = open ? 'block' : 'none';
+};
+
+// ── Modal de gestión de donaciones (desde ajustes o card) ────
+window.openDonarProductosModal = async function(productoId) {
+  // Usa productos ya en memoria — sin fetch extra
+  const prod = window._vendorProducts && window._vendorProducts.find(p => String(p.id) === String(productoId));
+  if (!prod) { showTemporaryMessage('⚠️ Recarga tus productos primero', 'error'); return; }
+
+  const donado = prod.donado === true || prod.donado === 'TRUE' || prod.donado === 'true';
+  const esc = s => String(s||'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const imgUrl = prod.imagen1 ? (optimizeDriveUrl ? optimizeDriveUrl(prod.imagen1, 56) : prod.imagen1) : '';
+
+  const old = document.getElementById('modal-donar-productos');
+  if (old) old.remove();
+
+  const modal = document.createElement('div');
+  modal.id = 'modal-donar-productos';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.65);backdrop-filter:blur(4px);z-index:99999;display:flex;align-items:flex-end;justify-content:center;';
+  modal.innerHTML = `
+    <div style="background:#fff;border-radius:20px 20px 0 0;width:100%;max-width:480px;padding:0 0 36px;">
+      <div style="padding:16px 20px 12px;border-bottom:1px solid #f0f0f0;display:flex;align-items:center;justify-content:space-between;">
+        <h2 style="margin:0;font-size:1rem;font-weight:800;">❤️ Donar producto</h2>
+        <button id="btn-close-donar" style="background:none;border:none;font-size:22px;cursor:pointer;color:#888;line-height:1;">×</button>
+      </div>
+      <div style="padding:16px 20px 0;">
+
+        <!-- Producto seleccionado -->
+        <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:#fafafa;border-radius:12px;border:1.5px solid #f97316;margin-bottom:16px;">
+          ${imgUrl ? `<img src="${esc(imgUrl)}" onerror="this.replaceWith(Object.assign(document.createElement('div'),{style:'width:48px;height:48px;background:#f5f5f8;border-radius:8px;flex-shrink:0;'}))" style="width:48px;height:48px;object-fit:cover;border-radius:8px;flex-shrink:0;">` : `<div style="width:48px;height:48px;background:#f5f5f8;border-radius:8px;flex-shrink:0;"></div>`}
+          <div style="flex:1;min-width:0;">
+            <div style="font-size:.88rem;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(prod.nombre||'')}</div>
+            <div style="font-size:.75rem;color:#888;">$${Number(prod.precio||0).toLocaleString()} · Stock: ${prod.stock||0}</div>
+            ${donado ? '<div style="font-size:.72rem;color:#f97316;margin-top:1px;">❤️ Donando actualmente</div>' : ''}
+          </div>
+        </div>
+
+        <div id="donar-msg" style="display:none;padding:10px;border-radius:10px;margin-bottom:12px;font-size:.82rem;"></div>
+
+        ${donado ? `
+        <!-- Ya donado: solo mostrar opción de quitar -->
+        <p style="font-size:.8rem;color:#555;margin:0 0 16px;line-height:1.5;">Este producto ya está asignado a un beneficiario. ¿Deseas quitar la donación?</p>
+        <button id="btn-donar-quitar" style="width:100%;padding:13px;border:none;border-radius:12px;background:#fee2e2;color:#b91c1c;font-weight:700;font-size:.9rem;cursor:pointer;">
+          Quitar donación
+        </button>` : `
+        <!-- Sin donar: mostrar selector de beneficiario -->
+        <p style="font-size:.8rem;color:#888;margin:0 0 12px;line-height:1.5;">El comprador le pagará directamente al beneficiario.</p>
+        <label style="font-size:.78rem;font-weight:700;color:#555;display:block;margin-bottom:6px;">Beneficiario destino</label>
+        <select id="donar-ben-select" style="width:100%;box-sizing:border-box;padding:10px 12px;border:1.5px solid #ddd;border-radius:10px;font-size:.88rem;background:#fff;margin-bottom:16px;outline:none;">
+          <option value="">Cargando beneficiarios…</option>
+        </select>
+        <button id="btn-donar-asignar" style="width:100%;padding:13px;border:none;border-radius:12px;background:linear-gradient(135deg,#f97316,#ef4444);color:#fff;font-weight:800;font-size:.9rem;cursor:pointer;">
+          ❤️ Asignar donación
+        </button>`}
+
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+
+  document.getElementById('btn-close-donar').onclick = () => modal.remove();
+  modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+
+  const showMsg = (txt, ok) => {
+    const el = document.getElementById('donar-msg');
+    el.textContent = txt; el.style.display = 'block';
+    el.style.background = ok ? '#dcfce7' : '#fee2e2';
+    el.style.color = ok ? '#166534' : '#991b1b';
+  };
+
+  if (donado) {
+    // Solo botón quitar
+    document.getElementById('btn-donar-quitar').addEventListener('click', async () => {
+      const btn = document.getElementById('btn-donar-quitar');
+      btn.disabled = true; btn.textContent = 'Quitando…';
+      try {
+        const data = await apiFetch({ action:'desasignarDonacion', producto_id: String(productoId), vendor_token: vendorSession.token });
+        if (data.ok) { showMsg('✅ Donación removida', true); loadMyProducts(); setTimeout(() => modal.remove(), 1400); }
+        else { showMsg('⚠️ ' + (data.error||'Error'), false); btn.disabled = false; btn.textContent = 'Quitar donación'; }
+      } catch(e) { showMsg('⚠️ Error de conexión', false); btn.disabled = false; btn.textContent = 'Quitar donación'; }
+    });
+  } else {
+    // Cargar solo beneficiarios (productos ya en memoria)
+    const selEl = document.getElementById('donar-ben-select');
+   const cargarBeneficiarios = async () => {
+  window.debugPanel.log('DEBUG 1', 'Entró a cargarBeneficiarios()');
+
+  selEl.innerHTML = '<option value="">Cargando beneficiarios…</option>';
+  try {
+    window.debugPanel.log('DEBUG 2', 'Antes de llamar apiFetch()');
+
+const benData = await window.apiFetch({ action:'obtenerBeneficiariosAprobados' }, 'GET');
+    window.debugPanel.log('DEBUG 3 - respuesta apiFetch', JSON.stringify(benData, null, 2));
+
+    if (!benData.ok) {
+      window.debugPanel.log('DEBUG 4', 'benData.ok = false');
+      selEl.innerHTML = '<option value="">⚠️ No se pudo cargar — toca para reintentar</option>';
+      return;
+    }
+
+    const beneficiarios = benData.beneficiarios || [];
+    window.debugPanel.log('DEBUG 5 - cantidad beneficiarios', String(beneficiarios.length));
+
+    if (beneficiarios.length === 0) {
+      selEl.innerHTML = '<option value="">No hay beneficiarios aprobados aún</option>';
+    } else {
+      selEl.innerHTML =
+        '<option value="">— Seleccionar beneficiario —</option>' +
+        beneficiarios.map(b =>
+          `<option value="${esc(b.id)}">${esc(b.nombre)}${b.organizacion ? ' — ' + esc(b.organizacion) : ''}</option>`
+        ).join('');
+      window.debugPanel.log('DEBUG 6', 'Select llenado correctamente');
+    }
+  } catch (e) {
+    window.debugPanel.log('DEBUG ERROR', String(e && e.message ? e.message : e));
+    selEl.innerHTML = '<option value="">⚠️ Error de conexión — toca para reintentar</option>';
+  }
+};
+    await cargarBeneficiarios();
+
+    document.getElementById('btn-donar-asignar').addEventListener('click', async () => {
+      const benId = document.getElementById('donar-ben-select').value;
+      if (!benId) return showMsg('Selecciona un beneficiario.', false);
+      const btn = document.getElementById('btn-donar-asignar');
+      btn.disabled = true; btn.textContent = 'Guardando…';
+      try {
+        const data = await apiFetch({ action:'asignarDonacion', producto_id: String(productoId), beneficiario_id: benId, vendor_token: vendorSession.token });
+        if (data.ok) { showMsg('✅ Donación asignada correctamente', true); loadMyProducts(); setTimeout(() => modal.remove(), 1400); }
+        else { showMsg('⚠️ ' + (data.error||'Error'), false); btn.disabled = false; btn.textContent = '❤️ Asignar donación'; }
+      } catch(e) { showMsg('⚠️ Error de conexión', false); btn.disabled = false; btn.textContent = '❤️ Asignar donación'; }
+    });
+  }
+};
+
+// ── "Gestionar donaciones" desde ajustes: muestra todos los productos ──
+window.openGestionarDonacionesModal = async function() {
+  const productos = window._vendorProducts || [];
+  const esc = s => String(s||'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+  const old = document.getElementById('modal-gestionar-donaciones');
+  if (old) old.remove();
+
+  const modal = document.createElement('div');
+  modal.id = 'modal-gestionar-donaciones';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.65);backdrop-filter:blur(4px);z-index:99999;display:flex;align-items:flex-end;justify-content:center;';
+  modal.innerHTML = `
+    <div style="background:#fff;border-radius:20px 20px 0 0;width:100%;max-width:480px;max-height:88vh;overflow-y:auto;padding:0 0 32px;">
+      <div style="position:sticky;top:0;background:#fff;z-index:1;padding:16px 20px 12px;border-bottom:1px solid #f0f0f0;display:flex;align-items:center;justify-content:space-between;">
+        <h2 style="margin:0;font-size:1rem;font-weight:800;">❤️ Gestionar donaciones</h2>
+        <button id="btn-close-gestionar" style="background:none;border:none;font-size:22px;cursor:pointer;color:#888;line-height:1;">×</button>
+      </div>
+      <div style="padding:14px 20px 0;">
+        <p style="font-size:.78rem;color:#888;margin:0 0 12px;line-height:1.5;">Toca ❤️ en cualquier producto para asignar o quitar una donación.</p>
+        <div id="gestionar-lista">
+          ${productos.length === 0
+            ? '<p style="color:#aaa;text-align:center;padding:24px 0;">No tienes productos en Comunidad.<br><small>Publica uno primero desde el formulario.</small></p>'
+            : productos.map(p => {
+                const donado = p.donado === true || p.donado === 'TRUE' || p.donado === 'true';
+                const imgUrl = p.imagen1 ? (typeof optimizeDriveUrl === 'function' ? optimizeDriveUrl(p.imagen1, 48) : p.imagen1) : '';
+                return `<div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid #f5f5f5;">
+                  ${imgUrl ? `<img src="${esc(imgUrl)}" onerror="this.replaceWith(Object.assign(document.createElement('div'),{style:'width:44px;height:44px;background:#f5f5f8;border-radius:8px;flex-shrink:0;'}))" style="width:44px;height:44px;object-fit:cover;border-radius:8px;flex-shrink:0;">` : `<div style="width:44px;height:44px;background:#f5f5f8;border-radius:8px;flex-shrink:0;"></div>`}
+                  <div style="flex:1;min-width:0;">
+                    <div style="font-size:.83rem;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(p.nombre||'')}</div>
+                    <div style="font-size:.72rem;color:#888;">$${Number(p.precio||0).toLocaleString()} · Stock: ${p.stock||0}</div>
+                    ${donado ? '<div style="font-size:.7rem;color:#f97316;margin-top:1px;">❤️ Donando</div>' : '<div style="font-size:.7rem;color:#bbb;margin-top:1px;">Sin asignar</div>'}
+                  </div>
+                  <button onclick="document.getElementById('modal-gestionar-donaciones').remove();openDonarProductosModal(${p.id})"
+                    style="flex-shrink:0;width:36px;height:36px;border-radius:50%;border:none;
+                    background:${donado ? 'linear-gradient(135deg,#f97316,#ef4444)' : '#f5f5f8'};
+                    color:${donado ? '#fff' : '#aaa'};font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;">
+                    ❤️
+                  </button>
+                </div>`;
+              }).join('')
+          }
+        </div>
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+  document.getElementById('btn-close-gestionar').onclick = () => modal.remove();
+  modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+};
+
+// ── Panel de donaciones recibidas (si el vendedor es beneficiario) ──
+async function loadBeneficiarioDonaciones() {
+  const area = document.getElementById('settings-donaciones-recibidas-area');
+  if (!area || !vendorSession) return;
+  try {
+    const data = await apiFetch({ action:'obtenerDonacionesRecibidas', vendor_uid: vendorSession.uid }, 'GET');
+    if (!data.ok || !data.esBeneficiario) { area.style.display = 'none'; return; }
+    const dons = data.donaciones || [];
+    area.style.display = 'block';
+    const esc = s => String(s||'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    area.innerHTML = `<div style="margin-top:12px;padding-top:12px;border-top:1px solid #f5f5f5;">
+      <p style="margin:0 0 8px;font-size:.78rem;font-weight:800;color:#f97316;">Donaciones que recibes (${dons.length})</p>
+      ${dons.length === 0
+        ? '<p style="color:#aaa;font-size:.78rem;text-align:center;padding:6px 0;">Aún no hay donaciones activas para ti.</p>'
+        : dons.map(d => `<div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid #f5f5f8;">
+            ${d.producto_imagen ? `<img src="${esc(d.producto_imagen)}" alt="" style="width:36px;height:36px;object-fit:cover;border-radius:8px;flex-shrink:0;">` : `<div style="width:36px;height:36px;background:#f0f0f5;border-radius:8px;flex-shrink:0;"></div>`}
+            <div style="flex:1;min-width:0;">
+              <div style="font-size:.8rem;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(d.producto_nombre||d.producto_id)}</div>
+              <div style="font-size:.72rem;color:#888;">De: ${esc(d.vendedor_nombre)}</div>
+            </div>
+            <span style="font-size:.7rem;padding:2px 7px;border-radius:20px;background:#dcfce7;color:#166534;font-weight:700;flex-shrink:0;">Activa</span>
+          </div>`).join('')}
+    </div>`;
+  } catch(e) { area.style.display = 'none'; }
+}

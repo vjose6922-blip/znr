@@ -663,3 +663,72 @@ window.confirmGroupPurchase = confirmGroupPurchase;
 window.cancelGroupPurchase = cancelGroupPurchase;
 window.loadNotificationsOptimized = loadNotificationsOptimized;
 window.invalidateNotificationsCache = invalidateNotificationsCache;
+
+// ── Admin: Beneficiarios ─────────────────────────────────────
+window.loadBeneficiarios = async function(force) {
+  const list = document.getElementById('admin-beneficiarios-list');
+  if (!list) return;
+  list.innerHTML = '<p style="color:#aaa;text-align:center;padding:24px;">Cargando…</p>';
+  try {
+    const token = sessionStorage.getItem('admin_token') || '';
+    const res   = await fetch(API_URL + '?' + new URLSearchParams({ action:'obtenerBeneficiarios', estado:'pendiente', token }));
+    const data  = await res.json();
+    if (!data.ok) { list.innerHTML = `<p style="color:#ef4444;text-align:center;padding:16px;">Error: ${data.error}</p>`; return; }
+    const bens  = data.beneficiarios || [];
+    const cnt   = document.getElementById('sc-beneficiarios');
+    const badge = document.getElementById('tab-badge-beneficiarios');
+    if (cnt)   cnt.textContent   = bens.length;
+    if (badge) badge.textContent = bens.length;
+    if (bens.length === 0) { list.innerHTML = '<p style="color:#aaa;text-align:center;padding:32px;">No hay solicitudes pendientes.</p>'; return; }
+    const esc = s => String(s||'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    list.innerHTML = bens.map(b => `
+      <div class="vendor-card" style="border-left:4px solid #f97316;">
+        <div style="display:flex;align-items:flex-start;gap:10px;padding:14px 16px;">
+          <div style="flex:1;min-width:0;">
+            <div style="font-weight:700;font-size:.9rem;margin-bottom:2px;">${esc(b.nombre)}</div>
+            ${b.organizacion ? `<div style="font-size:.75rem;color:#888;">${esc(b.organizacion)}</div>` : ''}
+            <div style="font-size:.75rem;color:#888;margin-top:2px;">📍 ${esc(b.ubicacion)} · 📱 ${esc(b.telefono)}</div>
+            <div style="font-size:.78rem;margin-top:6px;color:#555;line-height:1.5;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">${esc(b.historia)}</div>
+            <div style="font-size:.72rem;color:#aaa;margin-top:4px;">
+              ${b.facebook ? `<a href="${esc(b.facebook)}" target="_blank" rel="noopener" style="color:#1877f2;">Facebook</a> · ` : ''}
+              ${new Date(b.fecha_registro).toLocaleDateString('es-MX')}
+            </div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0;">
+            <button onclick="adminAprobarBeneficiario('${esc(b.id)}')" style="padding:7px 12px;border:none;border-radius:20px;background:#22c55e;color:#fff;font-weight:700;font-size:.75rem;cursor:pointer;">✅ Aprobar</button>
+            <button onclick="window.openBeneficiarioModal && window.openBeneficiarioModal('${esc(b.id)}')" style="padding:7px 12px;border:none;border-radius:20px;background:#e0e7ff;color:#3730a3;font-weight:700;font-size:.75rem;cursor:pointer;">👁 Ver</button>
+            <button onclick="adminRechazarBeneficiario('${esc(b.id)}')" style="padding:7px 12px;border:none;border-radius:20px;background:#fee2e2;color:#b91c1c;font-weight:700;font-size:.75rem;cursor:pointer;">❌ Rechazar</button>
+          </div>
+        </div>
+      </div>`).join('');
+  } catch(err) {
+    list.innerHTML = '<p style="color:#ef4444;text-align:center;padding:16px;">Error de conexión.</p>';
+  }
+};
+
+window.adminAprobarBeneficiario = async function(id) {
+  if (!confirm('¿Aprobar esta solicitud? Se creará una cuenta de vendedor si no existe.')) return;
+  try {
+    const token = sessionStorage.getItem('admin_token') || '';
+    const res   = await fetch(API_URL, { method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body: new URLSearchParams({ action:'aprobarBeneficiario', id_beneficiario: id, token }).toString() });
+    const data  = await res.json();
+    if (!data.ok) { alert('Error: ' + data.error); return; }
+    if (data.codigo && data.telefono) {
+      const urlVendedor = window.location.origin + '/vendedor.html';
+      const msg = `¡Felicidades ${data.nombre || ''}! 🎉\n\nTu solicitud de beneficiario en Z&R fue *aprobada*.\n\nTu contraseña temporal:\n*${data.codigo}*\n\nIngresa en:\n${urlVendedor}\n\nUsa tu número de WhatsApp como usuario.`;
+      window.open(`https://wa.me/52${data.telefono}?text=${encodeURIComponent(msg)}`, '_blank');
+    }
+    loadBeneficiarios(true);
+  } catch(err) { alert('Error de conexión.'); }
+};
+
+window.adminRechazarBeneficiario = async function(id) {
+  if (!confirm('¿Rechazar esta solicitud?')) return;
+  try {
+    const token = sessionStorage.getItem('admin_token') || '';
+    const res   = await fetch(API_URL, { method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body: new URLSearchParams({ action:'rechazarBeneficiario', id_beneficiario: id, token }).toString() });
+    const data  = await res.json();
+    if (!data.ok) { alert('Error: ' + data.error); return; }
+    loadBeneficiarios(true);
+  } catch(err) { alert('Error de conexión.'); }
+};

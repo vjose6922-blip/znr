@@ -152,7 +152,39 @@
  .vendor-profile-info{ flex: 1; min-width: 0; }
  .vendor-profile-info strong{ display: block; font-size: 15px; color: var(--color-text-primary, #1a1a2e); }
  .vendor-profile-info span{ font-size: 12px; color: #999; }
- </style>
+ 
+/* ── Settings colapsable ──────────────────────── */
+.settings-section {
+  border-bottom: 1px solid #f0f0f0;
+}
+.settings-section-toggle {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 0;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: .85rem;
+  font-weight: 700;
+  color: #111;
+  text-align: left;
+  gap: 8px;
+}
+.settings-section-toggle:active { opacity: .7; }
+.toggle-chevron {
+  flex-shrink: 0;
+  color: #aaa;
+  transition: transform .22s ease;
+}
+.settings-section-toggle.open .toggle-chevron {
+  transform: rotate(180deg);
+}
+.settings-section-body {
+  padding-bottom: 16px;
+}
+</style>
  <style>
  
  .app-header { position: fixed !important; top: 0; left: 0; right: 0; width: 100%; box-sizing: border-box; }
@@ -365,7 +397,8 @@
 
     <div style="padding:0 20px;">
 
-      <div style="display:flex;align-items:center;gap:14px;padding:20px 0 16px;border-bottom:1px solid #f5f5f5;">
+      <!-- Avatar siempre visible -->
+      <div style="display:flex;align-items:center;gap:14px;padding:20px 0 16px;border-bottom:1px solid #f0f0f0;">
         <div id="settings-avatar-wrap" style="position:relative;width:64px;height:64px;flex-shrink:0;">
           <div id="settings-avatar-placeholder" style="width:64px;height:64px;border-radius:50%;background:#f3e8ff;display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:700;color:#7c3aed;border:2px solid #e9d5ff;"></div>
           <img id="settings-avatar-photo" src="" alt="" style="display:none;width:64px;height:64px;border-radius:50%;object-fit:cover;border:2px solid #7c3aed;">
@@ -380,112 +413,147 @@
         </div>
       </div>
 
-      <div style="padding:16px 0;border-bottom:1px solid #f5f5f5;">
-        <p style="margin:0 0 12px;font-size:.7rem;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:.08em;">Perfil del negocio</p>
-
-        <label style="font-size:.8rem;color:#555;display:block;margin-bottom:4px;">Nombre del negocio</label>
-        <input id="settings-nombre" type="text" maxlength="60"
-          style="width:100%;box-sizing:border-box;padding:9px 12px;border-radius:10px;border:1px solid #ddd;font-size:.9rem;margin-bottom:12px;outline:none;">
-
-        <label style="font-size:.8rem;color:#555;display:block;margin-bottom:4px;">Descripción <span style="color:#aaa;">(máx. 200 caracteres)</span></label>
-        <textarea id="settings-descripcion" rows="3" maxlength="200" placeholder="¿Qué vendes? ¿Qué te hace especial?"
-          style="width:100%;box-sizing:border-box;padding:9px 12px;border-radius:10px;border:1px solid #ddd;font-size:.85rem;resize:none;margin-bottom:12px;outline:none;"></textarea>
-
-        <label style="font-size:.8rem;color:#555;display:block;margin-bottom:4px;">Categoría principal</label>
-        <select id="settings-categoria"
-          style="width:100%;box-sizing:border-box;padding:9px 12px;border-radius:10px;border:1px solid #ddd;font-size:.85rem;margin-bottom:12px;background:#fff;outline:none;">
-          <option value="">— Sin categoría —</option>
-          <option value="Ropa mujer">Ropa mujer</option>
-          <option value="Ropa hombre">Ropa hombre</option>
-          <option value="Ropa niños">Ropa niños</option>
-          <option value="Accesorios">Accesorios</option>
-          <option value="Calzado">Calzado</option>
-          <option value="Bolsas y carteras">Bolsas y carteras</option>
-          <option value="Joyería">Joyería</option>
-          <option value="Cosméticos">Cosméticos</option>
-          <option value="Otro">Otro</option>
-        </select>
-
-        <!-- REDES SOCIALES (NUEVO) -->
-        <label style="font-size:.8rem;color:#555;display:block;margin-bottom:4px;">Facebook</label>
-        <input id="settings-facebook" type="url" placeholder="https://facebook.com/tu-pagina"
-          style="width:100%;box-sizing:border-box;padding:9px 12px;border-radius:10px;border:1px solid #ddd;font-size:.85rem;margin-bottom:10px;outline:none;">
-
-        <label style="font-size:.8rem;color:#555;display:block;margin-bottom:4px;">X (Twitter)</label>
-        <input id="settings-twitter" type="url" placeholder="https://x.com/tu-usuario"
-          style="width:100%;box-sizing:border-box;padding:9px 12px;border-radius:10px;border:1px solid #ddd;font-size:.85rem;margin-bottom:10px;outline:none;">
-
-        <label style="font-size:.8rem;color:#555;display:block;margin-bottom:4px;">Instagram</label>
-        <input id="settings-instagram" type="url" placeholder="https://instagram.com/tu-usuario"
-          style="width:100%;box-sizing:border-box;padding:9px 12px;border-radius:10px;border:1px solid #ddd;font-size:.85rem;margin-bottom:10px;outline:none;">
-
-        <label style="font-size:.8rem;color:#555;display:block;margin-bottom:4px;">TikTok</label>
-        <input id="settings-tiktok" type="url" placeholder="https://tiktok.com/@tu-usuario"
-          style="width:100%;box-sizing:border-box;padding:9px 12px;border-radius:10px;border:1px solid #ddd;font-size:.85rem;margin-bottom:10px;outline:none;">
-        <!-- FIN REDES SOCIALES -->
-
-        <label style="font-size:.8rem;color:#555;display:block;margin-bottom:4px;">WhatsApp de contacto</label>
-        <div style="display:flex;align-items:center;border:1px solid #ddd;border-radius:10px;overflow:hidden;margin-bottom:4px;">
-          <span style="padding:9px 10px;background:#f9f9f9;color:#555;font-size:.85rem;border-right:1px solid #ddd;">+52</span>
-          <input id="settings-whatsapp" type="tel" maxlength="10" placeholder="8671234567"
-            style="flex:1;padding:9px 12px;border:none;font-size:.85rem;outline:none;">
-        </div>
-        <p style="margin:0 0 16px;font-size:.73rem;color:#aaa;">Los clientes podrán contactarte directamente.</p>
-
-        <button onclick="guardarPerfil()" id="btn-guardar-perfil"
-          style="width:100%;padding:11px;border-radius:10px;border:none;background:#7c3aed;color:#fff;font-size:.9rem;font-weight:700;cursor:pointer;">
-          Guardar cambios
+      <!-- ── Sección colapsable: Perfil del negocio ── -->
+      <div class="settings-section">
+        <button class="settings-section-toggle" onclick="toggleSettingsSection(this)">
+          <span>🏪 Perfil del negocio</span>
+          <svg class="toggle-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
         </button>
-        <p id="settings-perfil-msg" style="text-align:center;font-size:.8rem;margin:8px 0 0;min-height:18px;"></p>
-      </div>
-
-      <div style="padding:16px 0;border-bottom:1px solid #f5f5f5;">
-        <p style="margin:0 0 12px;font-size:.7rem;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:.08em;">Seguridad</p>
-
-        <div id="settings-pwd-form">
-          <label style="font-size:.8rem;color:#555;display:block;margin-bottom:4px;">Contraseña actual</label>
-          <input id="settings-pwd-old" type="password" placeholder="••••••"
-            style="width:100%;box-sizing:border-box;padding:9px 12px;border-radius:10px;border:1px solid #ddd;font-size:.9rem;margin-bottom:10px;outline:none;">
-
-          <label style="font-size:.8rem;color:#555;display:block;margin-bottom:4px;">Nueva contraseña <span style="color:#aaa;">(mín. 6 caracteres)</span></label>
-          <input id="settings-pwd-new" type="password" placeholder="••••••"
-            style="width:100%;box-sizing:border-box;padding:9px 12px;border-radius:10px;border:1px solid #ddd;font-size:.9rem;margin-bottom:10px;outline:none;">
-
-          <label style="font-size:.8rem;color:#555;display:block;margin-bottom:4px;">Confirmar contraseña</label>
-          <input id="settings-pwd-confirm" type="password" placeholder="••••••"
+        <div class="settings-section-body" style="display:none;">
+          <label style="font-size:.8rem;color:#555;display:block;margin-bottom:4px;">Nombre del negocio</label>
+          <input id="settings-nombre" type="text" maxlength="60"
             style="width:100%;box-sizing:border-box;padding:9px 12px;border-radius:10px;border:1px solid #ddd;font-size:.9rem;margin-bottom:12px;outline:none;">
 
-          <button onclick="guardarPassword()" id="btn-guardar-pwd"
-            style="width:100%;padding:11px;border-radius:10px;border:1px solid #7c3aed;background:#fff;color:#7c3aed;font-size:.9rem;font-weight:700;cursor:pointer;">
-            Cambiar contraseña
+          <label style="font-size:.8rem;color:#555;display:block;margin-bottom:4px;">Descripción <span style="color:#aaa;">(máx. 200 caracteres)</span></label>
+          <textarea id="settings-descripcion" rows="3" maxlength="200" placeholder="¿Qué vendes? ¿Qué te hace especial?"
+            style="width:100%;box-sizing:border-box;padding:9px 12px;border-radius:10px;border:1px solid #ddd;font-size:.85rem;resize:none;margin-bottom:12px;outline:none;"></textarea>
+
+          <label style="font-size:.8rem;color:#555;display:block;margin-bottom:4px;">Categoría principal</label>
+          <select id="settings-categoria"
+            style="width:100%;box-sizing:border-box;padding:9px 12px;border-radius:10px;border:1px solid #ddd;font-size:.85rem;margin-bottom:12px;background:#fff;outline:none;">
+            <option value="">— Sin categoría —</option>
+            <option value="Ropa mujer">Ropa mujer</option>
+            <option value="Ropa hombre">Ropa hombre</option>
+            <option value="Ropa niños">Ropa niños</option>
+            <option value="Accesorios">Accesorios</option>
+            <option value="Calzado">Calzado</option>
+            <option value="Bolsas y carteras">Bolsas y carteras</option>
+            <option value="Joyería">Joyería</option>
+            <option value="Cosméticos">Cosméticos</option>
+            <option value="Otro">Otro</option>
+          </select>
+
+          <label style="font-size:.8rem;color:#555;display:block;margin-bottom:4px;">Facebook</label>
+          <input id="settings-facebook" type="url" placeholder="https://facebook.com/tu-pagina"
+            style="width:100%;box-sizing:border-box;padding:9px 12px;border-radius:10px;border:1px solid #ddd;font-size:.85rem;margin-bottom:10px;outline:none;">
+
+          <label style="font-size:.8rem;color:#555;display:block;margin-bottom:4px;">X (Twitter)</label>
+          <input id="settings-twitter" type="url" placeholder="https://x.com/tu-usuario"
+            style="width:100%;box-sizing:border-box;padding:9px 12px;border-radius:10px;border:1px solid #ddd;font-size:.85rem;margin-bottom:10px;outline:none;">
+
+          <label style="font-size:.8rem;color:#555;display:block;margin-bottom:4px;">Instagram</label>
+          <input id="settings-instagram" type="url" placeholder="https://instagram.com/tu-usuario"
+            style="width:100%;box-sizing:border-box;padding:9px 12px;border-radius:10px;border:1px solid #ddd;font-size:.85rem;margin-bottom:10px;outline:none;">
+
+          <label style="font-size:.8rem;color:#555;display:block;margin-bottom:4px;">TikTok</label>
+          <input id="settings-tiktok" type="url" placeholder="https://tiktok.com/@tu-usuario"
+            style="width:100%;box-sizing:border-box;padding:9px 12px;border-radius:10px;border:1px solid #ddd;font-size:.85rem;margin-bottom:10px;outline:none;">
+
+          <label style="font-size:.8rem;color:#555;display:block;margin-bottom:4px;">WhatsApp de contacto</label>
+          <div style="display:flex;align-items:center;border:1px solid #ddd;border-radius:10px;overflow:hidden;margin-bottom:4px;">
+            <span style="padding:9px 10px;background:#f9f9f9;color:#555;font-size:.85rem;border-right:1px solid #ddd;">+52</span>
+            <input id="settings-whatsapp" type="tel" maxlength="10" placeholder="8671234567"
+              style="flex:1;padding:9px 12px;border:none;font-size:.85rem;outline:none;">
+          </div>
+          <p style="margin:0 0 16px;font-size:.73rem;color:#aaa;">Los clientes podrán contactarte directamente.</p>
+
+          <button onclick="guardarPerfil()" id="btn-guardar-perfil"
+            style="width:100%;padding:11px;border-radius:10px;border:none;background:#7c3aed;color:#fff;font-size:.9rem;font-weight:700;cursor:pointer;">
+            Guardar cambios
           </button>
-          <p id="settings-pwd-msg" style="text-align:center;font-size:.8rem;margin:8px 0 0;min-height:18px;"></p>
+          <p id="settings-perfil-msg" style="text-align:center;font-size:.8rem;margin:8px 0 0;min-height:18px;"></p>
         </div>
       </div>
 
-      <div style="padding:16px 0;border-bottom:1px solid #f5f5f5;">
-        <p style="margin:0 0 12px;font-size:.7rem;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:.08em;">Plan</p>
-        <div id="settings-plan-info"></div>
+      <!-- ── Sección colapsable: Seguridad ── -->
+      <div class="settings-section">
+        <button class="settings-section-toggle" onclick="toggleSettingsSection(this)">
+          <span>🔒 Seguridad</span>
+          <svg class="toggle-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <div class="settings-section-body" style="display:none;">
+          <div id="settings-pwd-form">
+            <label style="font-size:.8rem;color:#555;display:block;margin-bottom:4px;">Contraseña actual</label>
+            <input id="settings-pwd-old" type="password" placeholder="••••••"
+              style="width:100%;box-sizing:border-box;padding:9px 12px;border-radius:10px;border:1px solid #ddd;font-size:.9rem;margin-bottom:10px;outline:none;">
+
+            <label style="font-size:.8rem;color:#555;display:block;margin-bottom:4px;">Nueva contraseña <span style="color:#aaa;">(mín. 6 caracteres)</span></label>
+            <input id="settings-pwd-new" type="password" placeholder="••••••"
+              style="width:100%;box-sizing:border-box;padding:9px 12px;border-radius:10px;border:1px solid #ddd;font-size:.9rem;margin-bottom:10px;outline:none;">
+
+            <label style="font-size:.8rem;color:#555;display:block;margin-bottom:4px;">Confirmar contraseña</label>
+            <input id="settings-pwd-confirm" type="password" placeholder="••••••"
+              style="width:100%;box-sizing:border-box;padding:9px 12px;border-radius:10px;border:1px solid #ddd;font-size:.9rem;margin-bottom:12px;outline:none;">
+
+            <button onclick="guardarPassword()" id="btn-guardar-pwd"
+              style="width:100%;padding:11px;border-radius:10px;border:1px solid #7c3aed;background:#fff;color:#7c3aed;font-size:.9rem;font-weight:700;cursor:pointer;">
+              Cambiar contraseña
+            </button>
+            <p id="settings-pwd-msg" style="text-align:center;font-size:.8rem;margin:8px 0 0;min-height:18px;"></p>
+          </div>
+        </div>
       </div>
 
-      <div style="padding:16px 0;">
-        <p style="margin:0 0 12px;font-size:.7rem;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:.08em;">Información</p>
-        <div id="settings-info-readonly" style="background:#f9f9f9;border-radius:12px;padding:12px 14px;display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-          <div>
-            <p style="margin:0;font-size:.72rem;color:#aaa;">Productos activos</p>
-            <p id="si-productos" style="margin:2px 0 0;font-size:1rem;font-weight:700;color:#111;">—</p>
-          </div>
-          <div>
-            <p style="margin:0;font-size:.72rem;color:#aaa;">Límite del plan</p>
-            <p id="si-limite" style="margin:2px 0 0;font-size:1rem;font-weight:700;color:#111;">—</p>
-          </div>
-          <div>
-            <p style="margin:0;font-size:.72rem;color:#aaa;">Miembro desde</p>
-            <p id="si-fecha" style="margin:2px 0 0;font-size:.85rem;font-weight:600;color:#555;">—</p>
-          </div>
-          <div>
-            <p style="margin:0;font-size:.72rem;color:#aaa;">UID</p>
-            <p id="si-uid" style="margin:2px 0 0;font-size:.7rem;font-weight:600;color:#aaa;word-break:break-all;">—</p>
+      <!-- ── Sección colapsable: Plan ── -->
+      <div class="settings-section">
+        <button class="settings-section-toggle" onclick="toggleSettingsSection(this)">
+          <span>⭐ Plan</span>
+          <svg class="toggle-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <div class="settings-section-body" style="display:none;">
+          <div id="settings-plan-info"></div>
+        </div>
+      </div>
+
+      <!-- ── Sección colapsable: Donaciones ── -->
+      <div class="settings-section">
+        <button class="settings-section-toggle" onclick="toggleSettingsSection(this)">
+          <span>❤️ Donar productos <span id="donaciones-count-badge"></span></span>
+          <svg class="toggle-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <div class="settings-section-body" style="display:none;">
+          <p style="font-size:.78rem;color:#888;margin:0 0 12px;line-height:1.5;">Asigna tus productos de Comunidad a un beneficiario. El comprador le pagará directamente a ellos.</p>
+          <button id="btn-gestionar-donaciones" onclick="openGestionarDonacionesModal()" style="width:100%;padding:11px;border-radius:10px;border:1.5px solid #f97316;background:#fff7ed;color:#ea580c;font-size:.9rem;font-weight:700;cursor:pointer;">
+            ❤️ Gestionar donaciones
+          </button>
+          <div id="settings-donaciones-recibidas-area" style="display:none;"></div>
+        </div>
+      </div>
+
+      <!-- ── Sección colapsable: Información ── -->
+      <div class="settings-section">
+        <button class="settings-section-toggle" onclick="toggleSettingsSection(this)">
+          <span>ℹ️ Información de cuenta</span>
+          <svg class="toggle-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <div class="settings-section-body" style="display:none;">
+          <div id="settings-info-readonly" style="background:#f9f9f9;border-radius:12px;padding:12px 14px;display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+            <div>
+              <p style="margin:0;font-size:.72rem;color:#aaa;">Productos activos</p>
+              <p id="si-productos" style="margin:2px 0 0;font-size:1rem;font-weight:700;color:#111;">—</p>
+            </div>
+            <div>
+              <p style="margin:0;font-size:.72rem;color:#aaa;">Límite del plan</p>
+              <p id="si-limite" style="margin:2px 0 0;font-size:1rem;font-weight:700;color:#111;">—</p>
+            </div>
+            <div>
+              <p style="margin:0;font-size:.72rem;color:#aaa;">Miembro desde</p>
+              <p id="si-fecha" style="margin:2px 0 0;font-size:.85rem;font-weight:600;color:#555;">—</p>
+            </div>
+            <div>
+              <p style="margin:0;font-size:.72rem;color:#aaa;">UID</p>
+              <p id="si-uid" style="margin:2px 0 0;font-size:.7rem;font-weight:600;color:#aaa;word-break:break-all;">—</p>
+            </div>
           </div>
         </div>
       </div>
