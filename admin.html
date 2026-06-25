@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -1692,6 +1693,18 @@ connect-src 'self' https://script.google.com https://script.googleusercontent.co
  <span class="npi-label">Reportes de comunidad</span>
  <span class="npi-badge" id="notif-panel-reportes-count">—</span>
  </a>
+ <a href="notificaciones.html#plus" class="notif-panel-item" id="npi-plus">
+ <span class="npi-icon">⭐</span>
+ <span class="npi-label">Solicitudes Plan Plus</span>
+ <span class="npi-badge" id="notif-panel-plus-count">—</span>
+ </a>
+
+ <a href="notificaciones.html#beneficiarios" class="notif-panel-item" id="npi-beneficiarios">
+ <span class="npi-icon">❤️</span>
+ <span class="npi-label">Beneficiarios pendientes</span>
+ <span class="npi-badge" id="notif-panel-beneficiarios-count">—</span>
+ </a>
+
  <a href="notificaciones.html" style="display:block;margin-top:8px;padding:12px;background:linear-gradient(135deg,#ff4f81,#ff7a4f);color:#fff;font-weight:700;border-radius:12px;text-align:center;text-decoration:none;font-size:14px;">Ver todas las notificaciones →</a>
 
  <hr style="border:none;border-top:1px solid rgba(255,255,255,.08);margin:16px 0;">
@@ -1706,9 +1719,14 @@ connect-src 'self' https://script.google.com https://script.googleusercontent.co
  <span class="npi-icon"></span>
  <span class="npi-label">Estadísticas de Vendedores</span>
  </button>
- <button onclick="closeAdminNotifPanel(); openAnalyticsModal();" class="notif-panel-item" style="width:100%;text-align:left;border:1px solid rgba(255,255,255,.06);cursor:pointer;margin-bottom:0;">
+ <button onclick="closeAdminNotifPanel(); openAnalyticsModal();" class="notif-panel-item" style="width:100%;text-align:left;border:1px solid rgba(255,255,255,.06);cursor:pointer;margin-bottom:10px;">
  <span class="npi-icon"></span>
  <span class="npi-label">Gráficas y Estadísticas</span>
+ </button>
+
+ <button onclick="closeAdminNotifPanel(); openDonacionesStatsModal();" class="notif-panel-item" style="width:100%;text-align:left;border:1px solid rgba(255,255,255,.06);cursor:pointer;margin-bottom:0;">
+ <span class="npi-icon">❤️</span>
+ <span class="npi-label">Estadísticas de Donaciones</span>
  </button>
 
 <button class="notif-panel-item" id="offline-status-btn" style="width:100%;text-align:left;border:1px solid rgba(255,255,255,.06);cursor:pointer;margin-bottom:10px;">
@@ -1743,22 +1761,28 @@ async function loadNotifPanelCounts() {
   const api  = window.API_URL || window.ADMIN_API_URL || '';
   try {
     const gasGet = (params) => fetch(api + '?' + new URLSearchParams(params).toString()).then(r=>r.json()).catch(()=>({}));
-    const [nRes, vRes, pRes, rRes] = await Promise.all([
+    const [nRes, vRes, pRes, rRes, plusRes, benRes] = await Promise.all([
       gasGet({ action: 'notificationsBatch', page: 1, pageSize: 200, noCache: false }),
       token ? gasGet({ action: 'vendedoresAdmin', token }) : Promise.resolve({}),
       token ? gasGet({ action: 'productosPendientes', token }) : Promise.resolve({}),
       token ? gasGet({ action: 'obtenerReportes', token }) : Promise.resolve({}),
+      token ? gasGet({ action: 'solicitudesPlus', token }) : Promise.resolve({}),
+      token ? gasGet({ action: 'obtenerBeneficiarios', estado: 'pendiente', token }) : Promise.resolve({}),
     ]);
     const groups = nRes.groups || [];
-    const solCount = groups.filter(g => g.notifications && g.notifications.some(n => n.status === 'pending' && n.hasStock)).length;
+    const solCount  = groups.filter(g => g.notifications && g.notifications.some(n => n.status === 'pending' && n.hasStock)).length;
     const vendCount = (vRes.vendors||[]).filter(v=>v.estado==='pendiente').length;
     const pendCount = (pRes.products||[]).length;
     const repCount  = (rRes.reportes||[]).length;
+    const plusCount = (plusRes.solicitudes||[]).length;
+    const benCount  = (benRes.beneficiarios||[]).length;
     setBadge('notif-panel-solicitudes-count', solCount);
     setBadge('notif-panel-vendors-count',  vendCount);
     setBadge('notif-panel-pending-count',  pendCount);
     setBadge('notif-panel-reportes-count', repCount);
-    const totalCount = solCount + vendCount + pendCount + repCount;
+    setBadge('notif-panel-plus-count',     plusCount);
+    setBadge('notif-panel-beneficiarios-count', benCount);
+    const totalCount = solCount + vendCount + pendCount + repCount + plusCount + benCount;
     const mainBadge = document.getElementById('notif-badge');
     if (mainBadge) {
       mainBadge.textContent = totalCount > 0 ? totalCount : '0';
@@ -1778,6 +1802,86 @@ async function loadNotifPanelCounts() {
     }
   } catch(e) { console.warn('loadNotifPanelCounts error:', e); }
 }
+async function openDonacionesStatsModal() {
+  const old = document.getElementById('modal-donaciones-stats');
+  if (old) old.remove();
+  const token = sessionStorage.getItem('admin_token') || '';
+  const api   = window.API_URL || '';
+
+  const modal = document.createElement('div');
+  modal.id = 'modal-donaciones-stats';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:99999;display:flex;align-items:flex-end;justify-content:center;';
+  modal.innerHTML = `<div style="background:#1a1a2e;border-radius:20px 20px 0 0;width:100%;max-width:520px;max-height:88vh;overflow-y:auto;padding:0 0 32px;color:#fff;">
+    <div style="position:sticky;top:0;background:#1a1a2e;padding:18px 20px 14px;border-bottom:1px solid rgba(255,255,255,.08);display:flex;align-items:center;justify-content:space-between;">
+      <h2 style="margin:0;font-size:1rem;font-weight:800;">❤️ Estadísticas de Donaciones</h2>
+      <button id="btn-close-don-stats" style="background:none;border:none;font-size:22px;cursor:pointer;color:#888;">×</button>
+    </div>
+    <div id="don-stats-body" style="padding:20px;">Cargando…</div>
+  </div>`;
+  document.body.appendChild(modal);
+  document.getElementById('btn-close-don-stats').onclick = () => modal.remove();
+  modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+
+  try {
+    // Cargar vendedores y sus productos donados
+    const [vRes, prodRes, benRes] = await Promise.all([
+      fetch(api + '?' + new URLSearchParams({ action:'vendedoresAdmin', token })).then(r=>r.json()).catch(()=>({})),
+      fetch(api + '?' + new URLSearchParams({ action:'listarComunidad', admin:'true' })).then(r=>r.json()).catch(()=>({})),
+      fetch(api + '?' + new URLSearchParams({ action:'obtenerBeneficiarios', token })).then(r=>r.json()).catch(()=>({}),''),
+    ]);
+    const vendors  = vRes.vendors || [];
+    const products = prodRes.products || [];
+    const bens     = benRes.beneficiarios || [];
+
+    const donados   = products.filter(p => p.donado === true || p.donado === 'TRUE' || p.donado === 'true');
+    const sinAsig   = products.filter(p => !p.donado || p.donado === 'FALSE' || p.donado === false);
+    const bensAprov = bens.filter(b => b.estado === 'aprobado');
+    const bensPend  = bens.filter(b => b.estado === 'pendiente');
+
+    // Group donations by beneficiary
+    const byBen = {};
+    donados.forEach(p => {
+      const bid = p.beneficiario_id || 'Sin asignar';
+      const ben = bensAprov.find(b => b.id === bid);
+      const label = ben ? (ben.nombre + (ben.organizacion ? ' — ' + ben.organizacion : '')) : bid;
+      if (!byBen[label]) byBen[label] = 0;
+      byBen[label]++;
+    });
+
+    const esc = s => String(s||'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+    document.getElementById('don-stats-body').innerHTML = `
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px;">
+        <div style="background:rgba(249,115,22,.15);border:1px solid rgba(249,115,22,.3);border-radius:14px;padding:14px;text-align:center;">
+          <div style="font-size:1.8rem;font-weight:900;color:#f97316;">${donados.length}</div>
+          <div style="font-size:.72rem;color:#aaa;margin-top:2px;">Productos donados</div>
+        </div>
+        <div style="background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.2);border-radius:14px;padding:14px;text-align:center;">
+          <div style="font-size:1.8rem;font-weight:900;color:#22c55e;">${bensAprov.length}</div>
+          <div style="font-size:.72rem;color:#aaa;margin-top:2px;">Beneficiarios activos</div>
+        </div>
+        <div style="background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.2);border-radius:14px;padding:14px;text-align:center;">
+          <div style="font-size:1.8rem;font-weight:900;color:#ef4444;">${bensPend.length}</div>
+          <div style="font-size:.72rem;color:#aaa;margin-top:2px;">Beneficiarios pendientes</div>
+        </div>
+        <div style="background:rgba(99,102,241,.1);border:1px solid rgba(99,102,241,.2);border-radius:14px;padding:14px;text-align:center;">
+          <div style="font-size:1.8rem;font-weight:900;color:#818cf8;">${sinAsig.length}</div>
+          <div style="font-size:.72rem;color:#aaa;margin-top:2px;">Productos sin asignar</div>
+        </div>
+      </div>
+      ${Object.keys(byBen).length > 0 ? `
+      <p style="font-size:.75rem;color:#888;text-transform:uppercase;letter-spacing:.05em;margin:0 0 10px;">Donaciones por beneficiario</p>
+      ${Object.entries(byBen).sort((a,b)=>b[1]-a[1]).map(([label, count]) => `
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.06);">
+          <span style="font-size:.85rem;">❤️ ${esc(label)}</span>
+          <span style="background:#f97316;color:#fff;border-radius:20px;padding:2px 10px;font-size:.78rem;font-weight:700;">${count}</span>
+        </div>`).join('')}` : '<p style="color:#aaa;text-align:center;padding:16px 0;">Aún no hay donaciones asignadas.</p>'}
+    `;
+  } catch(e) {
+    document.getElementById('don-stats-body').innerHTML = '<p style="color:#ef4444;text-align:center;">Error al cargar estadísticas.</p>';
+  }
+}
+
 function setBadge(id, count) {
   const el = document.getElementById(id);
   if (!el) return;
