@@ -1,10 +1,16 @@
+
 (function() {
 'use strict';
 
 // ──────────────────────────────────────────────
-// CORRECCIÓN: vendorSession ahora es global dentro de este módulo
+// vendorSession expuesto en window para acceso global
 // ──────────────────────────────────────────────
 let vendorSession = null;
+Object.defineProperty(window, 'vendorSession', {
+  get() { return vendorSession; },
+  set(v) { vendorSession = v; },
+  configurable: true
+});
 
 const API_BASE = window.API_URL || ""
 
@@ -460,6 +466,7 @@ localStorage.setItem('vendor_session', JSON.stringify(vendorSession));
 return url;
 }
 
+window.updateDonacionesBadge =
 function updateDonacionesBadge() {
 const el = document.getElementById('donaciones-count-badge');
 if (!el) return;
@@ -1777,4 +1784,4 @@ async function loadBeneficiarioDonaciones() {
           </div>`).join('')}
     </div>`;
   } catch(e) { area.style.display = 'none'; }
-}
+  }
