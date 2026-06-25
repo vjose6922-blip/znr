@@ -279,7 +279,7 @@ function populateSizeFilter(genderValue = '', categoryValue = '') {
 
   try {
     _suppressFilterEvents = true;
-    sizeSelect.innerHTML = '<option value="">Todas las tallas</option>' +
+    sizeSelect.innerHTML = '<option value="">Tallas</option>' +
       sorted.map(s => `<option value="${s}"${s === currentVal ? ' selected' : ''}>${s}</option>`).join('');
   } finally {
     _suppressFilterEvents = false;
