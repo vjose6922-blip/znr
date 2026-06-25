@@ -22,16 +22,27 @@ window.apiFetch = async function(data, method = 'POST') {
   const API_BASE = window.API_URL;
   if (!API_BASE) throw new Error('API_URL no está disponible');
 
+  const TIMEOUT_MS = 15000;
+
+  function fetchWithTimeout(url, options) {
+    const controller = new AbortController();
+    const tid = setTimeout(() => controller.abort(), TIMEOUT_MS);
+    return fetch(url, { ...options, signal: controller.signal })
+      .then(r => { clearTimeout(tid); return r; })
+      .catch(e => {
+        clearTimeout(tid);
+        if (e.name === 'AbortError') throw new Error('El servidor tardó demasiado. Intenta de nuevo.');
+        throw e;
+      });
+  }
+
   if (String(method).toUpperCase() === 'GET') {
     const params = new URLSearchParams();
     Object.entries(data || {}).forEach(([k, v]) => {
       if (v !== undefined && v !== null) params.append(k, v);
     });
 
-    const res = await fetch(`${API_BASE}?${params.toString()}`, {
-      method: 'GET'
-    });
-
+    const res = await fetchWithTimeout(`${API_BASE}?${params.toString()}`, { method: 'GET' });
     const text = await res.text();
     return JSON.parse(text);
   }
@@ -41,7 +52,7 @@ window.apiFetch = async function(data, method = 'POST') {
     if (v !== undefined && v !== null) params.append(k, v);
   });
 
-  const res = await fetch(API_BASE, {
+  const res = await fetchWithTimeout(API_BASE, {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body: params.toString()
@@ -261,11 +272,19 @@ const formData = new URLSearchParams();
 formData.append('action', 'login');
 formData.append('password', firstField);
 formData.append('token', secondField);
-const res = await fetch(api, {
-method: 'POST',
-headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-body: formData.toString()
-});
+const adminCtrl = new AbortController();
+const adminTid = setTimeout(() => adminCtrl.abort(), 15000);
+let res;
+try {
+  res = await fetch(api, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: formData.toString(),
+    signal: adminCtrl.signal
+  });
+} finally {
+  clearTimeout(adminTid);
+}
 const data = await res.json();
 if (data && data.ok === true) {
 sessionStorage.setItem('admin_token', secondField);
@@ -1653,7 +1672,7 @@ window.openDonarProductosModal = async function(productoId) {
       const btn = document.getElementById('btn-donar-quitar');
       btn.disabled = true; btn.textContent = 'Quitando…';
       try {
-        const data = await apiFetch({ action:'desasignarDonacion', producto_id: String(productoId), vendor_token: vendorSession.token });
+        const data = await apiFetch({ action:'desasignarDonacion', producto_id: String(productoId), vendorToken: vendorSession.token });
         if (data.ok) { showMsg('✅ Donación removida', true); loadMyProducts(); setTimeout(() => modal.remove(), 1400); }
         else { showMsg('⚠️ ' + (data.error||'Error'), false); btn.disabled = false; btn.textContent = 'Quitar donación'; }
       } catch(e) { showMsg('⚠️ Error de conexión', false); btn.disabled = false; btn.textContent = 'Quitar donación'; }
@@ -1703,7 +1722,7 @@ const benData = await window.apiFetch({ action:'obtenerBeneficiariosAprobados' }
       const btn = document.getElementById('btn-donar-asignar');
       btn.disabled = true; btn.textContent = 'Guardando…';
       try {
-        const data = await apiFetch({ action:'asignarDonacion', producto_id: String(productoId), beneficiario_id: benId, vendor_token: vendorSession.token });
+        const data = await apiFetch({ action:'asignarDonacion', producto_id: String(productoId), beneficiario_id: benId, vendorToken: vendorSession.token });
         if (data.ok) { showMsg('✅ Donación asignada correctamente', true); loadMyProducts(); setTimeout(() => modal.remove(), 1400); }
         else { showMsg('⚠️ ' + (data.error||'Error'), false); btn.disabled = false; btn.textContent = '❤️ Asignar donación'; }
       } catch(e) { showMsg('⚠️ Error de conexión', false); btn.disabled = false; btn.textContent = '❤️ Asignar donación'; }
