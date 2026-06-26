@@ -720,47 +720,108 @@ function attachSliderEvents(slider, totalSlides) {
   updateSlider(0);
 }
 
-window.loadMyProducts = async function loadMyProducts() {
+// ── Caché de productos propios del vendedor ──────────────────────────────────
+const VENDOR_PRODUCTS_CACHE_KEY = 'zr_vendor_products';
+const VENDOR_PRODUCTS_CACHE_TTL = 3 * 60 * 1000; // 3 min
+
+function getVendorProductsCache(uid) {
+  try {
+    const raw = sessionStorage.getItem(VENDOR_PRODUCTS_CACHE_KEY + '_' + uid);
+    if (!raw) return null;
+    const { data, timestamp } = JSON.parse(raw);
+    if (Date.now() - timestamp > VENDOR_PRODUCTS_CACHE_TTL) {
+      sessionStorage.removeItem(VENDOR_PRODUCTS_CACHE_KEY + '_' + uid);
+      return null;
+    }
+    return data;
+  } catch(e) { return null; }
+}
+function setVendorProductsCache(uid, products) {
+  try {
+    sessionStorage.setItem(VENDOR_PRODUCTS_CACHE_KEY + '_' + uid,
+      JSON.stringify({ data: products, timestamp: Date.now() }));
+  } catch(e) {}
+}
+window.invalidateVendorProductsCache = function(uid) {
+  try { sessionStorage.removeItem(VENDOR_PRODUCTS_CACHE_KEY + '_' + (uid || vendorSession?.uid)); } catch(e) {}
+};
+
+function showVendorProductsSkeleton(container, count = 3) {
+  const card = () => `
+    <div style="display:flex;gap:12px;padding:12px 0;border-bottom:1px solid #f0f0f0;align-items:center;">
+      <div class="vp-sk" style="width:72px;height:72px;border-radius:10px;flex-shrink:0;"></div>
+      <div style="flex:1;">
+        <div class="vp-sk" style="height:13px;width:70%;margin-bottom:8px;border-radius:6px;"></div>
+        <div class="vp-sk" style="height:11px;width:45%;margin-bottom:8px;border-radius:6px;"></div>
+        <div class="vp-sk" style="height:22px;width:80px;border-radius:20px;"></div>
+      </div>
+    </div>`;
+  container.innerHTML = `
+    <style>
+      .vp-sk{background:linear-gradient(90deg,var(--color-surface-2,#f0f0f4) 25%,var(--color-surface-3,#e4e4ea) 50%,var(--color-surface-2,#f0f0f4) 75%);background-size:600px 100%;animation:vp-shimmer 1.3s infinite linear;}
+      @keyframes vp-shimmer{0%{background-position:-600px 0}100%{background-position:600px 0}}
+    </style>
+    ${Array.from({length: count}, card).join('')}`;
+}
+
+function applyMyProducts(myProducts, container) {
+  const ocupados = myProducts.filter(p => p.estado === 'aprobado' || p.estado === 'pendiente').length;
+  if (vendorSession) {
+    vendorSession.productosActuales = ocupados;
+    localStorage.setItem('vendor_session', JSON.stringify(vendorSession));
+  }
+  if (typeof renderVendorPlanPanel === 'function') renderVendorPlanPanel();
+
+  if (myProducts.length === 0) {
+    container.innerHTML = `<p style="color:#aaa;text-align:center">Aún no has publicado productos.<br>
+    <button class="btn-secondary" onclick="switchTab('form')" style="margin-top:12px">Publicar ahora</button></p>`;
+    return;
+  }
+
+  window._vendorProducts = myProducts;
+  updateDonacionesBadge();
+  applyVendorStatusFilter(currentStatusFilter);
+  container.innerHTML = '';
+  myProducts.forEach(product => {
+    const card = createVendorProductCard(product);
+    container.appendChild(card);
+  });
+  const savedLayout = localStorage.getItem('products_layout') || 'list';
+  applyLayoutGlobal(savedLayout);
+}
+
+window.loadMyProducts = async function loadMyProducts(force = false) {
   const container = document.getElementById('products-container');
   if (!container) return;
-  container.innerHTML = '<p style="color:#aaa;text-align:center">Cargando...</p>';
+  const uid = vendorSession?.uid;
+  if (!uid) return;
+
+  // 1. Si hay caché, mostrar inmediato y revalidar en background
+  const cached = !force && getVendorProductsCache(uid);
+  if (cached) {
+    applyMyProducts(cached, container);
+    // Revalidar en background silenciosamente
+    apiFetch({ action: 'listarComunidad', vendedor_uid: uid, admin: 'true' }, 'GET')
+      .then(data => {
+        if (!data.ok) return;
+        const fresh = (data.products || []).filter(p => p.vendedor_uid === uid);
+        if (JSON.stringify(fresh) !== JSON.stringify(cached)) {
+          setVendorProductsCache(uid, fresh);
+          applyMyProducts(fresh, container);
+        }
+      })
+      .catch(() => {});
+    return;
+  }
+
+  // 2. Sin caché: skeleton + fetch
+  showVendorProductsSkeleton(container, 3);
   try {
-    const data = await apiFetch({
-      action: 'listarComunidad',
-      vendedor_uid: vendorSession.uid,
-      admin: 'true'
-    }, 'GET');
+    const data = await apiFetch({ action: 'listarComunidad', vendedor_uid: uid, admin: 'true' }, 'GET');
     if (!data.ok) throw new Error(data.error);
-    const myProducts = (data.products || []).filter(p => p.vendedor_uid === vendorSession.uid);
-
-    const ocupados = myProducts.filter(p => p.estado === 'aprobado' || p.estado === 'pendiente').length;
-    if (vendorSession) {
-      vendorSession.productosActuales = ocupados;
-      localStorage.setItem('vendor_session', JSON.stringify(vendorSession));
-    }
-    if (typeof renderVendorPlanPanel === 'function') renderVendorPlanPanel();
-
-    if (myProducts.length === 0) {
-      container.innerHTML = `<p style="color:#aaa;text-align:center">Aún no has publicado productos.<br>
-      <button class="btn-secondary" onclick="switchTab('form')" style="margin-top:12px">Publicar ahora</button></p>`;
-      return;
-    }
-
-    // Guardar productos en variable global para usar en edición/eliminación
-    window._vendorProducts = myProducts;
-    updateDonacionesBadge();
-    applyVendorStatusFilter(currentStatusFilter);
-    // Construir tarjetas igual que en catalogo.html
-    container.innerHTML = '';
-    myProducts.forEach(product => {
-      const card = createVendorProductCard(product);
-      container.appendChild(card);
-    });
-
-    // Aplicar el layout guardado (grid o lista)
-    const savedLayout = localStorage.getItem('products_layout') || 'list';
-    applyLayoutGlobal(savedLayout);
-
+    const myProducts = (data.products || []).filter(p => p.vendedor_uid === uid);
+    setVendorProductsCache(uid, myProducts);
+    applyMyProducts(myProducts, container);
   } catch (err) {
     container.innerHTML = `<p style="color:#ef4444">Error: ${escapeHtml(err.message)}</p>`;
   }
@@ -811,7 +872,8 @@ try {
 const res = await apiFetch({ action: 'deleteComunidad', id, vendorToken: vendorSession.token });
 if (!res.ok) throw new Error(res.error);
 showTemporaryMessage(' Producto eliminado', 'info');
-loadMyProducts();
+window.invalidateVendorProductsCache();
+loadMyProducts(true);
 } catch (err) {
 showTemporaryMessage(' ' + err.message, 'error');
 } finally {
@@ -1039,7 +1101,8 @@ console.log(" Respuesta del servidor:", res);
 if (!res.ok) throw new Error(res.error || 'Error del servidor');
 showTemporaryMessage(editId ? ' Producto actualizado' : ' Producto publicado', 'success');
 cancelEdit();
-loadMyProducts();
+window.invalidateVendorProductsCache();
+loadMyProducts(true);
 } catch (err) {
 console.error("Error en submitProduct:", err);
 if(window.ZRMonitor) ZRMonitor.report('ERROR','vendedor.js','submitProduct',err.message||String(err));
@@ -1917,7 +1980,7 @@ window.openDonarProductosModal = async function(productoId) {
       btn.disabled = true; btn.textContent = 'Quitando…';
       try {
         const data = await apiFetch({ action:'desasignarDonacion', producto_id: String(productoId), vendor_token: vendorSession.token });
-        if (data.ok) { showMsg('✅ Donación removida', true); loadMyProducts(); setTimeout(() => modal.remove(), 1400); }
+        if (data.ok) { showMsg('✅ Donación removida', true); window.invalidateVendorProductsCache(); loadMyProducts(true); setTimeout(() => modal.remove(), 1400); }
         else { showMsg('⚠️ ' + (data.error||'Error'), false); btn.disabled = false; btn.textContent = 'Quitar donación'; }
       } catch(e) { showMsg('⚠️ Error de conexión', false); btn.disabled = false; btn.textContent = 'Quitar donación'; }
     });
@@ -1969,7 +2032,7 @@ const benData = await window.apiFetch({ action:'obtenerBeneficiariosAprobados' }
         const payload = { action:'asignarDonacion', producto_id: String(productoId), beneficiario_id: benId, vendor_token: vendorSession.token };
         window.debugPanel && window.debugPanel.log('DEBUG PAYLOAD', JSON.stringify(payload));
         const data = await apiFetch(payload);
-        if (data.ok) { showMsg('✅ Donación asignada correctamente', true); loadMyProducts(); setTimeout(() => modal.remove(), 1400); }
+        if (data.ok) { showMsg('✅ Donación asignada correctamente', true); window.invalidateVendorProductsCache(); loadMyProducts(true); setTimeout(() => modal.remove(), 1400); }
         else { showMsg('⚠️ ' + (data.error||'Error'), false); btn.disabled = false; btn.textContent = '❤️ Asignar donación'; }
       } catch(e) {
         window.debugPanel && window.debugPanel.log('DEBUG ERROR', e.message || String(e));
@@ -2003,8 +2066,14 @@ window.openGestionarDonacionesModal = async function() {
   document.getElementById('btn-close-gestionar').onclick = () => modal.remove();
   modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
 
-  // Refrescar productos del servidor antes de renderizar
-  try { await loadMyProducts(); } catch(e) { /* usa cache si falla */ }
+  // Usar caché si existe; si no, cargar (loadMyProducts ya maneja skeleton en el panel)
+  const uid = vendorSession?.uid;
+  const cached = uid ? getVendorProductsCache(uid) : null;
+  if (cached) {
+    window._vendorProducts = cached;
+  } else {
+    try { await loadMyProducts(); } catch(e) { /* usa lo que haya */ }
+  }
 
   const productos = window._vendorProducts || [];
   const lista = document.getElementById('gestionar-lista');
