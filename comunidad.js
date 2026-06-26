@@ -192,63 +192,40 @@ async function loadCommunityProducts() {
 
   const cachedProducts = getComunidadCache();
 
-  const localFetchWithRetry = async (fn, maxAttempts = 3, delays = [2000, 5000, 10000]) => {
-    for (let attempt = 0; attempt < maxAttempts; attempt++) {
-      try {
-        return await fn();
-      } catch (err) {
-        if (attempt === maxAttempts - 1) throw err;
-        console.log(`⏳ Reintento ${attempt + 1}/${maxAttempts} para listarComunidad`);
-        await new Promise(r => setTimeout(r, delays[attempt]));
-      }
-    }
-  };
 
   async function fetchAndRender(fromCache = false) {
     try {
       const url = window.API_URL;
       console.log("🔍 Cargando comunidad desde:", url);
 
-      let data;
-      let usedGet = false;
-      try {
-        data = await localFetchWithRetry(async () => {
-          const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 8000);
-          const res = await fetch(url, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ action: 'listarComunidad' }),
-            signal: controller.signal
-          });
-          clearTimeout(timeoutId);
-          if (!res.ok) throw new Error(`HTTP ${res.status}`);
-          return res.json();
-        });
-        console.log("✅ Respuesta POST recibida:", data);
-      } catch (postErr) {
-        console.warn("⚠️ Falló POST para listarComunidad, intentando con GET...", postErr);
+      // Lanzar POST y GET en paralelo — el que responda primero gana
+      const makeRequest = (method, extraOpts = {}) => {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000);
+        const opts = method === 'POST'
+          ? { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'listarComunidad' }), signal: controller.signal }
+          : { method: 'GET', headers: { 'Accept': 'application/json' }, signal: controller.signal };
+        const req = fetch(method === 'GET' ? (() => { const u = new URL(url); u.searchParams.set('action','listarComunidad'); return u.toString(); })() : url, opts)
+          .then(r => { clearTimeout(timeoutId); if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
+          .catch(err => { clearTimeout(timeoutId); throw err; });
+        return { req, controller };
+      };
 
-        try {
-          const getUrl = new URL(url);
-          getUrl.searchParams.set('action', 'listarComunidad');
-          data = await localFetchWithRetry(async () => {
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 8000);
-            const res = await fetch(getUrl.toString(), {
-              method: 'GET',
-              headers: { 'Accept': 'application/json' }
-            });
-            clearTimeout(timeoutId);
-            if (!res.ok) throw new Error(`HTTP ${res.status}`);
-            return res.json();
-          });
-          usedGet = true;
-          console.log("✅ Respuesta GET recibida:", data);
-        } catch (getErr) {
-          console.error("❌ También falló GET para listarComunidad", getErr);
-          throw getErr;
-        }
+      const postReq = makeRequest('POST');
+      const getReq  = makeRequest('GET');
+
+      let data;
+      try {
+        // Race: el primero en resolver gana; el perdedor se cancela
+        data = await Promise.any([
+          postReq.req.finally(() => getReq.controller.abort()),
+          getReq.req.finally(() => postReq.controller.abort()),
+        ]);
+        console.log("✅ Respuesta recibida (ganó el más rápido)");
+      } catch (raceErr) {
+        // Ambos fallaron
+        console.error("❌ Fallaron POST y GET para listarComunidad", raceErr);
+        throw raceErr;
       }
 
       if (!data.ok && data.ok !== undefined) {
