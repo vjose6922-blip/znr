@@ -624,7 +624,7 @@ ${product.vendedor_plan === 'plus' ? '<span style="position:absolute;top:30px;le
 ${esDonativo ? '<span style="position:absolute;top:' + (product.vendedor_plan === 'plus' ? '52px' : '30px') + ';left:8px;font-size:9px;padding:2px 8px;background:linear-gradient(135deg,#f97316,#ef4444);color:#fff;border-radius:20px;font-weight:800;z-index:1;">❤️ Donativo</span>' : ''}
 ${inspectorMode ? '<span style="position:absolute;top:8px;right:8px;z-index:2;"><button class="btn-inspector-delete" title="Eliminar (Admin)" style="background:var(--color-error,#ef4444);color:#fff;border:none;border-radius:20px;padding:2px 8px;font-size:11px;cursor:pointer;"></button></span>' : ''}
 <img class="product-img-main" src="${esc(imgUrl)}" alt="${esc(safeString(product.nombre))}" loading="lazy"
-style="width:100%;aspect-ratio:1;object-fit:contain;display:block;background:var(--color-surface-2,#f5f5f8);" onerror="this.onerror=null;this.src='placeholder.svg'">
+style="width:100%;height:100%;object-fit:contain;display:block;background:var(--color-surface-2,#f5f5f8);" onerror="this.onerror=null;this.src='placeholder.svg'">
 </div>
 <div class="product-info" style="padding:12px;">
 <div class="product-title-row">
