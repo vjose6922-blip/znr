@@ -3457,6 +3457,23 @@ document.head.appendChild(style);
  * @param {Function} onProgress - Opcional: callback (slotIndex, progress) para actualizar barras.
  * @param {Function} onSuccess - Opcional: callback (slotIndex, url) al terminar cada archivo.
  */
+// --- Control global de subidas pendientes ---
+// Cualquier página (admin, vendedor, etc.) puede escuchar 'znr:uploads-status'
+// para deshabilitar su botón de "Guardar" mientras haya imágenes subiéndose,
+// y así evitar que se envíe el formulario con campos de imagen aún vacíos.
+window._znrPendingUploads = window._znrPendingUploads || 0;
+
+function _znrNotifyUploadStatus() {
+    window.dispatchEvent(new CustomEvent('znr:uploads-status', {
+        detail: { pending: window._znrPendingUploads }
+    }));
+}
+
+// Helper público para que cualquier formulario verifique antes de enviar.
+window.hasPendingImageUploads = function() {
+    return window._znrPendingUploads > 0;
+};
+
 window.uploadImagesInQueue = async function(files, startSlot = 1, uploadFn, onProgress, onSuccess) {
     const maxFiles = 3;
     const filesArray = Array.from(files).slice(0, maxFiles);
@@ -3472,6 +3489,10 @@ window.uploadImagesInQueue = async function(files, startSlot = 1, uploadFn, onPr
     for (let i = 0; i < Math.min(filesArray.length, slots.length); i++) {
         assignments.push({ slot: slots[i], file: filesArray[i] });
     }
+
+    // Marcar estas imágenes como "subiendo" para bloquear el botón de guardar
+    window._znrPendingUploads += assignments.length;
+    _znrNotifyUploadStatus();
 
     // Mostrar previsualizaciones inmediatamente
     assignments.forEach(({ slot, file }) => {
@@ -3521,6 +3542,10 @@ window.uploadImagesInQueue = async function(files, startSlot = 1, uploadFn, onPr
             showTemporaryMessage(`Error en imagen ${slot}: ${err.message}`, 'error');
             if (progress) progress.style.width = '0%';
             if (typeof onProgress === 'function') onProgress(slot, -1);
+        } finally {
+            // Esta imagen ya terminó (con éxito o error): liberar el contador
+            window._znrPendingUploads = Math.max(0, window._znrPendingUploads - 1);
+            _znrNotifyUploadStatus();
         }
     }
 };

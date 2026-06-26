@@ -427,6 +427,10 @@ function fillFormForEdit(product) {
 async function handleProductFormSubmit(e) {
 e.preventDefault();
 if (!adminSession) { showTemporaryMessage(" Sesión no válida", "error"); return; }
+if (window.hasPendingImageUploads && window.hasPendingImageUploads()) {
+showTemporaryMessage(" Espera a que terminen de subir las imágenes...", "error");
+return;
+}
 const id = document.getElementById("product-id").value;
 const data = {
 Nombre: document.getElementById("product-name").value.trim(),
@@ -708,6 +712,27 @@ doAdminLogout();
 }
 const productForm = document.getElementById("product-form");
 if (productForm) productForm.addEventListener("submit", handleProductFormSubmit);
+
+// Mientras haya imágenes subiéndose, bloquear el botón de "Guardar Producto"
+// para evitar guardar el producto con campos de imagen aún vacíos.
+if (productForm) {
+const submitBtn = productForm.querySelector('button[type="submit"]');
+if (submitBtn) {
+const originalLabel = submitBtn.innerHTML;
+window.addEventListener('znr:uploads-status', (e) => {
+  const pending = e.detail.pending > 0;
+  submitBtn.disabled = pending;
+  submitBtn.style.opacity = pending ? '0.6' : '';
+  submitBtn.style.cursor = pending ? 'not-allowed' : '';
+  if (pending) {
+    submitBtn.dataset.originalLabel = submitBtn.dataset.originalLabel || originalLabel;
+    submitBtn.innerHTML = ' Subiendo imágenes...';
+  } else if (submitBtn.dataset.originalLabel) {
+    submitBtn.innerHTML = submitBtn.dataset.originalLabel;
+  }
+});
+}
+}
 const resetBtn = document.getElementById("reset-form-btn");
 if (resetBtn) resetBtn.addEventListener("click", resetProductForm);
 const refreshBtn = document.getElementById("admin-refresh-btn");

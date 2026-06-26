@@ -978,7 +978,12 @@ if (!vendorSession || !vendorSession.token) {
   showTemporaryMessage(' Sesión expirada. Vuelve a iniciar sesión.', 'error');
   setTimeout(() => { window.location.reload(); }, 2000);
   return;
-}const editId = document.getElementById('edit-product-id')?.value;
+}
+if (window.hasPendingImageUploads && window.hasPendingImageUploads()) {
+  showTemporaryMessage(' Espera a que terminen de subir las imágenes...', 'error');
+  return;
+}
+const editId = document.getElementById('edit-product-id')?.value;
 if (!editId && (vendorSession.productosActuales || 0) >= (vendorSession.limiteProductos || 20)) {
 const mensaje = vendorSession.plan === 'plus'
 ? `Llegaste al límite de ${vendorSession.limiteProductos} productos de tu plan Plus.`
@@ -1449,6 +1454,24 @@ loadVendors();
 document.addEventListener('DOMContentLoaded', () => {
 initVendorPanel();
 initPendingVendors();
+
+// Mientras haya imágenes subiéndose en cola, bloquear "Publicar/Guardar producto"
+// para evitar enviar el producto con campos de imagen aún vacíos.
+const submitBtn = document.getElementById('submit-product-btn');
+if (submitBtn) {
+  window.addEventListener('znr:uploads-status', (e) => {
+    const pending = e.detail.pending > 0;
+    submitBtn.disabled = pending;
+    submitBtn.style.opacity = pending ? '0.6' : '';
+    submitBtn.style.cursor = pending ? 'not-allowed' : '';
+    if (pending) {
+      submitBtn.dataset.originalLabel = submitBtn.dataset.originalLabel || submitBtn.innerHTML;
+      submitBtn.innerHTML = ' Subiendo imágenes...';
+    } else if (submitBtn.dataset.originalLabel) {
+      submitBtn.innerHTML = submitBtn.dataset.originalLabel;
+    }
+  });
+}
 });
 
 window.addEventListener('layoutChanged', (e) => {
