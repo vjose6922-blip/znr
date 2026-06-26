@@ -1,3 +1,4 @@
+
 :root {
   
   
@@ -722,7 +723,7 @@ body {
 
 .looks-grid.layout-grid .look-image {
   height: auto;
-  max-heigh: 100px;
+  max-height: 100px;
   object-fit: contain;
   width: 100%;
   margin: 0;
@@ -1572,7 +1573,7 @@ body {
 
 .look-slot-image {
   position: relative;
-  max-height: 120px;
+  height: 120px;
   aspect-ratio: 16 / 9;
   background: var(--color-surface);
   border-radius: 12px;
@@ -1915,7 +1916,7 @@ body {
 
 .look-slot-image {
   position: relative;
-  max-height: 120px;
+  height: 120px;
   aspect-ratio: 16 / 9;
   background: var(--color-surface);
   border-radius: 12px;
