@@ -1,5 +1,5 @@
-const CACHE_NAME    = 'zr-cache-v22';
-const DYNAMIC_CACHE = 'zr-dynamic-v11';
+const CACHE_NAME    = 'zr-cache-v23';
+const DYNAMIC_CACHE = 'zr-dynamic-v12';
 const OFFLINE_URL   = '/ZNR/offline.html';
 
 const STATIC_ASSETS = [
@@ -9,6 +9,7 @@ const STATIC_ASSETS = [
   '/ZNR/outfit.html',
   '/ZNR/armar-outfit.html',
   '/ZNR/comunidad.html',
+  '/ZNR/perfil-vendedor.html',
   '/ZNR/vendedor.html',
   '/ZNR/admin.html',
   '/ZNR/notificaciones.html',
@@ -33,7 +34,8 @@ const STATIC_ASSETS = [
 ];
 
 const IMAGE_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.svg'];
-const API_DOMAINS      = ['script.google.com', 'googleusercontent.com', 'wttr.in', 'openweathermap.org'];
+const API_DOMAINS      = ['script.google.com', 'wttr.in', 'openweathermap.org'];
+const IMAGE_CDN_HOSTS  = ['lh3.googleusercontent.com', 'googleusercontent.com'];
 
 self.addEventListener('install', event => {
   event.waitUntil(
@@ -73,6 +75,8 @@ self.addEventListener('activate', event => {
 function getCacheStrategy(request) {
   const url = new URL(request.url);
   if (request.method === 'POST') return 'NETWORK_ONLY';
+  // Imágenes de productos en Google CDN → CACHE_FIRST (cachear agresivamente)
+  if (IMAGE_CDN_HOSTS.some(h => url.hostname.includes(h))) return 'CACHE_FIRST';
   if (IMAGE_EXTENSIONS.some(ext => url.pathname.toLowerCase().endsWith(ext))) return 'CACHE_FIRST';
   if (url.hostname.includes('wttr.in') || url.hostname.includes('openweathermap.org')) return 'NETWORK_ONLY';
   if (API_DOMAINS.some(d => url.hostname.includes(d))) return 'NETWORK_FIRST';

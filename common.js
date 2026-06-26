@@ -186,7 +186,6 @@ productsByCategoryMap.set(category, []);
 }
 productsByCategoryMap.get(category).push(product);
 });
-console.log(` Indexados ${products.length} productos en ${productsByCategoryMap.size - 1} categorías`);
 }
 function getProductsByCategoryIndexed(category) {
 if (!category || category === '') return allProductsIndexed;
@@ -330,7 +329,7 @@ function getCachedProducts() {
 if (window.CacheManager && window.CacheManager.getSessionProductsCache) {
 const sessionCached = window.CacheManager.getSessionProductsCache();
 if (sessionCached && sessionCached.length > 0) {
-console.log(" Usando caché de sesión (instantáneo)");
+
 return sessionCached;
 }
 }
@@ -342,7 +341,6 @@ if (Date.now() - timestamp >CACHE_EXPIRY) {
 localStorage.removeItem(CACHE_KEY);
 return null;
 }
-console.log(" Usando caché de localStorage");
 return data;
 } catch { return null; }
 }
@@ -664,7 +662,6 @@ const btn = document.getElementById("floating-cart-btn");
 if (btn) { btn.style.transform = "translateY(-4px) scale(1.05)"; setTimeout(() => btn.style.transform = "", 180); }
 }
 function openCartDrawer() {
-console.log(" [CARRITO] Abriendo carrito...");
 const drawer = document.getElementById("cart-drawer");
 const overlay = document.getElementById("overlay");
 if (!drawer) {
@@ -740,7 +737,7 @@ window.removeFromCart(id);
 }
 }
 function renderCart() {
-console.log(" [RENDER] renderCart() iniciada");
+
 const container = document.getElementById("cart-items-container");
 if (!container) {
 console.error(" [RENDER] No existe #cart-items-container");
@@ -842,13 +839,11 @@ _refreshDeliveryBlock();
 setTimeout(() => {
 const changePhoneBtn = document.getElementById('change-phone-btn');
 if (changePhoneBtn) {
-console.log(" Configurando botón change-phone-btn");
 const newBtn = changePhoneBtn.cloneNode(true);
 changePhoneBtn.parentNode.replaceChild(newBtn, changePhoneBtn);
 newBtn.addEventListener('click', async function(e) {
 e.preventDefault();
 e.stopPropagation();
-console.log(" Click en botón Cambiar número");
 if (typeof window.changePhoneNumber === 'function') {
 await window.changePhoneNumber();
 } else if (typeof changePhoneNumber === 'function') {
@@ -2318,7 +2313,6 @@ loadCartFromStorage();
 createImageObserver();
 if (typeof renderCart === 'function') {
 renderCart();
-console.log(" Carrito renderizado al inicio");
 }
 const floatingCartBtn = document.getElementById("floating-cart-btn");
 if (floatingCartBtn) floatingCartBtn.addEventListener("click", openCartDrawer);
@@ -2543,7 +2537,7 @@ recent = recent.filter(id =>String(id) !== String(productId));
 recent.unshift(String(productId));
 recent = recent.slice(0, MAX_RECENT_PRODUCTS);
 localStorage.setItem(RECENT_PRODUCTS_KEY, JSON.stringify(recent));
-console.log(` Producto ${productId} agregado a recientes`);
+
 window.dispatchEvent(new CustomEvent('recentProductsUpdated'));
 } catch(e) {
 console.warn('Error guardando producto reciente:', e);
@@ -2655,7 +2649,6 @@ toggleWishlist(product);
 return btn;
 }
 function openWishlistDrawer() {
-console.log(" Abriendo wishlist drawer");
 const drawer = document.getElementById("wishlist-drawer");
 const overlay = document.getElementById("overlay");
 if (drawer) drawer.classList.add("open");
@@ -2739,7 +2732,6 @@ function updateWishlistBadge() {
 const count = getWishlist().length;
 const badge = document.getElementById("wishlist-count");
 if (badge) badge.textContent = count;
-console.log(" Wishlist badge actualizado:", count);
 }
 window.openWishlistDrawer = openWishlistDrawer;
 window.closeWishlistDrawer = closeWishlistDrawer;
