@@ -724,7 +724,7 @@ function attachSliderEvents(slider, totalSlides) {
 const VENDOR_PRODUCTS_CACHE_KEY = 'zr_vendor_products';
 const VENDOR_PRODUCTS_CACHE_TTL = 3 * 60 * 1000; // 3 min
 
-function getVendorProductsCache(uid) {
+window.getVendorProductsCache = function(uid) {
   try {
     const raw = sessionStorage.getItem(VENDOR_PRODUCTS_CACHE_KEY + '_' + uid);
     if (!raw) return null;
@@ -735,13 +735,13 @@ function getVendorProductsCache(uid) {
     }
     return data;
   } catch(e) { return null; }
-}
-function setVendorProductsCache(uid, products) {
+};
+window.setVendorProductsCache = function(uid, products) {
   try {
     sessionStorage.setItem(VENDOR_PRODUCTS_CACHE_KEY + '_' + uid,
       JSON.stringify({ data: products, timestamp: Date.now() }));
   } catch(e) {}
-}
+};
 window.invalidateVendorProductsCache = function(uid) {
   try { sessionStorage.removeItem(VENDOR_PRODUCTS_CACHE_KEY + '_' + (uid || vendorSession?.uid)); } catch(e) {}
 };
@@ -797,7 +797,7 @@ window.loadMyProducts = async function loadMyProducts(force = false) {
   if (!uid) return;
 
   // 1. Si hay caché, mostrar inmediato y revalidar en background
-  const cached = !force && getVendorProductsCache(uid);
+  const cached = !force && window.getVendorProductsCache(uid);
   if (cached) {
     applyMyProducts(cached, container);
     // Revalidar en background silenciosamente
@@ -806,7 +806,7 @@ window.loadMyProducts = async function loadMyProducts(force = false) {
         if (!data.ok) return;
         const fresh = (data.products || []).filter(p => p.vendedor_uid === uid);
         if (JSON.stringify(fresh) !== JSON.stringify(cached)) {
-          setVendorProductsCache(uid, fresh);
+          window.setVendorProductsCache(uid, fresh);
           applyMyProducts(fresh, container);
         }
       })
@@ -820,7 +820,7 @@ window.loadMyProducts = async function loadMyProducts(force = false) {
     const data = await apiFetch({ action: 'listarComunidad', vendedor_uid: uid, admin: 'true' }, 'GET');
     if (!data.ok) throw new Error(data.error);
     const myProducts = (data.products || []).filter(p => p.vendedor_uid === uid);
-    setVendorProductsCache(uid, myProducts);
+    window.setVendorProductsCache(uid, myProducts);
     applyMyProducts(myProducts, container);
   } catch (err) {
     container.innerHTML = `<p style="color:#ef4444">Error: ${escapeHtml(err.message)}</p>`;
@@ -2068,7 +2068,7 @@ window.openGestionarDonacionesModal = async function() {
 
   // Usar caché si existe; si no, cargar (loadMyProducts ya maneja skeleton en el panel)
   const uid = vendorSession?.uid;
-  const cached = uid ? getVendorProductsCache(uid) : null;
+  const cached = uid ? window.getVendorProductsCache(uid) : null;
   if (cached) {
     window._vendorProducts = cached;
   } else {
