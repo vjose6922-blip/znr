@@ -617,7 +617,13 @@ Imagen1:  String(item.Imagen1 || '').slice(0, 500),
 Talla:  String(item.Talla || '').slice(0, 50),
 _comunidad: item._comunidad || false,
 _vendedor:  String(item._vendedor  || '').slice(0, 100),
-_vendorTel: String(item._vendorTel || '').slice(0, 20)
+_vendorTel: String(item._vendorTel || '').slice(0, 20),
+_donacion: item._donacion === true,
+_beneficiario: (item._beneficiario && typeof item._beneficiario === 'object') ? {
+id:  String(item._beneficiario.id  || '').slice(0, 50),
+nombre:  String(item._beneficiario.nombre  || '').slice(0, 100),
+cuenta_bancaria: String(item._beneficiario.cuenta_bancaria || '').slice(0, 60)
+} : null
 };
 }
 }
@@ -628,8 +634,14 @@ updateCartBadge();
 }
 function saveCartToStorage() { localStorage.setItem("cart", JSON.stringify(localCart)); }
 function updateCartBadge() {
+const totalQty = Object.values(localCart).reduce((sum, item) => sum + (item.quantity || 0), 0);
 const countEl = document.getElementById("cart-count");
-if (countEl) { const totalQty = Object.values(localCart).reduce((sum, item) => sum + (item.quantity || 0), 0); countEl.textContent = totalQty; }
+if (countEl) countEl.textContent = totalQty;
+const bottomBadge = document.getElementById("bottom-cart-count");
+if (bottomBadge) {
+bottomBadge.textContent = totalQty;
+bottomBadge.style.display = totalQty > 0 ? '' : 'none';
+}
 }
 function addToCart(product) {
 const id = product.ID;
