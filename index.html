@@ -724,33 +724,6 @@
  }
  </script>
 
- <script>
-
-const looksWishlistDrawer = document.getElementById('wishlist-looks-drawer');
-const overlay = document.getElementById('overlay');
-
-document.getElementById('wishlist-looks-icon-home').addEventListener('click', () => {
- looksWishlistDrawer.classList.add('open');
- overlay.classList.add('visible');
- if (typeof renderWishlistLooks === 'function') renderWishlistLooks();
-});
-
-document.getElementById('close-wishlist-looks-btn').addEventListener('click', () => {
- looksWishlistDrawer.classList.remove('open');
- overlay.classList.remove('visible');
-});
-
-overlay.addEventListener('click', () => {
- looksWishlistDrawer?.classList.remove('open');
-});
-
-window.addEventListener('looksWishlistUpdated', () => {
- const count = (JSON.parse(localStorage.getItem('zr_looks_wishlist') || '[]')).length;
- const badgeBtn = document.getElementById('wishlist-looks-icon-home');
- if (badgeBtn) badgeBtn.textContent = count > 0 ? ` (${count})` : '';
-});
-
- </script>
 
  
 
