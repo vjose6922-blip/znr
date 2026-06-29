@@ -1,4 +1,3 @@
-
 (function () {
 'use strict';
 window.allProducts = window.allProducts || [];
@@ -152,7 +151,7 @@ ${genderLabel ? `<span style="font-size:11px;color:var(--color-text-muted);">${g
 <span title="Envío disponible" style="font-size:11px;color:var(--color-info,#3b82f6);"></span>
 </div>
 <div class="product-actions" style="margin-top:8px;">
-<button class="primary-button mini-add-btn" style="padding:8px 12px;font-size:12px;"${!hasStock ? ' disabled style="opacity:0.5;cursor:not-allowed;"' : ''}><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" aria-hidden="true"><use href="#ic-plus"/></svg> Añadir</button>
+<button class="primary-button mini-add-btn" style="padding:8px 12px;font-size:12px;${!hasStock ? 'opacity:0.5;cursor:not-allowed;' : ''}"${!hasStock ? ' disabled' : ''}><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" aria-hidden="true"><use href="#ic-plus"/></svg> Añadir</button>
 </div>
 </div>
 `;
@@ -161,7 +160,7 @@ if (!e.target.closest('.mini-add-btn')) {
 window.location.href = `catalogo.html#producto-${card.dataset.productId}`;
 }
 });
-card.querySelector('.mini-add-btn').addEventListener('click', (e) => {
+card.querySelector('.mini-add-btn')?.addEventListener('click', (e) => {
 e.stopPropagation();
 addToCart({
 ID: card.dataset.productId,
