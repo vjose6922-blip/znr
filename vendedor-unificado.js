@@ -564,7 +564,9 @@ function createVendorProductCard(product) {
   track.className = "product-slider-track";
 
   const images = [imagen1, imagen2, imagen3]
-    .map(u => optimizeDriveUrl(u))
+    .map(u => u
+      ? (typeof optimizeDriveUrl === 'function' ? optimizeDriveUrl(u) : u)
+      : null)
     .filter(Boolean);
   if (images.length === 0) {
     images.push("https://placehold.co/400x400/3b1f5f/white?text=Sin+Imagen");
