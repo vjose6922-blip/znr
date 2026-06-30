@@ -782,11 +782,11 @@ document.getElementById("admin-login-view").hidden = true;
 document.getElementById("admin-panel-view").hidden = false;
 setTimeout(() => {
   initImageUploads();
-}, 100);
-loadAdminProducts();
-startNotificationMonitoring();
-initAdminViewToggle();
-window.dispatchEvent(new CustomEvent('adminReady'));
+  loadAdminProducts();
+  startNotificationMonitoring();
+  initAdminViewToggle();
+  window.dispatchEvent(new CustomEvent('adminReady'));
+}, 200);
 } else {
 _forceAdminLogout();
 showTemporaryMessage(" Sesión expirada, inicia sesión de nuevo", "error");
