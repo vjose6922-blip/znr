@@ -1008,7 +1008,7 @@ startGlobalSliderInterval();
       if (genderFilter) {
         const newGenderFilter = genderFilter.cloneNode(true);
         genderFilter.parentNode.replaceChild(newGenderFilter, genderFilter);
-        newCategoryFilter.addEventListener("change", () => {
+        newGenderFilter.addEventListener("change", () => {
   try {
     _suppressFilterEvents = false;
     applyFilters();
