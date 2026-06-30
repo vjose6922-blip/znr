@@ -211,6 +211,116 @@ const genderMap = {
 return genderMap[categoriaLower] || null;
 }
 
+// ============================================================
+// CATÁLOGO COMPLETO EN CLIENTE — evita pegarle a GAS en cada filtro
+// ============================================================
+let fullCatalogCache = null;            // catálogo completo en memoria
+const FULL_CATALOG_KEY = 'zr_full_catalog_v1';
+const FULL_CATALOG_TTL = 5 * 60 * 1000; // 5 minutos
+
+function getFullCatalogFromStorage() {
+  try {
+    const raw = localStorage.getItem(FULL_CATALOG_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (Date.now() - parsed.ts > FULL_CATALOG_TTL) return null;
+    return parsed.data;
+  } catch { return null; }
+}
+
+function setFullCatalogToStorage(products) {
+  try {
+    localStorage.setItem(FULL_CATALOG_KEY, JSON.stringify({ ts: Date.now(), data: products }));
+  } catch (e) { console.warn('No se pudo guardar el catálogo completo en localStorage', e); }
+}
+
+// Trae TODOS los productos en una sola llamada (limit alto) y los cachea.
+// Mientras el catálogo sea de unos cientos de productos, esto es barato.
+async function ensureFullCatalog(force = false) {
+  if (!force && fullCatalogCache) return fullCatalogCache;
+
+  if (!force) {
+    const stored = getFullCatalogFromStorage();
+    if (stored && stored.length) {
+      fullCatalogCache = stored;
+      refreshFullCatalogInBackground(); // refrescar silenciosamente
+      return fullCatalogCache;
+    }
+  }
+
+  try {
+    if (!fullCatalogCache) showLoader('Cargando catálogo...');
+    const url = new URL(API_URL);
+    url.searchParams.set('action', 'list');
+    url.searchParams.set('page', '1');
+    url.searchParams.set('limit', '1000'); // suficiente para todo el catálogo actual
+    const res = await fetch(url.toString());
+    const data = await res.json();
+    const products = data.products || [];
+    fullCatalogCache = products;
+    setFullCatalogToStorage(products);
+    return fullCatalogCache;
+  } catch (err) {
+    console.error('Error cargando catálogo completo:', err);
+    return fullCatalogCache || [];
+  } finally {
+    hideLoader();
+  }
+}
+
+function refreshFullCatalogInBackground() {
+  if (!navigator.onLine) return;
+  const url = new URL(API_URL);
+  url.searchParams.set('action', 'list');
+  url.searchParams.set('page', '1');
+  url.searchParams.set('limit', '1000');
+  fetch(url.toString())
+    .then(r => r.json())
+    .then(data => {
+      const fresh = data.products || [];
+      if (JSON.stringify(fresh) !== JSON.stringify(fullCatalogCache)) {
+        fullCatalogCache = fresh;
+        setFullCatalogToStorage(fresh);
+        if (!_suppressFilterEvents) fetchProducts(false, currentPageGlobal, currentFilters);
+      }
+    })
+    .catch(() => {});
+}
+
+// Replica exactamente la lógica de filtros que antes hacía listProducts() en GAS,
+// pero corriendo en el navegador sobre el catálogo ya descargado.
+function filterCatalogLocal(products, filters) {
+  let result = products;
+
+  if (filters.gender) {
+    result = result.filter(p => getGenderFromCategory(p.Categoria) === filters.gender);
+  }
+  if (filters.category) {
+    result = result.filter(p => (p.Categoria || '') === filters.category);
+  }
+  if (filters.search) {
+    const s = filters.search.toLowerCase();
+    result = result.filter(p => {
+      const nombre = (p.Nombre || '').toLowerCase();
+      const desc = (p.Descripcion || '').toLowerCase();
+      return nombre.includes(s) || desc.includes(s);
+    });
+  }
+  if (filters.size) {
+    result = result.filter(p => {
+      const talla = (p.Talla || '').trim();
+      if (!talla) return false;
+      return talla.split(/[,\/]/).map(t => t.trim()).includes(filters.size);
+    });
+  }
+  if (filters.sort === 'price-asc') {
+    result = [...result].sort((a, b) => (Number(a.Precio) || 0) - (Number(b.Precio) || 0));
+  } else if (filters.sort === 'price-desc') {
+    result = [...result].sort((a, b) => (Number(b.Precio) || 0) - (Number(a.Precio) || 0));
+  }
+  return result;
+}
+
 function _renderAfterLoad(products, meta) {
   _suppressFilterEvents = true;
   try {
@@ -273,24 +383,27 @@ async function fetchProducts(force = false, page = 1, filters = {}) {
   }
   currentFilters = filters; // guardar para futuras recargas
 
-  window.loadProductsUnified({
-    force,
-    page: page,
-    limit: PRODUCTS_PER_PAGE,
-    filters: filters,
-    onProducts(products, fromCache, meta) {
-      _renderAfterLoad(products, meta);
-      if (fromCache && !navigator.onLine) {
-        showTemporaryMessage(' Sin conexión - Mostrando productos guardados', 'info');
-      }
-    },
-    onError(err) {
-      if (allProducts.length === 0) {
-        showTemporaryMessage(' Error al cargar productos', 'error');
-      }
-      console.error(err);
+  try {
+    const catalog = await ensureFullCatalog(force);
+    const allFiltered = filterCatalogLocal(catalog, filters);
+
+    const total = allFiltered.length;
+    const totalPages = Math.max(1, Math.ceil(total / PRODUCTS_PER_PAGE));
+    const start = (page - 1) * PRODUCTS_PER_PAGE;
+    const pageProducts = allFiltered.slice(start, start + PRODUCTS_PER_PAGE);
+
+    const meta = { page, totalPages, total };
+    _renderAfterLoad(pageProducts, meta);
+
+    if (!navigator.onLine) {
+      showTemporaryMessage(' Sin conexión - Mostrando productos guardados', 'info');
     }
-  });
+  } catch (err) {
+    if (!fullCatalogCache || fullCatalogCache.length === 0) {
+      showTemporaryMessage(' Error al cargar productos', 'error');
+    }
+    console.error(err);
+  }
 }
 
 function populateCategoryFilter(genderFilter) {
