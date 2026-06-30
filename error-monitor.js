@@ -145,12 +145,25 @@
     );
   }
 
+  function handleConsole(payload) {
+    // Evitar bucles: nunca reportar los propios console.log de ZRMonitor
+    if (payload.message && payload.message.indexOf('ZRMonitor') !== -1) return;
+    report(
+      payload.level === 'ERROR' ? 'ERROR' : 'WARN',
+      'console',
+      payload.level === 'ERROR' ? 'consoleError' : 'consoleWarn',
+      payload.message,
+      {}
+    );
+  }
+
   function handleEarlyEvent(type, payload) {
     switch (type) {
       case 'script':      return handleScriptError(payload);
       case 'resource':    return handleResourceError(payload);
       case 'rejection':   return handleRejection(payload);
       case 'csp':         return handleCSP(payload);
+      case 'console':     return handleConsole(payload);
     }
   }
 
