@@ -489,9 +489,11 @@
  <script src="error-monitor.js" defer></script>
  <script src="cache-manager.js" defer></script>
  <script src="offline-manager.js" defer></script>
- <script src="https://cdn.jsdelivr.net/npm/algoliasearch@4/dist/algoliasearch-lite.umd.js" defer></script>
- <script defer>
+ <script src="https://cdn.jsdelivr.net/npm/algoliasearch@4/dist/algoliasearch-lite.umd.js"></script>
+ <script>
    // Search-Only API Key: es segura para exponer en el frontend (solo permite buscar, no editar)
+   // Nota: sin "defer" aquí a propósito — defer no aplica a scripts inline,
+   // así que estos dos scripts corren de forma síncrona y en orden garantizado.
    if (typeof algoliasearch !== 'undefined') {
      const client = algoliasearch('RTKTKJMP4V', '6589ae2610ea47996a1321d97aa99861');
      window.algoliaIndex = client.initIndex('znr_comunidad');
