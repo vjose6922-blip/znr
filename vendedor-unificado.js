@@ -328,6 +328,10 @@ logo: res.logo || '',
 descripcion: res.descripcion || '',
 whatsapp: res.whatsapp || '',
 categoria: res.categoria || '',
+facebook: res.facebook || '',
+twitter: res.twitter || '',
+instagram: res.instagram || '',
+tiktok: res.tiktok || '',
 fechaRegistro: res.fechaRegistro || ''
 };
 localStorage.setItem('vendor_session', JSON.stringify(vendorSession));
@@ -1609,6 +1613,15 @@ function openSettingsModal() {
   if (horarioInput) horarioInput.value = vendorSession.horario || '';
   const catSel = document.getElementById('settings-categoria');
   if (catSel) catSel.value = vendorSession.categoria || '';
+
+  const fbInput  = document.getElementById('settings-facebook');
+  if (fbInput)  fbInput.value  = vendorSession.facebook  || '';
+  const twInput  = document.getElementById('settings-twitter');
+  if (twInput)  twInput.value  = vendorSession.twitter   || '';
+  const igInput  = document.getElementById('settings-instagram');
+  if (igInput)  igInput.value  = vendorSession.instagram || '';
+  const ttInput  = document.getElementById('settings-tiktok');
+  if (ttInput)  ttInput.value  = vendorSession.tiktok    || '';
 
   document.getElementById('settings-pwd-old').value     = '';
   document.getElementById('settings-pwd-new').value     = '';
