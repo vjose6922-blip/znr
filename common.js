@@ -1120,7 +1120,7 @@ _handleModalBuyClick(p);
 }
 }
 
-function _handleModalBuyClick(p) {
+async function _handleModalBuyClick(p) {
 if (typeof window.addToCart !== 'function') return;
 const esComunidad = p._comunidad === true;
 const id  = p.ID  || p.id  || '';
@@ -1130,17 +1130,30 @@ const talla  = p.Talla  || p.talla  || '';
 const imagen = p.Imagen1 || p.imagen1 || (_modalImages && _modalImages[0]) || '';
 if (esComunidad) {
 const donado = p._donado === true || p.donado === true || p.donado === 'TRUE' || p.donado === 'true';
+let beneficiario = null;
+if (donado) {
+const beneficiarioId = p._beneficiarioId || p.beneficiario_id || '';
+beneficiario = { id: beneficiarioId, nombre: '', cuenta_bancaria: '' };
+// El producto solo trae el id del beneficiario; el nombre y la cuenta
+// bancaria hay que pedirlos aparte (igual que hace "Ver beneficiario").
+if (beneficiarioId && window.API_URL) {
+try {
+const res  = await fetch(window.API_URL + '?' + new URLSearchParams({ action: 'obtenerBeneficiario', id: beneficiarioId }));
+const data = await res.json();
+if (data.ok && data.beneficiario) {
+beneficiario.nombre = data.beneficiario.nombre || '';
+beneficiario.cuenta_bancaria = data.beneficiario.cuenta_bancaria || '';
+}
+} catch (err) { /* si falla la consulta, se agrega igual y se coordina con el vendedor */ }
+}
+}
 window.addToCart({
 ID: id, Nombre: nombre, Precio: precio, Imagen1: imagen, Talla: talla,
 _comunidad: true,
 _vendedor: p._vendedorNombre || p.vendedor_nombre || '',
 _vendorTel: p._vendedorTel || p.vendedor_tel || '',
 _donacion: donado,
-_beneficiario: donado ? {
-id: p._beneficiarioId || p.beneficiario_id || '',
-nombre: p._benNombre || '',
-cuenta_bancaria: p._benCuenta || ''
-} : null
+_beneficiario: beneficiario
 });
 } else {
 const stock = Number(p.Stock ?? p.stock ?? 0);
