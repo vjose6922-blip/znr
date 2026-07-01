@@ -84,6 +84,7 @@ let totalPagesGlobal = 1;         // total de páginas devuelto por el backend
 let currentFilters = {};          // filtros activos (para mantenerlos al cambiar página)
 let isLoading = false;
 let gridContainer, catSelect, vendorSelect, paginationDiv;
+let hasLoadedOnce = false; // true solo tras la primera carga real de la página (no en cada cambio de filtro)
 let debounceTimer = null;
 let inspectorMode = false;
 let initialHashHandledComunidad = false;
@@ -208,7 +209,10 @@ async function loadComunidadPageGAS(page, filters, opts = {}) {
   if (isLoading && !opts.force) return;
   isLoading = true;
 
-  const isFirstLoad = !opts.isPageChange;
+  // isFirstLoad: solo true la primera vez que se carga la página (no en cada cambio de filtro,
+  // que también llega con isPageChange:false). Antes esto hacía que CUALQUIER cambio de filtro
+  // pintara primero el catálogo completo en caché antes de la respuesta real filtrada.
+  const isFirstLoad = !hasLoadedOnce;
 
   if (!window.API_URL) {
     if (gridContainer) gridContainer.innerHTML = '<div style="grid-column:1/-1; text-align:center; padding:40px; color:var(--color-error,#ef4444);">Error de configuración. Recarga la página.</div>';
@@ -285,6 +289,7 @@ async function loadComunidadPageGAS(page, filters, opts = {}) {
     }
   } finally {
     isLoading = false;
+    hasLoadedOnce = true;
     if (typeof window.hideLoader === 'function') window.hideLoader();
   }
 }
@@ -330,7 +335,8 @@ async function loadComunidadPageAlgolia(page, filters, opts = {}) {
   if (isLoading && !opts.force) return;
   isLoading = true;
 
-  const isFirstLoad = !opts.isPageChange;
+  // isFirstLoad: solo true la primera vez que se carga la página (no en cada cambio de filtro).
+  const isFirstLoad = !hasLoadedOnce;
 
   if (isFirstLoad && !opts.force) {
     const cached = getComunidadCache();
@@ -389,6 +395,7 @@ async function loadComunidadPageAlgolia(page, filters, opts = {}) {
     return loadComunidadPageGAS(page, filters, opts);
   } finally {
     isLoading = false;
+    hasLoadedOnce = true;
     if (typeof window.hideLoader === 'function') window.hideLoader();
   }
 }
@@ -456,11 +463,11 @@ function populateFilters() {
 function applyFilters() {
   try {
     const busqueda  = getSearchValue();
-    const categoria = catSelect ? catSelect.value : '';
+    const categoria = catSelect    ? catSelect.value    : '';
+    const vendedor  = vendorSelect ? vendorSelect.value : '';
     const soloProEl = document.getElementById('comunidad-solo-pro');
     const soloPro   = soloProEl ? soloProEl.checked : false;
-    // vendedor_uid: si hay un select de vendedores por nombre en el futuro, aquí se agrega
-    const filters = { busqueda, categoria, soloPro };
+    const filters = { busqueda, categoria, vendedor, soloPro };
     // Eliminar vacíos
     Object.keys(filters).forEach(k => { if (!filters[k]) delete filters[k]; });
     currentFilters = filters;
