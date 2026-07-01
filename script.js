@@ -467,7 +467,7 @@ function populateSizeFilter(genderValue, categoryValue) {
   fullCatalogCache.forEach(p => {
     if (genderValue && getGenderFromCategory(p.Categoria) !== genderValue) return;
     if (categoryValue && (p.Categoria || '') !== categoryValue) return;
-    const talla = String(p.Talla || '').trim();
+    const talla = String(p.Talla || "").trim();
     if (!talla) return;
     talla.split(/[,\/]/).map(t => t.trim()).filter(Boolean).forEach(t => set.add(t));
   });
