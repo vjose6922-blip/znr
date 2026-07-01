@@ -294,14 +294,31 @@ async function loadComunidadPageGAS(page, filters, opts = {}) {
 async function loadComunidadFilterOptionsAlgolia() {
   if (comunidadFilterOptionsLoaded || !window.algoliaIndex) return;
   try {
+    // Traemos hits (no solo facets) para poder mapear vendedor_uid -> vendedor_nombre.
+    // Antes se armaba el <select> de vendedores con el facet "vendedor_nombre" como value,
+    // pero el filtro de búsqueda filtra por "vendedor_uid" (ver loadComunidadPageAlgolia).
+    // Ese desajuste hacía que Algolia no encontrara resultados al elegir un vendedor
+    // y el código caía al respaldo de GAS, cuyo filterOptions se calcula SOBRE la lista
+    // ya filtrada (ver listarProductosComunidad en el backend) — por eso el select se
+    // quedaba solo con la categoría/vendedor ya seleccionado en vez de mostrar todos.
     const r = await window.algoliaIndex.search('', {
-      hitsPerPage: 0, // no necesitamos productos, solo las opciones del facet
-      facets: ['categoria', 'vendedor_nombre']
+      hitsPerPage: 1000,
+      attributesToRetrieve: ['vendedor_uid', 'vendedor_nombre'],
+      facets: ['categoria']
     });
-    populateFiltersFromOptions({
-      categories: Object.keys((r.facets && r.facets.categoria) || {}).sort(),
-      vendors:    Object.keys((r.facets && r.facets.vendedor_nombre) || {}).sort()
+
+    const categories = Object.keys((r.facets && r.facets.categoria) || {}).sort();
+
+    const vendorMap = new Map();
+    (r.hits || []).forEach(hit => {
+      if (hit.vendedor_uid && !vendorMap.has(hit.vendedor_uid)) {
+        vendorMap.set(hit.vendedor_uid, hit.vendedor_nombre || hit.vendedor_uid);
+      }
     });
+    const vendors = Array.from(vendorMap, ([uid, nombre]) => ({ uid, nombre }))
+      .sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'));
+
+    populateFiltersFromOptions({ categories, vendors });
     comunidadFilterOptionsLoaded = true;
   } catch (err) {
     console.error('Error cargando opciones de filtro (Algolia):', err);
@@ -420,7 +437,9 @@ function populateFiltersFromOptions(filterOptions) {
     vendorSelect.innerHTML = '<option value="">Vendedores</option>';
     filterOptions.vendors.forEach(v => {
       const opt = document.createElement('option');
-      opt.value = v; opt.textContent = v;
+      // Soporta objetos {uid, nombre} (Algolia) y strings sueltos (respaldo GAS)
+      if (v && typeof v === 'object') { opt.value = v.uid; opt.textContent = v.nombre; }
+      else { opt.value = v; opt.textContent = v; }
       vendorSelect.appendChild(opt);
     });
     if (currentVal) vendorSelect.value = currentVal;
