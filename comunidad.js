@@ -87,6 +87,7 @@ let gridContainer, catSelect, vendorSelect, paginationDiv;
 let debounceTimer = null;
 let inspectorMode = false;
 let initialHashHandledComunidad = false;
+let comunidadFilterOptionsLoaded = false; // asegura que el select muestre TODAS las opciones, no solo las del filtro activo
 async function initInspectorMode() {
 const urlParams = new URLSearchParams(window.location.search);
 if (urlParams.get('inspector') !== '1') return;
@@ -288,6 +289,25 @@ async function loadComunidadPageGAS(page, filters, opts = {}) {
   }
 }
 
+// ── Carga las opciones de los selects UNA sola vez, sin filtros aplicados ──
+// (si se piden junto con un filtro activo, Algolia solo devuelve el valor ya seleccionado)
+async function loadComunidadFilterOptionsAlgolia() {
+  if (comunidadFilterOptionsLoaded || !window.algoliaIndex) return;
+  try {
+    const r = await window.algoliaIndex.search('', {
+      hitsPerPage: 0, // no necesitamos productos, solo las opciones del facet
+      facets: ['categoria', 'vendedor_nombre']
+    });
+    populateFiltersFromOptions({
+      categories: Object.keys((r.facets && r.facets.categoria) || {}).sort(),
+      vendors:    Object.keys((r.facets && r.facets.vendedor_nombre) || {}).sort()
+    });
+    comunidadFilterOptionsLoaded = true;
+  } catch (err) {
+    console.error('Error cargando opciones de filtro (Algolia):', err);
+  }
+}
+
 // ── Carga y renderiza una página de productos vía Algolia (público, rápido) ──
 async function loadComunidadPageAlgolia(page, filters, opts = {}) {
   if (isLoading && !opts.force) return;
@@ -334,12 +354,9 @@ async function loadComunidadPageAlgolia(page, filters, opts = {}) {
     filteredProducts     = [...allCommunityProducts];
     window.allCommunityProductsIndexed = allCommunityProducts;
 
-    if (page === 1 && searchResult.facets) {
-      populateFiltersFromOptions({
-        categories: Object.keys(searchResult.facets.categoria || {}).sort(),
-        vendors:    Object.keys(searchResult.facets.vendedor_nombre || {}).sort()
-      });
-    }
+    // Las opciones del select se cargan aparte y solo una vez (ver loadComunidadFilterOptionsAlgolia),
+    // así siempre muestran TODAS las categorías/vendedores, no solo los del filtro activo.
+    loadComunidadFilterOptionsAlgolia();
 
     if (page === 1 && !filters.categoria && !filters.busqueda && !filters.vendedor && !filters.soloPro) {
       setComunidadCache(allCommunityProducts);
