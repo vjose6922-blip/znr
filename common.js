@@ -1091,6 +1091,13 @@ const badgeHtml  = badge  ? `<span class="im-info-badge">${escapeHtml(badge)}</s
 const catHtml  = categoria ? `<span class="im-info-cat">${escapeHtml(categoria)}</span>` : '';
 const tallaHtml  = talla  ? `<div class="im-info-talla">${p.vendedor_uid ? 'Info' : 'Talla'}: <strong>${escapeHtml(talla)}</strong></div>` : '';
 const descHtml  = desc  ? `<p class="im-info-desc">${escapeHtml(desc)}</p>` : '';
+const sinStock = stock === 0;
+const buyBtnHtml = `
+<button class="im-buy-btn"${sinStock ? ' disabled' : ''} id="im-buy-btn">
+${sinStock
+? 'Sin stock'
+: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" aria-hidden="true"><use href="#ic-cart"/></svg>Añadir al carrito'}
+</button>`;
 el.style.display = '';
 el.innerHTML = `
 <div class="im-info-top">
@@ -1102,7 +1109,48 @@ ${catHtml}${badgeHtml}${stockHtml}
 </div>
 ${tallaHtml}
 ${descHtml}
+${buyBtnHtml}
 `;
+const buyBtn = el.querySelector('#im-buy-btn');
+if (buyBtn && !sinStock) {
+buyBtn.addEventListener('click', (e) => {
+e.stopPropagation();
+_handleModalBuyClick(p);
+});
+}
+}
+
+function _handleModalBuyClick(p) {
+if (typeof window.addToCart !== 'function') return;
+const esComunidad = p._comunidad === true;
+const id  = p.ID  || p.id  || '';
+const nombre = p.Nombre || p.nombre || '';
+const precio = Number(p.Precio || p.precio || 0);
+const talla  = p.Talla  || p.talla  || '';
+const imagen = p.Imagen1 || p.imagen1 || (_modalImages && _modalImages[0]) || '';
+if (esComunidad) {
+const donado = p._donado === true || p.donado === true || p.donado === 'TRUE' || p.donado === 'true';
+window.addToCart({
+ID: id, Nombre: nombre, Precio: precio, Imagen1: imagen, Talla: talla,
+_comunidad: true,
+_vendedor: p._vendedorNombre || p.vendedor_nombre || '',
+_vendorTel: p._vendedorTel || p.vendedor_tel || '',
+_donacion: donado,
+_beneficiario: donado ? {
+id: p._beneficiarioId || p.beneficiario_id || '',
+nombre: p._benNombre || '',
+cuenta_bancaria: p._benCuenta || ''
+} : null
+});
+} else {
+const stock = Number(p.Stock ?? p.stock ?? 0);
+window.addToCart({
+ID: id, Nombre: nombre, Precio: precio, Stock: stock, Imagen1: imagen, Talla: talla
+});
+}
+if (typeof window.showTemporaryMessage === 'function') {
+window.showTemporaryMessage(` ${nombre} agregado`, 'success');
+}
 }
 function _renderVendorRow(modal) {
 const el = modal.querySelector('#im-vendor-row');
@@ -1629,6 +1677,27 @@ function initImageModalControls() {
       .im-info-talla { font-size: 12px; color: rgba(255,255,255,.65); }
       .im-info-talla strong { color: rgba(255,255,255,.9); }
       .im-info-desc { font-size: 12px; color: rgba(255,255,255,.5); margin: 0; line-height: 1.45; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+      .im-buy-btn {
+        display: flex; align-items: center; justify-content: center; gap: 6px;
+        width: 100%;
+        margin-top: 4px;
+        padding: 12px 16px;
+        font-size: 14px; font-weight: 800;
+        color: #fff;
+        background: linear-gradient(135deg,#ff4f81,#a855f7);
+        border: none; border-radius: 14px;
+        cursor: pointer;
+        transition: transform .15s ease, box-shadow .15s ease;
+        box-shadow: 0 6px 18px rgba(255,79,129,.25);
+      }
+      .im-buy-btn:hover { transform: translateY(-1px); box-shadow: 0 8px 22px rgba(255,79,129,.35); }
+      .im-buy-btn:active { transform: translateY(0); }
+      .im-buy-btn:disabled {
+        background: rgba(255,255,255,.08);
+        color: rgba(255,255,255,.4);
+        cursor: not-allowed;
+        box-shadow: none;
+      }
 
 
 .im-magazine-panel {
