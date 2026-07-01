@@ -387,6 +387,15 @@ async function fetchProducts(force = false, page = 1, filters = {}) {
   try {
     const catalog = await ensureFullCatalog(force);
 
+    // Indexamos el catálogo completo para que el modal de producto (common.js)
+    // pueda armar el panel de "artículos relacionados" (_renderMagazinePanel usa
+    // allProductsIndexed). Antes solo se llamaba desde la actualización en segundo
+    // plano, así que al abrir un producto antes de esa actualización el panel
+    // aparecía vacío y se ocultaba.
+    if (typeof buildProductIndex === "function") {
+      buildProductIndex(catalog);
+    }
+
     // 🆕 En cuanto tenemos el catálogo completo, recalculamos las opciones de
     // categoría/talla según el género/categoría ya seleccionados (antes de esto,
     // los selects mostraban la lista global sin filtrar de fetchFilterOptions).
@@ -467,7 +476,7 @@ function populateSizeFilter(genderValue, categoryValue) {
   fullCatalogCache.forEach(p => {
     if (genderValue && getGenderFromCategory(p.Categoria) !== genderValue) return;
     if (categoryValue && (p.Categoria || '') !== categoryValue) return;
-    const talla = String(p.Talla || "").trim();
+    const talla = String(p.Talla || '').trim();
     if (!talla) return;
     talla.split(/[,\/]/).map(t => t.trim()).filter(Boolean).forEach(t => set.add(t));
   });
