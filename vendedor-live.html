@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="Content-Security-Policy" content="
+  default-src 'self';
+  script-src 'self' 'unsafe-inline' https://www.gstatic.com;
+  style-src 'self' 'unsafe-inline';
+  img-src 'self' data: blob: https://lh3.googleusercontent.com https://drive.google.com https://placehold.co;
+  connect-src 'self' https://script.google.com https://script.googleusercontent.com https://*.firebaseio.com wss://*.firebaseio.com;
+  font-src 'self';
+  frame-src 'none';
+  frame-ancestors 'none';
+  object-src 'none';
+  base-uri 'self';
+  worker-src 'self' blob:;
+">
+<script src="error-bootstrap.js"></script>
+
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Transmitir en vivo — Z&R</title>
+<link rel="manifest" href="/ZNR/manifest.json">
+<meta name="theme-color" content="#1e2128">
+<link rel="preload" href="styles.css" as="style">
+<link rel="stylesheet" href="styles.css">
+<script src="api-config.js"></script>
+<style>
+  .live-wrap { max-width: 640px; margin: 0 auto; padding: 16px; padding-bottom: 100px; }
+
+  .live-card {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border-subtle);
+    border-radius: var(--radius-lg);
+    padding: 20px;
+    margin-bottom: 16px;
+  }
+
+  .live-card h2 { margin: 0 0 6px; font-size: 17px; color: var(--color-text-primary); }
+  .live-card p.hint { margin: 0 0 16px; font-size: 13px; color: var(--color-text-soft); line-height: 1.5; }
+
+  .field-group { margin-bottom: 14px; }
+  .field-group label {
+    display: block; font-size: 12px; font-weight: 600;
+    color: var(--color-text-soft); text-transform: uppercase;
+    letter-spacing: .05em; margin-bottom: 6px;
+  }
+  .field-group input, .field-group textarea {
+    width: 100%; box-sizing: border-box;
+    padding: 12px 14px; border-radius: var(--radius-md);
+    border: 1px solid var(--color-border-subtle);
+    background: var(--color-surface-2);
+    color: var(--color-text-primary);
+    font-size: 14px; font-family: inherit;
+  }
+  .field-group textarea { resize: vertical; min-height: 70px; }
+  .field-group input:focus, .field-group textarea:focus {
+    outline: none; border-color: var(--color-primary);
+  }
+
+  .product-grid {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;
+    max-height: 260px; overflow-y: auto; padding: 4px 0;
+  }
+  .product-chip {
+    position: relative; border-radius: var(--radius-md); overflow: hidden;
+    border: 2px solid transparent; cursor: pointer; aspect-ratio: 1;
+    background: var(--color-surface-2);
+  }
+  .product-chip img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .product-chip.selected { border-color: var(--color-accent-solid); }
+  .product-chip.selected::after {
+    content: "✓"; position: absolute; top: 4px; right: 4px;
+    background: var(--color-accent-solid); color: #fff;
+    width: 20px; height: 20px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px; font-weight: 700;
+  }
+  .product-chip .chip-name {
+    position: absolute; bottom: 0; left: 0; right: 0;
+    background: linear-gradient(transparent, rgba(0,0,0,.75));
+    color: #fff; font-size: 10px; padding: 10px 6px 4px; line-height: 1.2;
+  }
+
+  .btn-live {
+    width: 100%; border: none; border-radius: var(--radius-pill);
+    padding: 14px; font-size: 15px; font-weight: 700; cursor: pointer;
+    transition: transform .15s ease, opacity .15s ease;
+  }
+  .btn-live:active { transform: scale(0.98); }
+  .btn-live:disabled { opacity: .5; cursor: not-allowed; }
+  .btn-live.primary { background: var(--gradient-accent); color: #fff; }
+  .btn-live.danger { background: #ef4444; color: #fff; }
+  .btn-live.ghost {
+    background: var(--color-surface-2); color: var(--color-text-primary);
+    border: 1px solid var(--color-border-subtle);
+  }
+
+  .status-badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 6px 12px; border-radius: var(--radius-pill);
+    font-size: 12px; font-weight: 700; letter-spacing: .03em;
+  }
+  .status-badge.live { background: rgba(239,68,68,.15); color: #f87171; }
+  .status-badge.scheduled { background: rgba(96,165,250,.15); color: #60a5fa; }
+  .status-dot {
+    width: 8px; height: 8px; border-radius: 50%; background: #f87171;
+    animation: pulse-dot 1.4s infinite;
+  }
+  @keyframes pulse-dot { 0%,100%{opacity:1;} 50%{opacity:.3;} }
+
+  .share-box {
+    display: flex; gap: 8px; align-items: center;
+    background: var(--color-surface-2); border-radius: var(--radius-md);
+    padding: 10px 12px; margin: 12px 0;
+  }
+  .share-box input {
+    flex: 1; background: none; border: none; color: var(--color-text-primary);
+    font-size: 12px; font-family: monospace;
+  }
+  .share-box button {
+    background: var(--color-primary); color: #fff; border: none;
+    border-radius: var(--radius-md); padding: 8px 12px; font-size: 12px;
+    font-weight: 600; cursor: pointer; white-space: nowrap;
+  }
+
+  .chat-panel {
+    background: var(--color-surface-2); border-radius: var(--radius-md);
+    height: 280px; display: flex; flex-direction: column; overflow: hidden;
+  }
+  .chat-messages { flex: 1; overflow-y: auto; padding: 12px; display: flex; flex-direction: column; gap: 8px; }
+  .chat-msg { font-size: 13px; line-height: 1.4; }
+  .chat-msg .author { font-weight: 700; color: var(--color-accent); margin-right: 6px; }
+  .chat-msg .text { color: var(--color-text-primary); }
+  .chat-msg.mine .author { color: var(--color-primary); }
+  .chat-empty { text-align: center; color: var(--color-text-soft); font-size: 12px; margin-top: auto; margin-bottom: auto; }
+  .chat-input-row { display: flex; gap: 8px; padding: 10px; border-top: 1px solid var(--color-border-subtle); }
+  .chat-input-row input {
+    flex: 1; background: var(--color-surface); border: 1px solid var(--color-border-subtle);
+    border-radius: var(--radius-pill); padding: 9px 14px; color: var(--color-text-primary); font-size: 13px;
+  }
+  .chat-input-row button {
+    background: var(--gradient-accent); border: none; color: #fff;
+    border-radius: 50%; width: 38px; height: 38px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  }
+
+  .upsell-icon { font-size: 40px; text-align: center; margin-bottom: 10px; }
+  .center-text { text-align: center; }
+  .loading-spinner {
+    width: 28px; height: 28px; border-radius: 50%;
+    border: 3px solid var(--color-border-subtle); border-top-color: var(--color-accent-solid);
+    animation: spin 0.8s linear infinite; margin: 40px auto;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .error-msg { color: var(--color-error); font-size: 13px; margin-top: 8px; }
+</style>
+</head>
+<body>
+
+<header class="app-header">
+  <div class="header-left">
+    <a href="vendedor.html" class="logo-touch-area" style="text-decoration:none;">
+      <span class="logo-mark">←</span>
+    </a>
+    <div class="header-text">
+      <h1 class="app-title">Transmitir en vivo</h1>
+      <p class="app-subtitle" id="header-subtitle">Panel de vendedor</p>
+    </div>
+  </div>
+</header>
+
+<main class="live-wrap" id="live-wrap">
+  <div class="loading-spinner"></div>
+</main>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-app.js";
+import { getDatabase, ref, push, onValue, query, limitToLast } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-database.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyAaOe_lxLdQtTFCtw2BDR8KZRSafEMkkes",
+  authDomain: "znr-live.firebaseapp.com",
+  databaseURL: "https://znr-live-default-rtdb.firebaseio.com",
+  projectId: "znr-live",
+  storageBucket: "znr-live.firebasestorage.app",
+  messagingSenderId: "1038143238323",
+  appId: "1:1038143238323:web:5171b9dd8823628086c0c6"
+};
+const fbApp = initializeApp(firebaseConfig);
+const db = getDatabase(fbApp);
+
+// ── apiFetch mínimo, igual al de vendedor-unificado.js ──
+async function apiFetch(data, method = 'POST') {
+  const API_BASE = window.API_URL;
+  const params = new URLSearchParams();
+  Object.entries(data || {}).forEach(([k, v]) => {
+    if (v !== undefined && v !== null) params.append(k, v);
+  });
+  let res;
+  if (method === 'GET') {
+    res = await fetch(`${API_BASE}?${params.toString()}`, { method: 'GET' });
+  } else {
+    res = await fetch(API_BASE, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: params.toString()
+    });
+  }
+  return JSON.parse(await res.text());
+}
+
+const wrap = document.getElementById('live-wrap');
+const subtitle = document.getElementById('header-subtitle');
+let vendorSession = null;
+let currentSesion = null;
+let selectedProductIds = new Set();
+let allProducts = [];
+let chatUnsub = null;
+
+function esc(s) {
+  const d = document.createElement('div');
+  d.textContent = s == null ? '' : String(s);
+  return d.innerHTML;
+}
+
+function getComprobadorUrl(id) {
+  return `${location.origin}${location.pathname.replace('vendedor-live.html','comprador-live.html')}?id=${id}`;
+}
+
+// ── Estados de render ──
+
+function renderNoSession() {
+  wrap.innerHTML = `
+    <div class="live-card center-text">
+      <div class="upsell-icon">🔒</div>
+      <h2>Necesitas iniciar sesión</h2>
+      <p class="hint">Entra a tu cuenta de vendedor para transmitir en vivo.</p>
+      <a href="vendedor.html" style="text-decoration:none;">
+        <button class="btn-live primary">Ir a iniciar sesión</button>
+      </a>
+    </div>`;
+}
+
+function renderNoPlus() {
+  wrap.innerHTML = `
+    <div class="live-card center-text">
+      <div class="upsell-icon">✨</div>
+      <h2>Transmitir en vivo es Plan Plus</h2>
+      <p class="hint">Mejora tu cuenta a Plan Plus para poder transmitir en vivo a tus compradores, además de subir hasta 200 productos, logo de tienda y más.</p>
+      <a href="notificaciones.html" style="text-decoration:none;">
+        <button class="btn-live primary">Ver Plan Plus</button>
+      </a>
+    </div>`;
+}
+
+async function renderCreateForm() {
+  subtitle.textContent = 'Nueva transmisión';
+
+  wrap.innerHTML = `
+    <div class="live-card">
+      <h2>Configura tu transmisión</h2>
+      <p class="hint">Transmite desde la app de YouTube (modo "No listado") y pega aquí el link. Tus compradores la verán directo dentro de Z&R.</p>
+
+      <div class="field-group">
+        <label>Título</label>
+        <input type="text" id="f-titulo" maxlength="60" placeholder="Ej. Liquidación de temporada 🔥">
+      </div>
+      <div class="field-group">
+        <label>Descripción (opcional)</label>
+        <textarea id="f-desc" maxlength="200" placeholder="¿Qué vas a mostrar hoy?"></textarea>
+      </div>
+      <div class="field-group">
+        <label>Link de YouTube Live</label>
+        <input type="text" id="f-youtube" placeholder="https://youtube.com/live/...">
+        <div class="error-msg" id="f-youtube-error" style="display:none;"></div>
+      </div>
+      <div class="field-group">
+        <label>Productos que vas a mostrar</label>
+        <div class="product-grid" id="product-grid">
+          <div class="chat-empty">Cargando tu catálogo…</div>
+        </div>
+      </div>
+
+      <button class="btn-live primary" id="btn-crear-sesion">Crear transmisión</button>
+      <div class="error-msg" id="f-general-error" style="display:none;"></div>
+    </div>`;
+
+  document.getElementById('btn-crear-sesion').addEventListener('click', crearSesion);
+  loadProductGrid();
+}
+
+async function loadProductGrid() {
+  const grid = document.getElementById('product-grid');
+  try {
+    const resp = await apiFetch({
+      action: 'listarComunidad',
+      vendedor_uid: vendorSession.uid,
+      vendorToken: vendorSession.token,
+      admin: 'true',
+      limit: 50
+    }, 'GET');
+
+    if (!resp.ok || !resp.products || resp.products.length === 0) {
+      grid.innerHTML = `<div class="chat-empty">Aún no tienes productos en tu catálogo de comunidad.</div>`;
+      return;
+    }
+    allProducts = resp.products;
+    grid.innerHTML = allProducts.map(p => `
+      <div class="product-chip" data-id="${esc(p.id)}">
+        <img src="${esc(p.imagen1 || 'https://placehold.co/200x200')}" alt="${esc(p.nombre)}" loading="lazy">
+        <div class="chip-name">${esc(p.nombre)}</div>
+      </div>
+    `).join('');
+
+    grid.querySelectorAll('.product-chip').forEach(chip => {
+      chip.addEventListener('click', () => {
+        const id = chip.dataset.id;
+        if (selectedProductIds.has(id)) {
+          selectedProductIds.delete(id);
+          chip.classList.remove('selected');
+        } else {
+          selectedProductIds.add(id);
+          chip.classList.add('selected');
+        }
+      });
+    });
+  } catch (err) {
+    grid.innerHTML = `<div class="chat-empty">No se pudo cargar tu catálogo.</div>`;
+  }
+}
+
+async function crearSesion() {
+  const titulo = document.getElementById('f-titulo').value.trim();
+  const desc = document.getElementById('f-desc').value.trim();
+  const youtube = document.getElementById('f-youtube').value.trim();
+  const btn = document.getElementById('btn-crear-sesion');
+  const ytError = document.getElementById('f-youtube-error');
+  const genError = document.getElementById('f-general-error');
+  ytError.style.display = 'none';
+  genError.style.display = 'none';
+
+  if (!titulo) { genError.textContent = 'Ponle un título a tu transmisión.'; genError.style.display = 'block'; return; }
+  if (!youtube) { ytError.textContent = 'Pega el link de tu YouTube Live.'; ytError.style.display = 'block'; return; }
+
+  btn.disabled = true;
+  btn.textContent = 'Creando…';
+
+  try {
+    const resp = await apiFetch({
+      action: 'crearSesionLive',
+      vendorToken: vendorSession.token,
+      titulo, descripcion: desc,
+      youtube_link: youtube,
+      productos_ids: Array.from(selectedProductIds).join(',')
+    });
+
+    if (!resp.ok) {
+      genError.textContent = resp.error || 'No se pudo crear la transmisión.';
+      genError.style.display = 'block';
+      btn.disabled = false;
+      btn.textContent = 'Crear transmisión';
+      return;
+    }
+
+    await cargarSesionActual();
+  } catch (err) {
+    genError.textContent = 'Error de conexión. Intenta de nuevo.';
+    genError.style.display = 'block';
+    btn.disabled = false;
+    btn.textContent = 'Crear transmisión';
+  }
+}
+
+function renderScheduled() {
+  subtitle.textContent = 'Lista para iniciar';
+  const shareUrl = getComprobadorUrl(currentSesion.id);
+  wrap.innerHTML = `
+    <div class="live-card">
+      <span class="status-badge scheduled">📅 PROGRAMADO</span>
+      <h2 style="margin-top:12px;">${esc(currentSesion.titulo)}</h2>
+      <p class="hint">${esc(currentSesion.descripcion || 'Sin descripción')}</p>
+
+      <label style="display:block; font-size:12px; font-weight:600; color:var(--color-text-soft); text-transform:uppercase; letter-spacing:.05em; margin-bottom:6px;">Link para tus compradores</label>
+      <div class="share-box">
+        <input type="text" readonly value="${esc(shareUrl)}" id="share-url">
+        <button id="btn-copy">Copiar</button>
+      </div>
+
+      <p class="hint">Cuando estés listo: abre YouTube, empieza tu transmisión en vivo, y regresa aquí a tocar "Iniciar".</p>
+
+      <button class="btn-live primary" id="btn-iniciar">🔴 Iniciar transmisión</button>
+      <div style="height:8px;"></div>
+      <button class="btn-live ghost" id="btn-cancelar">Cancelar transmisión</button>
+    </div>`;
+
+  document.getElementById('btn-copy').addEventListener('click', () => {
+    const input = document.getElementById('share-url');
+    input.select();
+    navigator.clipboard.writeText(shareUrl).catch(() => document.execCommand('copy'));
+    const btn = document.getElementById('btn-copy');
+    btn.textContent = '¡Copiado!';
+    setTimeout(() => { btn.textContent = 'Copiar'; }, 1500);
+  });
+
+  document.getElementById('btn-iniciar').addEventListener('click', async () => {
+    const resp = await apiFetch({ action: 'actualizarEstadoLive', vendorToken: vendorSession.token, id: currentSesion.id, estado: 'en_vivo' });
+    if (resp.ok) { currentSesion.estado = 'en_vivo'; renderLive(); }
+  });
+
+  document.getElementById('btn-cancelar').addEventListener('click', async () => {
+    if (!confirm('¿Cancelar esta transmisión programada?')) return;
+    await apiFetch({ action: 'actualizarEstadoLive', vendorToken: vendorSession.token, id: currentSesion.id, estado: 'terminado' });
+    currentSesion = null;
+    renderCreateForm();
+  });
+}
+
+function renderLive() {
+  subtitle.textContent = 'Transmitiendo';
+  const shareUrl = getComprobadorUrl(currentSesion.id);
+  const misProductos = (currentSesion.productos_ids || '').split(',').filter(Boolean)
+    .map(id => allProducts.find(p => String(p.id) === String(id)))
+    .filter(Boolean);
+
+  wrap.innerHTML = `
+    <div class="live-card">
+      <span class="status-badge live"><span class="status-dot"></span> EN VIVO</span>
+      <h2 style="margin-top:12px;">${esc(currentSesion.titulo)}</h2>
+
+      <div class="share-box">
+        <input type="text" readonly value="${esc(shareUrl)}" id="share-url">
+        <button id="btn-copy">Copiar</button>
+      </div>
+    </div>
+
+    <div class="live-card">
+      <h2>Producto que estás mostrando</h2>
+      <p class="hint">Tócalo para que tus compradores lo vean destacado con botón de compra.</p>
+      <div class="product-grid" id="live-product-grid">
+        ${misProductos.length ? misProductos.map(p => `
+          <div class="product-chip ${String(p.id) === String(currentSesion.producto_actual_id) ? 'selected' : ''}" data-id="${esc(p.id)}">
+            <img src="${esc(p.imagen1 || 'https://placehold.co/200x200')}" alt="${esc(p.nombre)}" loading="lazy">
+            <div class="chip-name">${esc(p.nombre)}</div>
+          </div>
+        `).join('') : '<div class="chat-empty">No seleccionaste productos al crear la transmisión.</div>'}
+      </div>
+    </div>
+
+    <div class="live-card">
+      <h2>Chat</h2>
+      <div class="chat-panel">
+        <div class="chat-messages" id="chat-messages"><div class="chat-empty">Aún no hay mensajes.</div></div>
+        <div class="chat-input-row">
+          <input type="text" id="chat-input" placeholder="Responde a tus compradores…" maxlength="300">
+          <button id="chat-send">➤</button>
+        </div>
+      </div>
+    </div>
+
+    <button class="btn-live danger" id="btn-finalizar">Finalizar transmisión</button>
+  `;
+
+  document.getElementById('btn-copy').addEventListener('click', () => {
+    navigator.clipboard.writeText(shareUrl).catch(() => {});
+    const btn = document.getElementById('btn-copy');
+    btn.textContent = '¡Copiado!';
+    setTimeout(() => { btn.textContent = 'Copiar'; }, 1500);
+  });
+
+  document.querySelectorAll('#live-product-grid .product-chip').forEach(chip => {
+    chip.addEventListener('click', async () => {
+      document.querySelectorAll('#live-product-grid .product-chip').forEach(c => c.classList.remove('selected'));
+      chip.classList.add('selected');
+      const id = chip.dataset.id;
+      currentSesion.producto_actual_id = id;
+      await apiFetch({ action: 'actualizarEstadoLive', vendorToken: vendorSession.token, id: currentSesion.id, producto_actual_id: id });
+    });
+  });
+
+  document.getElementById('btn-finalizar').addEventListener('click', async () => {
+    if (!confirm('¿Finalizar la transmisión en vivo?')) return;
+    await apiFetch({ action: 'actualizarEstadoLive', vendorToken: vendorSession.token, id: currentSesion.id, estado: 'terminado' });
+    if (chatUnsub) chatUnsub();
+    renderEnded();
+  });
+
+  setupChat(currentSesion.id, vendorSession.nombre, true);
+}
+
+function renderEnded() {
+  subtitle.textContent = 'Finalizada';
+  wrap.innerHTML = `
+    <div class="live-card center-text">
+      <div class="upsell-icon">✅</div>
+      <h2>Transmisión finalizada</h2>
+      <p class="hint">¡Buen trabajo! Cuando quieras, puedes crear una nueva transmisión.</p>
+      <button class="btn-live primary" id="btn-nueva">Crear nueva transmisión</button>
+    </div>`;
+  document.getElementById('btn-nueva').addEventListener('click', () => {
+    currentSesion = null;
+    selectedProductIds = new Set();
+    renderCreateForm();
+  });
+}
+
+// ── Chat con Firebase Realtime Database ──
+function setupChat(liveId, myName, isVendor) {
+  const messagesEl = document.getElementById('chat-messages');
+  const inputEl = document.getElementById('chat-input');
+  const sendBtn = document.getElementById('chat-send');
+  const chatRef = query(ref(db, `chats/${liveId}/messages`), limitToLast(100));
+
+  chatUnsub = onValue(chatRef, (snapshot) => {
+    const data = snapshot.val();
+    if (!data) { messagesEl.innerHTML = '<div class="chat-empty">Aún no hay mensajes.</div>'; return; }
+    const msgs = Object.values(data).sort((a, b) => (a.ts || 0) - (b.ts || 0));
+    messagesEl.innerHTML = msgs.map(m => `
+      <div class="chat-msg ${m.author === myName ? 'mine' : ''}">
+        <span class="author">${esc(m.author)}${m.isVendor ? ' 🛍️' : ''}:</span>
+        <span class="text">${esc(m.text)}</span>
+      </div>
+    `).join('');
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+  });
+
+  function send() {
+    const text = inputEl.value.trim();
+    if (!text) return;
+    push(ref(db, `chats/${liveId}/messages`), {
+      author: myName, text, isVendor, ts: Date.now()
+    });
+    inputEl.value = '';
+  }
+  sendBtn.addEventListener('click', send);
+  inputEl.addEventListener('keydown', (e) => { if (e.key === 'Enter') send(); });
+}
+
+// ── Carga inicial ──
+async function cargarSesionActual() {
+  wrap.innerHTML = '<div class="loading-spinner"></div>';
+  try {
+    const resp = await apiFetch({ action: 'obtenerMisSesionesLive', vendorToken: vendorSession.token }, 'GET');
+    if (resp.ok && resp.sesiones && resp.sesiones.length) {
+      const activa = resp.sesiones.find(s => s.estado === 'programado' || s.estado === 'en_vivo');
+      if (activa) {
+        currentSesion = activa;
+        if (activa.estado === 'en_vivo') renderLive();
+        else renderScheduled();
+        return;
+      }
+    }
+    renderCreateForm();
+  } catch (err) {
+    renderCreateForm();
+  }
+}
+
+async function init() {
+  const raw = localStorage.getItem('vendor_session');
+  if (!raw) { renderNoSession(); return; }
+  try { vendorSession = JSON.parse(raw); } catch (e) { renderNoSession(); return; }
+  if (!vendorSession || !vendorSession.token) { renderNoSession(); return; }
+
+  if (vendorSession.plan !== 'plus') { renderNoPlus(); return; }
+
+  await cargarSesionActual();
+}
+
+init();
+</script>
+</body>
+</html>
