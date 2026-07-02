@@ -427,7 +427,7 @@ setInterval(loadVendorSaleNotifications, 45000);
 async function loadVendorSaleNotifications() {
 if (!vendorSession || !vendorSession.uid) return;
 try {
-const data = await apiCall({ action: 'listarNotificacionesVentaComunidad', vendor_uid: vendorSession.uid });
+const data = await apiCall({ action: 'listarNotificacionesVentaComunidad', vendorToken: vendorSession.token });
 if (!data || !data.ok) return;
 renderVendorSaleNotifications(data.notificaciones || []);
 } catch (e) {
@@ -476,7 +476,7 @@ btn.addEventListener('click', () => resolveVendorSaleNotification(btn.closest('.
 async function resolveVendorSaleNotification(requestId, accion, btn) {
 if (btn) btn.disabled = true;
 try {
-const data = await apiCall({ action: 'resolverNotificacionVentaComunidad', vendor_uid: vendorSession.uid, requestId, accion });
+const data = await apiCall({ action: 'resolverNotificacionVentaComunidad', vendorToken: vendorSession.token, requestId, accion });
 if (data && data.ok) {
 window.showTemporaryMessage?.(accion === 'confirmar' ? ' Venta confirmada, stock actualizado' : 'Marcado sin stock', 'success');
 loadVendorSaleNotifications();
