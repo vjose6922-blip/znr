@@ -1679,20 +1679,20 @@ function initImageModalControls() {
       .im-dot { width: 6px; height: 6px; border-radius: 50%; background: rgba(255,255,255,.35); transition: all .2s; }
       .im-dot.active { background: #ff4f81; width: 16px; border-radius: 3px; }
 
-      .im-product-info {
+       .im-product-info {
         width: 100%;
         margin: 0;
         background: #252831;
         border-top: 1px solid rgba(255,255,255,.07);
         border-bottom: 1px solid rgba(255,255,255,.07);
-        padding: 4px;
+        padding: 4px -10px;
         display: flex;
         flex-direction: column;
         gap: 6px;
       }
       .im-info-top { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
       .im-info-name { font-size: 15px; font-weight: 700; color: #fff; line-height: 1.3; flex: 1; }
-      .im-info-price { font-size: 17px; font-weight: 800; color: #ff4f81; white-space: nowrap; background: rgba(255,79,129,.12); padding: 2px 10px; border-radius: 20px; }
+      .im-info-price { font-size: 17px; font-weight: 800; color: #ff4f81; white-space: nowrap; background: rgba(255,79,129,.12); padding: 2px 6px; border-radius: 10px; }
       .im-info-meta { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
       .im-info-cat { background: rgba(255,255,255,.08); color: rgba(255,255,255,.7); font-size: 11px; font-weight: 600; padding: 3px 9px; border-radius: 20px; text-transform: uppercase; letter-spacing: .4px; }
       .im-info-badge { background: linear-gradient(135deg,#ff4f81,#ff7a4f); color: #fff; font-size: 10px; font-weight: 700; padding: 3px 9px; border-radius: 20px; text-transform: uppercase; letter-spacing: .4px; }
@@ -1703,10 +1703,10 @@ function initImageModalControls() {
       .im-info-talla strong { color: rgba(255,255,255,.9); }
       .im-info-desc { font-size: 12px; color: rgba(255,255,255,.5); margin: 0; line-height: 1.45; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
       .im-buy-btn {
-        display: flex; align-items: center; justify-content: center; gap: 6px;
+        align-items: center; justify-content: center; gap: 6px;
         width: auto;
-        margin: 4px auto 0;
-        padding: 8px;
+				margin: -40px 10px 0 auto;
+				padding: 8px;
         font-size: 13px; font-weight: 800;
         color: #fff;
         background: linear-gradient(135deg,#ff4f81,#a855f7);
