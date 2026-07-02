@@ -2765,6 +2765,10 @@ const floatingCartBtn = document.getElementById("floating-cart-btn");
 if (floatingCartBtn) floatingCartBtn.addEventListener("click", openCartDrawer);
 const closeCartBtn = document.getElementById("close-cart-btn");
 if (closeCartBtn) closeCartBtn.addEventListener("click", closeCartDrawer);
+const requestPurchaseBtn = document.getElementById("request-purchase-btn");
+if (requestPurchaseBtn) requestPurchaseBtn.addEventListener("click", () => {
+if (typeof window.openWhatsAppCheckout === 'function') window.openWhatsAppCheckout();
+});
 const changePhoneBtn = document.getElementById("change-phone-btn");
 if (changePhoneBtn) changePhoneBtn.addEventListener("click", changePhoneNumber);
 const changeAddrBtn  = document.getElementById("change-address-btn");

@@ -1149,8 +1149,6 @@ const refreshBtn = document.getElementById("refresh-btn");
 if (refreshBtn) refreshBtn.addEventListener("click", () => {
 if (!isLoading) fetchProducts(true);
 });
-const requestBtn = document.getElementById("request-purchase-btn");
-if (requestBtn) requestBtn.addEventListener("click", openWhatsAppCheckout);
 const mpBtn = document.getElementById("mp-checkout-btn");
 if (mpBtn) mpBtn.addEventListener("click", pagarConMercadoPago);
 verificarEstadoPago();

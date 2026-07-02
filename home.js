@@ -787,9 +787,6 @@ function initCartAndWishlist() {
     });
   }
 
-  const requestBtn = document.getElementById('request-purchase-btn');
-  if (requestBtn && typeof openWhatsAppCheckout === 'function') requestBtn.addEventListener('click', openWhatsAppCheckout);
-
   const addAllBtn = document.getElementById('add-all-wishlist-to-cart');
   if (addAllBtn && typeof addAllWishlistToCart === 'function') addAllBtn.addEventListener('click', addAllWishlistToCart);
 

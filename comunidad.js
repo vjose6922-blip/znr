@@ -911,10 +911,6 @@ const closeCartBtn = document.getElementById('close-cart-btn');
 if (closeCartBtn) closeCartBtn.addEventListener('click', () => {
 if (typeof window.closeCartDrawer === 'function') window.closeCartDrawer();
 });
-const reqBtn = document.getElementById('request-purchase-btn');
-if (reqBtn) reqBtn.addEventListener('click', () => {
-if (typeof window.openWhatsAppCheckout === 'function') window.openWhatsAppCheckout();
-});
 const layoutBtn = document.getElementById('layout-toggle-comunidad');
 const grid = document.getElementById('comunidad-grid');
 function applyComLayout(isGrid) {

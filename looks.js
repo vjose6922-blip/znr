@@ -1469,8 +1469,6 @@ loadProducts();
 }
 initLooksLayoutToggle();
 window.addEventListener('cartUpdated', () => updateCartBadge());
-const requestBtn = document.getElementById("request-purchase-btn");
-if (requestBtn) requestBtn.addEventListener("click", openWhatsAppCheckout);
 });
 window.reloadSlot = reloadSlot;
 window.addLookToCart = addLookToCart;
