@@ -290,8 +290,7 @@ async function renderCreateForm() {
   loadProductGrid();
 }
 
-async function loadProductGrid() {
-  const grid = document.getElementById('product-grid');
+async function fetchAllProducts() {
   try {
     const resp = await apiFetch({
       action: 'listarComunidad',
@@ -300,12 +299,20 @@ async function loadProductGrid() {
       admin: 'true',
       limit: 50
     }, 'GET');
+    if (resp.ok && resp.products) allProducts = resp.products;
+  } catch (err) {
+    // se reintenta la próxima vez que se necesite
+  }
+}
 
-    if (!resp.ok || !resp.products || resp.products.length === 0) {
+async function loadProductGrid() {
+  const grid = document.getElementById('product-grid');
+  try {
+    await fetchAllProducts();
+    if (!allProducts.length) {
       grid.innerHTML = `<div class="chat-empty">Aún no tienes productos en tu catálogo de comunidad.</div>`;
       return;
     }
-    allProducts = resp.products;
     grid.innerHTML = allProducts.map(p => `
       <div class="product-chip" data-id="${esc(p.id)}">
         <img src="${esc(p.imagen1 || 'https://placehold.co/200x200')}" alt="${esc(p.nombre)}" loading="lazy">
@@ -404,8 +411,18 @@ function renderScheduled() {
   });
 
   document.getElementById('btn-iniciar').addEventListener('click', async () => {
-    const resp = await apiFetch({ action: 'actualizarEstadoLive', vendorToken: vendorSession.token, id: currentSesion.id, estado: 'en_vivo' });
-    if (resp.ok) { currentSesion.estado = 'en_vivo'; renderLive(); }
+    try {
+      const resp = await apiFetch({ action: 'actualizarEstadoLive', vendorToken: vendorSession.token, id: currentSesion.id, estado: 'en_vivo' });
+      if (resp.ok) {
+        currentSesion.estado = 'en_vivo';
+        if (!allProducts.length) await fetchAllProducts();
+        renderLive();
+      } else {
+        alert('No se pudo iniciar: ' + (resp.error || 'error desconocido'));
+      }
+    } catch (err) {
+      alert('Error de conexión al iniciar. Intenta de nuevo.');
+    }
   });
 
   document.getElementById('btn-cancelar').addEventListener('click', async () => {
@@ -555,14 +572,22 @@ function setupChat(liveId, myName, isVendor) {
     const data = snapshot.val();
     if (!data) { messagesEl.innerHTML = '<div class="chat-empty">Aún no hay mensajes.</div>'; return; }
     const entries = Object.entries(data).sort((a, b) => (a[1].ts || 0) - (b[1].ts || 0));
-    messagesEl.innerHTML = entries.map(([key, m]) => `
+    messagesEl.innerHTML = entries.map(([key, m]) => {
+      const prod = m.producto_id ? allProducts.find(p => String(p.id) === String(m.producto_id)) : null;
+      const prodTag = prod ? `
+        <div style="display:flex; align-items:center; gap:5px; margin-top:3px; opacity:.8;">
+          <img src="${esc(prod.imagen1 || 'https://placehold.co/40x40')}" style="width:16px;height:16px;border-radius:4px;object-fit:cover;">
+          <span style="font-size:10px; color:var(--color-text-soft);">${esc(prod.nombre)}</span>
+        </div>` : '';
+      return `
       <div class="chat-msg ${m.author === myName ? 'mine' : ''}" data-key="${esc(key)}" style="${!m.isVendor ? 'cursor:pointer;' : ''}">
         <span class="author">${esc(m.author)}${m.isVendor ? ' 🛍️' : ''}:</span>
         <span class="text">${esc(m.text)}</span>
         ${m.telefono ? `<span style="color:var(--color-text-soft);font-size:11px;"> · ${esc(m.telefono)}</span>` : ''}
         ${m.vendido ? '<span class="vendido-tag" style="display:inline-block;margin-left:6px;font-size:10px;font-weight:700;background:rgba(74,222,128,.15);color:#4ade80;padding:2px 7px;border-radius:999px;">✅ Vendido</span>' : ''}
-      </div>
-    `).join('');
+        ${prodTag}
+      </div>`;
+    }).join('');
     messagesEl.scrollTop = messagesEl.scrollHeight;
 
     if (isVendor) {
@@ -596,6 +621,7 @@ async function cargarSesionActual() {
       const activa = resp.sesiones.find(s => s.estado === 'programado' || s.estado === 'en_vivo');
       if (activa) {
         currentSesion = activa;
+        if (!allProducts.length) await fetchAllProducts();
         if (activa.estado === 'en_vivo') renderLive();
         else renderScheduled();
         return;
