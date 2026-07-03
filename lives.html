@@ -4,10 +4,10 @@
 <meta charset="UTF-8">
 <meta http-equiv="Content-Security-Policy" content="
   default-src 'self';
-  script-src 'self' 'unsafe-inline';
+  script-src 'self' 'unsafe-inline' https://www.gstatic.com;
   style-src 'self' 'unsafe-inline';
   img-src 'self' data: blob: https://lh3.googleusercontent.com https://drive.google.com https://placehold.co https://i.ytimg.com;
-  connect-src 'self' https://script.google.com https://script.googleusercontent.com;
+  connect-src 'self' https://script.google.com https://script.googleusercontent.com https://*.firebaseio.com wss://*.firebaseio.com;
   font-src 'self';
   frame-src 'none';
   frame-ancestors 'none';
@@ -47,6 +47,12 @@
   .status-dot { width: 7px; height: 7px; border-radius: 50%; background: #fff; animation: pulse-dot 1.4s infinite; }
   @keyframes pulse-dot { 0%,100%{opacity:1;} 50%{opacity:.35;} }
 
+  .viewer-mini {
+    position: absolute; top: 10px; right: 10px;
+    background: rgba(0,0,0,.6); color: #fff;
+    font-size: 11px; font-weight: 700; padding: 5px 10px; border-radius: var(--radius-pill);
+  }
+
   .live-card .info { padding: 12px 14px; }
   .live-card .info h2 { margin: 0 0 4px; font-size: 15px; color: var(--color-text-primary); }
   .live-card .info .vendor { margin: 0; font-size: 13px; color: var(--color-text-soft); }
@@ -82,7 +88,30 @@
   <div class="loading-spinner"></div>
 </main>
 
-<script>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-app.js";
+import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-database.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyAaOe_lxLdQtTFCtw2BDR8KZRSafEMkkes",
+  authDomain: "znr-live.firebaseapp.com",
+  databaseURL: "https://znr-live-default-rtdb.firebaseio.com",
+  projectId: "znr-live",
+  storageBucket: "znr-live.firebasestorage.app",
+  messagingSenderId: "1038143238323",
+  appId: "1:1038143238323:web:5171b9dd8823628086c0c6"
+};
+const fbApp = initializeApp(firebaseConfig);
+const db = getDatabase(fbApp);
+
+async function contarEspectadores(liveId) {
+  try {
+    const snap = await get(ref(db, `presencia/${liveId}`));
+    const data = snap.val();
+    return data ? Object.keys(data).length : 0;
+  } catch (e) { return 0; }
+}
+
 (function() {
   'use strict';
 
@@ -122,6 +151,7 @@
         <div class="thumb-wrap">
           <img src="https://i.ytimg.com/vi/${esc(l.youtube_id)}/hqdefault.jpg" alt="${esc(l.titulo)}" loading="lazy">
           <span class="status-badge"><span class="status-dot"></span> EN VIVO</span>
+          <span class="viewer-mini">👀 ${l.espectadores || 0}</span>
         </div>
         <div class="info">
           <h2>${esc(l.titulo)}</h2>
@@ -135,6 +165,8 @@
     try {
       const resp = await apiFetch({ action: 'obtenerLivesActivos' });
       if (resp.ok && resp.lives && resp.lives.length > 0) {
+        const counts = await Promise.all(resp.lives.map(l => contarEspectadores(l.id)));
+        resp.lives.forEach((l, i) => { l.espectadores = counts[i]; });
         renderLives(resp.lives);
       } else {
         subtitle.textContent = 'Vendedores transmitiendo';

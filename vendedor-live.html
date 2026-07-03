@@ -124,6 +124,38 @@
   }
   @keyframes pulse-dot { 0%,100%{opacity:1;} 50%{opacity:.3;} }
 
+  .viewer-badge {
+    display: inline-flex; align-items: center; gap: 4px;
+    font-size: 12px; font-weight: 700; color: var(--color-text-primary);
+    background: var(--color-surface-2); border: 1px solid var(--color-border-subtle);
+    padding: 6px 12px; border-radius: var(--radius-pill);
+    margin-left: 6px; cursor: pointer;
+  }
+
+  .sheet-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,.7);
+    display: flex; align-items: flex-end; z-index: var(--z-modal, 300);
+  }
+  .sheet-panel {
+    background: var(--color-surface); border-radius: 20px 20px 0 0;
+    padding: 20px; width: 100%; box-sizing: border-box;
+    max-height: 70vh; overflow-y: auto;
+  }
+  .sheet-panel h2 { margin: 0 0 12px; color: var(--color-text-primary); font-size: 17px; }
+  .viewer-row {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 10px 4px; border-bottom: 1px solid var(--color-border-subtle);
+    font-size: 14px; color: var(--color-text-primary);
+  }
+  .viewer-row:last-child { border-bottom: none; }
+  .viewer-row .hace { font-size: 11px; color: var(--color-text-soft); }
+  .sheet-panel button.cerrar {
+    width: 100%; border: none; border-radius: var(--radius-pill);
+    padding: 12px; font-size: 14px; font-weight: 700; cursor: pointer;
+    background: var(--color-surface-2); color: var(--color-text-primary);
+    border: 1px solid var(--color-border-subtle); margin-top: 12px;
+  }
+
   .video-box {
     position: relative; width: 100%; aspect-ratio: 16/9; background: #000;
     border-radius: var(--radius-lg); overflow: hidden; margin-bottom: 12px;
@@ -255,6 +287,8 @@ let currentSesion = null;
 let selectedProductIds = new Set();
 let allProducts = [];
 let chatUnsub = null;
+let presenceUnsub = null;
+let lastViewers = [];
 let tipoSeleccionado = 'grabado'; // 'grabado' es el default/recomendado
 
 function esc(s) {
@@ -265,6 +299,43 @@ function esc(s) {
 
 function getComprobadorUrl(id) {
   return `${location.origin}${location.pathname.replace('vendedor-live.html','comprador-live.html')}?id=${id}`;
+}
+
+// ── Espectadores (presencia en tiempo real, vía Firebase) ──
+function setupContadorEspectadores(liveId) {
+  const countEl = document.getElementById('viewer-count');
+  presenceUnsub = onValue(ref(db, `presencia/${liveId}`), (snap) => {
+    const data = snap.val() || {};
+    lastViewers = Object.values(data).sort((a, b) => (b.ts || 0) - (a.ts || 0));
+    if (countEl) countEl.textContent = lastViewers.length;
+  });
+}
+
+function hace(ts) {
+  if (!ts) return '';
+  const seg = Math.max(0, Math.floor((Date.now() - ts) / 1000));
+  if (seg < 60) return 'justo ahora';
+  const min = Math.floor(seg / 60);
+  if (min < 60) return `hace ${min} min`;
+  const hr = Math.floor(min / 60);
+  return `hace ${hr} h`;
+}
+
+function mostrarEspectadores() {
+  const overlay = document.createElement('div');
+  overlay.className = 'sheet-overlay';
+  const filas = lastViewers.length
+    ? lastViewers.map(v => `<div class="viewer-row"><span>👤 ${esc(v.nombre || 'Invitado')}</span><span class="hace">${esc(hace(v.ts))}</span></div>`).join('')
+    : '<div class="chat-empty">Nadie te está viendo en este momento.</div>';
+  overlay.innerHTML = `
+    <div class="sheet-panel">
+      <h2>👀 Te están viendo (${lastViewers.length})</h2>
+      ${filas}
+      <button class="cerrar" id="btn-cerrar-espectadores">Cerrar</button>
+    </div>`;
+  document.body.appendChild(overlay);
+  document.getElementById('btn-cerrar-espectadores').addEventListener('click', () => document.body.removeChild(overlay));
+  overlay.addEventListener('click', (e) => { if (e.target === overlay) document.body.removeChild(overlay); });
 }
 
 // ── Reproductor sincronizado (video grabado que se comporta como en vivo) ──
@@ -609,6 +680,7 @@ function renderLiveFallback() {
   wrap.innerHTML = `
     <div class="live-card">
       <span class="status-badge live"><span class="status-dot"></span> EN VIVO</span>
+      <button class="viewer-badge" id="btn-viewers">👀 <span id="viewer-count">0</span> viendo</button>
       <h2 style="margin-top:12px;">${esc(currentSesion.titulo || '')}</h2>
       <div class="share-box">
         <input type="text" readonly value="${esc(shareUrl)}" id="share-url">
@@ -630,11 +702,13 @@ function renderLiveFallback() {
   document.getElementById('btn-copy').addEventListener('click', () => {
     navigator.clipboard.writeText(shareUrl).catch(() => {});
   });
+  document.getElementById('btn-viewers').addEventListener('click', mostrarEspectadores);
   document.getElementById('btn-finalizar').addEventListener('click', () => {
     if (!confirm('¿Finalizar la transmisión en vivo?')) return;
     finalizarTransmision(document.getElementById('btn-finalizar'));
   });
   setupChat(currentSesion.id, vendorSession.nombre, true);
+  setupContadorEspectadores(currentSesion.id);
 }
 
 function renderLiveFull() {
@@ -652,6 +726,7 @@ function renderLiveFull() {
   wrap.innerHTML = `
     <div class="live-card">
       <span class="status-badge live"><span class="status-dot"></span> EN VIVO</span>
+      <button class="viewer-badge" id="btn-viewers">👀 <span id="viewer-count">0</span> viendo</button>
       <h2 style="margin-top:12px;">${esc(currentSesion.titulo)}</h2>
 
       ${esGrabado ? `
@@ -704,6 +779,8 @@ IDs cargados: ${esc(allProducts.map(p => p.id).join(', '))}</div>`
     setTimeout(() => { btn.textContent = 'Copiar'; }, 1500);
   });
 
+  document.getElementById('btn-viewers').addEventListener('click', mostrarEspectadores);
+
   document.querySelectorAll('#live-product-grid .product-chip').forEach(chip => {
     chip.addEventListener('click', async () => {
       document.querySelectorAll('#live-product-grid .product-chip').forEach(c => c.classList.remove('selected'));
@@ -720,6 +797,7 @@ IDs cargados: ${esc(allProducts.map(p => p.id).join(', '))}</div>`
   });
 
   setupChat(currentSesion.id, vendorSession.nombre, true);
+  setupContadorEspectadores(currentSesion.id);
 
   if (esGrabado && currentSesion.youtube_id && currentSesion.fecha_inicio) {
     const fechaInicioMs = new Date(currentSesion.fecha_inicio).getTime();
@@ -777,6 +855,7 @@ async function finalizarTransmision(finBtn) {
   }
 
   if (chatUnsub) chatUnsub();
+  if (presenceUnsub) { presenceUnsub(); presenceUnsub = null; }
   renderEnded(entregaUrl);
 }
 

@@ -732,3 +732,58 @@ window.adminRechazarBeneficiario = async function(id) {
     loadBeneficiarios(true);
   } catch(err) { alert('Error de conexión.'); }
 };
+
+// ── Admin: Reportes de transmisiones en vivo ─────────────────
+window.loadReportesLive = async function() {
+  const list = document.getElementById('admin-reportes-live-list');
+  if (!list) return;
+  list.innerHTML = '<p style="color:#aaa;text-align:center;padding:24px;">Cargando…</p>';
+  try {
+    const token = sessionStorage.getItem('admin_token') || '';
+    const res   = await fetch(API_URL + '?' + new URLSearchParams({ action:'obtenerReportesLive', token }));
+    const data  = await res.json();
+    if (!data.ok) { list.innerHTML = `<p style="color:#ef4444;text-align:center;padding:16px;">Error: ${data.error}</p>`; return; }
+    const reportes = data.reportes || [];
+
+    const badge = document.getElementById('tab-badge-reportes_live');
+    const cnt   = document.getElementById('sc-reportes_live');
+    if (window._updateNotifTabBadge) window._updateNotifTabBadge('reportes_live', reportes.length);
+    else {
+      if (badge) badge.textContent = reportes.length;
+      if (cnt)   cnt.textContent   = reportes.length;
+    }
+
+    if (reportes.length === 0) {
+      list.innerHTML = '<p style="color:#aaa;text-align:center;padding:32px;">No hay reportes pendientes de revisar.</p>';
+      return;
+    }
+
+    const esc = s => String(s||'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    reportes.sort((a,b) => new Date(b.timestamp) - new Date(a.timestamp));
+
+    list.innerHTML = reportes.map(r => `
+      <div class="reporte-row" data-reporte-id="${esc(r.reporteId)}">
+        <div class="info">
+          <strong>📺 ${esc(r.liveTitulo || 'Transmisión sin título')}</strong>
+          <span>Vendedor: ${esc(r.vendedorNombre || r.vendedorUid || 'Desconocido')}</span><br>
+          <span>${new Date(r.timestamp).toLocaleString('es-MX')}${r.telefonoUsuario ? ' · 📱 ' + esc(r.telefonoUsuario) : ''}</span>
+          <div style="margin-top:6px;font-size:.82rem;color:#333;background:#fff0f0;border-radius:8px;padding:8px 10px;">${esc(r.motivo)}</div>
+        </div>
+        <div class="actions">
+          <button class="btn-marcar-revisado" onclick="adminMarcarReporteLiveRevisado('${esc(r.reporteId)}')">✅ Marcar revisado</button>
+        </div>
+      </div>`).join('');
+  } catch(err) {
+    list.innerHTML = '<p style="color:#ef4444;text-align:center;padding:16px;">Error de conexión.</p>';
+  }
+};
+
+window.adminMarcarReporteLiveRevisado = async function(reporteId) {
+  try {
+    const token = sessionStorage.getItem('admin_token') || '';
+    const res   = await fetch(API_URL, { method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body: new URLSearchParams({ action:'marcarReporteLiveRevisado', reporteId, token }).toString() });
+    const data  = await res.json();
+    if (!data.ok) { alert('Error: ' + data.error); return; }
+    loadReportesLive();
+  } catch(err) { alert('Error de conexión.'); }
+};
