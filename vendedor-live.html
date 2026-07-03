@@ -435,10 +435,60 @@ function renderScheduled() {
 
 function renderLive() {
   subtitle.textContent = 'Transmitiendo';
+  try {
+    renderLiveFull();
+  } catch (err) {
+    console.error('renderLiveFull falló:', err);
+    alert('Hubo un problema mostrando tus productos en la pantalla de vivo (' + (err.message || err) + '). Te muestro una versión simple mientras lo reviso.');
+    renderLiveFallback();
+  }
+}
+
+function renderLiveFallback() {
   const shareUrl = getComprobadorUrl(currentSesion.id);
-  const misProductos = (currentSesion.productos_ids || '').split(',').filter(Boolean)
-    .map(id => allProducts.find(p => String(p.id) === String(id)))
-    .filter(Boolean);
+  wrap.innerHTML = `
+    <div class="live-card">
+      <span class="status-badge live"><span class="status-dot"></span> EN VIVO</span>
+      <h2 style="margin-top:12px;">${esc(currentSesion.titulo || '')}</h2>
+      <div class="share-box">
+        <input type="text" readonly value="${esc(shareUrl)}" id="share-url">
+        <button id="btn-copy">Copiar</button>
+      </div>
+    </div>
+    <div class="live-card">
+      <h2>Chat</h2>
+      <div class="chat-panel">
+        <div class="chat-messages" id="chat-messages"><div class="chat-empty">Aún no hay mensajes.</div></div>
+        <div class="chat-input-row">
+          <input type="text" id="chat-input" placeholder="Responde a tus compradores…" maxlength="300">
+          <button id="chat-send">➤</button>
+        </div>
+      </div>
+    </div>
+    <button class="btn-live danger" id="btn-finalizar">Finalizar transmisión</button>
+  `;
+  document.getElementById('btn-copy').addEventListener('click', () => {
+    navigator.clipboard.writeText(shareUrl).catch(() => {});
+  });
+  document.getElementById('btn-finalizar').addEventListener('click', async () => {
+    if (!confirm('¿Finalizar la transmisión en vivo?')) return;
+    await apiFetch({ action: 'actualizarEstadoLive', vendorToken: vendorSession.token, id: currentSesion.id, estado: 'terminado' });
+    if (chatUnsub) chatUnsub();
+    renderEnded();
+  });
+  setupChat(currentSesion.id, vendorSession.nombre, true);
+}
+
+function renderLiveFull() {
+  const shareUrl = getComprobadorUrl(currentSesion.id);
+  let misProductos = [];
+  try {
+    misProductos = (currentSesion.productos_ids || '').split(',').filter(Boolean)
+      .map(id => allProducts.find(p => String(p.id) === String(id)))
+      .filter(Boolean);
+  } catch (e) {
+    misProductos = [];
+  }
 
   wrap.innerHTML = `
     <div class="live-card">
@@ -648,4 +698,3 @@ init();
 </script>
 </body>
 </html>
-
