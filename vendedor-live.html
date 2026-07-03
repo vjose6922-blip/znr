@@ -366,7 +366,7 @@ async function crearSesion() {
       vendorToken: vendorSession.token,
       titulo, descripcion: desc,
       youtube_link: youtube,
-      productos_ids: Array.from(selectedProductIds).join(',')
+      productos_ids: Array.from(selectedProductIds).join(';')
     });
 
     if (!resp.ok) {
@@ -494,7 +494,7 @@ function renderLiveFull() {
   const shareUrl = getComprobadorUrl(currentSesion.id);
   let misProductos = [];
   try {
-    misProductos = String(currentSesion.productos_ids || '').split(',').filter(Boolean)
+    misProductos = String(currentSesion.productos_ids || '').split(';').filter(Boolean)
       .map(id => allProducts.find(p => String(p.id) === String(id)))
       .filter(Boolean);
   } catch (e) {
