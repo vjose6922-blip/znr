@@ -229,6 +229,7 @@ function renderScheduledWait() {
     </div>`;
 }
 
+// ── Identidad del comprador (nombre + teléfono, se guarda local) ──
 function getIdentity() {
   try {
     const raw = localStorage.getItem('znr_chat_identity');
@@ -253,8 +254,8 @@ function askIdentity(onDone) {
       <input type="tel" id="idn-tel" placeholder="10 dígitos" maxlength="10" value="${esc(prev.telefono || '')}">
       <label for="idn-dir">Dirección de entrega</label>
       <textarea id="idn-dir" placeholder="Calle, número, colonia, referencias… (o usa tu ubicación abajo)" maxlength="200">${esc(prev.direccion || '')}</textarea>
-      <button type="button" class="btn-gps" id="idn-gps-btn"> Usar mi ubicación actual</button>
-      <p class="gps-status ${gpsCoords ? 'ok' : ''}" id="idn-gps-status">${gpsCoords ? ' Ya tenemos tu ubicación guardada.' : ''}</p>
+      <button type="button" class="btn-gps" id="idn-gps-btn">📍 Usar mi ubicación actual</button>
+      <p class="gps-status ${gpsCoords ? 'ok' : ''}" id="idn-gps-status">${gpsCoords ? '✅ Ya tenemos tu ubicación guardada.' : ''}</p>
       <label for="idn-horario">Horario para entrega</label>
       <input type="text" id="idn-horario" placeholder="Ej. Tardes después de 5pm, fines de semana…" maxlength="80" value="${esc(prev.horario || '')}">
       <button id="idn-btn">Entrar al chat</button>
@@ -273,7 +274,7 @@ function askIdentity(onDone) {
     navigator.geolocation.getCurrentPosition((pos) => {
       gpsCoords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
       statusEl.className = 'gps-status ok';
-      statusEl.textContent = ' Ubicación capturada. El vendedor podrá verla en el mapa.';
+      statusEl.textContent = '✅ Ubicación capturada. El vendedor podrá verla en el mapa.';
     }, (err) => {
       gpsCoords = null;
       statusEl.className = 'gps-status error';
@@ -404,6 +405,7 @@ function setupChat() {
   });
 }
 
+// ── Polling ligero para detectar cambios de estado / producto actual ──
 function startPolling() {
   pollTimer = setInterval(async () => {
     try {
@@ -420,7 +422,7 @@ function startPolling() {
         sesion.producto_actual_id = nueva.producto_actual_id;
         renderProductoActual();
       }
-    } catch (e) { 
+    } catch (e) { /* silencioso, reintenta en el siguiente ciclo */ }
   }, 6000);
 }
 
@@ -429,6 +431,9 @@ async function cargarProductos(idsStr) {
   productosMap = {};
   await Promise.all(ids.map(async (id) => {
     try {
+      // reutiliza listarComunidad filtrando por vendedor, o si prefieres,
+      // aquí podríamos tener un endpoint obtenerProductoComunidad(id) — por ahora
+      // se resuelve al cargar la sesión completa vía obtenerSesionLivePorId + productos embebidos.hhhhhhhh
     } catch (e) {}
   }));
 }
@@ -443,6 +448,7 @@ async function init() {
     if (!resp.ok) { renderNotFound(); return; }
     sesion = resp.sesion;
 
+    // Cargar detalle de productos de este vendedor (para nombre/imagen/precio)
     const prodResp = await apiFetch({ action: 'listarComunidad', vendedor_uid: sesion.vendedor_id, limit: 50 });
     if (prodResp.ok && prodResp.products) {
       prodResp.products.forEach(p => { productosMap[p.id] = p; });
