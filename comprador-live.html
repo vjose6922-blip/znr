@@ -118,6 +118,14 @@
     padding: 13px; font-size: 14px; font-weight: 700; cursor: pointer;
     background: var(--gradient-accent); color: #fff;
   }
+  .identity-sheet button.btn-gps {
+    background: var(--color-surface-2); color: var(--color-text-primary);
+    border: 1px solid var(--color-border-subtle);
+    font-size: 13px; padding: 11px; margin-bottom: 4px;
+  }
+  .gps-status { margin: 0 0 12px; font-size: 12px; min-height: 15px; color: var(--color-text-soft); }
+  .gps-status.ok { color: #4ade80; }
+  .gps-status.error { color: #f87171; }
   .loading-spinner {
     width: 28px; height: 28px; border-radius: 50%;
     border: 3px solid var(--color-border-subtle); border-top-color: var(--color-accent-solid);
@@ -231,6 +239,9 @@ function getIdentity() {
 
 function askIdentity(onDone) {
   const prev = identity || {};
+  let gpsCoords = (typeof prev.lat === 'number' && typeof prev.lng === 'number')
+    ? { lat: prev.lat, lng: prev.lng } : null;
+
   const overlay = document.createElement('div');
   overlay.className = 'identity-overlay';
   overlay.innerHTML = `
@@ -242,12 +253,35 @@ function askIdentity(onDone) {
       <label for="idn-tel">Tu teléfono</label>
       <input type="tel" id="idn-tel" placeholder="10 dígitos" maxlength="10" value="${esc(prev.telefono || '')}">
       <label for="idn-dir">Dirección de entrega</label>
-      <textarea id="idn-dir" placeholder="Calle, número, colonia, referencias…" maxlength="200">${esc(prev.direccion || '')}</textarea>
+      <textarea id="idn-dir" placeholder="Calle, número, colonia, referencias… (o usa tu ubicación abajo)" maxlength="200">${esc(prev.direccion || '')}</textarea>
+      <button type="button" class="btn-gps" id="idn-gps-btn">📍 Usar mi ubicación actual</button>
+      <p class="gps-status ${gpsCoords ? 'ok' : ''}" id="idn-gps-status">${gpsCoords ? '✅ Ya tenemos tu ubicación guardada.' : ''}</p>
       <label for="idn-horario">Horario para entrega</label>
       <input type="text" id="idn-horario" placeholder="Ej. Tardes después de 5pm, fines de semana…" maxlength="80" value="${esc(prev.horario || '')}">
       <button id="idn-btn">Entrar al chat</button>
     </div>`;
   document.body.appendChild(overlay);
+
+  document.getElementById('idn-gps-btn').addEventListener('click', () => {
+    const statusEl = document.getElementById('idn-gps-status');
+    if (!navigator.geolocation) {
+      statusEl.className = 'gps-status error';
+      statusEl.textContent = 'Tu navegador no soporta ubicación por GPS. Escribe tu dirección arriba.';
+      return;
+    }
+    statusEl.className = 'gps-status';
+    statusEl.textContent = 'Obteniendo tu ubicación…';
+    navigator.geolocation.getCurrentPosition((pos) => {
+      gpsCoords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+      statusEl.className = 'gps-status ok';
+      statusEl.textContent = '✅ Ubicación capturada. El vendedor podrá verla en el mapa.';
+    }, (err) => {
+      gpsCoords = null;
+      statusEl.className = 'gps-status error';
+      statusEl.textContent = 'No se pudo obtener tu ubicación (revisa los permisos). Escribe tu dirección arriba.';
+    }, { enableHighAccuracy: true, timeout: 10000 });
+  });
+
   document.getElementById('idn-btn').addEventListener('click', () => {
     const nombre = document.getElementById('idn-nombre').value.trim();
     const tel = document.getElementById('idn-tel').value.replace(/\D/g, '');
@@ -257,15 +291,19 @@ function askIdentity(onDone) {
       alert('Escribe tu nombre y un teléfono válido de 10 dígitos.');
       return;
     }
-    if (!direccion) {
-      alert('Escribe la dirección donde quieres recibir tu pedido.');
+    if (!direccion && !gpsCoords) {
+      alert('Escribe tu dirección o usa el botón para compartir tu ubicación.');
       return;
     }
     if (!horario) {
       alert('Dinos en qué horario podemos entregarte.');
       return;
     }
-    identity = { nombre, telefono: tel, direccion, horario };
+    identity = {
+      nombre, telefono: tel, direccion, horario,
+      lat: gpsCoords ? gpsCoords.lat : null,
+      lng: gpsCoords ? gpsCoords.lng : null
+    };
     localStorage.setItem('znr_chat_identity', JSON.stringify(identity));
     document.body.removeChild(overlay);
     onDone();
@@ -330,14 +368,19 @@ function enviarMensaje() {
   const text = input.value.trim();
   if (!text || !identity) return;
   input.value = '';
-  push(ref(db, `chats/${liveId}/messages`), {
+  const payload = {
     author: identity.nombre,
     telefono: identity.telefono,
     direccion: identity.direccion || '',
     horario: identity.horario || '',
     text, isVendor: false, ts: Date.now(),
     producto_id: String(sesion.producto_actual_id || '')
-  }).catch(err => {
+  };
+  if (typeof identity.lat === 'number' && typeof identity.lng === 'number') {
+    payload.lat = identity.lat;
+    payload.lng = identity.lng;
+  }
+  push(ref(db, `chats/${liveId}/messages`), payload).catch(err => {
     alert('No se pudo enviar tu comentario: ' + err.message);
     input.value = text;
   });
@@ -388,6 +431,9 @@ async function cargarProductos(idsStr) {
   productosMap = {};
   await Promise.all(ids.map(async (id) => {
     try {
+      // reutiliza listarComunidad filtrando por vendedor, o si prefieres,
+      // aquí podríamos tener un endpoint obtenerProductoComunidad(id) — por ahora
+      // se resuelve al cargar la sesión completa vía obtenerSesionLivePorId + productos embebidos.
     } catch (e) {}
   }));
 }
@@ -402,6 +448,7 @@ async function init() {
     if (!resp.ok) { renderNotFound(); return; }
     sesion = resp.sesion;
 
+    // Cargar detalle de productos de este vendedor (para nombre/imagen/precio)
     const prodResp = await apiFetch({ action: 'listarComunidad', vendedor_uid: sesion.vendedor_id, limit: 50 });
     if (prodResp.ok && prodResp.products) {
       prodResp.products.forEach(p => { productosMap[p.id] = p; });
@@ -413,7 +460,7 @@ async function init() {
     renderLive();
     startPolling();
 
-    if (!identity || !identity.direccion || !identity.horario) {
+    if (!identity || (!identity.direccion && !(typeof identity.lat === 'number' && typeof identity.lng === 'number')) || !identity.horario) {
       askIdentity(() => {});
     }
   } catch (err) {
