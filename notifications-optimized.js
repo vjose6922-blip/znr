@@ -770,6 +770,8 @@ window.loadReportesLive = async function() {
           <div style="margin-top:6px;font-size:.82rem;color:#333;background:#fff0f0;border-radius:8px;padding:8px 10px;">${esc(r.motivo)}</div>
         </div>
         <div class="actions">
+          ${r.youtubeLink ? `<a class="btn-marcar-revisado" style="background:#e3f2fd;color:#1565c0;text-decoration:none;" href="${esc(r.youtubeLink)}" target="_blank" rel="noopener">▶️ Ver video</a>` : ''}
+          <button class="btn-suspend" onclick="adminSuspenderVendedorDesdeReporte('${esc(r.vendedorUid)}','${esc(r.reporteId)}')">🚫 Suspender cuenta</button>
           <button class="btn-marcar-revisado" onclick="adminMarcarReporteLiveRevisado('${esc(r.reporteId)}')">✅ Marcar revisado</button>
         </div>
       </div>`).join('');
@@ -785,5 +787,19 @@ window.adminMarcarReporteLiveRevisado = async function(reporteId) {
     const data  = await res.json();
     if (!data.ok) { alert('Error: ' + data.error); return; }
     loadReportesLive();
+  } catch(err) { alert('Error de conexión.'); }
+};
+
+window.adminSuspenderVendedorDesdeReporte = async function(vendedorUid, reporteId) {
+  if (!vendedorUid) { alert('Este reporte no tiene un vendedor asociado.'); return; }
+  if (!confirm('¿Suspender la cuenta de este vendedor? No va a poder iniciar sesión ni transmitir hasta que la reactives desde "Vendedores".')) return;
+  try {
+    const token = sessionStorage.getItem('admin_token') || '';
+    const res   = await fetch(API_URL, { method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body: new URLSearchParams({ action:'suspenderVendedor', uid: vendedorUid, token }).toString() });
+    const data  = await res.json();
+    if (!data.ok) { alert('Error: ' + data.error); return; }
+    await window.adminMarcarReporteLiveRevisado(reporteId);
+    alert('Cuenta suspendida.');
+    if (window.AdminComunidad) AdminComunidad.loadVendors();
   } catch(err) { alert('Error de conexión.'); }
 };
