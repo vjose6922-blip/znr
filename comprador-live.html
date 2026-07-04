@@ -378,6 +378,7 @@ function mostrarReporte() {
         liveTitulo: sesion.titulo || '',
         vendedor_uid: sesion.vendedor_id || '',
         vendedor_nombre: sesion.vendedor_nombre || '',
+        youtubeLink: sesion.youtube_id ? `https://www.youtube.com/watch?v=${sesion.youtube_id}` : '',
         motivo,
         telefonoUsuario: identity ? (identity.telefono || '') : ''
       }, 'POST');
@@ -658,7 +659,7 @@ async function init() {
     btnReportar.style.display = 'flex';
     btnReportar.addEventListener('click', mostrarReporte);
 
-    // Cargar detalle de productos de este vendedor (para nombre/imagen/precio)0000
+    // Cargar detalle de productos de este vendedor (para nombre/imagen/prnn
     const prodResp = await apiFetch({ action: 'listarComunidad', vendedor_uid: sesion.vendedor_id, limit: 50 });
     if (prodResp.ok && prodResp.products) {
       prodResp.products.forEach(p => { productosMap[p.id] = p; });
