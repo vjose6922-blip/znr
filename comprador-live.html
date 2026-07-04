@@ -28,6 +28,20 @@
 <style>
   .live-wrap { max-width: 640px; margin: 0 auto; padding: 0 0 100px; }
 
+  /* ── Video fijo: mientras se ve el live, el <body> se vuelve un
+     contenedor de altura fija; el header no se mueve y el resto del
+     contenido (incluyendo el video) hace scroll DENTRO de live-wrap.
+     Como el video es el primer elemento ahí, con sticky top:0 queda
+     pegado desde el primer pixel de scroll — nunca se mueve. ── */
+  body.live-active {
+    height: 100vh; height: 100dvh; overflow: hidden;
+    display: flex; flex-direction: column;
+  }
+  body.live-active .app-header { flex-shrink: 0; }
+  body.live-active .live-wrap {
+    flex: 1; min-height: 0; overflow-y: auto; padding-bottom: 24px;
+  }
+
   .video-box {
     position: sticky; top: 0; z-index: 20;
     width: 100%; aspect-ratio: 16/9; background: #000;
@@ -436,6 +450,7 @@ function mostrarReporte() {
 }
 
 function renderNoId() {
+  document.body.classList.remove('live-active');
   wrap.innerHTML = `
     <div class="center-card">
       <div class="icon">🔗</div>
@@ -445,6 +460,7 @@ function renderNoId() {
 }
 
 function renderNotFound() {
+  document.body.classList.remove('live-active');
   wrap.innerHTML = `
     <div class="center-card">
       <div class="icon">😕</div>
@@ -456,6 +472,7 @@ function renderNotFound() {
 function renderEnded() {
   detenerPlayerSincronizado();
   quitarPresencia();
+  document.body.classList.remove('live-active');
   wrap.innerHTML = `
     <div class="center-card">
       <div class="icon">✅</div>
@@ -465,6 +482,7 @@ function renderEnded() {
 }
 
 function renderScheduledWait() {
+  document.body.classList.remove('live-active');
   wrap.innerHTML = `
     <div class="center-card">
       <div class="icon">⏳</div>
@@ -556,6 +574,7 @@ function askIdentity(onDone) {
 }
 
 function renderLive() {
+  document.body.classList.add('live-active');
   const shareUrl = location.href;
   const esGrabado = sesion.tipo !== 'vivo';
   wrap.innerHTML = `
@@ -696,7 +715,7 @@ async function init() {
     btnReportar.style.display = 'flex';
     btnReportar.addEventListener('click', mostrarReporte);
 
-    // Cargar detalle de productos de este 2900
+    // Cargar detalle de productos de este vendedor (para nombre/imagen/precio)0000
     const prodResp = await apiFetch({ action: 'listarComunidad', vendedor_uid: sesion.vendedor_id, limit: 50 });
     if (prodResp.ok && prodResp.products) {
       prodResp.products.forEach(p => { productosMap[p.id] = p; });
