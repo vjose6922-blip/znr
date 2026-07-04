@@ -59,19 +59,24 @@
 
   .tipo-options { display: flex; flex-direction: column; gap: 8px; }
   .tipo-option {
-    display: flex; align-items: flex-start; gap: 10px;
     border: 1px solid var(--color-border-subtle); border-radius: var(--radius-md);
-    padding: 12px 14px; cursor: pointer; background: var(--color-surface-2);
+    padding: 12px 14px; background: var(--color-surface-2);
   }
   .tipo-option.selected { border-color: var(--color-accent-solid); background: rgba(var(--color-accent-rgb, 236,72,153), .08); }
-  .tipo-option input { width: auto; margin-top: 3px; flex-shrink: 0; }
-  .tipo-option .tipo-text strong { display: block; font-size: 13px; color: var(--color-text-primary); margin-bottom: 2px; }
-  .tipo-option .tipo-text span { display: block; font-size: 12px; color: var(--color-text-soft); line-height: 1.4; }
+  .tipo-option-header { display: flex; align-items: flex-start; gap: 10px; cursor: pointer; }
+  .tipo-option-header input { width: auto; margin-top: 3px; flex-shrink: 0; }
+  .tipo-option .tipo-text strong { display: block; font-size: 13px; color: var(--color-text-primary); }
   .tipo-option .badge-recomendado {
     display: inline-block; font-size: 10px; font-weight: 700; color: #4ade80;
     background: rgba(74,222,128,.15); padding: 2px 7px; border-radius: var(--radius-pill);
     margin-left: 6px; vertical-align: middle;
   }
+  .tipo-detalle { margin: 8px 0 0 26px; }
+  .tipo-detalle summary {
+    font-size: 11px; font-weight: 700; color: var(--color-accent-solid);
+    cursor: pointer; user-select: none;
+  }
+  .tipo-detalle p { margin: 6px 0 0; font-size: 12px; color: var(--color-text-soft); line-height: 1.4; }
 
   .product-grid {
     display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;
@@ -462,20 +467,30 @@ async function renderCreateForm() {
       <div class="field-group">
         <label>¿Cómo vas a transmitir?</label>
         <div class="tipo-options">
-          <label class="tipo-option selected" id="tipo-grabado-label">
-            <input type="radio" name="tipo" value="grabado" checked>
-            <span class="tipo-text">
-              <strong>🎥 Video grabado <span class="badge-recomendado">Recomendado</span></strong>
-              <span>Graba un video mostrando tus productos, súbelo a YouTube (puede ser "No listado") y pega el link. Z&R lo muestra a tus compradores sincronizado, como si fuera en vivo — no necesitas transmitir en tiempo real ni tener suscriptores.</span>
-            </span>
-          </label>
-          <label class="tipo-option" id="tipo-vivo-label">
-            <input type="radio" name="tipo" value="vivo">
-            <span class="tipo-text">
-              <strong>🔴 Transmisión en vivo real</strong>
-              <span>Transmite en vivo desde la app de YouTube y pega aquí el link. Nota: YouTube pide mínimo 50 suscriptores para poder transmitir en vivo desde el celular.</span>
-            </span>
-          </label>
+          <div class="tipo-option selected" id="tipo-grabado-label">
+            <label class="tipo-option-header">
+              <input type="radio" name="tipo" value="grabado" checked>
+              <span class="tipo-text">
+                <strong>🎥 Video grabado <span class="badge-recomendado">Recomendado</span></strong>
+              </span>
+            </label>
+            <details class="tipo-detalle">
+              <summary>¿Cómo funciona?</summary>
+              <p>Graba un video mostrando tus productos, súbelo a YouTube (puede ser "No listado") y pega el link. Z&R lo muestra a tus compradores sincronizado, como si fuera en vivo — no necesitas transmitir en tiempo real ni tener suscriptores.</p>
+            </details>
+          </div>
+          <div class="tipo-option" id="tipo-vivo-label">
+            <label class="tipo-option-header">
+              <input type="radio" name="tipo" value="vivo">
+              <span class="tipo-text">
+                <strong>🔴 Transmisión en vivo real</strong>
+              </span>
+            </label>
+            <details class="tipo-detalle">
+              <summary>¿Cómo funciona?</summary>
+              <p>Transmite en vivo desde la app de YouTube y pega aquí el link. Nota: YouTube pide mínimo 50 suscriptores para poder transmitir en vivo desde el celular.</p>
+            </details>
+          </div>
         </div>
       </div>
 
