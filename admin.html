@@ -2301,9 +2301,10 @@ window.openVendorStatsGlobal = async function() {
           <div style="font-size:13px;font-weight:600;"> ${actuales}/${limite} productos</div>
           <div style="font-size:11px;color:#888;"> ${aprobados} aprobados · ⏳ ${pendProd} pend. · Stock: ${stock}</div>
         </div>
-        <div style="display:flex;gap:6px;flex-shrink:0;">
+        <div style="display:flex;gap:6px;flex-shrink:0;flex-wrap:wrap;justify-content:flex-end;">
           <button class="btn-toggle-plan" data-uid="${v.uid}" data-plan="${v.plan||'free'}" data-nombre="${escapeHtml(v.nombre||'')}" style="background:${esPlus?'#f3e8ff':'#ede9fe'};color:#7c3aed;border:none;border-radius:10px;padding:6px 10px;font-size:11px;font-weight:700;cursor:pointer;">${esPlus?'Quitar Plus':'Activar Plus'}</button>
           ${v.estado==='activo' && typeof AdminComunidad!=='undefined' ? `<button onclick="AdminComunidad.suspenderVendedor('${v.uid}','${escapeHtml(v.nombre)}')" class="btn-suspend" style="background:var(--color-surface-3);border:1px solid var(--color-border-subtle);color:var(--color-text-muted);border-radius:10px;padding:6px 10px;font-size:11px;font-weight:600;cursor:pointer;">⏸</button>` : ''}
+          <button onclick="window.eliminarCuentaVendedorAdmin('${v.uid}','${escapeHtml(v.nombre)}')" class="btn-delete-account" title="Eliminar cuenta por completo" style="background:#fef2f2;border:1px solid #fecaca;color:#dc2626;border-radius:10px;padding:6px 10px;font-size:11px;font-weight:700;cursor:pointer;">🗑️</button>
         </div>
       </div>`;
     }).join('');
@@ -2372,6 +2373,47 @@ window.togglePlanVendedor = async function(uid, nombre, currentPlan) {
     else alert(mensaje);
 
     window.openVendorStatsGlobal();
+
+  } catch (err) {
+    if (window.showTemporaryMessage) window.showTemporaryMessage('❌ ' + err.message, 'error');
+    else alert('Error: ' + err.message);
+  } finally {
+    if (window.hideLoader) window.hideLoader();
+  }
+};
+
+window.eliminarCuentaVendedorAdmin = async function(uid, nombre) {
+  const token = sessionStorage.getItem('admin_token') || '';
+  const api   = window.API_URL || window.ADMIN_API_URL || '';
+
+  if (!api)   { if (window.showTemporaryMessage) window.showTemporaryMessage('API no disponible', 'error'); return; }
+  if (!token) { if (window.showTemporaryMessage) window.showTemporaryMessage('Token no encontrado. Re-inicia sesión.', 'error'); return; }
+
+  if (!confirm(`⚠️ Esto borrará TODO de "${nombre}": productos, imágenes, sesiones en vivo, entregas y su cuenta. Es irreversible. ¿Continuar?`)) return;
+  if (!confirm(`🚨 Última confirmación: se eliminará por completo a "${nombre}" y no podrás recuperar sus datos. ¿Eliminar definitivamente?`)) return;
+
+  try {
+    if (window.showLoader) window.showLoader('Eliminando cuenta...');
+    const params = new URLSearchParams();
+    params.append('action', 'eliminarCuentaVendedor');
+    params.append('uid', uid);
+    params.append('token', token);
+
+    const res = await fetch(api, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: params.toString()
+    });
+    const data = await res.json();
+    if (!data.ok) throw new Error(data.error || 'Error del servidor');
+
+    const mensaje = `🗑️ Cuenta de "${nombre}" eliminada por completo`;
+    if (window.showTemporaryMessage) window.showTemporaryMessage(mensaje, 'success');
+    else alert(mensaje);
+
+    window.openVendorStatsGlobal();
+    if (typeof AdminComunidad !== 'undefined' && AdminComunidad.loadVendors) AdminComunidad.loadVendors();
+    if (typeof window.refreshAllAdminBadges === 'function') window.refreshAllAdminBadges();
 
   } catch (err) {
     if (window.showTemporaryMessage) window.showTemporaryMessage('❌ ' + err.message, 'error');

@@ -1911,6 +1911,47 @@ btn.disabled = false; btn.textContent = 'Cambiar contraseña';
 }
 }
 
+window.eliminarMiCuenta = async function() {
+  if (!vendorSession || !vendorSession.token) return;
+
+  const confirmar = (opts) => new Promise(resolve => {
+    if (typeof showCustomConfirm === 'function') {
+      showCustomConfirm(Object.assign({}, opts, {
+        onConfirm: () => resolve(true),
+        onCancel:  () => resolve(false)
+      }));
+    } else {
+      resolve(confirm(opts.message));
+    }
+  });
+
+  const paso1 = await confirmar({
+    title: '⚠️ Eliminar mi cuenta',
+    message: 'Esto borrará permanentemente tus productos, imágenes, sesiones en vivo, entregas y tu cuenta de vendedor. No hay forma de deshacerlo. ¿Deseas continuar?',
+    icon: '', confirmText: 'Continuar', cancelText: 'Cancelar'
+  });
+  if (!paso1) return;
+
+  const paso2 = await confirmar({
+    title: '🚨 Última confirmación',
+    message: 'Al confirmar, tu cuenta y todos tus datos se eliminarán de inmediato y no podrás recuperarlos. ¿Eliminar definitivamente?',
+    icon: '', confirmText: 'Sí, eliminar todo', cancelText: 'Cancelar'
+  });
+  if (!paso2) return;
+
+  showLoader('Eliminando tu cuenta...');
+  try {
+    const res = await apiCall({ action: 'eliminarCuentaVendedor', vendorToken: vendorSession.token, uid: vendorSession.uid });
+    if (!res.ok) throw new Error(res.error || 'No se pudo eliminar la cuenta');
+    showTemporaryMessage('🗑️ Tu cuenta fue eliminada por completo', 'info');
+    setTimeout(() => { vendorLogout(); }, 1200);
+  } catch (err) {
+    showTemporaryMessage('❌ ' + err.message, 'error');
+  } finally {
+    hideLoader();
+  }
+};
+
 async function loadPlusSolicitudVendedor() {
 const area = document.getElementById('vendor-plus-notif-area');
 if (!area || !vendorSession) return;
