@@ -708,18 +708,22 @@ function renderProductoActual() {
       </div>
       <button class="btn-apartar" id="btn-apartar">🙋 Comentar "${esc(palabra)}"</button>
     </div>`;
-  document.getElementById('btn-apartar').addEventListener('click', () => {
-    const input = document.getElementById('chat-input');
-    input.value = palabra;
-    input.focus();
+  document.getElementById('btn-apartar').addEventListener('click', (e) => {
+    const btn = e.currentTarget;
+    if (!identity) { askIdentity(() => enviarMensaje(palabra)); return; }
+    enviarMensaje(palabra);
+    const textoOriginal = btn.textContent;
+    btn.textContent = '✅ Enviado';
+    btn.disabled = true;
+    setTimeout(() => { btn.textContent = textoOriginal; btn.disabled = false; }, 1200);
   });
 }
 
-function enviarMensaje() {
+function enviarMensaje(textoDirecto) {
   const input = document.getElementById('chat-input');
-  const text = input.value.trim();
+  const text = textoDirecto != null ? textoDirecto.trim() : input.value.trim();
   if (!text || !identity) return;
-  input.value = '';
+  if (textoDirecto == null) input.value = '';
   const payload = {
     author: identity.nombre,
     telefono: identity.telefono,
@@ -734,7 +738,7 @@ function enviarMensaje() {
   }
   push(ref(db, `chats/${liveId}/messages`), payload).catch(err => {
     alert('No se pudo enviar tu comentario: ' + err.message);
-    input.value = text;
+    if (textoDirecto == null) input.value = text;
   });
 }
 
