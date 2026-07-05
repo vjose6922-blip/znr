@@ -77,8 +77,8 @@ window.showTemporaryMessage = function(msg, type) { console.log(msg); };
 console.warn(' showTemporaryMessage no definida');
 }
 const PAGE_SIZE = 15;             // productos por página
-let allCommunityProducts = [];    // productos de la página actual (ya paginados)
-let filteredProducts = [];        // alias de allCommunityProducts para compatibilidad
+let allCommunityProducts = [];    // productos de
+let filteredProducts = [];        // alias de allComm000
 let currentPage = 1;              // página actual
 let totalPagesGlobal = 1;         // total de páginas devuelto por el backend
 let currentFilters = {};          // filtros activos (para mantenerlos al cambiar página)
