@@ -992,7 +992,25 @@ uploadedImages = { 1: null, 2: null, 3: null };
 }
 
 window.triggerUpload = function(n) {
-document.getElementById(`file-${n}`)?.click();
+const sheet = document.getElementById('photo-source-sheet');
+const input = document.getElementById(`file-${n}`);
+if (!sheet || !input) {
+    // Fallback por si el sheet no existe en esta página
+    input?.click();
+    return;
+}
+sheet.style.display = 'flex';
+window.__photoSheetPick = function(choice) {
+    sheet.style.display = 'none';
+    window.__photoSheetPick = null;
+    if (choice === 'cancel') return;
+    if (choice === 'camera') {
+        input.setAttribute('capture', 'environment');
+    } else {
+        input.removeAttribute('capture');
+    }
+    input.click();
+};
 };
 
 async function compressImage(file) {
