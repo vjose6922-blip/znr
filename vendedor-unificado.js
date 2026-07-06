@@ -1,4 +1,3 @@
-
 (function() {
 'use strict';
 
@@ -540,275 +539,40 @@ function renderVendorPlanPanel() {
         <div style="background:${pct >= 100 ? '#c62828' : '#7c3aed'};height:100%;width:${pct}%;"></div>
       </div>
       ${renovacionHTML}
-      ${statusFilterHTML}   <!--- Aquí el filtro -->
+      ${statusFilterHTML}
     </div>
   `;
 
-  // Ahora asignamos eventos a los botones del filtro
+  // Asignar eventos a los botones del filtro
   el.querySelectorAll('.filter-status-btn').forEach(btn => {
     btn.addEventListener('click', function() {
-      // Quitar clase active de todos
       el.querySelectorAll('.filter-status-btn').forEach(b => {
         b.classList.remove('active');
         b.style.background = 'transparent';
         b.style.color = 'var(--color-text-muted)';
         b.style.borderColor = 'var(--color-border-subtle)';
       });
-      // Activar este
       this.classList.add('active');
       this.style.background = 'var(--color-accent-solid)';
       this.style.color = '#fff';
       this.style.borderColor = 'var(--color-accent-solid)';
 
-      // Aplicar filtro
       const status = this.dataset.status;
       applyVendorStatusFilter(status);
     });
   });
-
-  // Si no hay productos plus, también podemos mostrar el área de notificaciones
-  if (!esPlus) {
-    // No mostramos nada del logo, solo dejamos el filtro
-    // Pero si quieres mantener el área de solicitud plus, la podemos poner después del filtro
-    // Por ahora no, porque el usuario quiere reemplazar el logo con el filtro
-  }
 }
 
 
-// Filtro de estado para productos del vendedor
+// ── Filtro de estado para productos del vendedor ──────────────
 let currentStatusFilter = 'todos';
 
 function applyVendorStatusFilter(status) {
   currentStatusFilter = status;
-  const container = document.getElementById('products-container');
-  if (!container) return;
-
-  const allProducts = window._vendorProducts || [];
-  let filtered = allProducts;
-
-  if (status !== 'todos') {
-    filtered = allProducts.filter(p => p.estado === status);
-  }
-
-  // Renderizar los productos filtrados
-  container.innerHTML = '';
-  if (filtered.length === 0) {
-    container.innerHTML = `<p style="color:#aaa;text-align:center;padding:20px;">No hay productos con el estado "${status}".</p>`;
-    return;
-  }
-
-  filtered.forEach(product => {
-    const card = createVendorProductCard(product);
-    container.appendChild(card);
-  });
-
-  // Re-aplicar el layout (grid/lista) después de renderizar
-  const savedLayout = localStorage.getItem('products_layout') || 'list';
-  applyLayoutGlobal(savedLayout);
+  loadMyProducts(true, 1); // Recargar desde página 1 con el nuevo filtro
 }
 
-
-async function uploadVendorLogo(file) {
-const url = await uploadSingleImage(file);
-const res = await apiFetch({ action: 'actualizarLogoVendedor', vendorToken: vendorSession.token, logoUrl: url });
-if (!res.ok) throw new Error(res.error || 'No se pudo guardar el logo');
-vendorSession.logo = url;
-localStorage.setItem('vendor_session', JSON.stringify(vendorSession));
-return url;
-}
-
-window.updateDonacionesBadge =
-function updateDonacionesBadge() {
-const el = document.getElementById('donaciones-count-badge');
-if (!el) return;
-const productos = window._vendorProducts || [];
-const activas = productos.filter(p => p.donado === true || p.donado === 'TRUE' || p.donado === 'true').length;
-el.textContent = activas > 0 ? `(${activas} activa${activas === 1 ? '' : 's'})` : '';
-el.style.color = '#f97316';
-el.style.fontWeight = '700';
-}
-
-function createVendorProductCard(product) {
-  const { id, nombre, precio, stock, descripcion, talla, categoria, imagen1, imagen2, imagen3, estado } = product;
-  const safeNombre = escapeHtml(nombre || "Producto");
-  const safeDescripcion = escapeHtml(descripcion || "");
-  const safeTalla = escapeHtml(talla || "Sin especificar");
-  const safeCategoria = escapeHtml(categoria || "");
-  const stockNum = Number(stock || 0);
-  const isOutOfStock = stockNum <= 0;
-
-  const card = document.createElement("article");
-  card.className = "product-card";
-  card.id = `producto-${id}`;
-
-  // Slider de imágenes
-  const slider = document.createElement("div");
-  slider.className = "product-slider";
-  slider.dataset.productId = id;
-
-  const track = document.createElement("div");
-  track.className = "product-slider-track";
-
-  const images = [imagen1, imagen2, imagen3]
-    .map(u => u
-      ? (typeof optimizeDriveUrl === 'function' ? optimizeDriveUrl(u) : u)
-      : null)
-    .filter(Boolean);
-  if (images.length === 0) {
-    images.push("https://placehold.co/400x400/3b1f5f/white?text=Sin+Imagen");
-  }
-
-  images.forEach((url) => {
-    const slide = document.createElement("div");
-    slide.className = "product-slide";
-    const img = document.createElement("img");
-    img.alt = safeNombre;
-    img.src = url;
-    img.loading = "lazy";
-    img.addEventListener("click", () => openImageModal(url, id, images, product));
-    slide.appendChild(img);
-    track.appendChild(slide);
-  });
-  slider.appendChild(track);
-
-  // Dots del slider
-  const dotsContainer = document.createElement("div");
-  dotsContainer.className = "slider-dots";
-  images.forEach((_, index) => {
-    const dot = document.createElement("div");
-    dot.className = "slider-dot" + (index === 0 ? " active" : "");
-    dot.dataset.index = index;
-    dotsContainer.appendChild(dot);
-  });
-  slider.appendChild(dotsContainer);
-
-  // Badge de estado (aprobado, pendiente, etc.)
-  const badgeEl = document.createElement("div");
-  badgeEl.className = "product-badge";
-  badgeEl.textContent = estado || "Pendiente";
-  slider.appendChild(badgeEl);
-
-  // Información del producto
-  const info = document.createElement("div");
-  info.className = "product-info";
-
-  const titleRow = document.createElement("div");
-  titleRow.className = "product-title-row";
-  const nameEl = document.createElement("h2");
-  nameEl.className = "product-name";
-  nameEl.textContent = safeNombre;
-  const priceEl = document.createElement("div");
-  priceEl.className = "product-price";
-  priceEl.textContent = formatCurrency(precio);
-  titleRow.appendChild(nameEl);
-  titleRow.appendChild(priceEl);
-
-  const metaRow = document.createElement("div");
-  metaRow.className = "product-meta-row";
-  if (safeCategoria) {
-    const categoryEl = document.createElement("span");
-    categoryEl.className = "category-badge";
-    categoryEl.textContent = safeCategoria;
-    metaRow.appendChild(categoryEl);
-  }
-  const stockEl = document.createElement("span");
-  stockEl.className = "stock-badge";
-  if (isOutOfStock) {
-    stockEl.classList.add("out-of-stock");
-    stockEl.textContent = " Sin stock";
-  } else {
-    stockEl.textContent = ` Stock: ${stockNum}`;
-  }
-  metaRow.appendChild(stockEl);
-
-  const descEl = document.createElement("p");
-  descEl.className = "product-description";
-  descEl.textContent = safeDescripcion || "Sin descripción";
-
-  const sizesEl = document.createElement("div");
-  sizesEl.className = "product-sizes";
-  sizesEl.textContent = safeTalla;
-
-  info.appendChild(titleRow);
-  info.appendChild(metaRow);
-  info.appendChild(descEl);
-  info.appendChild(sizesEl);
-
-const actions = document.createElement("div");
-actions.className = "product-actions";
-
-const editBtn = document.createElement("button");
-editBtn.className = "btn-secondary";
-editBtn.innerHTML = 'Editar';
-editBtn.onclick = () => editProduct(id);
-
-const deleteBtn = document.createElement("button");
-deleteBtn.className = "btn-secondary btn-danger";
-deleteBtn.innerHTML = 'Eliminar';
-deleteBtn.onclick = () => deleteMyProduct(id);
-
-actions.appendChild(editBtn);
-actions.appendChild(deleteBtn);
-
-  card.appendChild(slider);
-  card.appendChild(info);
-  card.appendChild(actions);
-  attachSliderEvents(slider, images.length);
-  return card;
-}
-
-
-function attachSliderEvents(slider, totalSlides) {
-  const productId = slider.dataset.productId;
-  const track = slider.querySelector(".product-slider-track");
-  const dots = slider.querySelectorAll(".slider-dot");
-  let startX = 0, currentX = 0, isDragging = false;
-  let currentIndex = 0;
-
-  function updateSlider(index) {
-    currentIndex = ((index % totalSlides) + totalSlides) % totalSlides;
-    track.style.transform = `translateX(-${currentIndex * 100}%)`;
-    dots.forEach((dot, i) => {
-      dot.classList.toggle("active", i === currentIndex);
-    });
-  }
-
-  function handleStart(x) {
-    isDragging = true;
-    startX = x;
-    currentX = x;
-  }
-  function handleMove(x) {
-    if (isDragging) currentX = x;
-  }
-  function handleEnd() {
-    if (!isDragging) return;
-    const deltaX = currentX - startX;
-    const threshold = 40;
-    let index = currentIndex;
-    if (deltaX < -threshold) index++;
-    else if (deltaX > threshold) index--;
-    updateSlider(index);
-    isDragging = false;
-  }
-
-  slider.addEventListener("touchstart", (e) => handleStart(e.touches[0].clientX));
-  slider.addEventListener("touchmove", (e) => handleMove(e.touches[0].clientX));
-  slider.addEventListener("touchend", handleEnd);
-  slider.addEventListener("mousedown", (e) => handleStart(e.clientX));
-  slider.addEventListener("mousemove", (e) => { if (isDragging) handleMove(e.clientX); });
-  slider.addEventListener("mouseup", handleEnd);
-  slider.addEventListener("mouseleave", () => { if (isDragging) handleEnd(); });
-
-  dots.forEach((dot) => {
-    dot.addEventListener("click", () => updateSlider(Number(dot.dataset.index)));
-  });
-
-  // Inicializar en la primera imagen
-  updateSlider(0);
-}
-
-// ── Caché de productos propios del vendedor ──────────────────────────────────
+// ── Funciones de caché de productos ──────────────────────────
 const VENDOR_PRODUCTS_CACHE_KEY = 'zr_vendor_products';
 const VENDOR_PRODUCTS_CACHE_TTL = 3 * 60 * 1000; // 3 min
 
@@ -852,7 +616,9 @@ function showVendorProductsSkeleton(container, count = 3) {
     ${Array.from({length: count}, card).join('')}`;
 }
 
-function applyMyProducts(myProducts, container) {
+// ── Aplicar productos y renderizar paginación ──────────────
+function applyMyProducts(myProducts, container, total = null, currentPage = 1, totalPages = null) {
+  // Actualizar contador en el plan
   const ocupados = myProducts.filter(p => p.estado === 'aprobado' || p.estado === 'pendiente').length;
   if (vendorSession) {
     vendorSession.productosActuales = ocupados;
@@ -860,60 +626,140 @@ function applyMyProducts(myProducts, container) {
   }
   if (typeof renderVendorPlanPanel === 'function') renderVendorPlanPanel();
 
-  if (myProducts.length === 0) {
-    container.innerHTML = `<p style="color:#aaa;text-align:center">Aún no has publicado productos.<br>
-    <button class="btn-secondary" onclick="switchTab('form')" style="margin-top:12px">Publicar ahora</button></p>`;
-    return;
-  }
-
+  // Guardar en variable global para el filtro (aunque ahora se usa poco)
   window._vendorProducts = myProducts;
   updateDonacionesBadge();
-  applyVendorStatusFilter(currentStatusFilter);
+
+  // Renderizar productos
   container.innerHTML = '';
-  myProducts.forEach(product => {
-    const card = createVendorProductCard(product);
-    container.appendChild(card);
-  });
+  if (myProducts.length === 0) {
+    container.innerHTML = `<p style="color:#aaa;text-align:center">No hay productos en esta página.</p>`;
+  } else {
+    myProducts.forEach(product => {
+      const card = createVendorProductCard(product);
+      container.appendChild(card);
+    });
+  }
+
+  // Aplicar layout (grid/lista)
   const savedLayout = localStorage.getItem('products_layout') || 'list';
   applyLayoutGlobal(savedLayout);
+
+  // Renderizar controles de paginación
+  renderPagination(container, currentPage, totalPages, total);
 }
 
-window.loadMyProducts = async function loadMyProducts(force = false) {
+function renderPagination(container, currentPage, totalPages, total) {
+  // Eliminar paginación anterior si existe
+  const oldPagination = document.getElementById('vendor-pagination');
+  if (oldPagination) oldPagination.remove();
+
+  if (!totalPages || totalPages <= 1) return;
+
+  const paginationDiv = document.createElement('div');
+  paginationDiv.id = 'vendor-pagination';
+  paginationDiv.style.cssText = 'display:flex;justify-content:center;align-items:center;gap:12px;margin-top:20px;padding:12px 0;';
+
+  // Botón Anterior
+  const prevBtn = document.createElement('button');
+  prevBtn.textContent = '‹ Anterior';
+  prevBtn.className = 'btn-secondary';
+  prevBtn.style.padding = '8px 16px';
+  prevBtn.disabled = currentPage <= 1;
+  prevBtn.onclick = () => loadMyProducts(true, currentPage - 1);
+
+  // Indicador de página
+  const pageInfo = document.createElement('span');
+  pageInfo.textContent = `Página ${currentPage} de ${totalPages}`;
+  pageInfo.style.fontSize = '14px';
+  pageInfo.style.color = '#555';
+
+  // Botón Siguiente
+  const nextBtn = document.createElement('button');
+  nextBtn.textContent = 'Siguiente ›';
+  nextBtn.className = 'btn-secondary';
+  nextBtn.style.padding = '8px 16px';
+  nextBtn.disabled = currentPage >= totalPages;
+  nextBtn.onclick = () => loadMyProducts(true, currentPage + 1);
+
+  paginationDiv.appendChild(prevBtn);
+  paginationDiv.appendChild(pageInfo);
+  paginationDiv.appendChild(nextBtn);
+
+  // Insertar después del contenedor de productos
+  container.parentNode.insertBefore(paginationDiv, container.nextSibling);
+}
+
+// ── Carga de productos con paginación ──────────────────────
+window.loadMyProducts = async function loadMyProducts(force = false, page = 1) {
   const container = document.getElementById('products-container');
   if (!container) return;
   const uid = vendorSession?.uid;
   if (!uid) return;
 
-  // 1. Si hay caché, mostrar inmediato y revalidar en background
-  const cached = !force && window.getVendorProductsCache(uid);
+  const limit = 20;
+  const status = currentStatusFilter || 'todos';
+
+  const cacheKey = `vendor_products_${uid}_page_${page}_status_${status}`;
+  const cached = !force ? sessionStorage.getItem(cacheKey) : null;
+
   if (cached) {
-    applyMyProducts(cached, container);
-    // Revalidar en background silenciosamente
-    apiFetch({ action: 'listarComunidad', vendedor_uid: uid, admin: 'true', limit: '200', vendorToken: vendorSession.token }, 'GET')
-      .then(data => {
-        if (!data.ok) return;
-        const fresh = (data.products || []).filter(p => p.vendedor_uid === uid);
-        if (JSON.stringify(fresh) !== JSON.stringify(cached)) {
-          window.setVendorProductsCache(uid, fresh);
-          applyMyProducts(fresh, container);
-        }
-      })
-      .catch(() => {});
-    return;
+    try {
+      const parsed = JSON.parse(cached);
+      applyMyProducts(parsed.data, container, parsed.total, parsed.page, parsed.totalPages);
+      // Revalidar en background
+      fetchPage(uid, page, limit, status, true);
+      return;
+    } catch (e) {
+      // Si falla el parse, continúa
+    }
   }
 
-  // 2. Sin caché: skeleton + fetch
-  showVendorProductsSkeleton(container, 3);
-  try {
-    const data = await apiFetch({ action: 'listarComunidad', vendedor_uid: uid, admin: 'true', limit: '200', vendorToken: vendorSession.token }, 'GET');
-    if (!data.ok) throw new Error(data.error);
-    const myProducts = (data.products || []).filter(p => p.vendedor_uid === uid);
-    window.setVendorProductsCache(uid, myProducts);
-    applyMyProducts(myProducts, container);
-  } catch (err) {
-    container.innerHTML = `<p style="color:#ef4444">Error: ${escapeHtml(err.message)}</p>`;
-  }
+  showVendorProductsSkeleton(container, Math.min(limit, 6));
+  await fetchPage(uid, page, limit, status, false);
 };
+
+async function fetchPage(uid, page, limit, status, background = false) {
+  const container = document.getElementById('products-container');
+  if (!container) return;
+
+  try {
+    const data = await apiFetch({
+      action: 'listarComunidad',
+      vendedor_uid: uid,
+      admin: 'true',
+      limit: limit,
+      page: page,
+      estado: status !== 'todos' ? status : undefined,
+      vendorToken: vendorSession.token
+    }, 'GET');
+
+    if (!data.ok) throw new Error(data.error);
+
+    const myProducts = (data.products || []).filter(p => p.vendedor_uid === uid);
+    const total = data.total || myProducts.length;
+    const totalPages = data.totalPages || Math.ceil(total / limit);
+
+    // Guardar en caché para esta página/filtro
+    const cacheKey = `vendor_products_${uid}_page_${page}_status_${status}`;
+    sessionStorage.setItem(cacheKey, JSON.stringify({
+      data: myProducts,
+      total,
+      page,
+      totalPages,
+      timestamp: Date.now()
+    }));
+
+    if (!background) {
+      applyMyProducts(myProducts, container, total, page, totalPages);
+    }
+  } catch (err) {
+    if (!background) {
+      container.innerHTML = `<p style="color:#ef4444">Error: ${escapeHtml(err.message)}</p>`;
+    }
+  }
+}
+
 window.editProduct = function(id) {
 const p = (window._vendorProducts || []).find(x =>String(x.id) === String(id));
 if (!p) return;
