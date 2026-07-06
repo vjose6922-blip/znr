@@ -1,6 +1,9 @@
 (function() {
 'use strict';
 
+// ──────────────────────────────────────────────
+// v0000
+// ──────────────────────────────────────────────
 let vendorSession = null;
 Object.defineProperty(window, 'vendorSession', {
   get() { return vendorSession; },
@@ -92,6 +95,525 @@ window.apiCall = async function(data) {
 };
 
 
+
+
+window.debugPanel = {
+  ensure() {
+    let box = document.getElementById('debug-panel-top');
+    if (box) return box;
+
+    box = document.createElement('div');
+    box.id = 'debug-panel-top';
+    box.style.cssText = `
+      position:fixed;
+      top:0;
+      left:0;
+      right:0;
+      z-index:2147483647;
+      background:#111;
+      color:#fff;
+      font:12px/1.45 monospace;
+      max-height:42vh;
+      overflow:auto;
+      box-shadow:0 8px 24px rgba(0,0,0,.35);
+      border-bottom:2px solid #f97316;
+    `;
+
+    box.innerHTML = `
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 10px;background:#1a1a1a;border-bottom:1px solid rgba(255,255,255,.12);position:sticky;top:0;">
+        <div style="font-weight:700;color:#f97316;">DEBUG PANEL</div>
+        <div style="display:flex;gap:8px;">
+          <button id="debug-panel-clear" style="border:none;border-radius:8px;padding:6px 10px;cursor:pointer;background:#333;color:#fff;">Limpiar</button>
+          <button id="debug-panel-close" style="border:none;border-radius:8px;padding:6px 10px;cursor:pointer;background:#ef4444;color:#fff;">Cerrar</button>
+        </div>
+      </div>
+      <div id="debug-panel-body" style="padding:10px;"></div>
+    `;
+
+    document.body.appendChild(box);
+
+    document.getElementById('debug-panel-clear').onclick = () => {
+      const body = document.getElementById('debug-panel-body');
+      if (body) body.innerHTML = '';
+    };
+    document.getElementById('debug-panel-close').onclick = () => box.remove();
+
+    return box;
+  },
+
+  log(title, value = '') {
+    const box = this.ensure();
+    const body = document.getElementById('debug-panel-body');
+    if (!body) return;
+
+    const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({
+      '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+    }[c]));
+
+    const row = document.createElement('div');
+    row.style.cssText = `
+      border:1px solid rgba(255,255,255,.12);
+      border-radius:10px;
+      padding:8px 10px;
+      margin-bottom:8px;
+      background:rgba(255,255,255,.04);
+      white-space:pre-wrap;
+      word-break:break-word;
+    `;
+
+    row.innerHTML = `
+      <div style="color:#f97316;font-weight:700;margin-bottom:4px;">${esc(title)}</div>
+      <div>${esc(value)}</div>
+    `;
+
+    body.appendChild(row);
+    box.scrollTop = box.scrollHeight;
+  }
+};
+
+
+
+
+
+
+
+
+
+
+
+function injectStyles(id, css) {
+if (document.getElementById(id)) return;
+const style = document.createElement('style');
+style.id = id;
+style.textContent = css;
+document.head.appendChild(style);
+}
+
+// ──────────────────────────────────────────────
+// FUNCIÓN PRINCIPAL DE INICIO
+// ──────────────────────────────────────────────
+function initVendorPanel() {
+const urlParams = new URLSearchParams(window.location.search);
+if (urlParams.get('register') === '1') {
+setTimeout(() => {
+const registerTab = document.querySelector('.login-tab[data-tab="register"]');
+if (registerTab) registerTab.click();
+}, 500);
+}
+
+if (!document.getElementById('login-section') && !document.getElementById('panel-section')) return;
+
+let uploadedImages = { 1: null, 2: null, 3: null };
+let selectedFiles = { 1: null, 2: null, 3: null };
+
+const loginTab = document.querySelector('.login-tab[data-tab="login"]');
+const registerTab = document.querySelector('.login-tab[data-tab="register"]');
+const loginContainer = document.getElementById('login-form-container');
+const registerContainer = document.getElementById('register-form-container');
+
+if (loginTab && registerTab) {
+loginTab.addEventListener('click', () => {
+loginTab.classList.add('active');
+registerTab.classList.remove('active');
+loginContainer.style.display = 'block';
+registerContainer.style.display = 'none';
+});
+registerTab.addEventListener('click', () => {
+registerTab.classList.add('active');
+loginTab.classList.remove('active');
+loginContainer.style.display = 'none';
+registerContainer.style.display = 'block';
+});
+
+const switchToRegister = document.getElementById('switch-to-register');
+const switchToLogin = document.getElementById('switch-to-login');
+if (switchToRegister) switchToRegister.addEventListener('click', () => registerTab && registerTab.click());
+if (switchToLogin) switchToLogin.addEventListener('click', () => loginTab && loginTab.click());
+}
+
+async function registerVendor() {
+const nombre = document.getElementById('reg-nombre')?.value.trim();
+const phone = document.getElementById('reg-phone')?.value.trim().replace(/\D/g, '');
+if (!nombre || phone.length !== 10) {
+showTemporaryMessage(' Completa todos los campos correctamente', 'error');
+return;
+}
+const btn = document.getElementById('register-btn');
+if (btn) {
+btn.disabled = true;
+btn.textContent = 'Enviando...';
+}
+try {
+const res = await apiFetch({ action: 'registrarVendedor', nombre, telefono: phone });
+if (!res.ok) throw new Error(res.error);
+showTemporaryMessage(' Registro exitoso. Espera a que el administrador active tu cuenta.', 'success');
+document.getElementById('reg-nombre').value = '';
+document.getElementById('reg-phone').value = '';
+const loginTab = document.querySelector('.login-tab[data-tab="login"]');
+if (loginTab) loginTab.click();
+} catch (err) {
+showTemporaryMessage(' ' + err.message, 'error');
+} finally {
+if (btn) {
+btn.disabled = false;
+btn.textContent = 'Registrarme';
+}
+}
+}
+
+const registerBtn = document.getElementById('register-btn');
+if (registerBtn) registerBtn.addEventListener('click', registerVendor);
+
+async function vendorLogin() {
+const firstField  = document.getElementById('login-phone')?.value.trim();
+const secondField = document.getElementById('login-password')?.value.trim();
+
+if (!firstField || !secondField) {
+showTemporaryMessage('Credenciales incorrectas', 'error');
+return;
+}
+
+showLoader('Verificando...');
+
+const esAdmin = /^\d{6}$/.test(firstField);
+
+if (esAdmin) {
+try {
+const api = window.API_URL;
+if (!api) throw new Error();
+const formData = new URLSearchParams();
+formData.append('action', 'login');
+formData.append('password', firstField);
+formData.append('token', secondField);
+const adminCtrl = new AbortController();
+const adminTid = setTimeout(() => adminCtrl.abort(), 15000);
+let res;
+try {
+  res = await fetch(api, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: formData.toString(),
+    signal: adminCtrl.signal
+  });
+} finally {
+  clearTimeout(adminTid);
+}
+const data = await res.json();
+if (data && data.ok === true) {
+sessionStorage.setItem('admin_token', secondField);
+sessionStorage.setItem('admin_session', 'true');
+window.location.href = 'admin.html';
+return;
+}
+} catch (_) {}
+showTemporaryMessage('Credenciales incorrectas', 'error');
+hideLoader();
+return;
+}
+
+try {
+const res = await apiFetch({ action: 'loginVendedor', telefono: firstField, password: secondField });
+if (!res.ok) throw new Error();
+vendorSession = {
+token: res.token,
+uid: res.uid,
+nombre: res.nombre,
+confiable: res.confiable,
+plan: res.plan || 'free',
+planVence: res.planVence || null,
+limiteProductos: res.limiteProductos || 20,
+productosActuales: res.productosActuales || 0,
+logo: res.logo || '',
+descripcion: res.descripcion || '',
+whatsapp: res.whatsapp || '',
+categoria: res.categoria || '',
+facebook: res.facebook || '',
+twitter: res.twitter || '',
+instagram: res.instagram || '',
+tiktok: res.tiktok || '',
+fechaRegistro: res.fechaRegistro || ''
+};
+localStorage.setItem('vendor_session', JSON.stringify(vendorSession));
+} catch (_) {
+showTemporaryMessage('Credenciales incorrectas', 'error');
+hideLoader();
+return;
+}
+try {
+showPanel();
+} catch(e) {
+console.error('showPanel error:', e);
+} finally {
+hideLoader();
+}
+}
+
+function vendorLogout() {
+localStorage.removeItem('vendor_session');
+sessionStorage.removeItem('admin_session');
+sessionStorage.removeItem('admin_token');
+vendorSession = null;
+const loginDiv = document.getElementById('login-section');
+const panelDiv = document.getElementById('panel-section');
+if (loginDiv) loginDiv.style.display = 'block';
+if (panelDiv) panelDiv.style.display = 'none';
+const logoutBtn = document.getElementById('logout-btn');
+if (logoutBtn) logoutBtn.style.display = 'none';
+
+const navGuest = document.getElementById('bottom-nav-guest');
+const navVendor = document.getElementById('bottom-nav-vendor');
+if (navVendor) navVendor.style.display = 'none';
+if (navGuest) navGuest.style.display = '';
+
+closeSettingsModal();
+}
+
+function showPanel() {
+const loginDiv = document.getElementById('login-section');
+const panelDiv = document.getElementById('panel-section');
+if (loginDiv) loginDiv.style.display = 'none';
+if (panelDiv) panelDiv.style.display = 'block';
+
+const logoutBtn = document.getElementById('logout-btn');
+if (logoutBtn) logoutBtn.style.display = 'flex';
+
+const liveBtn = document.getElementById('live-btn');
+if (liveBtn) liveBtn.style.display = (vendorSession && vendorSession.plan === 'plus') ? 'flex' : 'none';
+
+const verEntregasBtn = document.getElementById('btn-ver-entregas-panel');
+if (verEntregasBtn) verEntregasBtn.style.display = (vendorSession && vendorSession.plan === 'plus') ? 'flex' : 'none';
+
+const nameHeader = document.getElementById('vendor-name-header');
+if (nameHeader && vendorSession) {
+nameHeader.textContent = vendorSession.nombre;
+}
+
+updateVendorAvatar();
+
+const navGuest = document.getElementById('bottom-nav-guest');
+const navVendor = document.getElementById('bottom-nav-vendor');
+if (navGuest) navGuest.style.display = 'none';
+if (navVendor) navVendor.style.display = '';
+
+const cardName = document.getElementById('vendor-card-name');
+if (cardName && vendorSession) cardName.textContent = vendorSession.nombre;
+
+const shareBtn = document.getElementById('share-vendor-link');
+if (shareBtn) {
+const newBtn = shareBtn.cloneNode(true);
+shareBtn.parentNode.replaceChild(newBtn, shareBtn);
+newBtn.style.display = 'inline-block';
+newBtn.addEventListener('click', () => {
+const vendorNameEncoded = encodeURIComponent(vendorSession.nombre);
+const baseDir = window.location.href.substring(0, window.location.href.lastIndexOf('/') + 1);
+const shareUrl = `${baseDir}comunidad.html?vendedor=${vendorNameEncoded}`;
+navigator.clipboard.writeText(shareUrl)
+.then(() => {
+window.showTemporaryMessage?.(' Enlace copiado (URL completa)', 'success');
+})
+.catch(() => {
+alert('No se pudo copiar. Comparte este enlace:\n' + shareUrl);
+});
+});
+}
+
+loadMyProducts();
+renderVendorPlanPanel();
+loadVendorSaleNotifications();
+if (!window._vsnPollingStarted) {
+window._vsnPollingStarted = true;
+setInterval(loadVendorSaleNotifications, 45000);
+}
+}
+
+// ── Notificaciones de venta pendientes (Comunidad) ──────────────────────
+async function loadVendorSaleNotifications() {
+if (!vendorSession || !vendorSession.uid) return;
+try {
+const data = await apiCall({ action: 'listarNotificacionesVentaComunidad', vendorToken: vendorSession.token });
+if (!data || !data.ok) return;
+renderVendorSaleNotifications(data.notificaciones || []);
+} catch (e) {
+console.error('No se pudieron cargar las notificaciones de venta:', e);
+}
+}
+
+function renderVendorSaleNotifications(list) {
+const panel = document.getElementById('vendor-plan-panel');
+if (!panel) return;
+let container = document.getElementById('vendor-sale-notifications');
+if (!list || !list.length) {
+if (container) container.remove();
+return;
+}
+if (!container) {
+container = document.createElement('div');
+container.id = 'vendor-sale-notifications';
+panel.insertAdjacentElement('afterend', container);
+}
+const esc2 = window.escapeHtml || (s => String(s == null ? '' : s));
+container.innerHTML = list.map(n => `
+<div class="vsn-card" data-req="${esc2(n.requestId)}" style="background:#fff8e1;border:1.5px solid #f5cf6b;border-radius:14px;padding:12px 14px;margin-top:10px;">
+<div style="font-size:13px;font-weight:700;color:#92702a;margin-bottom:6px;"> Tienes una venta por confirmar</div>
+${(n.items || []).map(it => `
+<div style="display:flex;justify-content:space-between;gap:8px;font-size:12.5px;color:#5c4a1f;padding:2px 0;">
+<span>${esc2(it.nombre)}${it.talla ? ' · ' + esc2(it.talla) : ''} × ${esc2(it.cantidad)}</span>
+<span>$${Number(it.precio || 0).toLocaleString()}</span>
+</div>
+`).join('')}
+${n.clientPhone ? `<div style="font-size:12px;color:#8a7238;margin-top:4px;">Cliente: +52 ${esc2(n.clientPhone)}</div>` : ''}
+<div style="display:flex;gap:8px;margin-top:10px;">
+<button class="vsn-confirm-btn" style="flex:1;padding:8px;border:none;border-radius:10px;background:#16a34a;color:#fff;font-size:12.5px;font-weight:700;cursor:pointer;">Confirmar venta</button>
+<button class="vsn-nostock-btn" style="flex:1;padding:8px;border:none;border-radius:10px;background:#fff;border:1.5px solid #dc2626;color:#dc2626;font-size:12.5px;font-weight:700;cursor:pointer;">Sin stock</button>
+</div>
+</div>
+`).join('');
+container.querySelectorAll('.vsn-confirm-btn').forEach(btn => {
+btn.addEventListener('click', () => resolveVendorSaleNotification(btn.closest('.vsn-card').dataset.req, 'confirmar', btn));
+});
+container.querySelectorAll('.vsn-nostock-btn').forEach(btn => {
+btn.addEventListener('click', () => resolveVendorSaleNotification(btn.closest('.vsn-card').dataset.req, 'sin_stock', btn));
+});
+}
+
+async function resolveVendorSaleNotification(requestId, accion, btn) {
+if (btn) btn.disabled = true;
+try {
+const data = await apiCall({ action: 'resolverNotificacionVentaComunidad', vendorToken: vendorSession.token, requestId, accion });
+if (data && data.ok) {
+window.showTemporaryMessage?.(accion === 'confirmar' ? ' Venta confirmada, stock actualizado' : 'Marcado sin stock', 'success');
+loadVendorSaleNotifications();
+loadMyProducts();
+} else {
+window.showTemporaryMessage?.(data?.error || 'No se pudo procesar', 'error');
+if (btn) btn.disabled = false;
+}
+} catch (e) {
+window.showTemporaryMessage?.(' Error de red', 'error');
+if (btn) btn.disabled = false;
+}
+}
+
+// ──────────────────────────────────────────────
+// RENDER PANEL PLAN + FILTROS
+// ──────────────────────────────────────────────
+function renderVendorPlanPanel() {
+  const el = document.getElementById('vendor-plan-panel');
+  if (!el || !vendorSession) return;
+  const esPlus   = vendorSession.plan === 'plus';
+  const limite   = vendorSession.limiteProductos || (esPlus ? 200 : 20);
+  const actuales = vendorSession.productosActuales || 0;
+  const pct = Math.min(100, Math.round((actuales / limite) * 100));
+  const diasRestantes = vendorSession.planVence
+    ? Math.ceil((new Date(vendorSession.planVence) - new Date()) / 86400000)
+    : null;
+
+  const planBadge = esPlus
+    ? `<span style="background:linear-gradient(135deg,#7c3aed,#a855f7);color:#fff;font-size:11px;font-weight:700;padding:3px 10px;border-radius:999px;">PLUS</span>`
+    : `<span style="background:#eee;color:#999;font-size:11px;font-weight:700;padding:3px 10px;border-radius:999px;">FREE</span>`;
+
+  let renovacionHTML = '';
+  if (esPlus && diasRestantes != null && diasRestantes <= 7) {
+    renovacionHTML = `<div style="margin-top:8px;background:#fff8e1;color:#92702a;font-size:12px;border-radius:10px;padding:8px 12px;">
+      Tu plan Plus vence en ${diasRestantes} día${diasRestantes === 1 ? '' : 's'}. Contacta al admin para renovarlo y no perder tu visibilidad.
+    </div>`;
+  }
+
+  const statusFilterHTML = `
+    <div class="vendor-status-filter" style="display:flex; gap:8px; margin-top:14px; flex-wrap:wrap;">
+      <button class="filter-status-btn active" data-status="todos" style="padding:4px 12px; border-radius:20px; border:1.5px solid var(--color-border-subtle); background:var(--color-accent-solid); color:#fff; font-size:11px; font-weight:600; cursor:pointer; transition:all .15s;">Todos</button>
+      <button class="filter-status-btn" data-status="aprobado" style="padding:4px 12px; border-radius:20px; border:1.5px solid var(--color-border-subtle); background:transparent; color:var(--color-text-muted); font-size:11px; font-weight:600; cursor:pointer; transition:all .15s;">Aprobados</button>
+      <button class="filter-status-btn" data-status="pendiente" style="padding:4px 12px; border-radius:20px; border:1.5px solid var(--color-border-subtle); background:transparent; color:var(--color-text-muted); font-size:11px; font-weight:600; cursor:pointer; transition:all .15s;">Pendientes</button>
+      <button class="filter-status-btn" data-status="rechazado" style="padding:4px 12px; border-radius:20px; border:1.5px solid var(--color-border-subtle); background:transparent; color:var(--color-text-muted); font-size:11px; font-weight:600; cursor:pointer; transition:all .15s;">Rechazados</button>
+    </div>
+  `;
+
+  el.innerHTML = `
+    <div style="background:#f8f8fc;border-radius:14px;padding:12px 14px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
+        <div style="font-size:13px;font-weight:600;">${actuales}/${limite} productos usados</div>
+        ${planBadge}
+      </div>
+      <div style="background:#e6e6ee;border-radius:999px;height:6px;margin-top:8px;overflow:hidden;">
+        <div style="background:${pct >= 100 ? '#c62828' : '#7c3aed'};height:100%;width:${pct}%;"></div>
+      </div>
+      ${renovacionHTML}
+      ${statusFilterHTML}
+    </div>
+  `;
+
+  el.querySelectorAll('.filter-status-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+      el.querySelectorAll('.filter-status-btn').forEach(b => {
+        b.classList.remove('active');
+        b.style.background = 'transparent';
+        b.style.color = 'var(--color-text-muted)';
+        b.style.borderColor = 'var(--color-border-subtle)';
+      });
+      this.classList.add('active');
+      this.style.background = 'var(--color-accent-solid)';
+      this.style.color = '#fff';
+      this.style.borderColor = 'var(--color-accent-solid)';
+
+      const status = this.dataset.status;
+      applyVendorStatusFilter(status);
+    });
+  });
+}
+
+// ── FILTRO DE ESTADO ──────────────────────────────────
+let currentStatusFilter = 'todos';
+
+function applyVendorStatusFilter(status) {
+  currentStatusFilter = status;
+  loadMyProducts(true, 1);
+}
+
+// ── FUNCIONES DE CACHÉ ────────────────────────────────
+const VENDOR_PRODUCTS_CACHE_KEY = 'zr_vendor_products';
+const VENDOR_PRODUCTS_CACHE_TTL = 3 * 60 * 1000; // 3 min
+
+window.getVendorProductsCache = function(uid) {
+  try {
+    const raw = sessionStorage.getItem(VENDOR_PRODUCTS_CACHE_KEY + '_' + uid);
+    if (!raw) return null;
+    const { data, timestamp } = JSON.parse(raw);
+    if (Date.now() - timestamp > VENDOR_PRODUCTS_CACHE_TTL) {
+      sessionStorage.removeItem(VENDOR_PRODUCTS_CACHE_KEY + '_' + uid);
+      return null;
+    }
+    return data;
+  } catch(e) { return null; }
+};
+window.setVendorProductsCache = function(uid, products) {
+  try {
+    sessionStorage.setItem(VENDOR_PRODUCTS_CACHE_KEY + '_' + uid,
+      JSON.stringify({ data: products, timestamp: Date.now() }));
+  } catch(e) {}
+};
+window.invalidateVendorProductsCache = function(uid) {
+  try { sessionStorage.removeItem(VENDOR_PRODUCTS_CACHE_KEY + '_' + (uid || vendorSession?.uid)); } catch(e) {}
+};
+
+function showVendorProductsSkeleton(container, count = 3) {
+  const card = () => `
+    <div style="display:flex;gap:12px;padding:12px 0;border-bottom:1px solid #f0f0f0;align-items:center;">
+      <div class="vp-sk" style="width:72px;height:72px;border-radius:10px;flex-shrink:0;"></div>
+      <div style="flex:1;">
+        <div class="vp-sk" style="height:13px;width:70%;margin-bottom:8px;border-radius:6px;"></div>
+        <div class="vp-sk" style="height:11px;width:45%;margin-bottom:8px;border-radius:6px;"></div>
+        <div class="vp-sk" style="height:22px;width:80px;border-radius:20px;"></div>
+      </div>
+    </div>`;
+  container.innerHTML = `
+    <style>
+      .vp-sk{background:linear-gradient(90deg,var(--color-surface-2,#f0f0f4) 25%,var(--color-surface-3,#e4e4ea) 50%,var(--color-surface-2,#f0f0f4) 75%);background-size:600px 100%;animation:vp-shimmer 1.3s infinite linear;}
+      @keyframes vp-shimmer{0%{background-position:-600px 0}100%{background-position:600px 0}}
+    </style>
+    ${Array.from({length: count}, card).join('')}`;
+}
+
+// ── CREAR TARJETA DE PRODUCTO (fuera de initVendorPanel) ──
 function createVendorProductCard(product) {
   const { id, nombre, precio, stock, descripcion, talla, categoria, imagen1, imagen2, imagen3, estado } = product;
   const safeNombre = escapeHtml(nombre || "Producto");
@@ -215,549 +737,72 @@ function createVendorProductCard(product) {
   return card;
 }
 
+function attachSliderEvents(slider, totalSlides) {
+  const productId = slider.dataset.productId;
+  const track = slider.querySelector(".product-slider-track");
+  const dots = slider.querySelectorAll(".slider-dot");
+  let startX = 0, currentX = 0, isDragging = false;
+  let currentIndex = 0;
 
-window.debugPanel = {
-  ensure() {
-    let box = document.getElementById('debug-panel-top');
-    if (box) return box;
-
-    box = document.createElement('div');
-    box.id = 'debug-panel-top';
-    box.style.cssText = `
-      position:fixed;
-      top:0;
-      left:0;
-      right:0;
-      z-index:2147483647;
-      background:#111;
-      color:#fff;
-      font:12px/1.45 monospace;
-      max-height:42vh;
-      overflow:auto;
-      box-shadow:0 8px 24px rgba(0,0,0,.35);
-      border-bottom:2px solid #f97316;
-    `;
-
-    box.innerHTML = `
-      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 10px;background:#1a1a1a;border-bottom:1px solid rgba(255,255,255,.12);position:sticky;top:0;">
-        <div style="font-weight:700;color:#f97316;">DEBUG PANEL</div>
-        <div style="display:flex;gap:8px;">
-          <button id="debug-panel-clear" style="border:none;border-radius:8px;padding:6px 10px;cursor:pointer;background:#333;color:#fff;">Limpiar</button>
-          <button id="debug-panel-close" style="border:none;border-radius:8px;padding:6px 10px;cursor:pointer;background:#ef4444;color:#fff;">Cerrar</button>
-        </div>
-      </div>
-      <div id="debug-panel-body" style="padding:10px;"></div>
-    `;
-
-    document.body.appendChild(box);
-
-    document.getElementById('debug-panel-clear').onclick = () => {
-      const body = document.getElementById('debug-panel-body');
-      if (body) body.innerHTML = '';
-    };
-    document.getElementById('debug-panel-close').onclick = () => box.remove();
-
-    return box;
-  },
-
-  log(title, value = '') {
-    const box = this.ensure();
-    const body = document.getElementById('debug-panel-body');
-    if (!body) return;
-
-    const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({
-      '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
-    }[c]));
-
-    const row = document.createElement('div');
-    row.style.cssText = `
-      border:1px solid rgba(255,255,255,.12);
-      border-radius:10px;
-      padding:8px 10px;
-      margin-bottom:8px;
-      background:rgba(255,255,255,.04);
-      white-space:pre-wrap;
-      word-break:break-word;
-    `;
-
-    row.innerHTML = `
-      <div style="color:#f97316;font-weight:700;margin-bottom:4px;">${esc(title)}</div>
-      <div>${esc(value)}</div>
-    `;
-
-    body.appendChild(row);
-    box.scrollTop = box.scrollHeight;
-  }
-};
-
-
-
-function injectStyles(id, css) {
-if (document.getElementById(id)) return;
-const style = document.createElement('style');
-style.id = id;
-style.textContent = css;
-document.head.appendChild(style);
-}
-
-function initVendorPanel() {
-const urlParams = new URLSearchParams(window.location.search);
-if (urlParams.get('register') === '1') {
-setTimeout(() => {
-const registerTab = document.querySelector('.login-tab[data-tab="register"]');
-if (registerTab) registerTab.click();
-}, 500);
-}
-
-if (!document.getElementById('login-section') && !document.getElementById('panel-section')) return;
-
-
-let uploadedImages = { 1: null, 2: null, 3: null };
-let selectedFiles = { 1: null, 2: null, 3: null };
-
-const loginTab = document.querySelector('.login-tab[data-tab="login"]');
-const registerTab = document.querySelector('.login-tab[data-tab="register"]');
-const loginContainer = document.getElementById('login-form-container');
-const registerContainer = document.getElementById('register-form-container');
-
-if (loginTab && registerTab) {
-loginTab.addEventListener('click', () => {
-loginTab.classList.add('active');
-registerTab.classList.remove('active');
-loginContainer.style.display = 'block';
-registerContainer.style.display = 'none';
-});
-registerTab.addEventListener('click', () => {
-registerTab.classList.add('active');
-loginTab.classList.remove('active');
-loginContainer.style.display = 'none';
-registerContainer.style.display = 'block';
-});
-
-const switchToRegister = document.getElementById('switch-to-register');
-const switchToLogin = document.getElementById('switch-to-login');
-if (switchToRegister) switchToRegister.addEventListener('click', () => registerTab && registerTab.click());
-if (switchToLogin) switchToLogin.addEventListener('click', () => loginTab && loginTab.click());
-}
-
-async function registerVendor() {
-const nombre = document.getElementById('reg-nombre')?.value.trim();
-const phone = document.getElementById('reg-phone')?.value.trim().replace(/\D/g, '');
-if (!nombre || phone.length !== 10) {
-showTemporaryMessage(' Completa todos los campos correctamente', 'error');
-return;
-}
-const btn = document.getElementById('register-btn');
-if (btn) {
-btn.disabled = true;
-btn.textContent = 'Enviando...';
-}
-try {
-const res = await apiFetch({ action: 'registrarVendedor', nombre, telefono: phone });
-if (!res.ok) throw new Error(res.error);
-showTemporaryMessage(' Registro exitoso. Espera a que el administrador active tu cuenta.', 'success');
-document.getElementById('reg-nombre').value = '';
-document.getElementById('reg-phone').value = '';
-const loginTab = document.querySelector('.login-tab[data-tab="login"]');
-if (loginTab) loginTab.click();
-} catch (err) {
-showTemporaryMessage(' ' + err.message, 'error');
-} finally {
-if (btn) {
-btn.disabled = false;
-btn.textContent = 'Registrarme';
-}
-}
-}
-
-const registerBtn = document.getElementById('register-btn');
-if (registerBtn) registerBtn.addEventListener('click', registerVendor);
-
-async function vendorLogin() {
-const firstField  = document.getElementById('login-phone')?.value.trim();
-const secondField = document.getElementById('login-password')?.value.trim();
-
-if (!firstField || !secondField) {
-showTemporaryMessage('Credenciales incorrectas', 'error');
-return;
-}
-
-showLoader('Verificando...');
-
-const esAdmin = /^\d{6}$/.test(firstField);
-
-if (esAdmin) {
-try {
-const api = window.API_URL;
-if (!api) throw new Error();
-const formData = new URLSearchParams();
-formData.append('action', 'login');
-formData.append('password', firstField);
-formData.append('token', secondField);
-const adminCtrl = new AbortController();
-const adminTid = setTimeout(() => adminCtrl.abort(), 15000);
-let res;
-try {
-  res = await fetch(api, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: formData.toString(),
-    signal: adminCtrl.signal
-  });
-} finally {
-  clearTimeout(adminTid);
-}
-const data = await res.json();
-if (data && data.ok === true) {
-sessionStorage.setItem('admin_token', secondField);
-sessionStorage.setItem('admin_session', 'true');
-window.location.href = 'admin.html';
-return;
-}
-} catch (_) {}
-showTemporaryMessage('Credenciales incorrectas', 'error');
-hideLoader();
-return;
-}
-
-try {
-const res = await apiFetch({ action: 'loginVendedor', telefono: firstField, password: secondField });
-if (!res.ok) throw new Error();
-// AHORA asignamos a la variable global 00000000000000000000000000
-vendorSession = {
-token: res.token,
-uid: res.uid,
-nombre: res.nombre,
-confiable: res.confiable,
-plan: res.plan || 'free',
-planVence: res.planVence || null,
-limiteProductos: res.limiteProductos || 20,
-productosActuales: res.productosActuales || 0,
-logo: res.logo || '',
-descripcion: res.descripcion || '',
-whatsapp: res.whatsapp || '',
-categoria: res.categoria || '',
-facebook: res.facebook || '',
-twitter: res.twitter || '',
-instagram: res.instagram || '',
-tiktok: res.tiktok || '',
-fechaRegistro: res.fechaRegistro || ''
-};
-localStorage.setItem('vendor_session', JSON.stringify(vendorSession));
-} catch (_) {
-showTemporaryMessage('Credenciales incorrectas', 'error');
-hideLoader();
-return;
-}
-try {
-showPanel();
-} catch(e) {
-console.error('showPanel error:', e);
-} finally {
-hideLoader();
-}
-}
-
-function vendorLogout() {
-localStorage.removeItem('vendor_session');
-sessionStorage.removeItem('admin_session');
-sessionStorage.removeItem('admin_token');
-vendorSession = null;
-const loginDiv = document.getElementById('login-section');
-const panelDiv = document.getElementById('panel-section');
-if (loginDiv) loginDiv.style.display = 'block';
-if (panelDiv) panelDiv.style.display = 'none';
-const logoutBtn = document.getElementById('logout-btn');
-if (logoutBtn) logoutBtn.style.display = 'none';
-
-const navGuest = document.getElementById('bottom-nav-guest');
-const navVendor = document.getElementById('bottom-nav-vendor');
-if (navVendor) navVendor.style.display = 'none';
-if (navGuest) navGuest.style.display = '';
-
-closeSettingsModal();
-}
-
-function showPanel() {
-const loginDiv = document.getElementById('login-section');
-const panelDiv = document.getElementById('panel-section');
-if (loginDiv) loginDiv.style.display = 'none';
-if (panelDiv) panelDiv.style.display = 'block';
-
-const logoutBtn = document.getElementById('logout-btn');
-if (logoutBtn) logoutBtn.style.display = 'flex';
-
-const liveBtn = document.getElementById('live-btn');
-if (liveBtn) liveBtn.style.display = (vendorSession && vendorSession.plan === 'plus') ? 'flex' : 'none';
-
-const verEntregasBtn = document.getElementById('btn-ver-entregas-panel');
-if (verEntregasBtn) verEntregasBtn.style.display = (vendorSession && vendorSession.plan === 'plus') ? 'flex' : 'none';
-
-const nameHeader = document.getElementById('vendor-name-header');
-if (nameHeader && vendorSession) {
-nameHeader.textContent = vendorSession.nombre;
-}
-
-updateVendorAvatar();
-
-const navGuest = document.getElementById('bottom-nav-guest');
-const navVendor = document.getElementById('bottom-nav-vendor');
-if (navGuest) navGuest.style.display = 'none';
-if (navVendor) navVendor.style.display = '';
-
-const cardName = document.getElementById('vendor-card-name');
-if (cardName && vendorSession) cardName.textContent = vendorSession.nombre;
-
-const shareBtn = document.getElementById('share-vendor-link');
-if (shareBtn) {
-const newBtn = shareBtn.cloneNode(true);
-shareBtn.parentNode.replaceChild(newBtn, shareBtn);
-newBtn.style.display = 'inline-block';
-newBtn.addEventListener('click', () => {
-const vendorNameEncoded = encodeURIComponent(vendorSession.nombre);
-const baseDir = window.location.href.substring(0, window.location.href.lastIndexOf('/') + 1);
-const shareUrl = `${baseDir}comunidad.html?vendedor=${vendorNameEncoded}`;
-navigator.clipboard.writeText(shareUrl)
-.then(() => {
-window.showTemporaryMessage?.(' Enlace copiado (URL completa)', 'success');
-})
-.catch(() => {
-alert('No se pudo copiar. Comparte este enlace:\n' + shareUrl);
-});
-});
-}
-
-loadMyProducts();
-renderVendorPlanPanel();
-loadVendorSaleNotifications();
-if (!window._vsnPollingStarted) {
-window._vsnPollingStarted = true;
-setInterval(loadVendorSaleNotifications, 45000);
-}
-}
-
-// ── Notificaciones de venta pendientes (Comunidad) ──────────────────────
-// Aparecen justo debajo del panel de "productos usados" + filtro de estado,
-// solo cuando el vendedor tiene ventas por confirmar.
-async function loadVendorSaleNotifications() {
-if (!vendorSession || !vendorSession.uid) return;
-try {
-const data = await apiCall({ action: 'listarNotificacionesVentaComunidad', vendorToken: vendorSession.token });
-if (!data || !data.ok) return;
-renderVendorSaleNotifications(data.notificaciones || []);
-} catch (e) {
-console.error('No se pudieron cargar las notificaciones de venta:', e);
-}
-}
-
-function renderVendorSaleNotifications(list) {
-const panel = document.getElementById('vendor-plan-panel');
-if (!panel) return;
-let container = document.getElementById('vendor-sale-notifications');
-if (!list || !list.length) {
-if (container) container.remove();
-return;
-}
-if (!container) {
-container = document.createElement('div');
-container.id = 'vendor-sale-notifications';
-panel.insertAdjacentElement('afterend', container);
-}
-const esc2 = window.escapeHtml || (s => String(s == null ? '' : s));
-container.innerHTML = list.map(n => `
-<div class="vsn-card" data-req="${esc2(n.requestId)}" style="background:#fff8e1;border:1.5px solid #f5cf6b;border-radius:14px;padding:12px 14px;margin-top:10px;">
-<div style="font-size:13px;font-weight:700;color:#92702a;margin-bottom:6px;"> Tienes una venta por confirmar</div>
-${(n.items || []).map(it => `
-<div style="display:flex;justify-content:space-between;gap:8px;font-size:12.5px;color:#5c4a1f;padding:2px 0;">
-<span>${esc2(it.nombre)}${it.talla ? ' · ' + esc2(it.talla) : ''} × ${esc2(it.cantidad)}</span>
-<span>$${Number(it.precio || 0).toLocaleString()}</span>
-</div>
-`).join('')}
-${n.clientPhone ? `<div style="font-size:12px;color:#8a7238;margin-top:4px;">Cliente: +52 ${esc2(n.clientPhone)}</div>` : ''}
-<div style="display:flex;gap:8px;margin-top:10px;">
-<button class="vsn-confirm-btn" style="flex:1;padding:8px;border:none;border-radius:10px;background:#16a34a;color:#fff;font-size:12.5px;font-weight:700;cursor:pointer;">Confirmar venta</button>
-<button class="vsn-nostock-btn" style="flex:1;padding:8px;border:none;border-radius:10px;background:#fff;border:1.5px solid #dc2626;color:#dc2626;font-size:12.5px;font-weight:700;cursor:pointer;">Sin stock</button>
-</div>
-</div>
-`).join('');
-container.querySelectorAll('.vsn-confirm-btn').forEach(btn => {
-btn.addEventListener('click', () => resolveVendorSaleNotification(btn.closest('.vsn-card').dataset.req, 'confirmar', btn));
-});
-container.querySelectorAll('.vsn-nostock-btn').forEach(btn => {
-btn.addEventListener('click', () => resolveVendorSaleNotification(btn.closest('.vsn-card').dataset.req, 'sin_stock', btn));
-});
-}
-
-async function resolveVendorSaleNotification(requestId, accion, btn) {
-if (btn) btn.disabled = true;
-try {
-const data = await apiCall({ action: 'resolverNotificacionVentaComunidad', vendorToken: vendorSession.token, requestId, accion });
-if (data && data.ok) {
-window.showTemporaryMessage?.(accion === 'confirmar' ? ' Venta confirmada, stock actualizado' : 'Marcado sin stock', 'success');
-loadVendorSaleNotifications();
-loadMyProducts(); // refresca el stock visible de sus productos
-} else {
-window.showTemporaryMessage?.(data?.error || 'No se pudo procesar', 'error');
-if (btn) btn.disabled = false;
-}
-} catch (e) {
-window.showTemporaryMessage?.(' Error de red', 'error');
-if (btn) btn.disabled = false;
-}
-}
-
-function renderVendorPlanPanel() {
-  const el = document.getElementById('vendor-plan-panel');
-  if (!el || !vendorSession) return;
-  const esPlus   = vendorSession.plan === 'plus';
-  const limite   = vendorSession.limiteProductos || (esPlus ? 200 : 20);
-  const actuales = vendorSession.productosActuales || 0; // Debe ser el total real
-  const pct = Math.min(100, Math.round((actuales / limite) * 100));
-  const diasRestantes = vendorSession.planVence
-    ? Math.ceil((new Date(vendorSession.planVence) - new Date()) / 86400000)
-    : null;
-
-  const planBadge = esPlus
-    ? `<span style="background:linear-gradient(135deg,#7c3aed,#a855f7);color:#fff;font-size:11px;font-weight:700;padding:3px 10px;border-radius:999px;">PLUS</span>`
-    : `<span style="background:#eee;color:#999;font-size:11px;font-weight:700;padding:3px 10px;border-radius:999px;">FREE</span>`;
-
-  let renovacionHTML = '';
-  if (esPlus && diasRestantes != null && diasRestantes <= 7) {
-    renovacionHTML = `<div style="margin-top:8px;background:#fff8e1;color:#92702a;font-size:12px;border-radius:10px;padding:8px 12px;">
-      Tu plan Plus vence en ${diasRestantes} día${diasRestantes === 1 ? '' : 's'}. Contacta al admin para renovarlo y no perder tu visibilidad.
-    </div>`;
-  }
-
-  const statusFilterHTML = `
-    <div class="vendor-status-filter" style="display:flex; gap:8px; margin-top:14px; flex-wrap:wrap;">
-      <button class="filter-status-btn active" data-status="todos" style="padding:4px 12px; border-radius:20px; border:1.5px solid var(--color-border-subtle); background:var(--color-accent-solid); color:#fff; font-size:11px; font-weight:600; cursor:pointer; transition:all .15s;">Todos</button>
-      <button class="filter-status-btn" data-status="aprobado" style="padding:4px 12px; border-radius:20px; border:1.5px solid var(--color-border-subtle); background:transparent; color:var(--color-text-muted); font-size:11px; font-weight:600; cursor:pointer; transition:all .15s;">Aprobados</button>
-      <button class="filter-status-btn" data-status="pendiente" style="padding:4px 12px; border-radius:20px; border:1.5px solid var(--color-border-subtle); background:transparent; color:var(--color-text-muted); font-size:11px; font-weight:600; cursor:pointer; transition:all .15s;">Pendientes</button>
-      <button class="filter-status-btn" data-status="rechazado" style="padding:4px 12px; border-radius:20px; border:1.5px solid var(--color-border-subtle); background:transparent; color:var(--color-text-muted); font-size:11px; font-weight:600; cursor:pointer; transition:all .15s;">Rechazados</button>
-    </div>
-  `;
-
-  el.innerHTML = `
-    <div style="background:#f8f8fc;border-radius:14px;padding:12px 14px;">
-      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
-        <div style="font-size:13px;font-weight:600;">${actuales}/${limite} productos usados</div>
-        ${planBadge}
-      </div>
-      <div style="background:#e6e6ee;border-radius:999px;height:6px;margin-top:8px;overflow:hidden;">
-        <div style="background:${pct >= 100 ? '#c62828' : '#7c3aed'};height:100%;width:${pct}%;"></div>
-      </div>
-      ${renovacionHTML}
-      ${statusFilterHTML}
-    </div>
-  `;
-
-  // Asignar eventos a los botones del filtro
-  el.querySelectorAll('.filter-status-btn').forEach(btn => {
-    btn.addEventListener('click', function() {
-      el.querySelectorAll('.filter-status-btn').forEach(b => {
-        b.classList.remove('active');
-        b.style.background = 'transparent';
-        b.style.color = 'var(--color-text-muted)';
-        b.style.borderColor = 'var(--color-border-subtle)';
-      });
-      this.classList.add('active');
-      this.style.background = 'var(--color-accent-solid)';
-      this.style.color = '#fff';
-      this.style.borderColor = 'var(--color-accent-solid)';
-
-      const status = this.dataset.status;
-      applyVendorStatusFilter(status);
+  function updateSlider(index) {
+    currentIndex = ((index % totalSlides) + totalSlides) % totalSlides;
+    track.style.transform = `translateX(-${currentIndex * 100}%)`;
+    dots.forEach((dot, i) => {
+      dot.classList.toggle("active", i === currentIndex);
     });
+  }
+
+  function handleStart(x) {
+    isDragging = true;
+    startX = x;
+    currentX = x;
+  }
+  function handleMove(x) {
+    if (isDragging) currentX = x;
+  }
+  function handleEnd() {
+    if (!isDragging) return;
+    const deltaX = currentX - startX;
+    const threshold = 40;
+    let index = currentIndex;
+    if (deltaX < -threshold) index++;
+    else if (deltaX > threshold) index--;
+    updateSlider(index);
+    isDragging = false;
+  }
+
+  slider.addEventListener("touchstart", (e) => handleStart(e.touches[0].clientX));
+  slider.addEventListener("touchmove", (e) => handleMove(e.touches[0].clientX));
+  slider.addEventListener("touchend", handleEnd);
+  slider.addEventListener("mousedown", (e) => handleStart(e.clientX));
+  slider.addEventListener("mousemove", (e) => { if (isDragging) handleMove(e.clientX); });
+  slider.addEventListener("mouseup", handleEnd);
+  slider.addEventListener("mouseleave", () => { if (isDragging) handleEnd(); });
+
+  dots.forEach((dot) => {
+    dot.addEventListener("click", () => updateSlider(Number(dot.dataset.index)));
   });
+
+  updateSlider(0);
 }
 
-
-// ── Filtro de estado para productos del vendedor ──────────────
-let currentStatusFilter = 'todos';
-
-function applyVendorStatusFilter(status) {
-  currentStatusFilter = status;
-  loadMyProducts(true, 1); // Recargar desde página 1 con el nuevo filtro
-}
-
-// ── Funciones de caché de productos ──────────────────────────
-const VENDOR_PRODUCTS_CACHE_KEY = 'zr_vendor_products';
-const VENDOR_PRODUCTS_CACHE_TTL = 3 * 60 * 1000; // 3 min
-
-window.getVendorProductsCache = function(uid) {
-  try {
-    const raw = sessionStorage.getItem(VENDOR_PRODUCTS_CACHE_KEY + '_' + uid);
-    if (!raw) return null;
-    const { data, timestamp } = JSON.parse(raw);
-    if (Date.now() - timestamp > VENDOR_PRODUCTS_CACHE_TTL) {
-      sessionStorage.removeItem(VENDOR_PRODUCTS_CACHE_KEY + '_' + uid);
-      return null;
-    }
-    return data;
-  } catch(e) { return null; }
-};
-window.setVendorProductsCache = function(uid, products) {
-  try {
-    sessionStorage.setItem(VENDOR_PRODUCTS_CACHE_KEY + '_' + uid,
-      JSON.stringify({ data: products, timestamp: Date.now() }));
-  } catch(e) {}
-};
-window.invalidateVendorProductsCache = function(uid) {
-  try { sessionStorage.removeItem(VENDOR_PRODUCTS_CACHE_KEY + '_' + (uid || vendorSession?.uid)); } catch(e) {}
-};
-
-function showVendorProductsSkeleton(container, count = 3) {
-  const card = () => `
-    <div style="display:flex;gap:12px;padding:12px 0;border-bottom:1px solid #f0f0f0;align-items:center;">
-      <div class="vp-sk" style="width:72px;height:72px;border-radius:10px;flex-shrink:0;"></div>
-      <div style="flex:1;">
-        <div class="vp-sk" style="height:13px;width:70%;margin-bottom:8px;border-radius:6px;"></div>
-        <div class="vp-sk" style="height:11px;width:45%;margin-bottom:8px;border-radius:6px;"></div>
-        <div class="vp-sk" style="height:22px;width:80px;border-radius:20px;"></div>
-      </div>
-    </div>`;
-  container.innerHTML = `
-    <style>
-      .vp-sk{background:linear-gradient(90deg,var(--color-surface-2,#f0f0f4) 25%,var(--color-surface-3,#e4e4ea) 50%,var(--color-surface-2,#f0f0f4) 75%);background-size:600px 100%;animation:vp-shimmer 1.3s infinite linear;}
-      @keyframes vp-shimmer{0%{background-position:-600px 0}100%{background-position:600px 0}}
-    </style>
-    ${Array.from({length: count}, card).join('')}`;
-}
-
-
-
-
-window.updateDonacionesBadge = function updateDonacionesBadge() {
-  const el = document.getElementById('donaciones-count-badge');
-  if (!el) return;
-  // usa window._vendorProducts que debe ser el total de productos del vendedor (sin paginar)
-  const productos = window._vendorProducts || [];
-  const activas = productos.filter(p => p.donado === true || p.donado === 'TRUE' || p.donado === 'true').length;
-  el.textContent = activas > 0 ? `(${activas} activa${activas === 1 ? '' : 's'})` : '';
-  el.style.color = '#f97316';
-  el.style.fontWeight = '700';
-};
-
-
-
-  
-// ── Aplicar productos y renderizar paginación ──────────────
+// ── APLICAR PRODUCTOS Y PAGINACIÓN ──────────────────────
 function applyMyProducts(myProducts, container, total = null, currentPage = 1, totalPages = null) {
-  // total debe ser el número TOTAL de productos del vendedor (sin paginar)
-  // Si no se pasa, lo calculamos a partir de los productos de la página (no es exacto)
+  // Si total es null, usar la longitud de myProducts
   const realTotal = (total !== null) ? total : myProducts.length;
 
-  // Actualizar contador en el plan con el total real
+  // Actualizar contador en la sesión
   if (vendorSession) {
     vendorSession.productosActuales = realTotal;
     localStorage.setItem('vendor_session', JSON.stringify(vendorSession));
   }
   if (typeof renderVendorPlanPanel === 'function') renderVendorPlanPanel();
 
-
-  window._vendorProducts = myProducts; 
+  // Guardar en variable global para otros usos (ej. donaciones)
+  window._vendorProducts = myProducts;
   updateDonacionesBadge();
 
+  // Renderizar productos
   container.innerHTML = '';
   if (myProducts.length === 0) {
     container.innerHTML = `<p style="color:#aaa;text-align:center">No hay productos en esta página.</p>`;
@@ -768,14 +813,15 @@ function applyMyProducts(myProducts, container, total = null, currentPage = 1, t
     });
   }
 
+  // Aplicar layout (grid/lista)
   const savedLayout = localStorage.getItem('products_layout') || 'list';
   applyLayoutGlobal(savedLayout);
 
-  renderPagination(container, currentPage, totalPages, total);
+  // Renderizar controles de paginación
+  renderPagination(container, currentPage, totalPages, realTotal);
 }
 
 function renderPagination(container, currentPage, totalPages, total) {
-  // Eliminar paginación anterior si existe
   const oldPagination = document.getElementById('vendor-pagination');
   if (oldPagination) oldPagination.remove();
 
@@ -785,7 +831,6 @@ function renderPagination(container, currentPage, totalPages, total) {
   paginationDiv.id = 'vendor-pagination';
   paginationDiv.style.cssText = 'display:flex;justify-content:center;align-items:center;gap:12px;margin-top:20px;padding:12px 0;';
 
-  // Botón Anterior
   const prevBtn = document.createElement('button');
   prevBtn.textContent = '‹ Anterior';
   prevBtn.className = 'btn-secondary';
@@ -793,13 +838,11 @@ function renderPagination(container, currentPage, totalPages, total) {
   prevBtn.disabled = currentPage <= 1;
   prevBtn.onclick = () => loadMyProducts(true, currentPage - 1);
 
-  // Indicador de página
   const pageInfo = document.createElement('span');
   pageInfo.textContent = `Página ${currentPage} de ${totalPages}`;
   pageInfo.style.fontSize = '14px';
   pageInfo.style.color = '#555';
 
-  // Botón Siguiente
   const nextBtn = document.createElement('button');
   nextBtn.textContent = 'Siguiente ›';
   nextBtn.className = 'btn-secondary';
@@ -811,11 +854,10 @@ function renderPagination(container, currentPage, totalPages, total) {
   paginationDiv.appendChild(pageInfo);
   paginationDiv.appendChild(nextBtn);
 
-  // Insertar después del contenedor de productos
   container.parentNode.insertBefore(paginationDiv, container.nextSibling);
 }
 
-// ── Carga de productos con paginación ──────────────────────
+// ── CARGA DE PRODUCTOS CON PAGINACIÓN ────────────────────
 window.loadMyProducts = async function loadMyProducts(force = false, page = 1) {
   const container = document.getElementById('products-container');
   if (!container) return;
@@ -825,13 +867,13 @@ window.loadMyProducts = async function loadMyProducts(force = false, page = 1) {
   const limit = 20;
   const status = currentStatusFilter || 'todos';
 
+  // Construir clave de caché incluyendo página y filtro
   const cacheKey = `vendor_products_${uid}_page_${page}_status_${status}`;
   const cached = !force ? sessionStorage.getItem(cacheKey) : null;
 
   if (cached) {
     try {
       const parsed = JSON.parse(cached);
-      // Pasamos el total real guardado en caché
       applyMyProducts(parsed.data, container, parsed.total, parsed.page, parsed.totalPages);
       // Revalidar en background
       fetchPage(uid, page, limit, status, true);
@@ -860,8 +902,9 @@ async function fetchPage(uid, page, limit, status, background = false) {
 
     if (!data.ok) throw new Error(data.error);
 
+    // Filtrar por uid por si acaso
     const myProducts = (data.products || []).filter(p => p.vendedor_uid === uid);
-    const total = data.total || myProducts.length; // total REAL de productos del vendedor (sin paginar)
+    const total = data.total || myProducts.length;
     const totalPages = data.totalPages || Math.ceil(total / limit);
 
     // Guardar en caché
@@ -875,7 +918,6 @@ async function fetchPage(uid, page, limit, status, background = false) {
     }));
 
     if (!background) {
-      // Pasamos el total real a applyMyProducts
       applyMyProducts(myProducts, container, total, page, totalPages);
     }
   } catch (err) {
@@ -885,8 +927,30 @@ async function fetchPage(uid, page, limit, status, background = false) {
   }
 }
 
+// ── DONACIONES BADGE ──────────────────────────────────────
+window.updateDonacionesBadge = function updateDonacionesBadge() {
+  const el = document.getElementById('donaciones-count-badge');
+  if (!el) return;
+  const productos = window._vendorProducts || [];
+  const activas = productos.filter(p => p.donado === true || p.donado === 'TRUE' || p.donado === 'true').length;
+  el.textContent = activas > 0 ? `(${activas} activa${activas === 1 ? '' : 's'})` : '';
+  el.style.color = '#f97316';
+  el.style.fontWeight = '700';
+};
+
+// ── SUBIR LOGO ────────────────────────────────────────────
+async function uploadVendorLogo(file) {
+const url = await uploadSingleImage(file);
+const res = await apiFetch({ action: 'actualizarLogoVendedor', vendorToken: vendorSession.token, logoUrl: url });
+if (!res.ok) throw new Error(res.error || 'No se pudo guardar el logo');
+vendorSession.logo = url;
+localStorage.setItem('vendor_session', JSON.stringify(vendorSession));
+return url;
+}
+
+// ── EDITAR / ELIMINAR PRODUCTO ───────────────────────────
 window.editProduct = function(id) {
-const p = (window._vendorProducts || []).find(x =>String(x.id) === String(id));
+const p = (window._vendorProducts || []).find(x => String(x.id) === String(id));
 if (!p) return;
 document.getElementById('edit-product-id').value = id;
 document.getElementById('pNombre').value = p.nombre || '';
@@ -962,11 +1026,11 @@ if (cat) cat.value = '';
 uploadedImages = { 1: null, 2: null, 3: null };
 }
 
+// ── SUBIR IMÁGENES ────────────────────────────────────────
 window.triggerUpload = function(n) {
 const sheet = document.getElementById('photo-source-sheet');
 const input = document.getElementById(`file-${n}`);
 if (!sheet || !input) {
-    // Fallback por si el sheet no existe en esta página
     input?.click();
     return;
 }
@@ -1012,29 +1076,23 @@ window.handleFileSelect = function(n, input) {
     const files = input.files;
     if (!files || files.length === 0) return;
 
-    // Función de subida para vendedor (usa token de vendedor)
     const vendorUploadFn = async (file, slot) => {
-        // uploadSingleImage ya tiene la lógica de compresión y usa el token de vendorSession
         return await uploadSingleImage(file);
     };
 
-    // Callback de éxito para actualizar uploadedImages y selectedFiles
     const onSuccess = (slot, url) => {
         uploadedImages[slot] = url;
-        selectedFiles[slot] = null; // ya se subió, no necesitamos el archivo
+        selectedFiles[slot] = null;
         console.log(`Imagen ${slot} subida, URL guardada en uploadedImages`);
     };
 
-    // Callback de progreso (opcional)
     const onProgress = (slot, percent) => {
         const progressId = `progress-image-upload-${slot}`;
         const progress = document.getElementById(progressId);
         if (progress) progress.style.width = percent + '%';
     };
 
-    // Llamar a la función central
     window.uploadImagesInQueue(files, n, vendorUploadFn, onProgress, onSuccess);
-    // Limpiar input para permitir nueva selección
     input.value = '';
 };
 
@@ -1077,7 +1135,6 @@ selectedFiles[n] = null;
 };
 
 async function uploadSingleImage(file) {
-    // Obtener token de vendedor
     const token = window.vendorSession?.token;
     if (!token) throw new Error('Sesión de vendedor no disponible');
 
@@ -1102,7 +1159,6 @@ async function uploadSingleImage(file) {
     return result.url || `https://drive.google.com/file/d/${result.id}/view`;
 }
 
-
 function fileToBase64(file) {
 return new Promise((resolve, reject) => {
 const reader = new FileReader();
@@ -1112,6 +1168,7 @@ reader.readAsDataURL(file);
 });
 }
 
+// ── PUBLICAR PRODUCTO ─────────────────────────────────────
 window.submitProduct = async function() {
 if (!vendorSession || !vendorSession.token) {
   showTemporaryMessage(' Sesión expirada. Vuelve a iniciar sesión.', 'error');
@@ -1203,9 +1260,9 @@ el.classList.toggle('active', el.dataset.vendorPage === tab);
 });
 };
 
+// ── RECUPERAR SESIÓN ──────────────────────────────────────
 let stored = localStorage.getItem('vendor_session');
 if (!stored) {
-// Migración: sesiones antiguas que quedaron guardadas en sessionStorage
 stored = sessionStorage.getItem('vendor_session');
 if (stored) {
 localStorage.setItem('vendor_session', stored);
@@ -1239,8 +1296,11 @@ const cancelBtn = document.getElementById('cancel-edit-btn');
 if (cancelBtn) {
 cancelBtn.addEventListener('click', window.cancelEdit);
 }
-}
+} // fin initVendorPanel
 
+// ──────────────────────────────────────────────
+// INIT PENDING VENDORS (solo administración)
+// ──────────────────────────────────────────────
 function initPendingVendors() {
 return;
 const STYLES = `
@@ -1591,12 +1651,13 @@ if (refreshBtn) refreshBtn.addEventListener('click', loadVendors);
 loadVendors();
 }
 
+// ──────────────────────────────────────────────
+// DOMContentLoaded
+// ──────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
 initVendorPanel();
 initPendingVendors();
 
-// Mientras haya imágenes subiéndose en cola, bloquear "Publicar/Guardar producto"
-// para evitar enviar el producto con campos de imagen aún vacíos.
 const submitBtn = document.getElementById('submit-product-btn');
 if (submitBtn) {
   window.addEventListener('znr:uploads-status', (e) => {
@@ -1658,7 +1719,6 @@ function updateVendorAvatar() {
   const esPlus = vendorSession.plan === 'plus';
   const logo   = vendorSession.logo;
 
-  // ✅ Validar que la URL sea válida antes de asignarla
   const esUrlValida = logo && (logo.startsWith('http') || logo.startsWith('data:image'));
 
   if (esPlus && esUrlValida) {
@@ -1706,7 +1766,6 @@ function openSettingsModal() {
   const photoEl       = document.getElementById('settings-avatar-photo');
   const changeBtn     = document.getElementById('settings-change-photo-btn');
 
-  // ✅ Validar que la URL sea válida antes de asignarla
   const logo = vendorSession.logo;
   const esUrlValida = logo && (logo.startsWith('http') || logo.startsWith('data:image'));
 
@@ -1809,7 +1868,6 @@ async function guardarPerfil() {
   const categoria  = document.getElementById('settings-categoria').value;
   const horario    = document.getElementById('settings-horario')?.value.trim() || '';
 
-  // 🔽 NUEVO: leer redes sociales
   const facebook  = document.getElementById('settings-facebook').value.trim();
   const twitter   = document.getElementById('settings-twitter').value.trim();
   const instagram = document.getElementById('settings-instagram').value.trim();
@@ -1832,10 +1890,10 @@ async function guardarPerfil() {
       whatsapp,
       categoria,
       horario,
-      facebook,    // ← enviar
-      twitter,     // ← enviar
-      instagram,   // ← enviar
-      tiktok       // ← enviar
+      facebook,
+      twitter,
+      instagram,
+      tiktok
     });
 
     if (!res.ok) {
@@ -1844,20 +1902,18 @@ async function guardarPerfil() {
       return;
     }
 
-    // Actualizar la sesión local
     vendorSession.nombre      = nombre;
     vendorSession.descripcion = descripcion;
     vendorSession.whatsapp    = whatsapp;
     vendorSession.categoria   = categoria;
     vendorSession.horario     = horario;
-    vendorSession.facebook    = facebook;   // ← guardar en sesión
+    vendorSession.facebook    = facebook;
     vendorSession.twitter     = twitter;
     vendorSession.instagram   = instagram;
     vendorSession.tiktok      = tiktok;
 
     try { localStorage.setItem('vendor_session', JSON.stringify(vendorSession)); } catch(e) {}
 
-    // Actualizar UI
     const nameHeader = document.getElementById('vendor-name-header');
     if (nameHeader) nameHeader.textContent = nombre;
     updateVendorAvatar();
@@ -2118,17 +2174,17 @@ async function apiCall(data) {
   }
 }
 
-})();
-// ── Secciones colapsables del panel de ajustes ───────────────
+// ──────────────────────────────────────────────
+// Secciones colapsables del panel de ajustes
+// ──────────────────────────────────────────────
 window.toggleSettingsSection = function(btn) {
   const body = btn.nextElementSibling;
   const open = btn.classList.toggle('open');
   body.style.display = open ? 'block' : 'none';
 };
 
-// ── Modal de gestión de donaciones (desde ajustes o card) ────
+// ── Modal de gestión de donaciones ──────────────────────────
 window.openDonarProductosModal = async function(productoId) {
-  // Usa productos ya en memoria — sin fetch extra
   const prod = window._vendorProducts && window._vendorProducts.find(p => String(p.id) === String(productoId));
   if (!prod) { showTemporaryMessage('⚠️ Recarga tus productos primero', 'error'); return; }
 
@@ -2153,7 +2209,6 @@ if (prod.imagen1) {
       </div>
       <div style="padding:16px 20px 0;">
 
-        <!-- Producto seleccionado -->
         <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:#fafafa;border-radius:12px;border:1.5px solid #f97316;margin-bottom:16px;">
           ${imgUrl ? `<img src="${esc(imgUrl)}" onerror="this.replaceWith(Object.assign(document.createElement('div'),{style:'width:48px;height:48px;background:#f5f5f8;border-radius:8px;flex-shrink:0;'}))" style="width:48px;height:48px;object-fit:cover;border-radius:8px;flex-shrink:0;">` : `<div style="width:48px;height:48px;background:#f5f5f8;border-radius:8px;flex-shrink:0;"></div>`}
           <div style="flex:1;min-width:0;">
@@ -2166,12 +2221,10 @@ if (prod.imagen1) {
         <div id="donar-msg" style="display:none;padding:10px;border-radius:10px;margin-bottom:12px;font-size:.82rem;"></div>
 
         ${donado ? `
-        <!-- Ya donado: solo mostrar opción de quitar -->
         <p style="font-size:.8rem;color:#555;margin:0 0 16px;line-height:1.5;">Este producto ya está asignado a un beneficiario. ¿Deseas quitar la donación?</p>
         <button id="btn-donar-quitar" style="width:100%;padding:13px;border:none;border-radius:12px;background:#fee2e2;color:#b91c1c;font-weight:700;font-size:.9rem;cursor:pointer;">
           Quitar donación
         </button>` : `
-        <!-- Sin donar: mostrar selector de beneficiario -->
         <p style="font-size:.8rem;color:#888;margin:0 0 12px;line-height:1.5;">El comprador le pagará directamente al beneficiario.</p>
         <label style="font-size:.78rem;font-weight:700;color:#555;display:block;margin-bottom:6px;">Beneficiario destino</label>
         <select id="donar-ben-select" style="width:100%;box-sizing:border-box;padding:10px 12px;border:1.5px solid #ddd;border-radius:10px;font-size:.88rem;background:#fff;margin-bottom:16px;outline:none;">
@@ -2196,7 +2249,6 @@ if (prod.imagen1) {
   };
 
   if (donado) {
-    // Solo botón quitar
     document.getElementById('btn-donar-quitar')?.addEventListener('click', async () => {
       const btn = document.getElementById('btn-donar-quitar');
       btn.disabled = true; btn.textContent = 'Quitando…';
@@ -2207,7 +2259,6 @@ if (prod.imagen1) {
       } catch(e) { showMsg('⚠️ Error de conexión', false); btn.disabled = false; btn.textContent = 'Quitar donación'; }
     });
   } else {
-    // Cargar solo beneficiarios (productos ya en memoria)
     const selEl = document.getElementById('donar-ben-select');
    const cargarBeneficiarios = async () => {
   window.debugPanel.log('DEBUG 1', 'Entró a cargarBeneficiarios()');
@@ -2258,7 +2309,6 @@ const benData = await window.apiFetch({ action:'obtenerBeneficiariosAprobados' }
         else { showMsg('⚠️ ' + (data.error||'Error'), false); btn.disabled = false; btn.textContent = '❤️ Asignar donación'; }
       } catch(e) {
         window.debugPanel && window.debugPanel.log('DEBUG ERROR', e.message || String(e));
-        // Si el servidor procesó pero la respuesta falló (JSON parse), aún puede haber funcionado
         showMsg('⚠️ Error de conexión: ' + (e.message||''), false);
         btn.disabled = false; btn.textContent = '❤️ Asignar donación';
       }
@@ -2266,11 +2316,10 @@ const benData = await window.apiFetch({ action:'obtenerBeneficiariosAprobados' }
   }
 };
 
-// ── "Gestionar donaciones" desde ajustes: muestra todos los productos ──
+// ── "Gestionar donaciones" desde ajustes ──────────────────────
 window.openGestionarDonacionesModal = async function() {
   const esc = s => String(s||'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
-  // Abrir modal con spinner mientras carga datos frescos
   const old = document.getElementById('modal-gestionar-donaciones');
   if (old) old.remove();
   const modal = document.createElement('div');
@@ -2288,7 +2337,6 @@ window.openGestionarDonacionesModal = async function() {
   document.getElementById('btn-close-gestionar').onclick = () => modal.remove();
   modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
 
-  // Usar caché si existe; si no, cargar (loadMyProducts ya maneja skeleton en el panel)
   const uid = vendorSession?.uid;
   const cached = uid ? window.getVendorProductsCache(uid) : null;
   if (cached) {
@@ -2329,8 +2377,6 @@ window.openGestionarDonacionesModal = async function() {
           }
         </div>`;
 };
-
-
 
 // ── Modal: entregas de mis transmisiones en vivo ─────────────
 window.openEntregasLiveModal = async function() {
@@ -2414,4 +2460,6 @@ async function loadBeneficiarioDonaciones() {
           </div>`).join('')}
     </div>`;
   } catch(e) { area.style.display = 'none'; }
-  }
+}
+
+})(); // fin IIFE
