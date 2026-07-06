@@ -207,11 +207,9 @@ async function fetchFilterOptions(force = false) {
       const cached = localStorage.getItem(FILTER_OPTIONS_CACHE_KEY);
       if (cached) {
         const data = JSON.parse(cached);
-        // Validar que tenga timestamp y no esté expirado
         if (data.timestamp && (Date.now() - data.timestamp) < FILTER_OPTIONS_TTL) {
           window.globalCategories = data.categories || [];
           window.globalSizes = data.sizes || [];
-          // Llenar los selects si ya existen en el DOM
           populateFilterSelects();
           return;
         }
@@ -219,7 +217,6 @@ async function fetchFilterOptions(force = false) {
     } catch (e) {}
   }
 
-  // 2. Si no hay caché o expiró, pedir al backend
   try {
     const url = new URL(API_URL);
     url.searchParams.set('action', 'getFilterOptions');
@@ -242,7 +239,7 @@ async function fetchFilterOptions(force = false) {
     }
   } catch (err) {
     console.warn('Error fetching filter options:', err);
-    // Si falla la red y tenemos caché aunque sea vieja, la usamos
+    // Si falla la red y tenemos caché 000000000000 sea vieja, la usamos
     try {
       const cached = localStorage.getItem(FILTER_OPTIONS_CACHE_KEY);
       if (cached) {
