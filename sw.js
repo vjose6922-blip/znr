@@ -163,13 +163,20 @@ async function staleWhileRevalidate(request) {
 }
 
 self.addEventListener('push', event => {
-  const data = event.data ? event.data.json() : {};
+  const payload = event.data ? event.data.json() : {};
+  // FCM entrega el título/cuerpo anidados en "notification",
+  // no en el nivel superior del payload.0000
+  const notif = payload.notification || {};
+  const title = notif.title || 'Z&R';
+  const body  = notif.body  || '¡Novedades en Z&R!';
+  const url   = (payload.data && payload.data.url) || payload.fcmOptions?.link || '/ZNR/';
+
   event.waitUntil(
-    self.registration.showNotification(data.title || 'Z&R', {
-      body:    data.body || '¡Novedades en Z&R!',
+    self.registration.showNotification(title, {
+      body:    body,
       icon:    '/ZNR/logo.svg',
       vibrate: [200, 100, 200],
-      data:    { url: data.url || '/ZNR/' },
+      data:    { url: url },
       actions: [{ action: 'open', title: 'Ver ahora' }, { action: 'close', title: 'Cerrar' }]
     })
   );
