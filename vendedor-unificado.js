@@ -1,9 +1,6 @@
 (function() {
 'use strict';
 
-// ──────────────────────────────────────────────
-// v0000
-// ──────────────────────────────────────────────
 let vendorSession = null;
 Object.defineProperty(window, 'vendorSession', {
   get() { return vendorSession; },
@@ -173,14 +170,6 @@ window.debugPanel = {
 
 
 
-
-
-
-
-
-
-
-
 function injectStyles(id, css) {
 if (document.getElementById(id)) return;
 const style = document.createElement('style');
@@ -200,8 +189,6 @@ if (registerTab) registerTab.click();
 
 if (!document.getElementById('login-section') && !document.getElementById('panel-section')) return;
 
-// Se ELIMINA la declaración local de vendorSession (ya es global)
-// let vendorSession = null;   ← ELIMINADA
 
 let uploadedImages = { 1: null, 2: null, 3: null };
 let selectedFiles = { 1: null, 2: null, 3: null };
@@ -314,7 +301,7 @@ return;
 try {
 const res = await apiFetch({ action: 'loginVendedor', telefono: firstField, password: secondField });
 if (!res.ok) throw new Error();
-// AHORA asignamos a la variable global vendorSession
+// AHORA asignamos a la variable global 000
 vendorSession = {
 token: res.token,
 uid: res.uid,
