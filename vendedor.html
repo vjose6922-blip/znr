@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -299,38 +298,15 @@
  <label>Categoría</label>
  <select id="pCategoria">
  <option value="">— Seleccionar —</option>
-<option>Ropa de mujer</option>
-<option>Ropa de hombre</option>
-<option>Ropa infantil</option>
-<option>Ropa interior y lencería</option>
-<option>Ropa deportiva</option>
-<option>Calzado</option>
-<option>Accesorios</option>
-<option>Joyería y bisutería</option>
-<option>Relojes</option>
-<option>Gafas y óptica</option>
-<option>Bolsas y equipaje</option>
-<option>Higiene y cuidado personal</option>
-<option>Cuidado de la piel</option>
-<option>Cuidado del cabello</option>
-<option>Perfumes y fragancias</option>
-<option>Cosméticos y maquillaje</option>
+ <option>Ropa de mujer</option><option>Ropa de hombre</option><option>Accesorios</option>
+ <option>Higiene</option>
+<option>Cosmeticos</option>
 <option>Hogar</option>
-<option>Decoración del hogar</option>
-<option>Muebles</option>
-<option>Textiles del hogar (ropa de cama, toallas)</option>
-<option>Cocina y utensilios</option>
-<option>Electrodomésticos</option>
-<option>Jardín y exteriores</option>
-<option>Herramientas y bricolaje</option>
-<option>Electrónica y tecnología</option>
-<option>Papelería y oficina</option>
-<option>Juguetes y juegos</option>
-<option>Libros y revistas</option>
-<option>Mascotas</option>
-<option>Automotriz</option>
-<option>Alimentos y bebidas</option>
-<option>Salud y bienestar</option>
+<option>Cocina</option>
+<option>Cuidado de la piel</option>
+<option>Calzado</option>
+<option>Bolsas</option>
+<option>Ropa deportiva</option>
 <option>Temporada</option>
  </select>
  </div>
@@ -391,6 +367,28 @@
  <script src="common.js" defer></script>
  <script src="error-monitor.js" defer></script>
  <script src="vendedor-unificado.js" defer></script>
+<script>
+// Registra el token de notificaciones push del vendedor una vez que
+// haya sesión activa (localStorage 'vendor_session', ya manejado por
+// vendedor-unificado.js). No conocemos el momento exacto del login dentro
+// de ese archivo, así que revisamos periódicamente hasta encontrarla.
+document.addEventListener('DOMContentLoaded', () => {
+  let intentos = 0;
+  const maxIntentos = 30; // ~30s
+  const timer = setInterval(() => {
+    intentos++;
+    let session = null;
+    try { session = JSON.parse(localStorage.getItem('vendor_session') || 'null'); } catch (e) {}
+    if (session && session.uid && typeof window.solicitarPermisoNotificacionesSiFalta === 'function') {
+      window.solicitarPermisoNotificacionesSiFalta('vendedor', session.uid);
+      clearInterval(timer);
+      return;
+    }
+    if (intentos >= maxIntentos) clearInterval(timer);
+  }, 1000);
+});
+</script>
+
 
  <nav class="bottom-nav" id="bottom-nav-guest">
  <button class="bottom-nav-item" data-page="inicio" id="nav-inicio">
