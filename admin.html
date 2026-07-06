@@ -1863,10 +1863,8 @@ async function loadNotifPanelCounts() {
   const api  = window.API_URL || window.ADMIN_API_URL || '';
   try {
     const gasGet = (params) => fetch(api + '?' + new URLSearchParams(params).toString()).then(r=>r.json()).catch(()=>({}));
-    // Escalonamos las peticiones (en vez de Promise.all simultáneo) para no saturar
-    // el límite de ejecuciones concurrentes de Apps Script, que puede devolver 404
-    // intermitentes en script.googleusercontent.com/macros/echo cuando hay demasiadas
-    // peticiones al mismo tiempo (ej: justo después del login).
+    // Escalonamos las peticiones (en vez de Promise.all simultáneo) para no saturadas
+    // peticiones al mismo tiempo (ej: justo después del login).00000000
     const delay = (ms) => new Promise(r => setTimeout(r, ms));
     const nRes = await gasGet({ action: 'notificationsBatch', page: 1, pageSize: 200, noCache: false });
     await delay(150);
