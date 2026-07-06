@@ -889,7 +889,7 @@ window.loadMyProducts = async function loadMyProducts(force = false) {
   if (cached) {
     applyMyProducts(cached, container);
     // Revalidar en background silenciosamente
-    apiFetch({ action: 'listarComunidad', vendedor_uid: uid, admin: 'true', vendorToken: vendorSession.token }, 'GET')
+    apiFetch({ action: 'listarComunidad', vendedor_uid: uid, admin: 'true', limit: '200', vendorToken: vendorSession.token }, 'GET')
       .then(data => {
         if (!data.ok) return;
         const fresh = (data.products || []).filter(p => p.vendedor_uid === uid);
@@ -905,7 +905,7 @@ window.loadMyProducts = async function loadMyProducts(force = false) {
   // 2. Sin caché: skeleton + fetch
   showVendorProductsSkeleton(container, 3);
   try {
-    const data = await apiFetch({ action: 'listarComunidad', vendedor_uid: uid, admin: 'true', vendorToken: vendorSession.token }, 'GET');
+    const data = await apiFetch({ action: 'listarComunidad', vendedor_uid: uid, admin: 'true', limit: '200', vendorToken: vendorSession.token }, 'GET');
     if (!data.ok) throw new Error(data.error);
     const myProducts = (data.products || []).filter(p => p.vendedor_uid === uid);
     window.setVendorProductsCache(uid, myProducts);
