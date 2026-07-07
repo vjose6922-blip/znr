@@ -165,24 +165,24 @@ return getImageUrl(fileId, 400);
 function updateLooksNavBackground(imageUrl) {
   const looksNav = document.getElementById('looks-nav-bg');
   if (!looksNav) return;
-}
-if (imageUrl && imageUrl !== 'null' && imageUrl !== 'undefined') {
-const img = new Image();
-img.onload = () => {
-looksNav.style.backgroundImage = `url('${imageUrl}')`;
-looksNav.classList.remove('default-bg');
-looksNav.classList.remove('fallback-bg');
-console.log('Fondo actualizado con imagen');
-};
-img.onerror = () => {
-console.error('Error cargando imagen, usando color de fondo');
-applyFallbackBackground(looksNav);
-};
-img.src = imageUrl;
-} else {
-applyFallbackBackground(looksNav);
-}
 
+  if (imageUrl && imageUrl !== 'null' && imageUrl !== 'undefined') {
+    const img = new Image();
+    img.onload = () => {
+      looksNav.style.backgroundImage = `url('${imageUrl}')`;
+      looksNav.classList.remove('default-bg');
+      looksNav.classList.remove('fallback-bg');
+      console.log('Fondo actualizado con imagen');
+    };
+    img.onerror = () => {
+      console.error('Error cargando imagen, usando color de fondo');
+      applyFallbackBackground(looksNav);
+    };
+    img.src = imageUrl;
+  } else {
+    applyFallbackBackground(looksNav);
+  }
+}
 function applyFallbackBackground(looksNav) {
 looksNav.style.backgroundImage = 'none';
 looksNav.classList.add('fallback-bg');
@@ -190,22 +190,23 @@ looksNav.classList.add('fallback-bg');
 function updateWeatherWidgetUI(classified) {
   const widget = document.getElementById('weather-widget');
   if (!widget) return;
-}
-const temp = Math.round(classified.temperature);
-let icon = '';
-if (classified.condition.includes('lluvia')) icon = '';
-else if (classified.condition === 'tormenta') icon = '';
-else if (classified.condition === 'nieve') icon = '';
-else if (classified.condition === 'soleado' || classified.condition === 'calor') icon = '';
-else if (classified.condition === 'nublado') icon = '';
-else if (classified.condition === 'nublado_parcial') icon = '';
-else if (classified.condition === 'viento_fuerte') icon = '';
-widget.innerHTML = `
-<span class="weather-temp">${temp}°C</span>
-<span class="weather-feels">Sensación ${Math.round(classified.feelsLike !== undefined ? classified.feelsLike : temp)}°</span>
-`;
-widget.classList.remove('loading');
-console.log(` Widget actualizado: ${icon} ${temp}°C`);
+
+  const temp = Math.round(classified.temperature);
+  // icon solo para depuración
+  let icon = '';
+  if (classified.condition.includes('lluvia')) icon = '🌧️';
+  else if (classified.condition === 'tormenta') icon = '⛈️';
+  else if (classified.condition === 'nieve') icon = '❄️';
+  else if (classified.condition === 'soleado' || classified.condition === 'calor') icon = '☀️';
+  else if (classified.condition === 'nublado') icon = '☁️';
+  else if (classified.condition === 'nublado_parcial') icon = '⛅';
+  else if (classified.condition === 'viento_fuerte') icon = '💨';
+
+  widget.innerHTML = `
+    <span class="weather-temp">${temp}°C</span>
+    <span class="weather-feels">Sensación ${Math.round(classified.feelsLike !== undefined ? classified.feelsLike : temp)}°</span>
+  `;
+  widget.classList.remove('loading');
 }
 async function fetchWeatherData(coords = DEFAULT_COORDS) {
 const controller = new AbortController();
