@@ -205,6 +205,7 @@
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-app.js";
 import { getDatabase, ref, push, onValue, set, remove, onDisconnect } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-database.js";
+import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-auth.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyAaOe_lxLdQtTFCtw2BDR8KZRSafEMkkes",
@@ -217,6 +218,20 @@ const firebaseConfig = {
 };
 const fbApp = initializeApp(firebaseConfig);
 const db = getDatabase(fbApp);
+const auth = getAuth(fbApp);
+
+// ── Autenticación anónima: necesaria para que las reglas de RTDB
+// puedan verificar auth != null y auth.uid en presencia/chats. ──
+let authUid = null;
+let authReadyResolve;
+const authReady = new Promise((resolve) => { authReadyResolve = resolve; });
+signInAnonymously(auth).catch(err => console.error('signInAnonymously falló:', err));
+auth.onAuthStateChanged((user) => {
+  if (user) {
+    authUid = user.uid;
+    authReadyResolve();
+  }
+});
 
 async function apiFetch(data, method = 'GET') {
   const API_BASE = window.API_URL;
@@ -406,17 +421,11 @@ function detenerPlayerSincronizado() {
 }
 
 // ── Presencia (contador de espectadores en vivo) ──
+// El viewerId AHORA es el uid de Firebase Auth (anónimo), porque las
+// reglas de RTDB exigen que auth.uid === $viewerId. Ya no se genera
+// un id aleatorio propio: se usa el que asigna Firebase.
 function getViewerId() {
-  try {
-    let id = sessionStorage.getItem('znr_viewer_id');
-    if (!id) {
-      id = 'v_' + Date.now() + '_' + Math.random().toString(36).slice(2, 9);
-      sessionStorage.setItem('znr_viewer_id', id);
-    }
-    return id;
-  } catch (e) {
-    return 'v_' + Date.now() + '_' + Math.random().toString(36).slice(2, 9);
-  }
+  return authUid;
 }
 
 function registrarPresencia() {
@@ -787,6 +796,7 @@ async function init() {
   if (!liveId) { renderNoId(); return; }
 
   identity = getIdentity();
+  await authReady; // esperar a que Firebase asigne el uid anónimo antes de leer/escribir RTDB
 
   try {
     const resp = await apiFetch({ action: 'obtenerSesionLivePorId', id: liveId });
