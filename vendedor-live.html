@@ -394,9 +394,27 @@ auth.onAuthStateChanged((user) => {
 // la liveId, para que las reglas de RTDB permitan isVendor:true / vendido:true.
 // Se llama UNA vez por sesión live, justo antes de iniciar el chat.
 const liveIdsCertificados = new Set();
+
 async function certificarVendedorEnLive(liveId) {
   if (liveIdsCertificados.has(liveId)) return true;
-  await authReady;
+
+  try {
+    // Espera a que authReady se resuelva (o falle)
+    await authReady;
+  } catch (authErr) {
+    // 👇 Muestra el error completo en consola
+    console.error('❌ authReady falló:', authErr);
+    console.error('Mensaje:', authErr.message);
+    console.error('Stack:', authErr.stack);
+    return false;
+  }
+
+  // Si llegamos aquí, authUid debería estar definido
+  if (!authUid) {
+    console.error('❌ authUid no definido después de authReady');
+    return false;
+  }
+
   try {
     const resp = await apiFetch({
       action: 'certificarVendedorLive',
@@ -404,14 +422,15 @@ async function certificarVendedorEnLive(liveId) {
       liveId,
       uid: authUid
     });
+
     if (resp.ok) {
       liveIdsCertificados.add(liveId);
       return true;
     }
-    console.error('certificarVendedorLive falló:', resp.error);
+    console.error('❌ certificarVendedorLive API falló:', resp.error);
     return false;
   } catch (err) {
-    console.error('certificarVendedorLive error:', err);
+    console.error('❌ Error en apiFetch certificarVendedorLive:', err);
     return false;
   }
 }
