@@ -363,6 +363,7 @@
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-app.js";
 import { getDatabase, ref, push, onValue, query, limitToLast, update, get } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-database.js";
+import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-auth.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyAaOe_lxLdQtTFCtw2BDR8KZRSafEMkkes",
@@ -375,6 +376,45 @@ const firebaseConfig = {
 };
 const fbApp = initializeApp(firebaseConfig);
 const db = getDatabase(fbApp);
+const auth = getAuth(fbApp);
+
+// ── Autenticación anónima + certificación de vendedor en RTDB ──
+let authUid = null;
+let authReadyResolve;
+const authReady = new Promise((resolve) => { authReadyResolve = resolve; });
+signInAnonymously(auth).catch(err => console.error('signInAnonymously falló:', err));
+auth.onAuthStateChanged((user) => {
+  if (user) {
+    authUid = user.uid;
+    authReadyResolve();
+  }
+});
+
+// Certifica ante el backend que este uid anónimo es el dueño real de
+// la liveId, para que las reglas de RTDB permitan isVendor:true / vendido:true.
+// Se llama UNA vez por sesión live, justo antes de iniciar el chat.
+const liveIdsCertificados = new Set();
+async function certificarVendedorEnLive(liveId) {
+  if (liveIdsCertificados.has(liveId)) return true;
+  await authReady;
+  try {
+    const resp = await apiFetch({
+      action: 'certificarVendedorLive',
+      vendorToken: vendorSession.token,
+      liveId,
+      uid: authUid
+    });
+    if (resp.ok) {
+      liveIdsCertificados.add(liveId);
+      return true;
+    }
+    console.error('certificarVendedorLive falló:', resp.error);
+    return false;
+  } catch (err) {
+    console.error('certificarVendedorLive error:', err);
+    return false;
+  }
+}
 
 // ── apiFetch mínimo, igual al de vendedor-unificado.js ──
 async function apiFetch(data, method = 'POST') {
@@ -846,7 +886,7 @@ function renderLive() {
   }
 }
 
-function renderLiveFallback() {
+async function renderLiveFallback() {
   document.body.classList.add('live-active');
   const shareUrl = getComprobadorUrl(currentSesion.id);
   wrap.innerHTML = `
@@ -897,11 +937,12 @@ function renderLiveFallback() {
     if (!confirm('¿Finalizar la transmisión en vivo?')) return;
     finalizarTransmision(document.getElementById('btn-finalizar'));
   });
+  await certificarVendedorEnLive(currentSesion.id);
   setupChat(currentSesion.id, vendorSession.nombre, true);
   setupContadorEspectadores(currentSesion.id);
 }
 
-function renderLiveFull() {
+async function renderLiveFull() {
   document.body.classList.add('live-active');
   const shareUrl = getComprobadorUrl(currentSesion.id);
   const esGrabado = currentSesion.tipo !== 'vivo';
@@ -995,6 +1036,7 @@ IDs cargados: ${esc(allProducts.map(p => p.id).join(', '))}</div>`
     finalizarTransmision(document.getElementById('btn-finalizar'));
   });
 
+  await certificarVendedorEnLive(currentSesion.id);
   setupChat(currentSesion.id, vendorSession.nombre, true);
   setupContadorEspectadores(currentSesion.id);
 
