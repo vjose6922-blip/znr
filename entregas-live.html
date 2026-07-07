@@ -194,37 +194,36 @@
   }
 
   function renderGrupo(g) {
-    const estado = g.estado === 'entregado' ? 'entregado' : 'pendiente';
-    const url = mapsUrl(g);
-    return `
-      <div class="entrega-card ${estado === 'entregado' ? 'is-entregado' : ''}" data-key="${esc(g.compradorKey)}">
-        <div class="top-row">
-          <div>
-            <h2>${esc(g.compradorNombre)}</h2>
-           // Dentro de renderGrupo, reemplaza la sección del teléfono por:
-${g.compradorTelefono ? `
-  <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
-    <a class="tel-link" href="tel:${g.compradorTelefono}">📞 ${esc(g.compradorTelefono)}</a>
-    <a class="tel-link" href="https://wa.me/${encodeURIComponent(g.compradorTelefono.replace(/[\s()-]/g, ''))}" target="_blank" rel="noopener">💬 WhatsApp</a>
-  </div>
-` : ''}
-          </div>
-          <span class="estado-pill ${estado}">${estado === 'entregado' ? '✅ ENTREGADO' : '⏳ PENDIENTE'}</span>
+  const estado = g.estado === 'entregado' ? 'entregado' : 'pendiente';
+  const url = mapsUrl(g);
+  return `
+    <div class="entrega-card ${estado === 'entregado' ? 'is-entregado' : ''}" data-key="${esc(g.compradorKey)}">
+      <div class="top-row">
+        <div>
+          <h2>${esc(g.compradorNombre)}</h2>
+          ${g.compradorTelefono ? `
+            <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+              <a class="tel-link" href="tel:${g.compradorTelefono}">📞 ${esc(g.compradorTelefono)}</a>
+              <a class="tel-link" href="https://wa.me/${encodeURIComponent(g.compradorTelefono.replace(/[\s()-]/g, ''))}" target="_blank" rel="noopener">💬 WhatsApp</a>
+            </div>
+          ` : ''}
         </div>
-        ${g.compradorDireccion ? `<p class="entrega-detail"><b>Dirección:</b> ${esc(g.compradorDireccion)}</p>` : ''}
-        ${g.compradorHorario ? `<p class="entrega-detail"><b>Horario:</b> ${esc(g.compradorHorario)}</p>` : ''}
-        <div class="items-list">
-          ${(g.items || []).map(it => `<div class="item-row"><span>${esc(it.nombre)}</span><span>$${Number(it.precio || 0).toLocaleString()}</span></div>`).join('')}
-          <div class="total-row"><span>Total</span><span>$${Number(g.total || 0).toLocaleString()}</span></div>
-        </div>
-        ${url ? `<a class="btn-maps" href="${esc(url)}" target="_blank" rel="noopener">🗺️ Ver ubicación en Maps</a>` : ''}
-        <div class="estado-actions">
-          <button class="btn-entregado ${estado === 'entregado' ? 'active' : ''}" data-action="entregado">✅ Entregado</button>
-          <button class="btn-pendiente ${estado === 'pendiente' ? 'active' : ''}" data-action="pendiente">⏳ Pendiente</button>
-          <button class="btn-avisar" data-action="avisar">📍 Avisar llegada</button>
-        </div>
-      </div>`;
-  }
+        <span class="estado-pill ${estado}">${estado === 'entregado' ? '✅ ENTREGADO' : '⏳ PENDIENTE'}</span>
+      </div>
+      ${g.compradorDireccion ? `<p class="entrega-detail"><b>Dirección:</b> ${esc(g.compradorDireccion)}</p>` : ''}
+      ${g.compradorHorario ? `<p class="entrega-detail"><b>Horario:</b> ${esc(g.compradorHorario)}</p>` : ''}
+      <div class="items-list">
+        ${(g.items || []).map(it => `<div class="item-row"><span>${esc(it.nombre)}</span><span>$${Number(it.precio || 0).toLocaleString()}</span></div>`).join('')}
+        <div class="total-row"><span>Total</span><span>$${Number(g.total || 0).toLocaleString()}</span></div>
+      </div>
+      ${url ? `<a class="btn-maps" href="${esc(url)}" target="_blank" rel="noopener">🗺️ Ver ubicación en Maps</a>` : ''}
+      <div class="estado-actions">
+        <button class="btn-entregado ${estado === 'entregado' ? 'active' : ''}" data-action="entregado">✅ Entregado</button>
+        <button class="btn-pendiente ${estado === 'pendiente' ? 'active' : ''}" data-action="pendiente">⏳ Pendiente</button>
+        <button class="btn-avisar" data-action="avisar">📍 Avisar llegada</button>
+      </div>
+    </div>`;
+}
 
   function render() {
     headerTitle.textContent = entrega.liveTitulo ? `Entregas — ${entrega.liveTitulo}` : 'Entregas';
