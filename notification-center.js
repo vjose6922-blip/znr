@@ -1,23 +1,4 @@
-/**
- * ============================================================
- * Centro de Notificaciones — Z&R
- * ============================================================
- * Widget compartido: campanita en el header + modal con el
- * historial de notificaciones del usuario (comprador o vendedor).
- *
- * Identidad:
- *  - Vendedor: si existe localStorage.vendor_session (token+uid) válido.
- *  - Comprador: si no hay sesión de vendedor, usa localStorage.client_phone.
- *
- * WhatsApp SIEMPRE es respaldo, nunca se dispara en paralelo con el push:
- * el backend solo entrega un "whatsappUrl" en la notificación cuando el
- * push no llegó a ningún dispositivo. Si ese link viene, se muestra un
- * botón secundario "Escribir por WhatsApp" dentro de la notificación.
- *
- * Cárgalo con: <script src="notification-center.js" defer></script>
- * (después de api-config.js y common.js)
- * ============================================================
- */
+
 (function () {
   'use strict';
 
@@ -44,7 +25,9 @@
     beneficiario_aprobado:   { grupo: 'cuenta',  icono: '💜' },
     beneficiario_rechazado:  { grupo: 'cuenta',  icono: '🚫' },
     plus_aprobado:           { grupo: 'cuenta',  icono: '⭐' },
-    plus_rechazado:          { grupo: 'cuenta',  icono: '⭐' }
+    plus_rechazado:          { grupo: 'cuenta',  icono: '⭐' },
+    donacion_recibida:       { grupo: 'cuenta',  icono: '🎁' },
+    donacion_retirada:       { grupo: 'cuenta',  icono: '📤' }
   };
 
   function getIdentity() {
@@ -53,7 +36,7 @@
       if (stored) {
         const parsed = JSON.parse(stored);
         if (parsed && parsed.token && parsed.uid) {
-          return { type: 'vendedor', id: parsed.uid, vendorToken: parsed.token };
+          return { type: 'vendedor', id: parsed.uid, vendorToken: parsed.token, telefono: parsed.telefono || '' };
         }
       }
     } catch (_) {}
@@ -66,15 +49,8 @@
     return window.API_URL;
   }
 
-  async function fetchNotificaciones() {
-    const identity = getIdentity();
-    if (!identity || !apiUrl()) return { ok: true, notificaciones: [] };
-    const params = new URLSearchParams({
-      action: identity.type === 'vendedor' ? 'misNotificacionesVendedor' : 'misNotificacionesCliente',
-      pageSize: '30'
-    });
-    if (identity.type === 'vendedor') params.set('vendorToken', identity.vendorToken);
-    else params.set('phone', identity.id);
+  async function fetchFeed(action, extraParams) {
+    const params = new URLSearchParams({ action, pageSize: '30', ...extraParams });
     try {
       const res = await fetch(`${apiUrl()}?${params.toString()}`);
       return await res.json();
@@ -83,22 +59,62 @@
     }
   }
 
-  async function marcarLeida(id) {
+  async function fetchNotificaciones() {
     const identity = getIdentity();
-    if (!identity || !apiUrl()) return;
-    const body = { action: 'marcarNotificacionLeida', id, ownerType: identity.type };
-    if (identity.type === 'vendedor') body.vendorToken = identity.vendorToken;
-    else body.phone = identity.id;
-    try { await fetch(apiUrl(), { method: 'POST', body: JSON.stringify(body) }); } catch (_) {}
+    if (!identity || !apiUrl()) return { ok: true, notificaciones: [] };
+
+    const requests = [];
+    if (identity.type === 'vendedor') {
+      requests.push(fetchFeed('misNotificacionesVendedor', { vendorToken: identity.vendorToken }));
+      // El vendedor también puede comprar con su propio teléfono: traemos
+      // esas notificaciones también y las combinamos con las de vendedor.
+      if (identity.telefono) {
+        requests.push(fetchFeed('misNotificacionesCliente', { phone: identity.telefono }));
+      }
+    } else {
+      requests.push(fetchFeed('misNotificacionesCliente', { phone: identity.id }));
+    }
+
+    const results = await Promise.all(requests);
+    const notificaciones = results
+      .filter(r => r && r.ok && Array.isArray(r.notificaciones))
+      .flatMap(r => r.notificaciones);
+    notificaciones.sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
+    return { ok: true, notificaciones };
+  }
+
+  function postAction(body) {
+    return fetch(apiUrl(), { method: 'POST', body: JSON.stringify(body) }).catch(() => {});
+  }
+
+  // Recibe la notificación completa (no solo el id) porque, si el usuario
+  // es vendedor+comprador a la vez, cada notificación puede pertenecer a
+  // una identidad distinta (vendedor por uid, o cliente por teléfono).
+  async function marcarLeida(notif) {
+    const identity = getIdentity();
+    if (!identity || !apiUrl() || !notif) return;
+    const body = { action: 'marcarNotificacionLeida', id: notif.id, ownerType: notif.ownerType };
+    if (notif.ownerType === 'vendedor') {
+      body.vendorToken = identity.vendorToken;
+    } else {
+      body.phone = identity.type === 'vendedor' ? identity.telefono : identity.id;
+    }
+    await postAction(body);
   }
 
   async function marcarTodasLeidas() {
     const identity = getIdentity();
     if (!identity || !apiUrl()) return;
-    const body = { action: 'marcarTodasNotificacionesLeidas', ownerType: identity.type };
-    if (identity.type === 'vendedor') body.vendorToken = identity.vendorToken;
-    else body.phone = identity.id;
-    try { await fetch(apiUrl(), { method: 'POST', body: JSON.stringify(body) }); } catch (_) {}
+    const calls = [];
+    if (identity.type === 'vendedor') {
+      calls.push(postAction({ action: 'marcarTodasNotificacionesLeidas', ownerType: 'vendedor', vendorToken: identity.vendorToken }));
+      if (identity.telefono) {
+        calls.push(postAction({ action: 'marcarTodasNotificacionesLeidas', ownerType: 'cliente', phone: identity.telefono }));
+      }
+    } else {
+      calls.push(postAction({ action: 'marcarTodasNotificacionesLeidas', ownerType: 'cliente', phone: identity.id }));
+    }
+    await Promise.all(calls);
   }
 
   function injectStyles() {
@@ -220,7 +236,7 @@
         if (notif && !notif.leida) {
           notif.leida = true;
           el.classList.remove('unread');
-          await marcarLeida(id);
+          await marcarLeida(notif);
           updateBadge();
         }
         if (url) window.location.href = url;
@@ -245,10 +261,31 @@
     });
   }
 
-  async function loadNotificaciones() {
+  function pickTabWithUnread() {
+    const counts = { pedidos: 0, cuenta: 0 };
+    cache.items.forEach(n => {
+      if (n.leida) return;
+      const grupo = (TIPO_INFO[n.tipo] || {}).grupo || 'pedidos';
+      counts[grupo] = (counts[grupo] || 0) + 1;
+    });
+    // Si "Pedidos" no tiene nada sin leer pero "Cuenta" sí, abre en "Cuenta".
+    // En cualquier otro caso (ambas tienen, ninguna tiene, etc.) se queda en "Pedidos".
+    if (counts.pedidos === 0 && counts.cuenta > 0) return 'cuenta';
+    return 'pedidos';
+  }
+
+  async function loadNotificaciones(opts) {
+    const autoSelectTab = !!(opts && opts.autoSelectTab);
     const data = await fetchNotificaciones();
     cache.items = (data && data.ok && Array.isArray(data.notificaciones)) ? data.notificaciones : [];
     cache.loaded = true;
+    if (autoSelectTab) {
+      currentTab = pickTabWithUnread();
+      const modal = document.getElementById('nc-modal');
+      if (modal) {
+        modal.querySelectorAll('.nc-tab').forEach(t => t.classList.toggle('active', t.dataset.tab === currentTab));
+      }
+    }
     updateBadge();
     renderList();
   }
@@ -257,7 +294,7 @@
     buildModal();
     document.getElementById('nc-overlay').classList.add('visible');
     document.getElementById('nc-modal').classList.add('visible');
-    loadNotificaciones();
+    loadNotificaciones({ autoSelectTab: true });
   }
 
   function closeModal() {
