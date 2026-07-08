@@ -422,8 +422,8 @@ border-radius: 8px;
 
    <div style="display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;">
      <button onclick="closePlusModal()" style="padding:8px 16px;border-radius:8px;border:1px solid #555;background:transparent;color:#aaa;cursor:pointer;">Cancelar</button>
-     <button onclick="confirmarRespuestaPlus('denied')" style="padding:8px 16px;border-radius:8px;border:none;background:#dc2626;color:#fff;cursor:pointer;font-weight:600;">❌ Denegar</button>
-     <button onclick="confirmarRespuestaPlus('approved')" style="padding:8px 16px;border-radius:8px;border:none;background:#7c3aed;color:#fff;cursor:pointer;font-weight:600;">✅ Aprobar</button>
+     <button onclick="confirmarRespuestaPlus('denied', this)" style="padding:8px 16px;border-radius:8px;border:none;background:#dc2626;color:#fff;cursor:pointer;font-weight:600;">❌ Denegar</button>
+     <button onclick="confirmarRespuestaPlus('approved', this)" style="padding:8px 16px;border-radius:8px;border:none;background:#7c3aed;color:#fff;cursor:pointer;font-weight:600;">✅ Aprobar</button>
    </div>
    <p id="plus-modal-error" style="color:#f87171;font-size:.8rem;margin:10px 0 0;display:none;"></p>
  </div>
@@ -583,6 +583,11 @@ border-radius: 8px;
    const token = window._adminToken || sessionStorage.getItem('adminToken');
    if (!API || !token) return;
 
+   const refreshBtn = document.getElementById('refresh-plus-btn');
+   const refreshIcon = refreshBtn ? refreshBtn.querySelector('svg') : null;
+   if (refreshIcon) refreshIcon.style.animation = 'spin 0.7s linear infinite';
+   if (refreshBtn) refreshBtn.disabled = true;
+
    try {
      const res = await fetch(`${API}?action=solicitudesPlus&token=${encodeURIComponent(token)}`);
      const data = await res.json();
@@ -614,6 +619,9 @@ border-radius: 8px;
      }).join('');
    } catch(e) {
      listEl.innerHTML = '<p style="color:#f87171;text-align:center">Error al cargar</p>';
+   } finally {
+     if (refreshIcon) refreshIcon.style.animation = '';
+     if (refreshBtn) refreshBtn.disabled = false;
    }
  }
 
@@ -633,7 +641,7 @@ border-radius: 8px;
    document.getElementById('plus-modal').style.display = 'none';
  }
 
- async function confirmarRespuestaPlus(respuesta) {
+ async function confirmarRespuestaPlus(respuesta, btn) {
    const errEl = document.getElementById('plus-modal-error');
    errEl.style.display = 'none';
    const API = window.SCRIPT_URL || (window.AppConfig && window.AppConfig.scriptUrl);
@@ -656,15 +664,19 @@ border-radius: 8px;
      body.motivo = motivo;
    }
 
-   try {
-     const res = await fetch(API, { method:'POST', body: JSON.stringify(body) });
-     const data = await res.json();
-     if (!data.ok) { errEl.textContent = data.error || 'Error al responder.'; errEl.style.display = ''; return; }
-     closePlusModal();
-     loadSolicitudesPlus();
-   } catch(e) {
-     errEl.textContent = 'Error de red.'; errEl.style.display = '';
-   }
+   const runFn = async () => {
+     try {
+       const res = await fetch(API, { method:'POST', body: JSON.stringify(body) });
+       const data = await res.json();
+       if (!data.ok) { errEl.textContent = data.error || 'Error al responder.'; errEl.style.display = ''; return; }
+       closePlusModal();
+       loadSolicitudesPlus();
+     } catch(e) {
+       errEl.textContent = 'Error de red.'; errEl.style.display = '';
+     }
+   };
+   if (btn && window.withButtonLoading) await window.withButtonLoading(btn, runFn, respuesta === 'approved' ? 'Aprobando…' : 'Denegando…');
+   else await runFn();
  }
  </script>
 

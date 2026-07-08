@@ -344,6 +344,32 @@ function hideLoader() {
 const loader = document.getElementById("global-loader");
 if (loader) loader.classList.add("hidden");
 }
+
+// Feedback de carga POR BOTÓN (no bloquea toda la pantalla), para acciones
+// puntuales como "Aprobar", "Enviar calificación", "Guardar", etc.
+// Guarda el contenido original del botón, muestra spinner + texto opcional,
+// deshabilita el botón, corre el async fn, y SIEMPRE restaura el estado
+// (incluso si el propio fn ya quitó el botón del DOM).
+async function withButtonLoading(btn, asyncFn, loadingText) {
+  if (!btn) return asyncFn();
+  const prevHTML = btn.innerHTML;
+  const prevDisabled = btn.disabled;
+  btn.dataset.loading = "true";
+  btn.disabled = true;
+  btn.innerHTML = `<span class="btn-inline-spinner"></span>${loadingText || btn.textContent.trim()}`;
+  try {
+    return await asyncFn();
+  } finally {
+    // Si el botón sigue en el DOM (la acción no lo removió/reemplazó su
+    // contenedor), lo regresamos a su estado original.
+    if (document.body.contains(btn)) {
+      btn.innerHTML = prevHTML;
+      btn.disabled = prevDisabled;
+      delete btn.dataset.loading;
+    }
+  }
+}
+window.withButtonLoading = withButtonLoading;
 function showTemporaryMessage(text, type = "info") {
 const existing = document.querySelector('.temporary-message');
 if (existing) existing.remove();
@@ -991,9 +1017,9 @@ if (requestBtn) {
 if (_znrCount > 0 && _commCount > 0) {
 requestBtn.textContent = " Enviar pedidos (Z&R + Comunidad)";
 } else if (_commCount > 0 && _znrCount === 0) {
-requestBtn.textContent = " Contactar vendedor(es)";
+requestBtn.textContent = " Contactar vendedor(es) por WhatsApp";
 } else {
-requestBtn.textContent = " Solicitar compra";
+requestBtn.textContent = " Solicitar por WhatsApp";
 }
 }
 _refreshDeliveryBlock();

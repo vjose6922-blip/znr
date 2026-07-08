@@ -112,13 +112,13 @@
           </div>
           <div class="actions" style="flex-wrap:wrap;gap:6px;">
             ${v.estado === 'pendiente' ? `
-              <button class="btn-approve" onclick="AdminComunidad.aprobarVendedor('${_escapeHtml(v.uid)}')"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" aria-hidden="true"><use href="#ic-check"/></svg> Aprobar</button>
-              <button class="btn-reject"  onclick="AdminComunidad.rechazarVendedor('${_escapeHtml(v.uid)}')"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" aria-hidden="true"><use href="#ic-x"/></svg> Rechazar</button>` : ''}
+              <button class="btn-approve" onclick="AdminComunidad.aprobarVendedor('${_escapeHtml(v.uid)}', this)"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" aria-hidden="true"><use href="#ic-check"/></svg> Aprobar</button>
+              <button class="btn-reject"  onclick="AdminComunidad.rechazarVendedor('${_escapeHtml(v.uid)}', this)"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" aria-hidden="true"><use href="#ic-x"/></svg> Rechazar</button>` : ''}
             ${v.estado === 'activo' ? `
               <button class="btn-suspend" onclick="AdminComunidad.suspenderVendedor('${_escapeHtml(v.uid)}','${_escapeHtml(v.nombre)}')"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" aria-hidden="true"><use href="#ic-suspend"/></svg> Suspender</button>
               <button class="btn-stats"   onclick="AdminComunidad.verEstadisticas('${_escapeHtml(v.uid)}','${_escapeHtml(v.nombre)}')"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" aria-hidden="true"><use href="#ic-stats"/></svg> Stats</button>` : ''}
             ${(v.estado === 'suspendido' || v.estado === 'rechazado') ? `
-              <button class="btn-approve" onclick="AdminComunidad.aprobarVendedor('${_escapeHtml(v.uid)}')"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.348a1.125 1.125 0 010 1.971l-11.54 6.347a1.125 1.125 0 01-1.667-.985V5.653z"/></svg> Activar</button>` : ''}
+              <button class="btn-approve" onclick="AdminComunidad.aprobarVendedor('${_escapeHtml(v.uid)}', this)"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.348a1.125 1.125 0 010 1.971l-11.54 6.347a1.125 1.125 0 01-1.667-.985V5.653z"/></svg> Activar</button>` : ''}
           </div>
         </div>`).join('');
       const pending = vendors.filter(v => v.estado === 'pendiente').length;
@@ -128,10 +128,11 @@
     }
   }
 
-  async function aprobarVendedor(uid) { await _vendorAction(uid, 'aprobarVendedor', ' Vendedor aprobado'); }
-  async function rechazarVendedor(uid) { await _vendorAction(uid, 'rechazarVendedor', ' Vendedor rechazado'); }
+  async function aprobarVendedor(uid, btn) { await _vendorAction(uid, 'aprobarVendedor', ' Vendedor aprobado', btn, 'Aprobando…'); }
+  async function rechazarVendedor(uid, btn) { await _vendorAction(uid, 'rechazarVendedor', ' Vendedor rechazado', btn, 'Rechazando…'); }
 
-  async function _vendorAction(uid, action, msg) {
+  async function _vendorAction(uid, action, msg, btn, loadingText) {
+    const runFn = async () => {
     try {
       const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
       let waWindow = null;
@@ -164,6 +165,9 @@
     } catch (err) {
       _msg(' ' + err.message, 'error');
     }
+    };
+    if (btn && window.withButtonLoading) await window.withButtonLoading(btn, runFn, loadingText);
+    else await runFn();
   }
 
   async function suspenderVendedor(uid, nombre) {
@@ -256,8 +260,8 @@
             </label>
           </div>
           <div class="actions">
-            <button class="btn-approve" onclick="AdminComunidad.aprobarProducto('${p.id}')"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" aria-hidden="true"><use href="#ic-check"/></svg> Aprobar</button>
-            <button class="btn-reject"  onclick="AdminComunidad.rechazarProducto('${p.id}')"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" aria-hidden="true"><use href="#ic-x"/></svg> Rechazar</button>
+            <button class="btn-approve" onclick="AdminComunidad.aprobarProducto('${p.id}', this)"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" aria-hidden="true"><use href="#ic-check"/></svg> Aprobar</button>
+            <button class="btn-reject"  onclick="AdminComunidad.rechazarProducto('${p.id}', this)"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" aria-hidden="true"><use href="#ic-x"/></svg> Rechazar</button>
           </div>
         </div>`).join('');
       if (typeof window._updateNotifTabBadge === 'function') window._updateNotifTabBadge('pending', products.length);
@@ -266,13 +270,14 @@
     }
   }
 
-  async function aprobarProducto(id) {
+  async function aprobarProducto(id, btn) {
     const sel = document.getElementById(`confiable-sel-${id}`);
-    await _productAction(id, 'aprobarProductoComunidad', ' Producto aprobado', sel ? sel.value : 'false');
+    await _productAction(id, 'aprobarProductoComunidad', ' Producto aprobado', sel ? sel.value : 'false', btn, 'Aprobando…');
   }
-  async function rechazarProducto(id) { await _productAction(id, 'rechazarProductoComunidad', ' Producto rechazado', null); }
+  async function rechazarProducto(id, btn) { await _productAction(id, 'rechazarProductoComunidad', ' Producto rechazado', null, btn, 'Rechazando…'); }
 
-  async function _productAction(id, action, msg, confiable) {
+  async function _productAction(id, action, msg, confiable, btn, loadingText) {
+    const runFn = async () => {
     try {
       const payload = { action, id, token: _getToken() };
       if (confiable !== null && confiable !== undefined) payload.confiable = confiable;
@@ -283,6 +288,9 @@
       if (row) { row.style.opacity = '0'; setTimeout(() => { row.remove(); loadPendingProducts(); }, 300); }
       if (typeof window.refreshAllAdminBadges === 'function') window.refreshAllAdminBadges();
     } catch (err) { _msg(' ' + err.message, 'error'); }
+    };
+    if (btn && window.withButtonLoading) await window.withButtonLoading(btn, runFn, loadingText);
+    else await runFn();
   }
 
   
@@ -330,7 +338,7 @@
               <a class="btn-ver-producto" href="comunidad.html?inspector=1#product-${productId}" target="_blank">Ver</a>
               ${vendorUid ? `<button class="btn-suspend" onclick="AdminComunidad.suspenderVendedor('${vendorUid}','${vendorNombre}')"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" aria-hidden="true"><use href="#ic-suspend"/></svg> Suspender</button>` : ''}
               <button class="btn-del-desde-reporte" onclick="AdminComunidad.eliminarProductoDesdeReporte('${productId}','${nombre}','${reporteId}')"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" aria-hidden="true"><use href="#ic-trash"/></svg> Eliminar producto</button>
-              <button class="btn-marcar-revisado" onclick="AdminComunidad.marcarReporteRevisado('${reporteId}')"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg> Revisado</button>
+              <button class="btn-marcar-revisado" onclick="AdminComunidad.marcarReporteRevisado('${reporteId}', this)"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg> Revisado</button>
             </div>
           </div>`;
       }).join('');
@@ -362,7 +370,8 @@
     });
   }
 
-  async function marcarReporteRevisado(reporteId) {
+  async function marcarReporteRevisado(reporteId, btn) {
+    const runFn = async () => {
     try {
       const data = await _gasPost({ action: 'marcarReporteRevisado', reporteId: String(reporteId), token: _getToken() });
       if (!data.ok) throw new Error(data.error);
@@ -375,6 +384,9 @@
       updateReportesBadge(newCount);
       if (typeof window.refreshAllAdminBadges === 'function') window.refreshAllAdminBadges();
     } catch (err) { _msg(' ' + err.message, 'error'); }
+    };
+    if (btn && window.withButtonLoading) await window.withButtonLoading(btn, runFn, 'Marcando…');
+    else await runFn();
   }
 
   

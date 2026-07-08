@@ -486,7 +486,7 @@ btn.addEventListener('click', () => resolveVendorSaleNotification(btn.closest('.
 }
 
 async function resolveVendorSaleNotification(requestId, accion, btn) {
-if (btn) btn.disabled = true;
+const runFn = async () => {
 try {
 const data = await apiCall({ action: 'resolverNotificacionVentaComunidad', vendorToken: vendorSession.token, requestId, accion });
 if (data && data.ok) {
@@ -500,12 +500,13 @@ loadVendorSaleNotifications();
 loadMyProducts();
 } else {
 window.showTemporaryMessage?.(data?.error || 'No se pudo procesar', 'error');
-if (btn) btn.disabled = false;
 }
 } catch (e) {
 window.showTemporaryMessage?.(' Error de red', 'error');
-if (btn) btn.disabled = false;
 }
+};
+if (btn && window.withButtonLoading) await window.withButtonLoading(btn, runFn, 'Procesando…');
+else await runFn();
 }
 
 // ──────────────────────────────────────────────

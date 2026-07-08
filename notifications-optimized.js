@@ -695,9 +695,9 @@ window.loadBeneficiarios = async function(force) {
             </div>
           </div>
           <div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0;">
-            <button onclick="adminAprobarBeneficiario('${esc(b.id)}')" style="padding:7px 12px;border:none;border-radius:20px;background:#22c55e;color:#fff;font-weight:700;font-size:.75rem;cursor:pointer;">✅ Aprobar</button>
+            <button onclick="adminAprobarBeneficiario('${esc(b.id)}', this)" style="padding:7px 12px;border:none;border-radius:20px;background:#22c55e;color:#fff;font-weight:700;font-size:.75rem;cursor:pointer;">✅ Aprobar</button>
             <button onclick="window.openBeneficiarioModal && window.openBeneficiarioModal('${esc(b.id)}')" style="padding:7px 12px;border:none;border-radius:20px;background:#e0e7ff;color:#3730a3;font-weight:700;font-size:.75rem;cursor:pointer;">👁 Ver</button>
-            <button onclick="adminRechazarBeneficiario('${esc(b.id)}')" style="padding:7px 12px;border:none;border-radius:20px;background:#fee2e2;color:#b91c1c;font-weight:700;font-size:.75rem;cursor:pointer;">❌ Rechazar</button>
+            <button onclick="adminRechazarBeneficiario('${esc(b.id)}', this)" style="padding:7px 12px;border:none;border-radius:20px;background:#fee2e2;color:#b91c1c;font-weight:700;font-size:.75rem;cursor:pointer;">❌ Rechazar</button>
           </div>
         </div>
       </div>`).join('');
@@ -706,8 +706,9 @@ window.loadBeneficiarios = async function(force) {
   }
 };
 
-window.adminAprobarBeneficiario = async function(id) {
+window.adminAprobarBeneficiario = async function(id, btn) {
   if (!confirm('¿Aprobar esta solicitud? Se creará una cuenta de vendedor si no existe.')) return;
+  const runFn = async () => {
   try {
     const token = sessionStorage.getItem('admin_token') || '';
     const res   = await fetch(API_URL, { method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body: new URLSearchParams({ action:'aprobarBeneficiario', id_beneficiario: id, token }).toString() });
@@ -720,10 +721,14 @@ window.adminAprobarBeneficiario = async function(id) {
     }
     loadBeneficiarios(true);
   } catch(err) { alert('Error de conexión.'); }
+  };
+  if (btn && window.withButtonLoading) await window.withButtonLoading(btn, runFn, 'Aprobando…');
+  else await runFn();
 };
 
-window.adminRechazarBeneficiario = async function(id) {
+window.adminRechazarBeneficiario = async function(id, btn) {
   if (!confirm('¿Rechazar esta solicitud?')) return;
+  const runFn = async () => {
   try {
     const token = sessionStorage.getItem('admin_token') || '';
     const res   = await fetch(API_URL, { method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body: new URLSearchParams({ action:'rechazarBeneficiario', id_beneficiario: id, token }).toString() });
@@ -731,6 +736,9 @@ window.adminRechazarBeneficiario = async function(id) {
     if (!data.ok) { alert('Error: ' + data.error); return; }
     loadBeneficiarios(true);
   } catch(err) { alert('Error de conexión.'); }
+  };
+  if (btn && window.withButtonLoading) await window.withButtonLoading(btn, runFn, 'Rechazando…');
+  else await runFn();
 };
 
 // ── Admin: Reportes de transmisiones en vivo ─────────────────
@@ -771,8 +779,8 @@ window.loadReportesLive = async function() {
         </div>
         <div class="actions">
           ${r.youtubeLink ? `<a class="btn-marcar-revisado" style="background:#e3f2fd;color:#1565c0;text-decoration:none;" href="${esc(r.youtubeLink)}" target="_blank" rel="noopener">▶️ Ver video</a>` : ''}
-          <button class="btn-suspend" onclick="adminSuspenderVendedorDesdeReporte('${esc(r.vendedorUid)}','${esc(r.reporteId)}')">🚫 Suspender cuenta</button>
-          <button class="btn-marcar-revisado" onclick="adminMarcarReporteLiveRevisado('${esc(r.reporteId)}')">✅ Marcar revisado</button>
+          <button class="btn-suspend" onclick="adminSuspenderVendedorDesdeReporte('${esc(r.vendedorUid)}','${esc(r.reporteId)}', this)">🚫 Suspender cuenta</button>
+          <button class="btn-marcar-revisado" onclick="adminMarcarReporteLiveRevisado('${esc(r.reporteId)}', this)">✅ Marcar revisado</button>
         </div>
       </div>`).join('');
   } catch(err) {
@@ -780,7 +788,8 @@ window.loadReportesLive = async function() {
   }
 };
 
-window.adminMarcarReporteLiveRevisado = async function(reporteId) {
+window.adminMarcarReporteLiveRevisado = async function(reporteId, btn) {
+  const runFn = async () => {
   try {
     const token = sessionStorage.getItem('admin_token') || '';
     const res   = await fetch(API_URL, { method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body: new URLSearchParams({ action:'marcarReporteLiveRevisado', reporteId, token }).toString() });
@@ -788,11 +797,15 @@ window.adminMarcarReporteLiveRevisado = async function(reporteId) {
     if (!data.ok) { alert('Error: ' + data.error); return; }
     loadReportesLive();
   } catch(err) { alert('Error de conexión.'); }
+  };
+  if (btn && window.withButtonLoading) await window.withButtonLoading(btn, runFn, 'Marcando…');
+  else await runFn();
 };
 
-window.adminSuspenderVendedorDesdeReporte = async function(vendedorUid, reporteId) {
+window.adminSuspenderVendedorDesdeReporte = async function(vendedorUid, reporteId, btn) {
   if (!vendedorUid) { alert('Este reporte no tiene un vendedor asociado.'); return; }
   if (!confirm('¿Suspender la cuenta de este vendedor? No va a poder iniciar sesión ni transmitir hasta que la reactives desde "Vendedores".')) return;
+  const runFn = async () => {
   try {
     const token = sessionStorage.getItem('admin_token') || '';
     const res   = await fetch(API_URL, { method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body: new URLSearchParams({ action:'suspenderVendedor', uid: vendedorUid, token }).toString() });
@@ -802,4 +815,7 @@ window.adminSuspenderVendedorDesdeReporte = async function(vendedorUid, reporteI
     alert('Cuenta suspendida.');
     if (window.AdminComunidad) AdminComunidad.loadVendors();
   } catch(err) { alert('Error de conexión.'); }
+  };
+  if (btn && window.withButtonLoading) await window.withButtonLoading(btn, runFn, 'Suspendiendo…');
+  else await runFn();
 };

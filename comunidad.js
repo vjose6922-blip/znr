@@ -631,8 +631,9 @@ return;
 }
 motivo = 'Otro: ' + otroText;
 }
-close();
-await sendReport(product, motivo);
+const confirmBtn = modal.querySelector('#report-confirm-btn');
+const ok = await window.withButtonLoading(confirmBtn, () => sendReport(product, motivo), 'Enviando…');
+if (ok) close();
 });
 }
 async function sendReport(product, motivo) {
@@ -654,9 +655,11 @@ body: params.toString()
 const data = await res.json();
 if (!data.ok) throw new Error(data.error || 'Error al enviar reporte');
 window.showTemporaryMessage(' Reporte enviado. ¡Gracias por ayudarnos a mejorar la comunidad!', 'success');
+return true;
 } catch (err) {
 console.error('Error enviando reporte:', err);
 window.showTemporaryMessage(' No se pudo enviar el reporte. Inténtalo de nuevo.', 'error');
+return false;
 }
 }
 function createCommunityCard(product) {
@@ -1133,8 +1136,9 @@ function mostrarModalCalificar(item, phone) {
   modal.querySelector('#calif-omitir').addEventListener('click', close);
   modal.addEventListener('click', (e) => { if (e.target === modal) close(); });
 
-  modal.querySelector('#calif-enviar').addEventListener('click', async () => {
+  modal.querySelector('#calif-enviar').addEventListener('click', async (e) => {
     const comentario = modal.querySelector('#calif-comentario').value.trim();
+    await window.withButtonLoading(e.currentTarget, async () => {
     try {
       const params = new URLSearchParams({
         action: 'calificarProducto',
@@ -1168,6 +1172,7 @@ function mostrarModalCalificar(item, phone) {
     } catch (err) {
       if (typeof window.showTemporaryMessage === 'function') window.showTemporaryMessage('❌ ' + err.message, 'error');
     }
+    }, 'Enviando…');
   });
 }
 if (document.readyState === 'loading') {
