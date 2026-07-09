@@ -37,16 +37,7 @@ window.dispatchEvent(new CustomEvent('recentProductsUpdated'));
 } catch(e) {}
 }
 
-async function fetchWithRetry(fn, maxAttempts = 3, delays = [2000, 5000, 10000]) {
-for (let attempt = 0; attempt < maxAttempts; attempt++) {
-try {
-return await fn();
-} catch(err) {
-if (attempt === maxAttempts - 1) throw err;
-await new Promise(r => setTimeout(r, delays[attempt]));
-}
-}
-}
+// fetchWithRetry ahora vive en common.js (se carga antes que este archivo).
 async function loadProducts() {
 window.loadProductsUnified({
 onProducts(products) {
