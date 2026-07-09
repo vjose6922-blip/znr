@@ -81,7 +81,7 @@
 
   .community-hero {
  background: linear-gradient(135deg, #1a0f2e 0%, #3b1f5f 50%, #ff4f81 100%);
- border-radius: 0 0 28px 28px;
+ border-radius: 0;
  margin-bottom: 24px;
  padding: 10px 10px;
  text-align: center;
@@ -375,12 +375,11 @@
 
  <div class="community-hero">
  <h1>Z&R Comunidad</h1>
- <p>Apoya vendedores de tu ciudad.</p>
  <div class="vendor-buttons">
  <a href="vendedor.html" class="btn-outline-light">Mi cuenta de vendedor</a>
  <a href="vendedor.html?register=1" class="btn-outline-light">Quiero vender</a>
- <button onclick="openBeneficiarioRegister()" class="btn-outline-light" style="background:linear-gradient(135deg,rgba(249,115,22,.85),rgba(239,68,68,.85));border-color:transparent;">Tienes una fundacion?</button>
- <button id="btn-ver-fundaciones" class="btn-outline-light" style="background:linear-gradient(135deg,rgba(249,115,22,.85),rgba(239,68,68,.85));border-color:transparent;">❤️ Ver fundaciones</button>
+ <button onclick="openBeneficiarioRegister()" class="btn-outline-light" style="background:linear-gradient(135deg,rgba(249,115,22,.85),rgba(239,68,68,.85));border-color:transparent;">Tienes un refugio?</button>
+ <button id="btn-ver-fundaciones" class="btn-outline-light" style="background:linear-gradient(135deg,rgba(249,115,22,.85),rgba(239,68,68,.85));border-color:transparent;">Ver refugios</button>
  </div>
  </div>
 
@@ -401,7 +400,7 @@
  <option value="">Ordenar por</option>
  <option value="verificados">Verificados</option>
  <option value="calificacion">Mejor calificado</option>
- <option value="precio_asc">Menor a mayor precio</option>
+ <option value="precio_asc">Precio mas bajo</option>
  </select>
  </div>
  </div>
@@ -476,9 +475,7 @@
  
 
  <div class="overlay" id="overlay"></div>
- 
  <div class="image-modal" id="image-modal"></div>
-
  <nav class="bottom-nav">
 
  <button class="bottom-nav-item" data-page="inicio" id="nav-inicio">
@@ -519,9 +516,7 @@
  <script src="offline-manager.js" defer></script>
  <script src="https://cdn.jsdelivr.net/npm/algoliasearch@4/dist/algoliasearch-lite.umd.js"></script>
  <script>
-   // Search-Only API Key: es segura para exponer en el frontend (solo permite buscar, no editar)
-   // Nota: sin "defer" aquí a propósito — defer no aplica a scripts inline,
-   // así que estos dos scripts corren de forma síncrona y en orden garantizado.
+
    if (typeof algoliasearch !== 'undefined') {
      const client = algoliasearch('RTKTKJMP4V', '6589ae2610ea47996a1321d97aa99861');
      window.algoliaIndex = client.initIndex('znr_comunidad');
