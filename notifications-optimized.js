@@ -765,14 +765,32 @@ window.loadSolicitudesBeneficiario = async function(force) {
         ${cambio ? `<div style="font-size:.8rem;color:#16a34a;font-weight:700;">→ ${esc(nuevo)||'—'}</div>` : ''}
       </div>`;
     };
+    // Miniatura simple (para la tarjeta de eliminación, o cuando no hay cambio de foto)
+    const thumb = url => url
+      ? `<img src="${esc(url)}" loading="lazy" style="width:56px;height:56px;object-fit:cover;border-radius:8px;border:1px solid rgba(255,255,255,.1);">`
+      : `<div style="width:56px;height:56px;border-radius:8px;background:#26262f;display:flex;align-items:center;justify-content:center;font-size:1.2rem;">—</div>`;
+    // Comparación actual → nueva para un slot de foto (imagen1/2/3)
+    const campoImg = (label, urlActual, urlNueva) => {
+      const cambio = String(urlActual||'') !== String(urlNueva||'');
+      if (!urlActual && !urlNueva) return '';
+      return `<div style="text-align:center;">
+        <div style="font-size:.62rem;color:#888;text-transform:uppercase;margin-bottom:3px;">${label}</div>
+        <div style="display:flex;align-items:center;gap:4px;justify-content:center;">
+          ${thumb(urlActual)}
+          ${cambio ? `<span style="color:#16a34a;font-size:.9rem;">→</span>${thumb(urlNueva)}` : ''}
+        </div>
+      </div>`;
+    };
 
     list.innerHTML = sols.map(s => {
       if (s.tipo === 'eliminar') {
+        const fotosActuales = [s.actual && s.actual.imagen1, s.actual && s.actual.imagen2, s.actual && s.actual.imagen3].filter(Boolean);
         return `<div class="vendor-card" style="border-left:4px solid #ef4444;">
           <div style="padding:14px 16px;">
             <div style="font-weight:700;font-size:.9rem;color:#dc2626;">🗑️ Solicitud de eliminación</div>
             <div style="font-size:.82rem;margin-top:4px;">${esc(s.actual ? s.actual.nombre : s.id_beneficiario)}</div>
             <div style="font-size:.72rem;color:#888;margin-top:2px;">${s.fecha ? new Date(s.fecha).toLocaleDateString('es-MX') : ''}</div>
+            ${fotosActuales.length ? `<div style="display:flex;gap:6px;margin-top:8px;">${fotosActuales.map(thumb).join('')}</div>` : ''}
             <div style="display:flex;gap:8px;margin-top:10px;">
               <button onclick="adminAprobarSolicitudBeneficiario('${esc(s.id)}', this)" style="flex:1;padding:7px;border:none;border-radius:8px;background:#ef4444;color:#fff;font-weight:700;font-size:.75rem;cursor:pointer;">✅ Confirmar eliminación</button>
               <button onclick="adminRechazarSolicitudBeneficiario('${esc(s.id)}', this)" style="flex:1;padding:7px;border:none;border-radius:8px;background:#e5e7eb;color:#374151;font-weight:700;font-size:.75rem;cursor:pointer;">❌ Rechazar</button>
@@ -793,6 +811,9 @@ window.loadSolicitudesBeneficiario = async function(force) {
           ${campo('Historia', actual.historia, nuevo.historia)}
           ${campo('Cuenta bancaria', actual.cuenta_bancaria, nuevo.cuenta_bancaria)}
           ${campo('Teléfono', actual.telefono, nuevo.telefono)}
+          ${[campoImg('Foto 1', actual.imagen1, nuevo.imagen1), campoImg('Foto 2', actual.imagen2, nuevo.imagen2), campoImg('Foto 3', actual.imagen3, nuevo.imagen3)].some(Boolean)
+            ? `<div style="display:flex;gap:14px;margin-top:8px;flex-wrap:wrap;">${campoImg('Foto 1', actual.imagen1, nuevo.imagen1)}${campoImg('Foto 2', actual.imagen2, nuevo.imagen2)}${campoImg('Foto 3', actual.imagen3, nuevo.imagen3)}</div>`
+            : ''}
           <div style="display:flex;gap:8px;margin-top:10px;">
             <button onclick="adminAprobarSolicitudBeneficiario('${esc(s.id)}', this)" style="flex:1;padding:7px;border:none;border-radius:8px;background:#22c55e;color:#fff;font-weight:700;font-size:.75rem;cursor:pointer;">✅ Aplicar cambios</button>
             <button onclick="adminRechazarSolicitudBeneficiario('${esc(s.id)}', this)" style="flex:1;padding:7px;border:none;border-radius:8px;background:#e5e7eb;color:#374151;font-weight:700;font-size:.75rem;cursor:pointer;">❌ Rechazar</button>
