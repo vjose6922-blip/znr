@@ -593,6 +593,9 @@ document.addEventListener('DOMContentLoaded', () => {
           <button id="btn-gestionar-donaciones" onclick="openGestionarDonacionesModal()" style="width:100%;padding:11px;border-radius:10px;border:1.5px solid #f97316;background:#fff7ed;color:#ea580c;font-size:.9rem;font-weight:700;cursor:pointer;">
             ❤️ Gestionar donaciones
           </button>
+          <!-- Si este vendedor también está registrado como beneficiario/fundación,
+               aquí se muestra su perfil (nombre, historia, cuenta, fotos) y las
+               donaciones que recibe. Ver loadBeneficiarioDonaciones() en vendedor-unificado.js -->
           <div id="settings-donaciones-recibidas-area" style="display:none;"></div>
         </div>
       </div>

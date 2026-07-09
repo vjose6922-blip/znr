@@ -140,15 +140,15 @@ return {
 busqueda: urlParams.get('busqueda') || '',
 categoria: urlParams.get('categoria') || '',
 vendedor: urlParams.get('vendedor') || '',
-soloPro: urlParams.get('soloPro') === '1'
+orden: urlParams.get('orden') || ''
 };
 }
 function updateURLWithFilters() {
 const searchTerm = getSearchValue();
 const category = catSelect ? catSelect.value : '';
 const vendor = vendorSelect ? vendorSelect.value : '';
-const soloProEl = document.getElementById('comunidad-solo-pro');
-const soloPro = soloProEl ? soloProEl.checked : false;
+const ordenEl = document.getElementById('comunidad-orden');
+const orden = ordenEl ? ordenEl.value : '';
 const params = new URLSearchParams();
 if (new URLSearchParams(window.location.search).get('inspector') === '1') {
 params.set('inspector', '1');
@@ -156,7 +156,7 @@ params.set('inspector', '1');
 if (searchTerm) params.set('busqueda', searchTerm);
 if (category) params.set('categoria', category);
 if (vendor) params.set('vendedor', vendor);
-if (soloPro) params.set('soloPro', '1');
+if (orden) params.set('orden', orden);
 const newURL = `${window.location.pathname}${params.toString() ? '?' + params.toString() : ''}`;
 window.history.replaceState({}, '', newURL);
 }
@@ -200,7 +200,8 @@ function buildComunidadUrl(page, filters) {
   if (filters.categoria)  u.searchParams.set('categoria',    filters.categoria);
   if (filters.busqueda)   u.searchParams.set('busqueda',     filters.busqueda);
   if (filters.vendedor)   u.searchParams.set('vendedor_uid', filters.vendedor);
-  if (filters.soloPro)    u.searchParams.set('soloPro',      'true');
+  if (filters.orden === 'verificados') u.searchParams.set('soloPro', 'true');
+  if (filters.orden)      u.searchParams.set('orden',       filters.orden);
   if (inspectorMode)      u.searchParams.set('admin',        'true');
   return u.toString();
 }
@@ -262,9 +263,14 @@ async function loadComunidadPageGAS(page, filters, opts = {}) {
     }
 
     // Cachear solo la primera página sin filtros (igual que en script.js)
-    if (page === 1 && !filters.categoria && !filters.busqueda && !filters.vendedor && !filters.soloPro) {
+    if (page === 1 && !filters.categoria && !filters.busqueda && !filters.vendedor && !filters.orden) {
       setComunidadCache(allCommunityProducts);
     }
+
+    // Respaldo: si el backend GAS aún no soporta 'orden' (calificación/precio),
+    // reordenamos localmente lo que llegó en esta página (no es un orden global,
+    // pero evita que el select quede sin efecto en modo inspector/sin conexión).
+    aplicarOrdenLocal(filters.orden);
 
     renderProducts();
     handleInitialHashComunidad();
@@ -331,6 +337,50 @@ async function loadComunidadFilterOptionsAlgolia() {
   }
 }
 
+// ── Réplicas de Algolia para el select "Ordenar por" ──────────────────────
+// IMPORTANTE: estas réplicas deben existir en el dashboard de Algolia
+// (índice znr_comunidad → pestaña Replicas). Mientras no existan, el catch
+// de abajo hace que se use el índice normal sin romper nada.
+const ALGOLIA_INDEX_BASE = 'znr_comunidad';
+const ALGOLIA_REPLICAS = {
+  calificacion: 'znr_comunidad_calificacion_desc',
+  precio_asc:   'znr_comunidad_precio_asc'
+};
+let algoliaClientRef = null; // se detecta la primera vez que se usa
+const algoliaReplicaCache = {};
+function getAlgoliaIndexForOrden(orden) {
+  const replicaName = ALGOLIA_REPLICAS[orden];
+  if (!replicaName) return window.algoliaIndex; // 'verificados' o sin orden: índice normal + filtro
+  if (algoliaReplicaCache[replicaName]) return algoliaReplicaCache[replicaName];
+  try {
+    if (!algoliaClientRef) {
+      // window.algoliaIndex.client existe en algoliasearch-lite v4
+      algoliaClientRef = window.algoliaIndex && window.algoliaIndex.client;
+    }
+    if (!algoliaClientRef) return window.algoliaIndex;
+    const idx = algoliaClientRef.initIndex(replicaName);
+    algoliaReplicaCache[replicaName] = idx;
+    return idx;
+  } catch (e) {
+    console.warn('Réplica de Algolia no disponible (' + replicaName + '), usando índice normal:', e);
+    return window.algoliaIndex;
+  }
+}
+
+// ── Orden local de respaldo (modo GAS / sin réplicas de Algolia) ──────────
+// Solo reordena lo que ya está cargado en memoria, NO es un orden global
+// del catálogo completo. Se usa como respaldo cuando el orden real (Algolia
+// replica o backend) no está disponible.
+function aplicarOrdenLocal(orden) {
+  if (!orden || orden === 'verificados' || !Array.isArray(filteredProducts)) return;
+  if (orden === 'precio_asc') {
+    filteredProducts.sort((a, b) => (Number(a.precio) || 0) - (Number(b.precio) || 0));
+  } else if (orden === 'calificacion') {
+    filteredProducts.sort((a, b) => (Number(b.vendedor_calificacion) || 0) - (Number(a.vendedor_calificacion) || 0));
+  }
+  allCommunityProducts = filteredProducts;
+}
+
 // ── Carga y renderiza una página de productos vía Algolia (público, rápido) ──
 async function loadComunidadPageAlgolia(page, filters, opts = {}) {
   if (isLoading && !opts.force) return;
@@ -362,27 +412,47 @@ async function loadComunidadPageAlgolia(page, filters, opts = {}) {
     const filterParts = [];
     if (filters.categoria) filterParts.push('categoria:"' + String(filters.categoria).replace(/"/g, '') + '"');
     if (filters.vendedor)  filterParts.push('vendedor_uid:"' + String(filters.vendedor).replace(/"/g, '') + '"');
-    if (filters.soloPro)   filterParts.push('vendedor_plan:"plus"');
+    if (filters.orden === 'verificados') filterParts.push('vendedor_plan:"plus"');
     const filterString = filterParts.join(' AND ');
 
-    const searchResult = await window.algoliaIndex.search(filters.busqueda || '', {
-      filters: filterString,
-      hitsPerPage: PAGE_SIZE,
-      page: Math.max(0, page - 1), // Algolia pagina desde 0
-      facets: ['categoria', 'vendedor_nombre']
-    });
+    // El select "Ordenar por" usa réplicas de Algolia para calificación/precio.
+    // Si la réplica no existe todavía (no configurada en el dashboard de Algolia),
+    // caemos de vuelta al índice normal y ordenamos localmente esta página.
+    const targetIndex = getAlgoliaIndexForOrden(filters.orden);
+    let searchResult;
+    try {
+      searchResult = await targetIndex.search(filters.busqueda || '', {
+        filters: filterString,
+        hitsPerPage: PAGE_SIZE,
+        page: Math.max(0, page - 1), // Algolia pagina desde 0
+        facets: ['categoria', 'vendedor_nombre']
+      });
+    } catch (replicaErr) {
+      if (targetIndex !== window.algoliaIndex) {
+        console.warn('Réplica de Algolia no encontrada, usando índice base + orden local:', replicaErr);
+        searchResult = await window.algoliaIndex.search(filters.busqueda || '', {
+          filters: filterString,
+          hitsPerPage: PAGE_SIZE,
+          page: Math.max(0, page - 1),
+          facets: ['categoria', 'vendedor_nombre']
+        });
+      } else {
+        throw replicaErr;
+      }
+    }
 
     currentPage      = page;
     totalPagesGlobal = searchResult.nbPages || 1;
     allCommunityProducts = searchResult.hits || [];
     filteredProducts     = [...allCommunityProducts];
+    aplicarOrdenLocal(filters.orden); // respaldo si la réplica no estaba disponible
     window.allCommunityProductsIndexed = allCommunityProducts;
 
     // Las opciones del select se cargan aparte y solo una vez (ver loadComunidadFilterOptionsAlgolia),
     // así siempre muestran TODAS las categorías/vendedores, no solo los del filtro activo.
     loadComunidadFilterOptionsAlgolia();
 
-    if (page === 1 && !filters.categoria && !filters.busqueda && !filters.vendedor && !filters.soloPro) {
+    if (page === 1 && !filters.categoria && !filters.busqueda && !filters.vendedor && !filters.orden) {
       setComunidadCache(allCommunityProducts);
     }
 
@@ -418,13 +488,12 @@ function loadCommunityProducts() {
     const el = document.getElementById('comunidad-search');
     if (el) el.value = urlFilters.busqueda;
   }
-  if (urlFilters.soloPro) {
-    const el = document.getElementById('comunidad-solo-pro');
-    const lbl = document.getElementById('comunidad-pro-label');
-    if (el) el.checked = true;
-    if (lbl) lbl.classList.add('active');
+  if (urlFilters.orden) {
+    const el = document.getElementById('comunidad-orden');
+    if (el) el.value = urlFilters.orden;
   }
   currentFilters = urlFilters;
+  updateComunidadChips(urlFilters);
   return loadComunidadPage(1, urlFilters);
 }
 
@@ -466,17 +535,56 @@ function applyFilters() {
     const busqueda  = getSearchValue();
     const categoria = catSelect    ? catSelect.value    : '';
     const vendedor  = vendorSelect ? vendorSelect.value : '';
-    const soloProEl = document.getElementById('comunidad-solo-pro');
-    const soloPro   = soloProEl ? soloProEl.checked : false;
-    const filters = { busqueda, categoria, vendedor, soloPro };
+    const ordenEl   = document.getElementById('comunidad-orden');
+    const orden     = ordenEl ? ordenEl.value : '';
+    const filters = { busqueda, categoria, vendedor, orden };
     // Eliminar vacíos
     Object.keys(filters).forEach(k => { if (!filters[k]) delete filters[k]; });
     currentFilters = filters;
+    updateComunidadChips(filters);
     loadComunidadPage(1, filters, { isPageChange: false });
     updateURLWithFilters();
   } catch (err) {
     console.error('Error en applyFilters:', err);
   }
+}
+
+// ── Chips de filtros activos (mismo patrón visual que catálogo) ──────────
+function updateComunidadChips(filters) {
+  const bar = document.getElementById('comunidad-filter-chips');
+  if (!bar) return;
+  const ordenLabels = {
+    verificados:  '✔️ Verificados',
+    calificacion: '⭐ Mejor calificado',
+    precio_asc:   '💲 Menor a mayor precio'
+  };
+  const chips = [];
+  if (filters.busqueda)  chips.push({ label: `🔍 "${filters.busqueda}"`, clear: () => { const el = document.getElementById('comunidad-search'); if (el) el.value = ''; applyFilters(); } });
+  if (filters.categoria) chips.push({ label: `${filters.categoria}`, clear: () => { if (catSelect) catSelect.value = ''; applyFilters(); } });
+  if (filters.vendedor)  chips.push({ label: `${vendorSelect && vendorSelect.selectedOptions[0] ? vendorSelect.selectedOptions[0].textContent : 'Vendedor'}`, clear: () => { if (vendorSelect) vendorSelect.value = ''; applyFilters(); } });
+  if (filters.orden)     chips.push({ label: ordenLabels[filters.orden] || filters.orden, clear: () => { const el = document.getElementById('comunidad-orden'); if (el) el.value = ''; applyFilters(); } });
+
+  if (!chips.length) { bar.style.display = 'none'; bar.innerHTML = ''; return; }
+  bar.style.display = 'flex';
+  bar.innerHTML = chips.map((c, i) =>
+    `<button class="filter-chip" data-chip="${i}">${c.label} <span class="chip-x"></span></button>`
+  ).join('') + (chips.length > 1
+    ? `<button class="filter-chip filter-chip-clear" data-chip="all"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" aria-hidden="true"><use href="#ic-trash"/></svg> Limpiar todo</button>`
+    : '');
+  bar.querySelectorAll('.filter-chip').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const idx = btn.dataset.chip;
+      if (idx === 'all') {
+        ['comunidad-cat','comunidad-vendor','comunidad-orden'].forEach(id => {
+          const el = document.getElementById(id); if (el) el.value = '';
+        });
+        const si = document.getElementById('comunidad-search'); if (si) si.value = '';
+        applyFilters();
+      } else {
+        chips[Number(idx)].clear();
+      }
+    });
+  });
 }
 function renderProducts() {
 if (!gridContainer) return;
@@ -875,8 +983,7 @@ function bindFilterChangeEvents() {
 const searchInput = document.getElementById('comunidad-search');
 const catSelectEl = document.getElementById('comunidad-cat');
 const vendorSelectEl = document.getElementById('comunidad-vendor');
-const soloProEl = document.getElementById('comunidad-solo-pro');
-const soloProLabel = document.getElementById('comunidad-pro-label');
+const ordenEl = document.getElementById('comunidad-orden');
 const updateHandler = () => {
 applyFilters();
 updateURLWithFilters();
@@ -889,12 +996,7 @@ debounceTimer = setTimeout(updateHandler, 400);
 }
 if (catSelectEl) catSelectEl.addEventListener('change', updateHandler);
 if (vendorSelectEl) vendorSelectEl.addEventListener('change', updateHandler);
-if (soloProEl) {
-soloProEl.addEventListener('change', () => {
-if (soloProLabel) soloProLabel.classList.toggle('active', soloProEl.checked);
-updateHandler();
-});
-}
+if (ordenEl) ordenEl.addEventListener('change', updateHandler);
 }
 function initCartAndUI() {
 if (typeof window.loadCartFromStorage === 'function') window.loadCartFromStorage();
@@ -1028,6 +1130,87 @@ initCartAndUI();
 loadCommunityProducts();
 checkLiveBanner();
 checkPendingRatings();
+initBeneficiariosToggle();
+}
+
+// ── Grid de fundaciones/beneficiarios ──────────────────────────────────
+let beneficiariosCargados = false;
+function initBeneficiariosToggle() {
+  const btn = document.getElementById('btn-ver-fundaciones');
+  if (!btn) return;
+  btn.addEventListener('click', () => {
+    const wrap = document.getElementById('comunidad-beneficiarios-wrap');
+    const toolbarArea = document.querySelector('.comunidad-toolbar');
+    const chipsBar = document.getElementById('comunidad-filter-chips');
+    const grid = document.getElementById('comunidad-grid');
+    const pagination = document.getElementById('comunidad-pagination');
+    if (!wrap) return;
+    const showing = wrap.style.display !== 'none';
+    if (showing) {
+      // Volver a productos
+      wrap.style.display = 'none';
+      if (grid) grid.style.display = '';
+      if (pagination) pagination.style.display = '';
+      if (toolbarArea) toolbarArea.style.display = '';
+      btn.textContent = '❤️ Ver fundaciones';
+    } else {
+      // Mostrar fundaciones
+      wrap.style.display = 'block';
+      if (grid) grid.style.display = 'none';
+      if (pagination) pagination.style.display = 'none';
+      if (chipsBar) chipsBar.style.display = 'none';
+      if (toolbarArea) toolbarArea.style.display = 'none';
+      btn.textContent = '🛍️ Ver productos';
+      if (!beneficiariosCargados) loadBeneficiariosGrid();
+    }
+  });
+}
+
+async function loadBeneficiariosGrid() {
+  const grid = document.getElementById('comunidad-beneficiarios-grid');
+  if (!grid || !window.API_URL) return;
+  try {
+    const res = await fetch(window.API_URL + '?' + new URLSearchParams({ action: 'obtenerBeneficiariosAprobados' }));
+    const data = await res.json();
+    if (!data.ok) throw new Error(data.error || 'Error del servidor');
+    const beneficiarios = data.beneficiarios || [];
+    beneficiariosCargados = true;
+    if (beneficiarios.length === 0) {
+      grid.innerHTML = '<div style="grid-column:1/-1; text-align:center; padding:40px; color:#888;">Aún no hay fundaciones aprobadas.</div>';
+      return;
+    }
+    const esc = s => String(s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    grid.innerHTML = beneficiarios.map(b => {
+      const img = b.imagen1 ? optimizeDriveUrl(b.imagen1, 300) : '';
+      return `
+        <div class="comunidad-beneficiario-card" data-ben-id="${esc(b.id)}"
+          style="background:var(--color-surface,#181820);border-radius:14px;overflow:hidden;cursor:pointer;
+          border:1px solid rgba(255,255,255,.08);display:flex;flex-direction:column;">
+          <div style="width:100%;aspect-ratio:1;background:#26262f;display:flex;align-items:center;justify-content:center;overflow:hidden;">
+            ${img ? `<img src="${esc(img)}" alt="${esc(b.nombre)}" loading="lazy" style="width:100%;height:100%;object-fit:cover;">`
+                  : `<span style="font-size:2rem;">❤️</span>`}
+          </div>
+          <div style="padding:10px;">
+            <div style="font-size:.85rem;font-weight:700;color:var(--color-text-primary,#fff);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(b.nombre)}</div>
+            ${b.organizacion ? `<div style="font-size:.72rem;color:#888;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(b.organizacion)}</div>` : ''}
+            ${b.ubicacion ? `<div style="font-size:.7rem;color:#666;margin-top:2px;">📍 ${esc(b.ubicacion)}</div>` : ''}
+          </div>
+        </div>`;
+    }).join('');
+    grid.querySelectorAll('.comunidad-beneficiario-card').forEach(card => {
+      card.addEventListener('click', () => {
+        const id = card.dataset.benId;
+        if (id && window.openBeneficiarioModal) window.openBeneficiarioModal(id);
+      });
+    });
+  } catch (err) {
+    console.error('Error cargando fundaciones:', err);
+    grid.innerHTML = `<div style="grid-column:1/-1; text-align:center; padding:40px; color:var(--color-error,#ef4444);">
+      Error al cargar fundaciones.<br>
+      <button onclick="window.__reloadBeneficiariosGrid && window.__reloadBeneficiariosGrid()" style="margin-top:12px; padding:8px 20px; border-radius:30px; border:none; background:#ff4f81; color:white; cursor:pointer; font-weight:600;">🔄 Reintentar</button>
+    </div>`;
+    window.__reloadBeneficiariosGrid = () => { beneficiariosCargados = false; loadBeneficiariosGrid(); };
+  }
 }
 
 async function checkLiveBanner() {

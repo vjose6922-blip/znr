@@ -2471,17 +2471,53 @@ window.openEntregasLiveModal = async function() {
   }
 };
 
-// ── Panel de donaciones recibidas (si el vendedor es beneficiario) ──
+// ── Busca el registro completo de beneficiario que corresponde a este vendedor,
+// cruzando por teléfono contra la lista pública de beneficiarios aprobados.
+// (No existe todavía un endpoint "obtenerMiBeneficiario"; esto evita depender
+// de uno nuevo. Si el teléfono del vendedor cambió después de registrarse como
+// beneficiario, el cruce puede fallar — en ese caso solo se ve el aviso genérico.)
+async function buscarMiPerfilBeneficiario() {
+  try {
+    const res = await fetch(window.API_URL + '?' + new URLSearchParams({ action: 'obtenerBeneficiariosAprobados' }));
+    const data = await res.json();
+    if (!data.ok) return null;
+    const miTel = String(vendorSession.telefono || '').replace(/\D/g, '');
+    if (!miTel) return null;
+    return (data.beneficiarios || []).find(b => String(b.telefono || '').replace(/\D/g, '') === miTel) || null;
+  } catch (e) { return null; }
+}
+
+// ── Panel de beneficiario: perfil propio + donaciones recibidas ──
 async function loadBeneficiarioDonaciones() {
   const area = document.getElementById('settings-donaciones-recibidas-area');
   if (!area || !vendorSession) return;
+  const esc = s => String(s||'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   try {
     const data = await apiFetch({ action:'obtenerDonacionesRecibidas', vendor_uid: vendorSession.uid }, 'GET');
     if (!data.ok || !data.esBeneficiario) { area.style.display = 'none'; return; }
     const dons = data.donaciones || [];
     area.style.display = 'block';
-    const esc = s => String(s||'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-    area.innerHTML = `<div style="margin-top:12px;padding-top:12px;border-top:1px solid #f5f5f5;">
+
+    // Perfil de beneficiario (nombre, historia, cuenta, fotos)
+    const miBen = await buscarMiPerfilBeneficiario();
+    const perfilHtml = miBen ? `
+      <div style="margin-top:12px;padding:12px;background:#fff7ed;border:1px solid #fed7aa;border-radius:12px;">
+        <p style="margin:0 0 6px;font-size:.78rem;font-weight:800;color:#c2410c;">❤️ Tu perfil de fundación</p>
+        ${[miBen.imagen1, miBen.imagen2, miBen.imagen3].filter(Boolean).length
+          ? `<div style="display:flex;gap:6px;overflow-x:auto;margin-bottom:8px;">${[miBen.imagen1, miBen.imagen2, miBen.imagen3].filter(Boolean).map(u=>`<img src="${esc(u)}" style="height:64px;border-radius:8px;object-fit:cover;flex-shrink:0;">`).join('')}</div>`
+          : ''}
+        <div style="font-size:.85rem;font-weight:700;">${esc(miBen.nombre)}</div>
+        ${miBen.organizacion ? `<div style="font-size:.75rem;color:#888;margin-bottom:4px;">${esc(miBen.organizacion)}</div>` : ''}
+        ${miBen.ubicacion ? `<div style="font-size:.75rem;color:#555;margin:2px 0;">📍 ${esc(miBen.ubicacion)}</div>` : ''}
+        ${miBen.historia ? `<div style="font-size:.78rem;color:#555;margin:6px 0;line-height:1.5;">${esc(miBen.historia)}</div>` : ''}
+        ${miBen.cuenta_bancaria ? `<div style="font-size:.78rem;font-family:monospace;background:#fff;border-radius:8px;padding:6px 8px;margin-top:4px;">💳 ${esc(miBen.cuenta_bancaria)}</div>` : ''}
+        <p style="margin:8px 0 0;font-size:.7rem;color:#a16207;">¿Necesitas actualizar estos datos? Escríbenos por WhatsApp desde el mismo número con el que te registraste.</p>
+      </div>`
+      : `<div style="margin-top:12px;padding:10px;background:#fff7ed;border:1px solid #fed7aa;border-radius:12px;">
+          <p style="margin:0;font-size:.78rem;color:#c2410c;">❤️ Estás registrado como fundación, pero no pudimos cargar el detalle completo de tu perfil ahora mismo.</p>
+        </div>`;
+
+    area.innerHTML = perfilHtml + `<div style="margin-top:12px;padding-top:12px;border-top:1px solid #f5f5f5;">
       <p style="margin:0 0 8px;font-size:.78rem;font-weight:800;color:#f97316;">Donaciones que recibes (${dons.length})</p>
       ${dons.length === 0
         ? '<p style="color:#aaa;font-size:.78rem;text-align:center;padding:6px 0;">Aún no hay donaciones activas para ti.</p>'
