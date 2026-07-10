@@ -1387,7 +1387,12 @@ const timeoutId = setTimeout(() => controller.abort(), 8000);
 const res = await fetch(API_URL, { signal: controller.signal });
 clearTimeout(timeoutId);
 const data = await res.json();
-allProducts = data.products || data || [];
+allProducts = Array.isArray(data?.products) ? data.products
+            : Array.isArray(data) ? data
+            : [];
+if (!data?.ok) {
+  console.warn('⚠️ Respuesta de productos sin products válido:', data);
+}
 setCachedProducts(allProducts);
 buildLooksProductIndex(allProducts);
 ensureProductIndex(allProducts);
