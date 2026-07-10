@@ -1,10 +1,3 @@
-/**
- * ============================================================
- * FCM (Firebase Cloud Messaging) — Frontend para Z&R
- * Guarda este archivo como /ZNR/fcm-init.js
- * Cárgalo con: <script type="module" src="/ZNR/fcm-init.js"></script>
- * ============================================================
- */
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
 import { getMessaging, getToken, onMessage } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-messaging.js";
@@ -49,23 +42,7 @@ async function registrarTokenFCM(ownerType, ownerId, token) {
   }
 }
 
-/**
- * Punto de entrada principal. Llámala en el momento justo antes de una
- * acción importante (ej. al dar clic en "Realizar pedido").
- *
- * - Si el navegador YA decidió antes (permitido o bloqueado), NO vuelve
- *   a preguntar — respeta lo que el usuario ya eligió.
- * - Si nunca se ha preguntado ("default"), muestra el diálogo nativo
- *   del navegador en ese mismo instante (por eso debe llamarse dentro
- *   de un handler de clic, nunca al cargar la página).
- * - Devuelve el token FCM si se obtuvo, o null si no.
- *
- * ownerType/ownerId son OPCIONALES: si ya sabes quién es el usuario
- * (ej. un vendedor con sesión iniciada) los pasas y se registra de una vez.
- * Si no los pasas (ej. un cliente cuyo teléfono aún no capturas), solo
- * te regresa el token para que TÚ lo registres después con
- * window.registrarTokenFCM(...) en cuanto sepas el ownerId.
- */
+
 async function solicitarPermisoNotificacionesSiFalta(ownerType, ownerId) {
   try {
     if (!("Notification" in window) || !("serviceWorker" in navigator)) return null;
@@ -106,6 +83,7 @@ onMessage(messaging, (payload) => {
   if (title && Notification.permission === "granted") {
     new Notification(title, { body, icon: "/ZNR/logo.svg" });
   }
+  window.dispatchEvent(new CustomEvent('ZNR:nueva-notificacion'));
 });
 
 // Se exponen para usarlas desde common.js / comunidad.js (scripts normales, no módulo)
