@@ -639,59 +639,65 @@ function clearImageUploads() {
 }
 
 async function checkNotifications() {
-try {
-const res = await fetch(`${ADMIN_API_URL}?action=notificationsBatch&page=1&pageSize=200&noCache=false`);
-const data = await res.json();
-if (!data.ok) return;
-const groups = data.groups || [];
-const count = groups.filter(g => g.notifications && g.notifications.some(n => n.status === 'pending' && n.hasStock)).length;
-const badge = document.getElementById("notif-badge");
-if (badge) {
-badge.textContent = count;
-if (count > 0) {
-badge.style.animation = "pulse 0.5s ease";
-setTimeout(() => {
-if (badge) badge.style.animation = "";
-}, 500);
+  try {
+    const token = sessionStorage.getItem('admin_token') || '';
+    const res = await fetch(`${ADMIN_API_URL}?action=contarBadgesAdmin&token=${encodeURIComponent(token)}`);
+    const data = await res.json();
+    if (!data.ok) return;
+ 
+    const count = data.solicitudes;
+    const badge = document.getElementById("notif-badge");
+    if (badge) {
+      badge.textContent = data.total > 0 ? data.total : '0';
+      if (data.total > 0) {
+        badge.classList.add('has-notifs');
+        badge.style.animation = "pulse 0.5s ease";
+        setTimeout(() => { if (badge) badge.style.animation = ""; }, 500);
+      } else {
+        badge.classList.remove('has-notifs');
+      }
+    }
+    if (count > lastNotifCount && count > 0 && adminSession) {
+      const bell = document.querySelector(".admin-notification-bell");
+      if (bell) {
+        bell.style.transform = "scale(1.05)";
+        bell.style.boxShadow = "0 0 20px rgba(255,79,129,0.6)";
+        setTimeout(() => { if (bell) { bell.style.transform = ""; bell.style.boxShadow = ""; } }, 1000);
+      }
+    }
+    lastNotifCount = count;
+ 
+    if (typeof window._updateNotifTabBadge === 'function') {
+      window._updateNotifTabBadge('solicitudes', data.solicitudes);
+      window._updateNotifTabBadge('vendors', data.vendors);
+      window._updateNotifTabBadge('pending', data.pending);
+      window._updateNotifTabBadge('reportes', data.reportes);
+    }
+    const secBadge = document.getElementById('notif-badge-header');
+    if (secBadge) { secBadge.textContent = data.total; secBadge.style.display = data.total > 0 ? 'inline' : 'none'; }
+ 
+    setBadge('notif-panel-solicitudes-count', data.solicitudes);
+    setBadge('notif-panel-vendors-count',  data.vendors);
+    setBadge('notif-panel-pending-count',  data.pending);
+    setBadge('notif-panel-reportes-count', data.reportes);
+    setBadge('notif-panel-plus-count',     data.plus);
+    setBadge('notif-panel-beneficiarios-count', data.beneficiarios);
+ 
+  } catch(err) {
+    console.log("Error checking notifications:", err);
+  }
 }
-if (count > lastNotifCount && count > 0 && adminSession) {
-const bell = document.querySelector(".admin-notification-bell");
-if (bell) {
-bell.style.transform = "scale(1.05)";
-bell.style.boxShadow = "0 0 20px rgba(255,79,129,0.6)";
-setTimeout(() => {
-if (bell) {
-bell.style.transform = "";
-bell.style.boxShadow = "";
-}
-}, 1000);
-}
-}
-}
-lastNotifCount = count;
-if (typeof window._updateNotifTabBadge === 'function') window._updateNotifTabBadge('solicitudes', count);
-const secBadge = document.getElementById('notif-badge-header');
-if (secBadge) { secBadge.textContent = count; secBadge.style.display = count > 0 ? 'inline' : 'none'; }
-if (typeof loadNotifPanelCounts === 'function') loadNotifPanelCounts();
-else {
-const badge = document.getElementById('notif-badge');
-if (badge) badge.textContent = count;
-}
-} catch(err) {
-console.log("Error checking notifications:", err);
-}
-}
-
+ 
 function startNotificationMonitoring() {
-if (notificationInterval) clearInterval(notificationInterval);
-checkNotifications();
-notificationInterval = setInterval(checkNotifications, 10000);
+  if (notificationInterval) clearInterval(notificationInterval);
+  checkNotifications();
+  notificationInterval = setInterval(checkNotifications, 45000); // 🆕 45s en vez de 10s
 }
 function stopNotificationMonitoring() {
-if (notificationInterval) {
-clearInterval(notificationInterval);
-notificationInterval = null;
-}
+  if (notificationInterval) {
+    clearInterval(notificationInterval);
+    notificationInterval = null;
+  }
 }
 function openNotifications() {
 window.location.href = "notificaciones.html";
