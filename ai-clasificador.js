@@ -30,15 +30,17 @@ const INPUT_SIZE = 224; // 224x224, como MobileNetV2
 // (Ver paso 5 del informe: "Actualizar CATEGORY_MAP con el orden EXACTO de
 // clases que salga en labels.txt después del primer entrenamiento".)
 let CATEGORY_MAP = [
-  'Ropa de mujer',
-  'Ropa de hombre',
-  'Ropa infantil',
-  'Ropa interior y lencería',
-  'Ropa deportiva',
-  'Calzado',
-  'Accesorios',
-  'Joyería y bisutería',
-  'Bolsas y equipaje',
+'Playeras',
+'Blusas',
+'Pantalon para Dama',
+'Short para Caballero',
+'Calzado para Caballero',
+'Vestidos',
+'Calzado para Dama',
+'Pantalon para Caballero',
+'Chamarra para Dama',
+'Chamarra para Caballero',
+
 ];
 
 let _liteRtCore = null;
