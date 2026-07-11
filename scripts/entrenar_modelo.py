@@ -87,20 +87,31 @@ def leer_catalogo():
 
     col_categoria = next((fieldnames_lower[c] for c in COL_CATEGORIA_CANDIDATOS if c in fieldnames_lower), None)
     col_imagen = next((fieldnames_lower[c] for c in COL_IMAGEN_CANDIDATOS if c in fieldnames_lower), None)
+    col_estado = fieldnames_lower.get("estado")  # ProductosComunidad tiene moderación (aprobado/pendiente/rechazado)
 
     if not col_categoria or not col_imagen:
         log(f"❌ No se encontraron las columnas esperadas. Columnas detectadas: {fieldnames}")
         log("   Ajusta COL_CATEGORIA_CANDIDATOS / COL_IMAGEN_CANDIDATOS en este script a tus nombres reales.")
         sys.exit(1)
 
-    log(f"Columna de categoría detectada: '{col_categoria}' | columna de imagen: '{col_imagen}'")
+    log(f"Columna de categoría detectada: '{col_categoria}' | columna de imagen: '{col_imagen}'"
+        + (f" | columna de estado: '{col_estado}'" if col_estado else ""))
 
     filas = []
+    descartadas_por_estado = 0
     for row in reader:
         categoria = (row.get(col_categoria) or "").strip()
         imagen = (row.get(col_imagen) or "").strip()
+        if col_estado:
+            estado = (row.get(col_estado) or "").strip().lower()
+            if estado and estado != "aprobado":
+                descartadas_por_estado += 1
+                continue
         if categoria and imagen:
             filas.append((categoria, imagen))
+
+    if descartadas_por_estado:
+        log(f"Filas descartadas por no estar aprobadas (estado != 'aprobado'): {descartadas_por_estado}")
 
     log(f"Filas válidas leídas del catálogo: {len(filas)}")
     return filas
