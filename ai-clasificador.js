@@ -13,11 +13,15 @@
 //
 // Este módulo NUNCA debe bloquear ni interrumpir el flujo de publicar producto.
 
-const MODEL_URL = '/model.tflite';
+const MODEL_URL = './model.tflite';
 const WASM_BASE = 'https://cdn.jsdelivr.net/npm/@litertjs/core/wasm/';
 const LITERT_ESM = 'https://cdn.jsdelivr.net/npm/@litertjs/core/+esm';
 
-const UMBRAL_CONFIANZA = 0.55;
+// ⚠️ TEMPORAL: umbral bajado a 0.01 solo para pruebas con un modelo entrenado
+// con muy pocas fotos por categoría. Súbelo de nuevo a ~0.55 en cuanto
+// reentrenes con más inventario por categoría — con un umbral tan bajo el
+// modelo va a "sugerir" categorías aunque esté prácticamente adivinando.
+const UMBRAL_CONFIANZA = 0.01;
 const INPUT_SIZE = 224; // 224x224, como MobileNetV2
 
 // IMPORTANTE: este orden debe coincidir EXACTAMENTE con el orden de clases de
@@ -40,12 +44,8 @@ let CATEGORY_MAP = [
 let _liteRtCore = null;
 let _model = null;
 let _loadingPromise = null;
-let _modelDisponible = true; // se pone en false si falla la carga (404, sin WebGPU/wasm, etc.)
+let _modelDisponible = true; 
 
-/**
- * Carga LiteRT.js + el modelo, una sola vez (lazy). Si algo falla, marca el
- * módulo como no disponible y no vuelve a intentar en esta sesión de página.
- */
 async function _cargarModelo() {
   if (_model) return _model;
   if (!_modelDisponible) return null;
@@ -83,25 +83,13 @@ async function _cargarModelo() {
   return _loadingPromise;
 }
 
-/**
- * labels.txt se publica junto al modelo en cada reentrenamiento. Si existe,
- * tiene prioridad sobre el CATEGORY_MAP hardcodeado arriba, evitando
- * desincronización cuando cambien las clases entrenadas.
- */
 async function _cargarLabels() {
-  const res = await fetch('/labels.txt', { cache: 'no-store' });
+  const res = await fetch('./labels.txt', { cache: 'no-store' });
   if (!res.ok) return null;
   const texto = await res.text();
   return texto.split('\n').map(l => l.trim()).filter(Boolean);
 }
 
-/**
- * Convierte un File/Blob de imagen a un Tensor [1, 224, 224, 3] float32,
- * normalizado estilo MobileNet ([-1, 1]).
- *
- * Nota (pendiente del informe, paso 6): si el modelo entrenado espera otro
- * shape/normalización, ajustar aquí.
- */
 async function fileToInputTensor(file) {
   const bitmap = await createImageBitmap(file);
   const canvas = document.createElement('canvas');
@@ -109,7 +97,6 @@ async function fileToInputTensor(file) {
   canvas.height = INPUT_SIZE;
   const ctx = canvas.getContext('2d');
 
-  // Recorte central cuadrado antes de escalar, para no deformar el producto.
   const side = Math.min(bitmap.width, bitmap.height);
   const sx = (bitmap.width - side) / 2;
   const sy = (bitmap.height - side) / 2;
@@ -135,10 +122,6 @@ function _softmaxArgmax(arr) {
   return { idx, confianza: max };
 }
 
-/**
- * Clasifica una imagen y devuelve { categoria, confianza } o null si no hay
- * confianza suficiente o el modelo no está disponible.
- */
 export async function clasificarImagen(file) {
   const model = await _cargarModelo();
   if (!model) return null;
@@ -168,17 +151,11 @@ export async function clasificarImagen(file) {
   }
 }
 
-/**
- * Punto de entrada llamado desde vendedor-unificado.js al subir la foto del
- * slot 1. Clasifica y, si hay confianza suficiente, llena el <select
- * id="pCategoria"> — pero nunca bloquea el flujo de subida/publicación.
- */
 window.sugerirYAplicar = async function(file) {
   try {
     const select = document.getElementById('pCategoria');
     if (!select) return;
 
-    // No pisar una categoría que el vendedor ya eligió manualmente.
     if (select.value && select.dataset.aiSugerida !== 'true') return;
 
     const resultado = await clasificarImagen(file);
@@ -194,16 +171,13 @@ window.sugerirYAplicar = async function(file) {
     console.log(`[ai-clasificador] Sugerencia aplicada: ${resultado.categoria} (${Math.round(resultado.confianza * 100)}%)`);
 
     if (typeof window.showTemporaryMessage === 'function') {
-      window.showTemporaryMessage(`✨ Categoría sugerida: ${resultado.categoria}`, 'info');
+      window.showTemporaryMessage(`✨ Categoría sugerida: ${resultado.categoria} (${Math.round(resultado.confianza * 100)}%)`, 'info');
     }
   } catch (err) {
-    // Cualquier error aquí es silencioso: el auto-tag es un extra, nunca un bloqueo.
     console.warn('[ai-clasificador] sugerirYAplicar falló silenciosamente:', err);
   }
 };
 
-// Si el vendedor cambia la categoría manualmente, dejar de tratarla como
-// "sugerida por IA" para no volver a sobreescribirla en subidas posteriores.
 document.addEventListener('DOMContentLoaded', () => {
   const select = document.getElementById('pCategoria');
   if (!select) return;
