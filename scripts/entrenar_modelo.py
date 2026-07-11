@@ -1,3 +1,4 @@
+
 """
 scripts/entrenar_modelo.py
 
@@ -199,8 +200,9 @@ def _descargar_via_link_publico(drive_id):
     return data
 
 
-def descargar_imagen(url, destino, intentos=3):
+def descargar_imagen(url, destino, intentos=3, debug_log=None):
     drive_id = extraer_drive_id(url)
+    metodo = "drive_api" if (drive_id and GOOGLE_API_KEY) else ("link_publico" if drive_id else "url_directa")
 
     for intento in range(intentos):
         try:
@@ -215,11 +217,25 @@ def descargar_imagen(url, destino, intentos=3):
                     data = resp.read()
 
             if not _es_imagen_valida(data):
+                snippet = data[:300].decode("utf-8", errors="replace") if data else "(respuesta vacía)"
+                if debug_log is not None and len(debug_log) < 3:
+                    debug_log.append(f"[método={metodo}, drive_id={drive_id}] respuesta recibida: {snippet}")
                 raise ValueError("La respuesta no es una imagen válida (probablemente una página de error/advertencia de Drive)")
 
             with open(destino, "wb") as f:
                 f.write(data)
             return True
+        except urllib.error.HTTPError as e:
+            try:
+                cuerpo = e.read()[:300].decode("utf-8", errors="replace")
+            except Exception:
+                cuerpo = "(no se pudo leer el cuerpo del error)"
+            if debug_log is not None and len(debug_log) < 3:
+                debug_log.append(f"[método={metodo}, drive_id={drive_id}] HTTP {e.code}: {cuerpo}")
+            if intento == intentos - 1:
+                log(f"  ⚠️ No se pudo descargar (drive_id={drive_id}): HTTP {e.code} - {cuerpo}")
+                return False
+            time.sleep(1.5)
         except Exception as e:
             if intento == intentos - 1:
                 log(f"  ⚠️ No se pudo descargar (drive_id={drive_id}): {e}")
@@ -248,6 +264,7 @@ def construir_dataset(filas):
         sys.exit(1)
 
     os.makedirs(DATASET_DIR, exist_ok=True)
+    debug_log = []
     for categoria in sorted(categorias_validas.keys()):
         carpeta = os.path.join(DATASET_DIR, categoria.replace("/", "-"))
         os.makedirs(carpeta, exist_ok=True)
@@ -256,10 +273,15 @@ def construir_dataset(filas):
         n_ok = 0
         for i, url in enumerate(urls):
             destino = os.path.join(carpeta, f"{i:04d}.jpg")
-            if descargar_imagen(url, destino):
+            if descargar_imagen(url, destino, debug_log=debug_log):
                 n_ok += 1
         conteo[categoria] = n_ok
         log(f"  ✅ {n_ok}/{len(urls)} descargadas para '{categoria}'")
+
+    if debug_log:
+        log("── Diagnóstico de las primeras descargas fallidas (para depurar) ──")
+        for linea in debug_log:
+            log(f"  🔍 {linea}")
 
     # Re-filtrar por si algunas descargas fallaron y la categoría quedó chica
     categorias_finales = sorted([c for c, n in conteo.items() if n >= MIN_FOTOS_POR_CATEGORIA])
