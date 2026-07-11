@@ -7,6 +7,10 @@ on:
         description: "Motivo del reentrenamiento (opcional)"
         required: false
         default: "Disparado desde panel de admin de ZNR"
+      min_fotos_categoria:
+        description: "Mínimo de fotos por categoría para incluirla (baja esto para pruebas de humo con poco inventario)"
+        required: false
+        default: "15"
 
 permissions:
   contents: write
@@ -30,6 +34,7 @@ jobs:
       - name: Entrenar modelo y exportar model.tflite + labels.txt
         env:
           CATALOGO_CSV_URL: ${{ secrets.CATALOGO_CSV_URL }}
+          MIN_FOTOS_POR_CATEGORIA: ${{ github.event.inputs.min_fotos_categoria }}
         run: python scripts/entrenar_modelo.py
 
       - name: Commit y push del modelo actualizado
