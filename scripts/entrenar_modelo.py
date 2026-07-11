@@ -151,12 +151,16 @@ MAGIC_BYTES = {
 
 def _es_imagen_valida(data):
     """Revisa los primeros bytes del archivo para confirmar que es una imagen
-    real (JPEG/PNG/GIF/BMP) y no una página HTML de error/advertencia de Drive."""
+    real (JPEG/PNG/GIF/BMP/WEBP) y no una página HTML de error/advertencia de Drive."""
     if not data or len(data) < 100:
         return False
     for firma in MAGIC_BYTES:
         if data.startswith(firma):
             return True
+    # WEBP: 'RIFF' + 4 bytes de tamaño + 'WEBP' (el tamaño varía, así que
+    # revisamos los bytes 8-12 en vez de un prefijo fijo).
+    if data[:4] == b"RIFF" and data[8:12] == b"WEBP":
+        return True
     return False
 
 
@@ -222,8 +226,13 @@ def descargar_imagen(url, destino, intentos=3, debug_log=None):
                     debug_log.append(f"[método={metodo}, drive_id={drive_id}] respuesta recibida: {snippet}")
                 raise ValueError("La respuesta no es una imagen válida (probablemente una página de error/advertencia de Drive)")
 
-            with open(destino, "wb") as f:
-                f.write(data)
+            # Convertimos siempre a JPEG real con Pillow, sin importar el
+            # formato original (WEBP, PNG, etc.) — TensorFlow solo decodifica
+            # de forma nativa JPEG/PNG/GIF/BMP, así que normalizamos aquí para
+            # evitar errores de "Unknown image file format" al entrenar.
+            with Image.open(io.BytesIO(data)) as img:
+                img = img.convert("RGB")
+                img.save(destino, "JPEG", quality=90)
             return True
         except urllib.error.HTTPError as e:
             try:
