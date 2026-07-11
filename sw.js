@@ -171,15 +171,22 @@ self.addEventListener('push', event => {
   const body  = notif.body  || '¡Novedades en Z&R!';
   const url   = (payload.data && payload.data.url) || payload.fcmOptions?.link || '/ZNR/';
 
-  event.waitUntil(
-    self.registration.showNotification(title, {
+  event.waitUntil((async () => {
+    await self.registration.showNotification(title, {
       body:    body,
       icon:    '/ZNR/logo.svg',
       vibrate: [200, 100, 200],
       data:    { url: url },
       actions: [{ action: 'open', title: 'Ver ahora' }, { action: 'close', title: 'Cerrar' }]
-    })
-  );
+    });
+    // 🔧 Antes lo hacía firebase-messaging-sw.js (un SW aparte, peleando por
+    // el mismo scope que este). Ahora que ese registro se quitó, este es el
+    // único push handler, así que avisamos aquí mismo a las pestañas
+    // abiertas para que refresquen badges/listas (notification-center.js,
+    // admin.js, notifications-optimized.js, vendedor-unificado.js).
+    const clientList = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+    clientList.forEach(c => c.postMessage({ type: 'znr-nueva-notificacion' }));
+  })());
 });
 
 self.addEventListener('notificationclick', event => {
