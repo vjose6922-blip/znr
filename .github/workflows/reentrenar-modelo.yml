@@ -34,6 +34,7 @@ jobs:
       - name: Entrenar modelo y exportar model.tflite + labels.txt
         env:
           CATALOGO_CSV_URL: ${{ secrets.CATALOGO_CSV_URL }}
+          GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
           MIN_FOTOS_POR_CATEGORIA: ${{ github.event.inputs.min_fotos_categoria }}
         run: python scripts/entrenar_modelo.py
 
