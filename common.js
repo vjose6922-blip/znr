@@ -4283,17 +4283,15 @@ window.uploadSingleImage = async function(file, slotIndex) {
 };
 
 if ('serviceWorker' in navigator) {
-    let znrSwRefreshing = false;
-    navigator.serviceWorker.addEventListener('controllerchange', () => {
-        if (znrSwRefreshing) return;
-        znrSwRefreshing = true;
-        try { showTemporaryMessage('Actualizando a la última versión…', 'info'); } catch {}
-        setTimeout(() => window.location.reload(), 800);
-    });
+    if (!sessionStorage.getItem('sw_reloaded')) {
+        navigator.serviceWorker.addEventListener('controllerchange', () => {
+            sessionStorage.setItem('sw_reloaded', 'true');
+            try { showTemporaryMessage('Actualizando a la última versión…', 'info'); } catch {}
+            setTimeout(() => window.location.reload(), 800);
+        });
+    }
 }
 
-// Versión de alta resolución, pensada específicamente para el modal grande.
-// Ignora los topes de optimizeDriveUrl y pide el tamaño real necesario en pantalla.
 function getModalImageUrl(url) {
   if (!url) return "https://placehold.co/900x900/3b1f5f/white?text=Z%26R";
   if (!url.startsWith('http') && !url.startsWith('data:image')) {
