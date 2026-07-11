@@ -3,7 +3,8 @@ const COMUNIDAD_CACHE_KEY = 'zr_comunidad_data';
 const COMUNIDAD_CACHE_TTL_SESSION = 5 * 60 * 1000;
 const COMUNIDAD_CACHE_TTL_LOCAL   = 30 * 60 * 1000;
 const renderPage = renderProducts;
-
+let fullCommunityCatalog = [];
+  
 function setComunidadCache(products) {
   const payload = JSON.stringify({ data: products, timestamp: Date.now(), version: '1.1' });
   try { sessionStorage.setItem(COMUNIDAD_CACHE_KEY, payload); } catch(e) {}
@@ -263,7 +264,7 @@ async function loadComunidadPageGAS(page, filters, opts = {}) {
     aplicarOrdenLocal(filters.orden);
 
     renderProducts();
-    handleInitialHashComunidad();
+    handleialHashComunidad();
 
   } catch (err) {
     console.error('Error loadComunidadPageGAS:', err);
@@ -1104,6 +1105,34 @@ transform: translateY(-1px);
 `;
 document.head.appendChild(style);
 }
+
+async function loadFullCommunityCatalog() {
+    if (!window.algoliaIndex) {
+        console.warn('Algolia no disponible para cargar catálogo completo');
+        return;
+    }
+    try {
+        const result = await window.algoliaIndex.search('', {
+            hitsPerPage: 500, // Suficiente para la mayoría de los casos
+            attributesToRetrieve: [
+                'id', 'nombre', 'precio', 'categoria', 'talla', 'descripcion',
+                'imagen1', 'imagen2', 'imagen3',
+                'vendedor_nombre', 'vendedor_uid', 'vendedor_tel',
+                'vendedor_logo', 'vendedor_plan',
+                'donado', 'beneficiario_id'
+            ]
+        });
+
+        const products = result.hits || [];
+
+        fullCommunityCatalog = products;
+        window.allCommunityProductsIndexed = fullCommunityCatalog;
+    } catch (err) {
+        console.warn('Error cargando catálogo completo desde Algolia:', err);
+    }
+}
+
+  
 async function initComunidad() {
 injectStyles();
 gridContainer = document.getElementById('comunidad-grid');
@@ -1121,9 +1150,9 @@ loadCommunityProducts();
 checkLiveBanner();
 checkPendingRatings();
 initBeneficiariosToggle();
+loadFullCommunityCatalog();
 }
 
-// ── Grid de fundaciones/beneficiarios ──────────────────────────────────
 let beneficiariosCargados = false;
 function initBeneficiariosToggle() {
   const btn = document.getElementById('btn-ver-fundaciones');
