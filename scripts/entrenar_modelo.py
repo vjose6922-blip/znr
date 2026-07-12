@@ -1,4 +1,3 @@
-
 """
 scripts/entrenar_modelo.py
 
@@ -457,8 +456,21 @@ def entrenar(categorias_finales):
 # ── 5. Exportar model.tflite + labels.txt ──────────────────────────────────
 
 def exportar(model, class_names):
+    log("Preparando modelo de inferencia con forma de entrada fija (batch=1)...")
+    # El modelo se entrenó con lote flexible (necesario para batches de 16+
+    # durante el entrenamiento). Pero LiteRT.js en el navegador exige que el
+    # tensor de entrada coincida EXACTAMENTE con la forma del modelo
+    # exportado, incluyendo la dimensión de lote — con lote dinámico (-1)
+    # rechaza el tensor [1, 224, 224, 3] con un error de "ranked tensor type".
+    # Por eso envolvemos el modelo ya entrenado en uno nuevo con entrada de
+    # lote fijo=1 solo para exportar (reutiliza las mismas capas y pesos, no
+    # hay que reentrenar nada).
+    entrada_fija = tf.keras.Input(shape=(IMG_SIZE, IMG_SIZE, 3), batch_size=1)
+    salida_fija = model(entrada_fija)
+    modelo_inferencia = tf.keras.Model(entrada_fija, salida_fija)
+
     log("Convirtiendo a TFLite...")
-    converter = tf.lite.TFLiteConverter.from_keras_model(model)
+    converter = tf.lite.TFLiteConverter.from_keras_model(modelo_inferencia)
     converter.optimizations = [tf.lite.Optimize.DEFAULT]
     tflite_model = converter.convert()
 
