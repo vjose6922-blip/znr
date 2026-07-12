@@ -30,24 +30,26 @@ const INPUT_SIZE = 224; // 224x224, como MobileNetV2
 // (Ver paso 5 del informe: "Actualizar CATEGORY_MAP con el orden EXACTO de
 // clases que salga en labels.txt después del primer entrenamiento".)
 let CATEGORY_MAP = [
-'Playeras',
-'Blusas',
-'Pantalon para Dama',
-'Short para Caballero',
-'Calzado para Caballero',
-'Vestidos',
-'Calzado para Dama',
-'Pantalon para Caballero',
-'Chamarra para Dama',
-'Chamarra para Caballero',
-
+  'Ropa de mujer',
+  'Ropa de hombre',
+  'Ropa infantil',
+  'Ropa interior y lencería',
+  'Ropa deportiva',
+  'Calzado',
+  'Accesorios',
+  'Joyería y bisutería',
+  'Bolsas y equipaje',
 ];
 
 let _liteRtCore = null;
 let _model = null;
 let _loadingPromise = null;
-let _modelDisponible = true; 
+let _modelDisponible = true; // se pone en false si falla la carga (404, sin WebGPU/wasm, etc.)
 
+/**
+ * Carga LiteRT.js + el modelo, una sola vez (lazy). Si algo falla, marca el
+ * módulo como no disponible y no vuelve a intentar en esta sesión de página.
+ */
 async function _cargarModelo() {
   if (_model) return _model;
   if (!_modelDisponible) return null;
@@ -69,7 +71,12 @@ async function _cargarModelo() {
 
       try {
         const labels = await _cargarLabels();
-        if (labels && labels.length) CATEGORY_MAP = labels;
+        if (labels && labels.length) {
+          CATEGORY_MAP = labels;
+          console.log('[ai-clasificador] labels.txt cargado, categorías del modelo:', CATEGORY_MAP);
+        } else {
+          console.log('[ai-clasificador] labels.txt no disponible o vacío, usando CATEGORY_MAP por defecto:', CATEGORY_MAP);
+        }
       } catch (errLabels) {
         console.warn('[ai-clasificador] No se pudo cargar labels.txt, usando CATEGORY_MAP por defecto:', errLabels);
       }
@@ -85,6 +92,11 @@ async function _cargarModelo() {
   return _loadingPromise;
 }
 
+/**
+ * labels.txt se publica junto al modelo en cada reentrenamiento. Si existe,
+ * tiene prioridad sobre el CATEGORY_MAP hardcodeado arriba, evitando
+ * desincronización cuando cambien las clases entrenadas.
+ */
 async function _cargarLabels() {
   const res = await fetch('./labels.txt', { cache: 'no-store' });
   if (!res.ok) return null;
@@ -92,6 +104,13 @@ async function _cargarLabels() {
   return texto.split('\n').map(l => l.trim()).filter(Boolean);
 }
 
+/**
+ * Convierte un File/Blob de imagen a un Tensor [1, 224, 224, 3] float32,
+ * normalizado estilo MobileNet ([-1, 1]).
+ *
+ * Nota (pendiente del informe, paso 6): si el modelo entrenado espera otro
+ * shape/normalización, ajustar aquí.
+ */
 async function fileToInputTensor(file) {
   const bitmap = await createImageBitmap(file);
   const canvas = document.createElement('canvas');
@@ -99,6 +118,7 @@ async function fileToInputTensor(file) {
   canvas.height = INPUT_SIZE;
   const ctx = canvas.getContext('2d');
 
+  // Recorte central cuadrado antes de escalar, para no deformar el producto.
   const side = Math.min(bitmap.width, bitmap.height);
   const sx = (bitmap.width - side) / 2;
   const sy = (bitmap.height - side) / 2;
@@ -124,6 +144,10 @@ function _softmaxArgmax(arr) {
   return { idx, confianza: max };
 }
 
+/**
+ * Clasifica una imagen y devuelve { categoria, confianza } o null si no hay
+ * confianza suficiente o el modelo no está disponible.
+ */
 export async function clasificarImagen(file) {
   const model = await _cargarModelo();
   if (!model) return null;
@@ -153,18 +177,39 @@ export async function clasificarImagen(file) {
   }
 }
 
+/**
+ * Punto de entrada llamado desde vendedor-unificado.js al subir la foto del
+ * slot 1. Clasifica y, si hay confianza suficiente, llena el <select
+ * id="pCategoria"> — pero nunca bloquea el flujo de subida/publicación.
+ */
 window.sugerirYAplicar = async function(file) {
   try {
     const select = document.getElementById('pCategoria');
-    if (!select) return;
+    if (!select) {
+      console.warn('[ai-clasificador] No se encontró el <select id="pCategoria"> en la página.');
+      return;
+    }
 
-    if (select.value && select.dataset.aiSugerida !== 'true') return;
+    // No pisar una categoría que el vendedor ya eligió manualmente.
+    if (select.value && select.dataset.aiSugerida !== 'true') {
+      console.log(`[ai-clasificador] Ya hay una categoría seleccionada manualmente ("${select.value}"), no se sobreescribe.`);
+      return;
+    }
 
     const resultado = await clasificarImagen(file);
-    if (!resultado) return;
+    if (!resultado) {
+      console.log('[ai-clasificador] Sin sugerencia: el modelo no está disponible o la confianza fue nula.');
+      return;
+    }
+
+    console.log(`[ai-clasificador] Predicción cruda del modelo: "${resultado.categoria}" (${Math.round(resultado.confianza * 100)}%)`);
 
     const opcionExiste = Array.from(select.options).some(o => o.value === resultado.categoria);
-    if (!opcionExiste) return;
+    if (!opcionExiste) {
+      console.warn(`[ai-clasificador] La categoría predicha "${resultado.categoria}" no coincide con ninguna <option> del <select>. Opciones disponibles:`,
+        Array.from(select.options).map(o => o.value));
+      return;
+    }
 
     select.value = resultado.categoria;
     select.dataset.aiSugerida = 'true';
@@ -176,10 +221,13 @@ window.sugerirYAplicar = async function(file) {
       window.showTemporaryMessage(`✨ Categoría sugerida: ${resultado.categoria} (${Math.round(resultado.confianza * 100)}%)`, 'info');
     }
   } catch (err) {
+    // Cualquier error aquí es silencioso: el auto-tag es un extra, nunca un bloqueo.
     console.warn('[ai-clasificador] sugerirYAplicar falló silenciosamente:', err);
   }
 };
 
+// Si el vendedor cambia la categoría manualmente, dejar de tratarla como
+// "sugerida por IA" para no volver a sobreescribirla en subidas posteriores.
 document.addEventListener('DOMContentLoaded', () => {
   const select = document.getElementById('pCategoria');
   if (!select) return;
