@@ -24,22 +24,13 @@ const LITERT_ESM = 'https://cdn.jsdelivr.net/npm/@litertjs/core/+esm';
 const UMBRAL_CONFIANZA = 0.01;
 const INPUT_SIZE = 224; // 224x224, como MobileNetV2
 
-// IMPORTANTE: este orden debe coincidir EXACTAMENTE con el orden de clases de
-// labels.txt generado por scripts/entrenar_modelo.py después de cada
-// reentrenamiento. Actualizar este arreglo cuando cambie labels.txt.
-// (Ver paso 5 del informe: "Actualizar CATEGORY_MAP con el orden EXACTO de
-// clases que salga en labels.txt después del primer entrenamiento".)
-let CATEGORY_MAP = [
-  'Ropa de mujer',
-  'Ropa de hombre',
-  'Ropa infantil',
-  'Ropa interior y lencería',
-  'Ropa deportiva',
-  'Calzado',
-  'Accesorios',
-  'Joyería y bisutería',
-  'Bolsas y equipaje',
-];
+// Las categorías reales del modelo se leen SIEMPRE de labels.txt (se genera
+// junto con model.tflite en cada reentrenamiento). No hay una lista de
+// respaldo hardcodeada a propósito: si labels.txt no carga, es más seguro
+// desactivar el auto-tag por completo que adivinar con nombres de categoría
+// que podrían no coincidir con el orden real de clases del modelo entrenado
+// (eso asignaría categorías incorrectas con apariencia de alta confianza).
+let CATEGORY_MAP = null;
 
 let _liteRtCore = null;
 let _model = null;
@@ -57,6 +48,15 @@ async function _cargarModelo() {
 
   _loadingPromise = (async () => {
     try {
+      const labels = await _cargarLabels();
+      if (!labels || !labels.length) {
+        console.error('[ai-clasificador] labels.txt no disponible — auto-tag desactivado esta sesión (más seguro que adivinar nombres de categoría).');
+        _modelDisponible = false;
+        return null;
+      }
+      CATEGORY_MAP = labels;
+      console.error('[ai-clasificador] labels.txt cargado, categorías del modelo:', CATEGORY_MAP);
+
       _liteRtCore = await import(/* webpackIgnore: true */ LITERT_ESM);
       await _liteRtCore.loadLiteRt(WASM_BASE);
 
@@ -67,18 +67,6 @@ async function _cargarModelo() {
         console.error('[ai-clasificador] WebGPU no disponible, usando CPU/wasm:', errGpu);
         _model = await _liteRtCore.loadAndCompile(MODEL_URL, { accelerator: 'wasm' });
         console.error('[ai-clasificador] Modelo cargado con CPU/wasm');
-      }
-
-      try {
-        const labels = await _cargarLabels();
-        if (labels && labels.length) {
-          CATEGORY_MAP = labels;
-          console.error('[ai-clasificador] labels.txt cargado, categorías del modelo:', CATEGORY_MAP);
-        } else {
-          console.error('[ai-clasificador] labels.txt no disponible o vacío, usando CATEGORY_MAP por defecto:', CATEGORY_MAP);
-        }
-      } catch (errLabels) {
-        console.error('[ai-clasificador] No se pudo cargar labels.txt, usando CATEGORY_MAP por defecto:', errLabels);
       }
 
       return _model;
