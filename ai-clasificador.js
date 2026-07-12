@@ -62,28 +62,28 @@ async function _cargarModelo() {
 
       try {
         _model = await _liteRtCore.loadAndCompile(MODEL_URL, { accelerator: 'webgpu' });
-        console.warn('[ai-clasificador] Modelo cargado con aceleración WebGPU');
+        console.error('[ai-clasificador] Modelo cargado con aceleración WebGPU');
       } catch (errGpu) {
-        console.warn('[ai-clasificador] WebGPU no disponible, usando CPU/wasm:', errGpu);
+        console.error('[ai-clasificador] WebGPU no disponible, usando CPU/wasm:', errGpu);
         _model = await _liteRtCore.loadAndCompile(MODEL_URL, { accelerator: 'wasm' });
-        console.warn('[ai-clasificador] Modelo cargado con CPU/wasm');
+        console.error('[ai-clasificador] Modelo cargado con CPU/wasm');
       }
 
       try {
         const labels = await _cargarLabels();
         if (labels && labels.length) {
           CATEGORY_MAP = labels;
-          console.warn('[ai-clasificador] labels.txt cargado, categorías del modelo:', CATEGORY_MAP);
+          console.error('[ai-clasificador] labels.txt cargado, categorías del modelo:', CATEGORY_MAP);
         } else {
-          console.warn('[ai-clasificador] labels.txt no disponible o vacío, usando CATEGORY_MAP por defecto:', CATEGORY_MAP);
+          console.error('[ai-clasificador] labels.txt no disponible o vacío, usando CATEGORY_MAP por defecto:', CATEGORY_MAP);
         }
       } catch (errLabels) {
-        console.warn('[ai-clasificador] No se pudo cargar labels.txt, usando CATEGORY_MAP por defecto:', errLabels);
+        console.error('[ai-clasificador] No se pudo cargar labels.txt, usando CATEGORY_MAP por defecto:', errLabels);
       }
 
       return _model;
     } catch (err) {
-      console.warn('[ai-clasificador] Auto-tag no disponible (modelo no encontrado o error de carga):', err);
+      console.error('[ai-clasificador] Auto-tag no disponible (modelo no encontrado o error de carga):', err);
       _modelDisponible = false;
       return null;
     }
@@ -170,7 +170,7 @@ export async function clasificarImagen(file) {
 
     return { categoria: CATEGORY_MAP[idx], confianza };
   } catch (err) {
-    console.warn('[ai-clasificador] Error clasificando imagen:', err);
+    console.error('[ai-clasificador] Error clasificando imagen:', err);
     return null;
   } finally {
     inputTensor?.delete?.();
@@ -186,27 +186,27 @@ window.sugerirYAplicar = async function(file) {
   try {
     const select = document.getElementById('pCategoria');
     if (!select) {
-      console.warn('[ai-clasificador] No se encontró el <select id="pCategoria"> en la página.');
+      console.error('[ai-clasificador] No se encontró el <select id="pCategoria"> en la página.');
       return;
     }
 
     // No pisar una categoría que el vendedor ya eligió manualmente.
     if (select.value && select.dataset.aiSugerida !== 'true') {
-      console.warn(`[ai-clasificador] Ya hay una categoría seleccionada manualmente ("${select.value}"), no se sobreescribe.`);
+      console.error(`[ai-clasificador] Ya hay una categoría seleccionada manualmente ("${select.value}"), no se sobreescribe.`);
       return;
     }
 
     const resultado = await clasificarImagen(file);
     if (!resultado) {
-      console.warn('[ai-clasificador] Sin sugerencia: el modelo no está disponible o la confianza fue nula.');
+      console.error('[ai-clasificador] Sin sugerencia: el modelo no está disponible o la confianza fue nula.');
       return;
     }
 
-    console.warn(`[ai-clasificador] Predicción cruda del modelo: "${resultado.categoria}" (${Math.round(resultado.confianza * 100)}%)`);
+    console.error(`[ai-clasificador] Predicción cruda del modelo: "${resultado.categoria}" (${Math.round(resultado.confianza * 100)}%)`);
 
     const opcionExiste = Array.from(select.options).some(o => o.value === resultado.categoria);
     if (!opcionExiste) {
-      console.warn(`[ai-clasificador] La categoría predicha "${resultado.categoria}" no coincide con ninguna <option> del <select>. Opciones disponibles:`,
+      console.error(`[ai-clasificador] La categoría predicha "${resultado.categoria}" no coincide con ninguna <option> del <select>. Opciones disponibles:`,
         Array.from(select.options).map(o => o.value));
       return;
     }
@@ -215,14 +215,14 @@ window.sugerirYAplicar = async function(file) {
     select.dataset.aiSugerida = 'true';
     select.dispatchEvent(new Event('change', { bubbles: true }));
 
-    console.warn(`[ai-clasificador] Sugerencia aplicada: ${resultado.categoria} (${Math.round(resultado.confianza * 100)}%)`);
+    console.error(`[ai-clasificador] Sugerencia aplicada: ${resultado.categoria} (${Math.round(resultado.confianza * 100)}%)`);
 
     if (typeof window.showTemporaryMessage === 'function') {
       window.showTemporaryMessage(`✨ Categoría sugerida: ${resultado.categoria} (${Math.round(resultado.confianza * 100)}%)`, 'info');
     }
   } catch (err) {
     // Cualquier error aquí es silencioso: el auto-tag es un extra, nunca un bloqueo.
-    console.warn('[ai-clasificador] sugerirYAplicar falló silenciosamente:', err);
+    console.error('[ai-clasificador] sugerirYAplicar falló silenciosamente:', err);
   }
 };
 
