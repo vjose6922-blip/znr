@@ -56,7 +56,9 @@
     urlComunidad: 'comunidad.html',
     urlVendedor: 'vendedor.html',
     duracionBurbuja: 4500,           // ms que se muestra el mensaje en pantalla
-    storageKey: 'zr_voice_assistant_enabled'
+    storageKey: 'zr_voice_assistant_enabled',
+    requierePalabraActivacion: true, // si es true, ignora todo lo que no empiece/incluya la palabra de activación
+    palabraActivacion: 'Eipriel' // di, por ejemplo: "oye asistente, busca camisetas rojas"
   };
 
   // ============================================================
@@ -358,16 +360,44 @@
     return false;
   }
 
+  // Si requierePalabraActivacion está activo, solo procesa frases que
+  // incluyan la palabra de activación (en cualquier posición), y la quita
+  // del texto para que el resto se interprete como el comando en sí.
+  // Si NO está presente, se ignora en silencio (no responde ni muestra
+  // nada) — así el asistente no reacciona a conversación normal.
+  function extraerComandoTrasActivacion(textoNorm, textoOriginal) {
+    if (!AV_CONFIG.requierePalabraActivacion) {
+      return { activado: true, textoNorm, textoOriginal };
+    }
+    const wakeNorm = normalizar(AV_CONFIG.palabraActivacion);
+    const idx = textoNorm.indexOf(wakeNorm);
+    if (idx === -1) return { activado: false };
+    const nuevoNorm = (textoNorm.slice(0, idx) + textoNorm.slice(idx + wakeNorm.length))
+      .replace(/\s+/g, ' ')
+      .replace(/^[,.\s]+/, '')
+      .trim();
+    const wakeRegex = new RegExp(AV_CONFIG.palabraActivacion.trim().split(/\s+/).join('\\s+'), 'i');
+    const nuevoOriginal = textoOriginal.replace(wakeRegex, '').replace(/^[,.\s]+/, '').trim();
+    return { activado: true, textoNorm: nuevoNorm, textoOriginal: nuevoOriginal || textoOriginal };
+  }
+
   async function procesarComando(textoOriginal) {
-    const textoNorm = normalizar(textoOriginal);
-    if (!textoNorm) return;
-    mostrarBurbuja(textoOriginal, 'user', 'Tú dijiste');
+    const textoNormCompleto = normalizar(textoOriginal);
+    if (!textoNormCompleto) return;
+
+    const gate = extraerComandoTrasActivacion(textoNormCompleto, textoOriginal);
+    if (!gate.activado) return; // no trae la palabra de activación: se ignora en silencio
+
+    const textoNorm = gate.textoNorm;
+    const textoParaComando = gate.textoOriginal;
+    if (!textoNorm) { hablar('Dime qué necesitas.'); return; }
+    mostrarBurbuja(textoParaComando, 'user', 'Tú dijiste');
 
     for (const cmd of COMANDOS) {
       const resultado = coincide(cmd, textoNorm);
       if (resultado) {
         try {
-          await cmd.accion(textoNorm, resultado, textoOriginal);
+          await cmd.accion(textoNorm, resultado, textoParaComando);
         } catch (err) {
           console.error(`[AsistenteVoz] Error ejecutando el comando "${cmd.id}":`, err);
           hablar('Ocurrió un error al ejecutar ese comando.');
@@ -804,11 +834,23 @@
   // No hay botón para "empujar a hablar": mientras el switch esté
   // en ON, el reconocimiento se reinicia solo cada vez que termina
   // (los navegadores cortan la sesión tras cada silencio/resultado).
+  //
+  // El modo continuo del navegador puede quedarse "zombie" tras un
+  // rato (deja de entregar eventos sin avisar) o se pueden generar
+  // arranques dobles si el reinicio automático choca con un cambio
+  // de pestaña. Por eso hay: (a) un pequeño "debounce" al iniciar,
+  // y (b) un watchdog que fuerza un reinicio limpio si pasa
+  // demasiado tiempo sin ningún evento del reconocimiento.
   // ============================================================
   let reconocimiento = null;
   let reconocimientoActivo = false;   // true si "debería" estar escuchando
   let pausadoPorHabla = false;        // pausa temporal mientras el asistente habla
   let erroresSeguidos = 0;
+  let ultimoEventoReconocimiento = 0;
+  let ultimoIntentoInicio = 0;
+  let watchdogInterval = null;
+  const WATCHDOG_INTERVALO_MS = 8000;
+  const WATCHDOG_TIMEOUT_MS = 16000; // si no hay ningún evento en este lapso, se asume "zombie"
 
   function crearReconocimiento() {
     const r = new SpeechRecognitionAPI();
@@ -819,10 +861,12 @@
 
     r.onstart = () => {
       erroresSeguidos = 0;
+      ultimoEventoReconocimiento = Date.now();
       setEstadoPill('listening');
     };
 
     r.onresult = (event) => {
+      ultimoEventoReconocimiento = Date.now();
       let transcript = '';
       for (let i = event.resultIndex; i < event.results.length; i++) {
         transcript += event.results[i][0].transcript;
@@ -836,6 +880,7 @@
     };
 
     r.onerror = (event) => {
+      ultimoEventoReconocimiento = Date.now();
       switch (event.error) {
         case 'not-allowed':
         case 'permission-denied':
@@ -863,6 +908,7 @@
     };
 
     r.onend = () => {
+      ultimoEventoReconocimiento = Date.now();
       // El navegador corta la sesión periódicamente; si el switch
       // sigue en ON y no está pausado por el habla del asistente,
       // se reinicia automáticamente.
@@ -878,12 +924,19 @@
 
   function iniciarSesionReconocimiento() {
     if (!soportado) return;
+    const ahora = Date.now();
+    if (ahora - ultimoIntentoInicio < 400) return; // evita dos arranques casi simultáneos
+    ultimoIntentoInicio = ahora;
+    ultimoEventoReconocimiento = ahora;
+    if (reconocimiento) {
+      try { reconocimiento.abort(); } catch (_) {}
+    }
     try {
       reconocimiento = crearReconocimiento();
       reconocimiento.start();
     } catch (err) {
       // start() puede lanzar si ya había una sesión activa; se ignora,
-      // onend/onerror se encargarán de reintentar.
+      // el watchdog o onend se encargarán de reintentar.
       console.error('[AsistenteVoz] No se pudo iniciar el reconocimiento:', err);
     }
   }
@@ -902,6 +955,22 @@
     }
   }
 
+  function iniciarWatchdog() {
+    if (watchdogInterval) return;
+    watchdogInterval = setInterval(() => {
+      if (!reconocimientoActivo || pausadoPorHabla || document.hidden) return;
+      const inactivoPor = Date.now() - ultimoEventoReconocimiento;
+      if (inactivoPor > WATCHDOG_TIMEOUT_MS) {
+        console.warn('[AsistenteVoz] El reconocimiento lleva mucho tiempo sin responder, reiniciando sesión...');
+        iniciarSesionReconocimiento();
+      }
+    }, WATCHDOG_INTERVALO_MS);
+  }
+
+  function detenerWatchdog() {
+    if (watchdogInterval) { clearInterval(watchdogInterval); watchdogInterval = null; }
+  }
+
   function encenderAsistente() {
     if (!soportado) {
       mostrarBurbuja('Tu navegador no soporta el asistente de voz. Prueba con Chrome.', 'error');
@@ -911,8 +980,12 @@
     reconocimientoActivo = true;
     guardarEstado(true);
     setEstadoPill('idle-on');
-    mostrarBurbuja('Asistente de voz activado. Di, por ejemplo: "buscar camisetas rojas".', 'info', 'Asistente');
+    const ejemplo = AV_CONFIG.requierePalabraActivacion
+      ? `Di, por ejemplo: "${AV_CONFIG.palabraActivacion}, busca camisetas rojas".`
+      : 'Di, por ejemplo: "buscar camisetas rojas".';
+    mostrarBurbuja(`Asistente de voz activado. ${ejemplo}`, 'info', 'Asistente');
     iniciarSesionReconocimiento();
+    iniciarWatchdog();
     return true;
   }
 
@@ -920,6 +993,7 @@
     AV_STATE.enabled = false;
     reconocimientoActivo = false;
     guardarEstado(false);
+    detenerWatchdog();
     if (reconocimiento) {
       try { reconocimiento.stop(); } catch (_) {}
     }
@@ -957,7 +1031,7 @@
       <div class="av-switch-row">
         <div class="av-switch-info">
           <strong>Activar asistente de voz</strong>
-          <span>Escucha comandos como "buscar camisetas rojas" o "ir al carrito".</span>
+          <span>Di "${AV_CONFIG.palabraActivacion}" y luego tu comando, por ejemplo "${AV_CONFIG.palabraActivacion}, buscar camisetas rojas".</span>
         </div>
         <label class="av-switch">
           <input type="checkbox" id="av-toggle-switch" ${AV_STATE.enabled ? 'checked' : ''} ${!soportado ? 'disabled' : ''}>
@@ -1028,6 +1102,7 @@
       reconocimientoActivo = true;
       setEstadoPill('idle-on');
       iniciarSesionReconocimiento();
+      iniciarWatchdog();
     }
   }
 
