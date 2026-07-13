@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -18,7 +17,6 @@
  child-src 'self' blob:;
 ">
  <script src="error-bootstrap.js"></script>
-
  <title>Panel Administrador - Z&R</title>
  <meta name="viewport" content="width=device-width, initial-scale=1" />
  <link rel="preconnect" href="https://script.google.com" crossorigin>
@@ -42,317 +40,141 @@
  background: rgba(5, 3, 10, 0.95) !important;
  backdrop-filter: blur(18px) !important;
  border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
-
  }
-
 .app-header {
-
  flex-wrap: nowrap;  
-
 }
-
 .header-left {
-
  flex-shrink: 1;  
-
  min-width: 0;  
-
 }
-
 .header-right {
-
  flex-shrink: 0;  
-
  flex-wrap: nowrap;  
-
 }
-
- 
-
  .admin-header .app-title,
-
  .admin-header .app-subtitle {
-
  color: white !important;
-
  }
-
- 
-
  .admin-main {
-
  background: linear-gradient(180deg, #0b0714 0%, #1a1528 100%);
-
  min-height: calc(100vh - 64px);
-
  padding: 12px;
-
  width: 100%;
-
  }
-
- 
-
  @media (min-width: 768px) {
-
  .admin-main {
-
  max-width: 1200px;
-
  margin: 0 auto;
-
  padding: 20px;
-
  }
-
  }
-
- 
-
  .admin-card {
-
  background: rgba(255, 255, 255, 0.98);
-
  border-radius: 16px;
-
  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-
  margin-bottom: 16px;
-
  overflow: hidden;
-
  width: 100%;
-
  }
-
- 
-
  .admin-card-header {
-
  padding: 14px 16px;
-
  background: linear-gradient(135deg, #3b1f5f, #5a3b8a);
-
  color: white !important;
-
  display: flex;
-
  justify-content: space-between;
-
  align-items: center;
-
  flex-wrap: wrap;
-
  gap: 8px;
-
  }
-
- 
-
  .admin-card-header h2 {
-
  color: white !important;
-
  font-size: 18px;
-
  margin: 0;
-
  }
-
- 
-
  .admin-card-header .text-button {
-
  color: white !important;
-
  background: rgba(255,255,255,0.2);
-
  padding: 6px 12px;
-
  border-radius: 20px;
-
  font-size: 12px;
-
  border: none;
-
  cursor: pointer;
-
  }
-
- 
-
  .admin-stats-grid {
-
  display: grid;
-
  grid-template-columns: repeat(3, 1fr);
-
  gap: 8px;
-
  margin-bottom: 16px;
-
  width: 100%;
-
  }
-
- 
-
  .admin-stat-card {
-
  background: linear-gradient(135deg, #3b1f5f, #5a3b8a);
-
  border-radius: 12px;
-
  padding: 10px 4px;
-
  text-align: center;
-
  color: white !important;
-
  width: 100%;
-
  min-width: 0; 
-
  }
-
- 
-
  .admin-stat-card * {
-
  color: white !important;
-
  }
-
- 
-
  .admin-stat-value {
-
  font-size: 18px;
-
  font-weight: 800;
-
  display: block;
-
  margin-bottom: 4px;
-
  color: white !important;
-
  white-space: nowrap;
-
  overflow: hidden;
-
  text-overflow: ellipsis;
-
  }
-
- 
-
  .admin-stat-label {
-
  font-size: 9px;
-
  opacity: 0.9;
-
  text-transform: uppercase;
-
  letter-spacing: 0.3px;
-
  color: white !important;
-
  display: block;
-
  white-space: nowrap;
-
  overflow: hidden;
-
  text-overflow: ellipsis;
-
  }
-
- 
-
  @media (min-width: 480px) {
-
  .admin-stats-grid {
-
  gap: 12px;
-
  margin-bottom: 20px;
-
  }
-
- 
-
  .admin-stat-card {
-
  padding: 12px 8px;
-
  }
-
- 
-
  .admin-stat-value {
-
  font-size: 22px;
-
  }
-
- 
-
  .admin-stat-label {
-
  font-size: 10px;
-
  }
-
  }
-
- 
-
  @media (min-width: 768px) {
-
  .admin-stats-grid {
-
  gap: 16px;
-
  margin-bottom: 24px;
-
  }
-
- 
-
  .admin-stat-card {
-
  padding: 20px;
-
  }
-
- 
-
  .admin-stat-value {
-
  font-size: 28px;
-
  margin-bottom: 8px;
-
  }
-
- 
-
  .admin-stat-label {
-
  font-size: 12px;
-
  }
-
  }
-
- 
-
  .admin-section {
  margin-bottom: 20px;
  }
-
  .admin-section-header {
  display: flex;
  align-items: center;
@@ -361,7 +183,6 @@
  margin-bottom: 10px;
  padding: 0 2px;
  }
-
  .admin-section-header h2 {
  margin: 0;
  font-size: 15px;
@@ -371,35 +192,29 @@
  align-items: center;
  gap: 8px;
  }
-
  .admin-section-header .ash-icon {
  display: inline-flex;
  color: #ff4f81;
  }
-
  .admin-cards-grid {
  display: grid;
  grid-template-columns: repeat(3, 1fr);
  gap: 10px;
  }
-
  .admin-cards-grid.admin-cards-grid-compact {
  grid-template-columns: repeat(3, 1fr);
  }
-
  @media (max-width: 640px) {
  .admin-cards-grid {
  grid-template-columns: repeat(2, 1fr);
  }
  }
-
  @media (max-width: 340px) {
  .admin-cards-grid,
  .admin-cards-grid.admin-cards-grid-compact {
  grid-template-columns: 1fr;
  }
  }
-
  .admin-mini-card {
  background: rgba(255, 255, 255, 0.98);
  border-radius: 14px;
@@ -418,25 +233,21 @@
  font-family: inherit;
  text-align: left;
  }
-
  .admin-mini-card:hover {
  transform: translateY(-2px);
  box-shadow: 0 6px 18px rgba(0,0,0,0.22);
  }
-
  .admin-mini-card .amc-icon {
  font-size: 18px;
  line-height: 1;
  color: #7a4fc9;
  }
-
  .admin-mini-card .amc-label {
  font-size: 12px;
  font-weight: 700;
  line-height: 1.25;
  padding-right: 30px;
  }
-
  .admin-mini-card .amc-badge {
  position: absolute;
  top: 10px;
@@ -453,12 +264,10 @@
  align-items: center;
  justify-content: center;
  }
-
  .admin-mini-card .amc-badge.zero {
  background: rgba(0,0,0,0.08);
  color: #999;
  }
-
  .admin-cta-bar {
  display: block;
  margin-top: 10px;
@@ -471,81 +280,109 @@
  text-align: center;
  text-decoration: none;
  }
-
- /* Tiles expandibles: Crear Producto / Lista de Productos.
-    Colapsados: tarjeta compacta dentro del grid.
-    Expandidos: ocupan todo el ancho disponible. */
- .grid-tile {
- transition: grid-column 0.15s ease;
+ /* Tiles: Crear Producto / Lista de Productos.
+    Colapsados: tarjeta compacta igual a las mini-cards de Notificaciones/Herramientas.
+    Expandidos: su formulario/lista se abre en un panel a pantalla completa. */
+ .grid-tile:not(.expanded) {
+ background: transparent;
+ box-shadow: none;
+ border-radius: 14px;
  }
-
- .grid-tile.expanded {
- grid-column: 1 / -1;
- }
-
  .grid-tile .tile-header {
  cursor: pointer;
  }
-
  .grid-tile:not(.expanded) .admin-card-header.tile-header {
  flex-direction: column;
  align-items: flex-start;
  justify-content: center;
  text-align: left;
- gap: 4px;
- min-height: 96px;
- padding: 16px 14px;
+ gap: 6px;
+ min-height: 78px;
+ padding: 14px 12px;
+ background: rgba(255, 255, 255, 0.98);
+ border-radius: 14px;
+ box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+ transition: transform 0.15s ease, box-shadow 0.15s ease;
  }
-
+ .grid-tile:not(.expanded) .admin-card-header.tile-header:hover {
+ transform: translateY(-2px);
+ box-shadow: 0 6px 18px rgba(0,0,0,0.22);
+ }
+ .grid-tile:not(.expanded) .tile-title,
+ .grid-tile:not(.expanded) .tile-icon {
+ color: #2a2140 !important;
+ }
+ .grid-tile:not(.expanded) .tile-icon svg {
+ color: #7a4fc9;
+ }
  .grid-tile:not(.expanded) .tile-header .tile-actions {
  display: none;
  }
-
  .grid-tile.expanded .tile-icon,
  .grid-tile.expanded .tile-subtitle {
  display: none;
  }
-
  .grid-tile.expanded .admin-card-header.tile-header {
  flex-direction: row;
  align-items: center;
  justify-content: space-between;
  text-align: left;
+ position: sticky;
+ top: 0;
+ z-index: 2;
+ border-radius: 0;
  }
-
+ .grid-tile.expanded {
+ position: fixed;
+ inset: 0;
+ z-index: 9500;
+ margin: 0;
+ border-radius: 0;
+ overflow-y: auto;
+ -webkit-overflow-scrolling: touch;
+ background: #f4f1fa;
+ animation: fs-panel-in 0.18s ease;
+ }
+ @keyframes fs-panel-in {
+ from { opacity: 0; }
+ to { opacity: 1; }
+ }
  .tile-icon {
  font-size: 22px;
  line-height: 1;
  }
-
  .tile-title {
  font-size: 14px !important;
  margin: 0 !important;
  }
-
  .tile-subtitle {
  font-size: 11px;
  font-weight: 500;
  opacity: 0.85;
  }
-
  .tile-actions {
  display: flex;
  align-items: center;
  gap: 10px;
  }
-
- .tile-chevron {
- display: inline-block;
- font-size: 16px;
+ .tile-close-btn {
+ display: inline-flex;
+ align-items: center;
+ justify-content: center;
+ width: 30px;
+ height: 30px;
+ border-radius: 50%;
+ border: none;
+ background: rgba(255,255,255,0.2);
+ color: #fff;
+ font-size: 15px;
  line-height: 1;
- transition: transform 0.2s ease;
+ cursor: pointer;
+ flex-shrink: 0;
  }
-
- .grid-tile.expanded .tile-chevron {
- transform: rotate(180deg);
+ .tile-close-btn:hover {
+ background: rgba(255,255,255,0.32);
  }
-
  #notif-badge {
  min-width: 18px;
  height: 18px;
@@ -561,298 +398,137 @@
  transition: background 0.4s ease, color 0.3s ease;
  flex-shrink: 0;
  }
-
  #notif-badge.has-notifs {
  background: #ff4f81;
  color: #fff;
  box-shadow: 0 0 0 0 rgba(255,79,129,0.7);
  animation: notif-pulse 1.8s ease-in-out infinite;
  }
-
  @keyframes notif-pulse {
  0%  { box-shadow: 0 0 0 0 rgba(255,79,129,0.7); }
  70% { box-shadow: 0 0 0 7px rgba(255,79,129,0); }
  100%{ box-shadow: 0 0 0 0 rgba(255,79,129,0); }
  }
-
- 
-
  .form-vertical {
-
  display: flex;
-
  flex-direction: column;
-
  gap: 12px;
-
  padding: 16px;
-
  width: 100%;
-
  }
-
- 
-
  .form-row {
-
  display: flex;
-
  flex-direction: column;
-
  gap: 6px;
-
  width: 100%;
-
  }
-
- 
-
  .form-row label {
-
  font-weight: 600;
-
  font-size: 13px;
-
  color: #3b1f5f;
-
  }
-
- 
-
  .form-row input,
-
  .form-row select,
-
  .form-row textarea {
-
  padding: 10px 12px;
-
  border: 2px solid #e0e0e0;
-
  border-radius: 12px;
-
  font-size: 14px;
-
  transition: all 0.2s;
-
  width: 100%;
-
  box-sizing: border-box;
-
  }
-
- 
-
  .form-row input:focus,
-
  .form-row select:focus,
-
  .form-row textarea:focus {
-
  outline: none;
-
  border-color: #ff4f81;
-
  box-shadow: 0 0 0 3px rgba(255, 79, 129, 0.1);
-
  }
-
- 
-
  @media (min-width: 768px) {
-
  .form-vertical {
-
  display: grid;
-
  grid-template-columns: repeat(2, 1fr);
-
  gap: 16px;
-
  padding: 24px;
-
  }
-
- 
-
  .form-row-full {
-
  grid-column: span 2;
-
  }
-
  }
-
- 
-
  .image-upload-area {
-
  display: flex;
-
  flex-direction: column;
-
  gap: 8px;
-
  }
-
- 
-
  .image-preview-container {
-
  display: flex;
-
  gap: 8px;
-
  align-items: center;
-
  flex-wrap: wrap;
-
  }
-
- 
-
  .image-preview {
-
  max-width: 50px;
-
  max-height: 50px;
-
  border-radius: 8px;
-
  border: 2px solid #e0e0e0;
-
  object-fit: cover;
-
  }
-
- 
-
  @media (min-width: 768px) {
-
  .image-preview {
-
  max-width: 80px;
-
  max-height: 80px;
-
  }
-
  }
-
- 
-
  .image-url-input {
-
  flex: 1;
-
  padding: 8px 10px;
-
  border: 2px solid #e0e0e0;
-
  border-radius: 10px;
-
  font-size: 11px;
-
  background: #f5f5f8;
-
  }
-
- 
-
  .progress-bar {
-
  height: 3px;
-
  background: #e0e0e0;
-
  border-radius: 3px;
-
  margin-top: 6px;
-
  overflow: hidden;
-
  }
-
- 
-
  .upload-progress {
-
  width: 0%;
-
  height: 100%;
-
  background: linear-gradient(90deg, #ff4f81, #ff7a4f);
-
  transition: width 0.3s;
-
  }
-
- 
-
  .primary-button {
-
  background: linear-gradient(135deg, #ff4f81, #ff7a4f);
-
  border: none;
-
  border-radius: 50px;
-
  padding: 12px 20px;
-
  color: white;
-
  font-weight: 600;
-
  font-size: 14px;
-
  cursor: pointer;
-
  transition: all 0.2s;
-
  width: 100%;
-
  }
-
- 
-
  .primary-button:hover {
-
  transform: translateY(-2px);
-
  box-shadow: 0 6px 20px rgba(255, 79, 129, 0.4);
-
  }
-
- 
-
  .admin-controls {
-
  display: flex;
-
  flex-direction: column;
-
  gap: 10px;
-
  padding: 16px;
-
  }
-
- 
-
  @media (min-width: 768px) {
-
  .admin-controls {
-
  flex-direction: row;
-
  padding: 20px;
-
  }
-
  }
-
- 
-
  .admin-search, .admin-filter-select {
  padding: 10px 12px;
  background: white;
@@ -861,616 +537,277 @@
  font-size: 14px;
  width: 100%;
  }
-
- 
-
  @media (min-width: 768px) {
  .admin-search {
  flex: 1;
  }
-
- 
-
  .admin-filter-select {
  width: auto;
  }
  }
-
- 
-
  .admin-products-header {
-
  display: none;
-
  }
-
- 
-
  .admin-product-row {
-
  display: flex;
-
  flex-wrap: wrap;
-
  gap: 6px;
-
  padding: 10px 12px;
-
  background: white;
-
  border-bottom: 1px solid #e0e0e0;
-
  align-items: center;
-
  }
-
- 
-
  .admin-product-id {
-
  font-family: monospace;
-
  font-size: 10px;
-
  background: #f0f0f0;
-
  padding: 2px 8px;
-
  border-radius: 20px;
-
  color: #666;
-
  }
-
- 
-
  .admin-product-name {
-
  flex: 1;
-
  font-size: 13px;
-
  font-weight: 500;
-
  color: #333;
-
  }
-
- 
-
  .admin-product-price {
-
  font-size: 13px;
-
  font-weight: 700;
-
  color: #ff4f81;
-
  }
-
- 
-
  .admin-product-stock {
-
  font-size: 11px;
-
  padding: 2px 8px;
-
  border-radius: 20px;
-
  }
-
- 
-
  .admin-product-stock.in-stock {
-
  background: #e8f5e9;
-
  color: #2e7d32;
-
  }
-
- 
-
  .admin-product-stock.low-stock {
-
  background: #fff3e0;
-
  color: #f97316;
-
  }
-
- 
-
  .admin-product-stock.out-stock {
-
  background: #ffebee;
-
  color: #c62828;
-
  }
-
- 
-
  .admin-product-actions {
-
  display: flex;
-
  gap: 8px;
-
  width: 100%;
-
  margin-top: 6px;
-
  }
-
- 
-
  .admin-product-actions button {
-
  flex: 1;
-
  padding: 6px 12px;
-
  font-size: 12px;
-
  border: none;
-
  border-radius: 8px;
-
  cursor: pointer;
-
  }
-
- 
-
  .admin-product-actions button:first-child {
-
  background: #e8e8ff;
-
  color: #3b1f5f;
-
  }
-
- 
-
  .admin-product-actions button:first-child:hover {
-
  background: #3b1f5f;
-
  color: white;
-
  }
-
- 
-
  .admin-product-actions button:last-child {
-
  background: #ffe8e8;
-
  color: #d32f2f;
-
  }
-
- 
-
  .admin-product-actions button:last-child:hover {
-
  background: #d32f2f;
-
  color: white;
-
  }
-
- 
-
  @media (min-width: 768px) {
-
  .admin-products-header {
-
  display: grid;
-
  grid-template-columns: 80px 1fr 100px 100px 120px;
-
  gap: 12px;
-
  padding: 12px 16px;
-
  background: linear-gradient(135deg, #3b1f5f, #5a3b8a);
-
  border-radius: 12px;
-
  font-weight: 600;
-
  font-size: 13px;
-
  color: white !important;
-
  margin-bottom: 12px;
-
  }
-
- 
-
  .admin-product-row {
-
  display: grid;
-
  grid-template-columns: 80px 1fr 100px 100px 120px;
-
  gap: 12px;
-
  padding: 12px 16px;
-
  }
-
- 
-
  .admin-product-id {
-
  background: none;
-
  padding: 0;
-
  font-size: 12px;
-
  }
-
- 
-
  .admin-product-actions {
-
  width: auto;
-
  margin-top: 0;
-
  }
-
  }
-
- 
-
  .admin-pagination {
-
  display: flex;
-
  justify-content: center;
-
  gap: 6px;
-
  padding: 16px;
-
  flex-wrap: wrap;
-
  }
-
- 
-
  .admin-pagination button {
-
  padding: 6px 12px;
-
  border: 2px solid #e0e0e0;
-
  background: white;
-
  border-radius: 8px;
-
  cursor: pointer;
-
  font-size: 12px;
-
  }
-
- 
-
  .admin-pagination button:hover {
-
  background: #3b1f5f;
-
  color: white;
-
  border-color: #3b1f5f;
-
  }
-
- 
-
  .admin-pagination button.active-page {
-
  background: #ff4f81;
-
  color: white;
-
  border-color: #ff4f81;
-
  }
-
- 
-
  .global-loader {
-
  position: fixed;
-
  top: 0;
-
  left: 0;
-
  width: 100%;
-
  height: 100%;
-
  background: rgba(0,0,0,0.8);
-
  display: flex;
-
  flex-direction: column;
-
  justify-content: center;
-
  align-items: center;
-
  z-index: 9999;
-
  }
-
- 
-
  .global-loader.hidden {
-
  display: none;
-
  }
-
- 
-
  .loader-spinner {
-
  width: 40px;
-
  height: 40px;
-
  border: 4px solid #f3f3f3;
-
  border-top: 4px solid #ff4f81;
-
  border-radius: 50%;
-
  animation: spin 1s linear infinite;
-
  }
-
- 
-
  @keyframes spin {
-
  0% { transform: rotate(0deg); }
-
  100% { transform: rotate(360deg); }
-
  }
-
- 
-
  .loader-text {
-
  color: white;
-
  margin-top: 12px;
-
  font-size: 14px;
-
  }
-
- 
-
  .header-right {
-
  display: flex;
-
  gap: 8px;
-
  align-items: center;
-
  }
-
- 
-
  .icon-button {
-
  background: rgba(255,255,255,0.1);
-
  border: none;
-
  padding: 8px 12px;
-
  border-radius: 30px;
-
  color: white;
-
  cursor: pointer;
-
  font-size: 16px;
-
  }
-
- 
-
  .header-left {
-
  display: flex;
-
  align-items: center;
-
  gap: 10px;
-
  }
-
- 
-
  .logo-touch-area {
-
  width: 40px;
-
  height: 40px;
-
  background: linear-gradient(135deg, #ff4f81, #3b1f5f);
-
  border-radius: 12px;
-
  display: flex;
-
  align-items: center;
-
  justify-content: center;
-
  font-weight: bold;
-
  color: white;
-
  }
-
- 
-
  .app-title {
-
  margin: 0;
-
  font-size: 18px;
-
  color: white;
-
  }
-
- 
-
  .app-subtitle {
-
  margin: 0;
-
  font-size: 12px;
-
  color: rgba(255,255,255,0.7);
-
  }
-
 </style>
-
- 
  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 </head>
-
 <body class="admin-body">
-
  <div id="global-loader" class="global-loader hidden">
-
  <div class="loader-spinner"></div>
-
  <div class="loader-text">Cargando...</div>
-
  </div>
-
  <header class="app-header admin-header">
-
  <div class="header-left">
-
  <div class="logo-touch-area">
-
  <span class="logo-mark">Z&R</span>
-
  </div>
-
  <div class="header-text">
-
  <h1 class="app-title">Admin</h1>
-
  <p class="app-subtitle">Gestión</p>
-
  </div>
-
  </div>
-
  <div class="header-right">
-
  <a href="index.html" class="icon-button" style="text-decoration: none; display: inline-flex; align-items: center;" title="Inicio"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" aria-hidden="true"><use href="#ic-home"/></svg></a>
-
- 
-
  <button class="icon-button" id="admin-refresh-btn" style="background: rgba(255,255,255,0.1);" title="Actualizar lista de productos"><svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" aria-hidden="true"><use href="#ic-refresh"/></svg></button>
  <button class="icon-button" id="admin-logout-btn" style="background: rgba(255,255,255,0.1);" title="Cerrar sesión"><svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" aria-hidden="true"><use href="#ic-logout"/></svg></button>
-
  </div>
-
  </header>
-
  <main class="admin-main" id="admin-login-view">
-
  <div class="admin-card" style="max-width: 400px; margin: 40px auto;">
-
  <div class="admin-card-header" style="text-align: center;">
-
  <h2>Administrador</h2>
-
  <p style="color: rgba(255,255,255,0.8); margin-top: 8px;">Ingresa tus credenciales para continuar</p>
-
  </div>
-
  <form id="admin-login-form" class="form-vertical">
-
  <div class="form-row">
-
  <label>Contraseña</label>
-
  <input type="password" id="admin-password" required placeholder="Ingresa tu contraseña" />
-
  </div>
-
  <div class="form-row">
-
  <label>Token</label>
-
  <input type="password" id="admin-token" required placeholder="Ingresa tu token" />
-
  </div>
-
  <button type="submit" class="primary-button full-width" style="margin-top: 10px;"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" aria-hidden="true"><use href="#ic-logout"/></svg> Ingresar</button>
-
  </form>
-
  </div>
-
  </main>
-
  <main class="admin-main" id="admin-panel-view" hidden>
-
  <div class="admin-stats-grid">
-
  <div class="admin-stat-card">
-
  <span class="admin-stat-value" id="stat-total-products">0</span>
-
  <span class="admin-stat-label">Total</span>
-
  </div>
-
  <div class="admin-stat-card">
-
  <span class="admin-stat-value" id="stat-total-stock">$0</span>
-
  <span class="admin-stat-label">Valor </span>
-
  </div>
-
  <div class="admin-stat-card">
-
  <span class="admin-stat-value" id="stat-out-of-stock">0</span>
-
  <span class="admin-stat-label">Sin Stock</span>
-
  </div>
-
  </div>
-
  <section class="admin-section" id="admin-notif-section">
  <div class="admin-section-header">
  <h2><span class="ash-icon"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" aria-hidden="true"><use href="#ic-bell"/></svg></span> Notificaciones <span id="notif-badge">0</span></h2>
@@ -1509,7 +846,6 @@
  </div>
  <a href="notificaciones.html" class="admin-cta-bar">Ver todas las notificaciones →</a>
  </section>
-
  <section class="admin-section" id="admin-tools-section">
  <div class="admin-section-header">
  <h2><span class="ash-icon"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" aria-hidden="true"><use href="#ic-settings"/></svg></span> Herramientas</h2>
@@ -1543,246 +879,126 @@
  <span class="amc-icon">🧠</span>
  <span class="amc-label">Reentrenar modelo IA (categorías)</span>
  </button>
+ <button type="button" class="admin-mini-card" onclick="openSyncVendedorModal()">
+ <span class="amc-icon">🔄</span>
+ <span class="amc-label">Sincronizar productos de vendedor</span>
+ </button>
  </div>
  </section>
-
 <div id="upload-log" style="position:fixed; bottom:10px; right:10px; background:#333; color:#0f0; padding:8px 12px; border-radius:8px; font-size:12px; max-width:300px; z-index:9999; display:none;"></div>
-
  <section class="admin-section" id="admin-products-outer">
  <div class="admin-section-header">
  <h2><span class="ash-icon"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" aria-hidden="true"><use href="#ic-plus"/></svg></span> Productos</h2>
  </div>
+
  <div class="admin-cards-grid admin-cards-grid-compact">
  <div class="admin-card grid-tile" id="admin-create-section">
-
- <div class="admin-card-header tile-header" onclick="toggleGridTile('admin-create-section','create-product-body')">
-
+ <div class="admin-card-header tile-header" onclick="openGridTile('admin-create-section','create-product-body')">
  <span class="tile-icon"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" aria-hidden="true"><use href="#ic-plus"/></svg></span>
  <h2 id="product-form-title" class="tile-title">Crear Producto</h2>
  <span class="tile-subtitle">Agregar nuevo artículo al catálogo</span>
-
  <div class="tile-actions">
  <button id="reset-form-btn" class="text-button" onclick="event.stopPropagation()"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" aria-hidden="true"><use href="#ic-plus"/></svg> Nuevo</button>
- <span class="tile-chevron">⌄</span>
+ <button type="button" class="tile-close-btn" aria-label="Cerrar" onclick="event.stopPropagation(); closeGridTile('admin-create-section','create-product-body')">✕</button>
  </div>
-
  </div>
-
  <div id="create-product-body" style="display:none;">
-
  <form id="product-form" class="form-vertical">
-
  <input type="hidden" id="product-id" name="id" />
-
- 
-
  <div class="form-row">
-
  <label>Nombre del producto *</label>
-
  <input type="text" id="product-name" name="Nombre" required placeholder="Ej: Camisa de manga larga" />
-
  </div>
-
- 
-
  <div class="form-row">
-
  <label>Precio (MXN) *</label>
-
  <input type="number" id="product-price" name="Precio" min="0" step="0.01" required placeholder="0.00" />
-
  </div>
-
- 
-
  <div class="form-row">
-
  <label>Stock disponible *</label>
-
  <input type="number" id="product-stock" name="Stock" min="0" required placeholder="0" />
-
  </div>
-
- 
-
  <div class="form-row">
-
  <label>Descripción</label>
-
  <textarea id="product-description" name="Descripcion" rows="3" placeholder="Descripción del producto..."></textarea>
-
  </div>
-
- 
-
  <div class="form-row">
-
  <label>Talla</label>
-
  <input type="text" id="product-sizes" name="Talla" placeholder="Ej: S, M, L o 28,30,32" />
-
  </div>
-
- 
-
  <div class="form-row">
-
  <label>Categoría</label>
-
  <select id="product-category" name="Categoria">
-
  <option value="">Seleccionar categoría</option>
-
  <option value="Accesorios">Accesorios</option>
-
  <option value="Playeras">Playeras</option>
-
  <option value="Blusas">Blusas</option>
-
  <option value="Pantalon para Dama">Pantalon para Dama</option>
-
  <option value="Pantalon para Caballero">Pantalon para Caballero</option>
-
  <option value="Short para Dama">Short para Dama</option>
-
  <option value="Short para Caballero">Short para Caballero</option>
-
  <option value="Vestidos">Vestidos</option>
-
  <option value="Faldas">Faldas</option>
-
  <option value="Calzado para Dama">Calzado para Dama</option>
-
  <option value="Calzado para Caballero">Calzado para Caballero</option>
-
  <option value="Sueter para Caballero">Sueter para Caballero</option>
-
  <option value="Sueter para Dama">Sueter para Dama</option>
-
  <option value="Chamarra para Dama">Chamarra para Dama</option>
-
  <option value="Chamarra para Caballero">Chamarra para Caballero</option>
-
  </select>
-
  </div>
-
- 
-
  <div class="form-row">
-
  <label>Badge</label>
-
  <select id="product-badge" name="Badge">
-
  <option value="Nuevo">Nuevo</option>
-
  <option value="Popular">Popular</option>
-
  <option value="Oferta">Oferta</option>
-
  </select>
-
  </div>
-
- 
-
  <div class="form-row">
-
  <label>Imagen 1</label>
-
  <div class="image-upload-area">
-
 <input type="file" id="image-upload-1" accept="image/*" multiple>
-
  <div class="image-preview-container">
-
  <img id="preview-image-upload-1" class="image-preview" style="display: none;">
-
  <input type="text" id="product-image1" name="Imagen1" class="image-url-input" placeholder="URL de la imagen" readonly>
-
  </div>
-
  <div class="progress-bar">
-
  <div id="progress-image-upload-1" class="upload-progress"></div>
-
  </div>
-
  </div>
-
  </div>
-
- 
-
  <div class="form-row">
-
  <label>Imagen 2</label>
-
  <div class="image-upload-area">
-
 <input type="file" id="image-upload-2" accept="image/*" multiple>
-
  <div class="image-preview-container">
-
  <img id="preview-image-upload-2" class="image-preview" style="display: none;">
-
  <input type="text" id="product-image2" name="Imagen2" class="image-url-input" placeholder="URL de la imagen" readonly>
-
  </div>
-
  <div class="progress-bar">
-
  <div id="progress-image-upload-2" class="upload-progress"></div>
-
  </div>
-
  </div>
-
  </div>
-
- 
-
  <div class="form-row">
-
  <label>Imagen 3</label>
-
  <div class="image-upload-area">
-
 <input type="file" id="image-upload-3" accept="image/*" multiple>
-
  <div class="image-preview-container">
-
  <img id="preview-image-upload-3" class="image-preview" style="display: none;">
-
  <input type="text" id="product-image3" name="Imagen3" class="image-url-input" placeholder="URL de la imagen" readonly>
-
  </div>
-
  <div class="progress-bar">
-
  <div id="progress-image-upload-3" class="upload-progress"></div>
-
  </div>
-
  </div>
-
  </div>
-
- 
-
  <button type="submit" class="primary-button full-width" style="margin-top: 10px; padding: 14px;"><svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg> Guardar Producto</button>
-
  </form>
-
  </div>
-
  </div>
-
  <div class="admin-card grid-tile" id="admin-list-section">
-
- <div class="admin-card-header tile-header" onclick="toggleGridTile('admin-list-section','list-products-body')">
+ <div class="admin-card-header tile-header" onclick="openGridTile('admin-list-section','list-products-body')">
  <span class="tile-icon"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" aria-hidden="true"><use href="#ic-catalog"/></svg></span>
  <h2 class="tile-title">Lista de Productos</h2>
  <span class="tile-subtitle" id="tile-product-count">0 productos</span>
@@ -1791,12 +1007,10 @@
  <button class="admin-view-btn" id="btn-view-list" title="Vista lista" aria-label="Vista lista"><svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" aria-hidden="true"><use href="#ic-list"/></svg></button>
  <button class="admin-view-btn" id="btn-view-grid" title="Vista cuadrícula" aria-label="Vista cuadrícula"><svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" aria-hidden="true"><use href="#ic-grid"/></svg></button>
  </div>
- <span class="tile-chevron">⌄</span>
+ <button type="button" class="tile-close-btn" aria-label="Cerrar" onclick="event.stopPropagation(); closeGridTile('admin-list-section','list-products-body')">✕</button>
  </div>
  </div>
-
  <div id="list-products-body" style="display:none;">
-
  <div class="admin-controls">
  <input type="text" id="admin-search-input" class="admin-search" placeholder=" Buscar por nombre o ID..." />
  <select id="admin-category-filter" class="admin-filter-select">
@@ -1809,46 +1023,22 @@
  <option value="in">Con stock</option>
  </select>
  </div>
-
- 
-
  <div class="admin-products-header">
-
  <span>ID</span>
-
  <span>Nombre</span>
-
  <span>Precio</span>
-
  <span>Stock</span>
-
  <span>Acciones</span>
-
  </div>
-
- 
-
  <div class="admin-products-list" id="admin-products-list">
-
  <div style="text-align: center; padding: 40px; color: #999;">Cargando productos...</div>
-
  </div>
-
- 
-
  <div class="admin-pagination" id="admin-pagination"></div>
-
  </div>
-
  </div>
-
  </div>
-
  </section>
-
  </main>
-
- 
 <style>
 .npi-badge{background:#ff4f81;color:#fff;border-radius:50px;padding:2px 10px;font-size:12px;font-weight:800;min-width:24px;text-align:center;}
 .npi-badge.zero{background:rgba(255,255,255,.12);color:#888;}
@@ -2167,6 +1357,91 @@ async function reentrenarModeloIA() {
   }
 }
 
+// ── Sincronizar productos de un vendedor específico (fix manual) ───────────
+window.openSyncVendedorModal = function() {
+  let modal = document.getElementById('sync-vendedor-modal');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'sync-vendedor-modal';
+    modal.style.cssText = 'display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);backdrop-filter:blur(5px);z-index:19999;align-items:center;justify-content:center;';
+    modal.innerHTML = `
+      <div style="background:#fff;border-radius:22px;padding:28px;max-width:400px;width:90%;position:relative;box-shadow:0 24px 64px rgba(0,0,0,.3);">
+        <button onclick="document.getElementById('sync-vendedor-modal').style.display='none'" style="position:absolute;top:14px;right:14px;background:#f0f0f5;border:none;width:36px;height:36px;border-radius:50%;font-size:17px;cursor:pointer;color:#666;">✕</button>
+        <h3 style="margin:0 0 8px;font-size:18px;">🔄 Sincronizar productos de vendedor</h3>
+        <p style="margin:0 0 18px;font-size:13px;color:#666;">Vuelve a sincronizar todos los productos publicados de un vendedor, según su UID.</p>
+        <label style="font-size:12px;font-weight:700;color:#444;display:block;margin-bottom:6px;">UID del vendedor</label>
+        <input type="text" id="sync-vendedor-uid-input" placeholder="Ej: v_1779036431879" style="width:100%;padding:12px;border:1.5px solid #e2e0eb;border-radius:10px;font-size:14px;margin-bottom:16px;box-sizing:border-box;">
+        <button type="button" id="sync-vendedor-submit-btn" class="primary-button full-width" style="padding:12px;">Sincronizar</button>
+      </div>`;
+    document.body.appendChild(modal);
+    modal.addEventListener('click', e => { if (e.target === modal) modal.style.display = 'none'; });
+    modal.querySelector('#sync-vendedor-submit-btn').addEventListener('click', ejecutarSyncVendedor);
+    modal.querySelector('#sync-vendedor-uid-input').addEventListener('keydown', e => {
+      if (e.key === 'Enter') ejecutarSyncVendedor();
+    });
+  }
+  const input = modal.querySelector('#sync-vendedor-uid-input');
+  input.value = '';
+  modal.style.display = 'flex';
+  setTimeout(() => input.focus(), 50);
+};
+
+async function ejecutarSyncVendedor() {
+  const input = document.getElementById('sync-vendedor-uid-input');
+  const vendedorUid = (input?.value || '').trim();
+  if (!vendedorUid) {
+    if (window.showTemporaryMessage) window.showTemporaryMessage('Ingresa el UID del vendedor', 'error');
+    return;
+  }
+  const api = window.API_URL || '';
+  const token = sessionStorage.getItem('admin_token') || '';
+  if (!api || !token) {
+    showCustomAlert({
+      title: '⚠️ Sin sesión activa',
+      message: 'No hay API_URL o token de admin disponible. Inicia sesión de nuevo.',
+      icon: '⚠️',
+      confirmText: 'Entendido'
+    });
+    return;
+  }
+  document.getElementById('sync-vendedor-modal').style.display = 'none';
+  showLoader('Sincronizando productos del vendedor...');
+  try {
+    const res = await fetch(api, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({ action: 'sincronizarProductosVendedor', vendedor_uid: vendedorUid, token }).toString()
+    });
+    const data = await res.json();
+    hideLoader();
+    if (!data || !data.ok) {
+      showCustomAlert({
+        title: '⚠️ No se pudo sincronizar',
+        message: (data && data.error) || 'Error desconocido.',
+        icon: '⚠️',
+        confirmText: 'Entendido'
+      });
+      return;
+    }
+    showCustomAlert({
+      title: '✅ Sincronización completa',
+      message: data.message || `Productos del vendedor ${vendedorUid} sincronizados.`,
+      icon: '✅',
+      confirmText: 'Entendido'
+    });
+  } catch (err) {
+    hideLoader();
+    console.error('Error sincronizarProductosVendedor:', err);
+    showCustomAlert({
+      title: '⚠️ Error de conexión',
+      message: 'No se pudo contactar al servidor. Intenta de nuevo.',
+      icon: '⚠️',
+      confirmText: 'Entendido'
+    });
+  }
+}
+window.ejecutarSyncVendedor = ejecutarSyncVendedor;
+
 function openErrorMonitorModal() {
   const old = document.getElementById('modal-error-monitor');
   if (old) old.remove();
@@ -2313,38 +1588,35 @@ window.clearErrorLog = function() {
   renderErrorLog();
 };
 
-// ── Tiles desplegables en grid (Crear Producto / Lista de Productos) ──────────
-// Colapsados ocupan solo su columna en el grid; al expandirse toman el ancho completo.
-function toggleGridTile(tileId, bodyId) {
-  const tile = document.getElementById(tileId);
-  const body = document.getElementById(bodyId);
-  if (!tile || !body) return;
-  const isExpanded = tile.classList.contains('expanded');
-  if (isExpanded) {
-    tile.classList.remove('expanded');
-    body.style.display = 'none';
-    try { localStorage.setItem('admin_section_' + bodyId, 'closed'); } catch(_) {}
-  } else {
-    tile.classList.add('expanded');
-    body.style.display = '';
-    try { localStorage.setItem('admin_section_' + bodyId, 'open'); } catch(_) {}
-  }
-}
-function expandGridTile(tileId, bodyId) {
+// ── Tiles de Crear Producto / Lista de Productos ───────────────────────────
+// Colapsados: tarjeta compacta (igual a las mini-cards de Notificaciones).
+// Al tocarlas se abren a pantalla completa; solo el botón ✕ las cierra.
+function openGridTile(tileId, bodyId) {
   const tile = document.getElementById(tileId);
   const body = document.getElementById(bodyId);
   if (!tile || !body) return;
   tile.classList.add('expanded');
   body.style.display = '';
+  document.body.style.overflow = 'hidden';
   try { localStorage.setItem('admin_section_' + bodyId, 'open'); } catch(_) {}
 }
-window.toggleGridTile = toggleGridTile;
-window.expandGridTile = expandGridTile;
+function closeGridTile(tileId, bodyId) {
+  const tile = document.getElementById(tileId);
+  const body = document.getElementById(bodyId);
+  if (!tile || !body) return;
+  tile.classList.remove('expanded');
+  body.style.display = 'none';
+  document.body.style.overflow = '';
+  try { localStorage.setItem('admin_section_' + bodyId, 'closed'); } catch(_) {}
+}
+window.openGridTile = openGridTile;
+window.closeGridTile = closeGridTile;
+window.expandGridTile = openGridTile; // alias por compatibilidad
 (function restoreAdminSectionsState() {
   [['admin-create-section','create-product-body'], ['admin-list-section','list-products-body']].forEach(([tileId, bodyId]) => {
     try {
       if (localStorage.getItem('admin_section_' + bodyId) === 'open') {
-        expandGridTile(tileId, bodyId);
+        openGridTile(tileId, bodyId);
       }
     } catch(_) {}
   });
@@ -2581,9 +1853,7 @@ document.addEventListener('DOMContentLoaded', () => {
   pedirPushAdmin();
 });
 </script>
-
  <script src="error-monitor.js" defer></script>
-
  <script>
 
  if ('serviceWorker' in navigator) {
@@ -2601,6 +1871,5 @@ document.addEventListener('DOMContentLoaded', () => {
  }
 
  </script>
-
 </body>
 </html>
