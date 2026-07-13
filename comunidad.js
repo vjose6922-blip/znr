@@ -600,6 +600,26 @@ try {
   gridContainer.innerHTML = '<div style="grid-column:1/-1; text-align:center; padding:40px; color:red;">Error al mostrar productos. Revisa la consola.</div>';
 }
 }
+
+// ── Buscador por foto (ai-busqueda-visual.js) ────────────────────────────
+// Reemplaza temporalmente la grilla con productos ordenados por similitud
+// visual. El módulo de búsqueda visual ya trae los datos completos de cada
+// producto (mismo formato que usa createCommunityCard), así que solo hay
+// que sustituir el array y volver a renderizar.
+window.aplicarResultadosBusquedaVisual = function (productosOrdenados) {
+  filteredProducts = productosOrdenados;
+  allCommunityProducts = productosOrdenados;
+  totalPagesGlobal = 1;
+  currentPage = 1;
+  renderProducts();
+};
+
+// Vuelve al estado normal de búsqueda/filtros (usado por el botón "quitar
+// búsqueda por foto" del módulo de búsqueda visual).
+window.restaurarBusquedaNormalComunidad = function () {
+  if (typeof applyFilters === 'function') applyFilters();
+};
+
 function handleInitialHashComunidad() {
 if (initialHashHandledComunidad) return;
 const hash = window.location.hash;

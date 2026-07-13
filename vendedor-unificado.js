@@ -1274,6 +1274,14 @@ Imagen2: uploadedImages[2] || '',
 Imagen3: uploadedImages[3] || '',
 vendorToken: vendorSession.token
 };
+// Huella visual calculada por ai-clasificador.js al subir la foto del slot 1
+// (mismo modelo del auto-tag, sin costo extra). Se usa para el buscador por
+// similitud visual de Comunidad. Si no está disponible (modelo no cargó,
+// navegador sin soporte, etc.) simplemente no se manda — nunca bloquea la
+// publicación del producto.
+if (window.__znrUltimoEmbedding && Array.isArray(window.__znrUltimoEmbedding)) {
+  productData.Embedding = JSON.stringify(window.__znrUltimoEmbedding);
+}
 if (editId) productData.id = editId;
 console.log(" Enviando producto a la API:", productData);
 showLoader('Guardando...');

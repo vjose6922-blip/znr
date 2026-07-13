@@ -1,4 +1,3 @@
-
 // ai-clasificador.js
 // Módulo de auto-tag de categoría por IA (client-side, sin servidor).
 // Se carga como <script type="module"> en vendedor.html.
@@ -177,8 +176,13 @@ function _softmaxArgmax(arr) {
 }
 
 /**
- * Clasifica una imagen y devuelve { categoria, confianza } o null si no hay
- * confianza suficiente o el modelo no está disponible.
+ * Clasifica una imagen y devuelve { categoria, confianza, embedding } o null
+ * si no hay confianza suficiente o el modelo no está disponible.
+ * `embedding` es un array de ~1280 números (huella visual de la foto, para
+ * el buscador por similitud de Comunidad) — viene de la segunda salida del
+ * mismo modelo, sin costo extra de inferencia. Si el modelo desplegado es
+ * una versión vieja con una sola salida, `embedding` sale como null pero la
+ * clasificación de categoría sigue funcionando igual.
  */
 export async function clasificarImagen(file) {
   const model = await _cargarModelo();
@@ -203,16 +207,26 @@ export async function clasificarImagen(file) {
     salida.delete?.();
     cpuResult.delete?.();
 
-    if (idx < 0 || idx >= CATEGORY_MAP.length) {
-      console.error('[ai-clasificador] Descartado: índice fuera de rango (posible salida vacía o CATEGORY_MAP no coincide en tamaño).');
-      return null;
-    }
-    if (confianza < UMBRAL_CONFIANZA) {
-      console.error(`[ai-clasificador] Descartado: confianza ${confianza} menor al umbral ${UMBRAL_CONFIANZA}.`);
-      return null;
+    // Segunda salida del modelo (si existe): el embedding/huella visual.
+    let embedding = null;
+    if (resultados.length > 1 && resultados[1]) {
+      const salidaEmbedding = resultados[1];
+      const cpuEmbedding = await salidaEmbedding.moveTo('wasm');
+      embedding = Array.from(cpuEmbedding.toTypedArray());
+      salidaEmbedding.delete?.();
+      cpuEmbedding.delete?.();
     }
 
-    return { categoria: CATEGORY_MAP[idx], confianza };
+    if (idx < 0 || idx >= CATEGORY_MAP.length) {
+      console.error('[ai-clasificador] Índice fuera de rango (posible salida vacía o CATEGORY_MAP no coincide en tamaño).');
+      return { categoria: null, confianza: 0, embedding };
+    }
+
+    // Nota: NO descartamos por confianza baja aquí — el embedding es válido
+    // independientemente de qué tan segura esté la clasificación de
+    // categoría. Es sugerirYAplicar() quien decide si aplica la categoría
+    // sugerida según UMBRAL_CONFIANZA; el embedding se usa siempre.
+    return { categoria: CATEGORY_MAP[idx], confianza, embedding };
   } catch (err) {
     console.error('[ai-clasificador] Error clasificando imagen:', err);
     return null;
@@ -227,7 +241,34 @@ export async function clasificarImagen(file) {
  * id="pCategoria"> — pero nunca bloquea el flujo de subida/publicación.
  */
 window.sugerirYAplicar = async function(file) {
+  window.__znrUltimoEmbedding = null; // se recalcula con cada foto nueva del slot 1
   try {
+    const resultado = await clasificarImagen(file);
+    if (!resultado) {
+      console.error('[ai-clasificador] Sin resultado: el modelo no está disponible.');
+      return;
+    }
+
+    // El embedding se guarda SIEMPRE que el modelo corrió bien, sin importar
+    // la confianza de la categoría — vendedor-unificado.js lo lee de aquí al
+    // publicar el producto, para el buscador visual de Comunidad.
+    if (resultado.embedding) {
+      window.__znrUltimoEmbedding = resultado.embedding;
+      console.error(`[ai-clasificador] Embedding calculado (${resultado.embedding.length} valores), listo para publicar.`);
+    }
+
+    if (!resultado.categoria) {
+      console.error('[ai-clasificador] Sin sugerencia de categoría (salida del modelo fuera de rango).');
+      return;
+    }
+
+    console.error(`[ai-clasificador] Predicción cruda del modelo: "${resultado.categoria}" (${Math.round(resultado.confianza * 100)}%)`);
+
+    if (resultado.confianza < UMBRAL_CONFIANZA) {
+      console.error(`[ai-clasificador] Confianza ${resultado.confianza} menor al umbral ${UMBRAL_CONFIANZA}, no se aplica la sugerencia de categoría.`);
+      return;
+    }
+
     const select = document.getElementById('pCategoria');
     if (!select) {
       console.error('[ai-clasificador] No se encontró el <select id="pCategoria"> en la página.');
@@ -239,14 +280,6 @@ window.sugerirYAplicar = async function(file) {
       console.error(`[ai-clasificador] Ya hay una categoría seleccionada manualmente ("${select.value}"), no se sobreescribe.`);
       return;
     }
-
-    const resultado = await clasificarImagen(file);
-    if (!resultado) {
-      console.error('[ai-clasificador] Sin sugerencia: el modelo no está disponible o la confianza fue nula.');
-      return;
-    }
-
-    console.error(`[ai-clasificador] Predicción cruda del modelo: "${resultado.categoria}" (${Math.round(resultado.confianza * 100)}%)`);
 
     const opcionExiste = Array.from(select.options).some(o => o.value === resultado.categoria);
     if (!opcionExiste) {
