@@ -54,6 +54,7 @@
     urlCatalogo: 'catalogo.html',
     urlInicio: 'index.html',
     urlComunidad: 'comunidad.html',
+    urlVendedor: 'vendedor.html',
     duracionBurbuja: 4500,           // ms que se muestra el mensaje en pantalla
     storageKey: 'zr_voice_assistant_enabled'
   };
@@ -618,6 +619,90 @@
     }
   });
 
+  // ============================================================
+  // 6.3) CREAR PRODUCTO NUEVO POR VOZ (funciona desde cualquier página)
+  // ------------------------------------------------------------
+  // Extrae nombre / precio / stock / info / descripción / categoría de
+  // una frase libre, guarda los datos y redirige a vendedor.html, donde
+  // se precargan en el formulario "Publicar producto". NO se envía
+  // automáticamente: las fotos son obligatorias y publicar un producto
+  // es una acción con consecuencias reales, así que siempre se deja
+  // que la persona revise y confirme con su propio clic.
+  // ============================================================
+  function parsearProductoNuevo(textoOriginal) {
+    const texto = String(textoOriginal || '').trim();
+    const stopWords = '(?:vale|cuesta|precio|tengo|stock|hay|con stock de|informaci[oó]n|descripci[oó]n|info|categoria|categoría)';
+    const datos = { nombre: '', precio: '', stock: '', info: '', descripcion: '', categoria: '' };
+
+    let m = texto.match(new RegExp(`(?:llamado|llamada|que se llama|nombre)\\s+(.+?)(?=\\s+${stopWords}\\b|$)`, 'i'));
+    if (!m) m = texto.match(new RegExp(`producto\\s+nuevo\\s+(.+?)(?=\\s+${stopWords}\\b|$)`, 'i'));
+    if (m) datos.nombre = m[1].trim().replace(/[.,]+$/, '');
+
+    m = texto.match(/(?:vale|cuesta|precio(?:\s+de)?)\s+(?:\$\s*)?(\d+(?:[.,]\d+)?)/i);
+    if (m) datos.precio = m[1].replace(',', '.');
+
+    m = texto.match(/(?:con stock de|stock de|stock|tengo|hay)\s+(\d+)/i);
+    if (m) datos.stock = m[1];
+
+    m = texto.match(/\binfo(?:rmaci[oó]n)?(?:\s+es)?\s*[:]?\s*(.+?)(?=[.,]|$)/i);
+    if (m) datos.info = m[1].trim();
+
+    m = texto.match(/descripci[oó]n(?:\s+es)?\s*[:]?\s*(.+?)(?=[.,]|$)/i);
+    if (m) datos.descripcion = m[1].trim();
+
+    m = texto.match(new RegExp(`categor[ií]a\\s+(?:es\\s+)?(.+?)(?=\\s+${stopWords}\\b|[.,]|$)`, 'i'));
+    if (m) datos.categoria = m[1].trim();
+
+    return datos;
+  }
+
+  registrarComando({
+    id: 'crear-producto',
+    patron: /(?:agregar|publicar|crear|dar de alta|registrar|subir)\s+(?:un\s+)?(?:producto\s+nuevo|nuevo\s+producto)/,
+    accion: (_textoNorm, _match, textoOriginal) => {
+      const datos = parsearProductoNuevo(textoOriginal);
+      if (!datos.nombre) {
+        hablar('¿Cómo se llama el producto que quieres agregar? Por ejemplo: agregar producto nuevo llamado perfume, vale 40 pesos, tengo 8, información 50 ml.');
+        return;
+      }
+      sessionStorage.setItem('av_pending_new_product', JSON.stringify(datos));
+      const partes = [`nombre ${datos.nombre}`];
+      if (datos.precio) partes.push(`precio ${datos.precio} pesos`);
+      if (datos.stock) partes.push(`stock ${datos.stock}`);
+      if (datos.info) partes.push(`información ${datos.info}`);
+      hablar(`Te llevo a publicar productos con ${partes.join(', ')}. Revisa los datos, agrega fotos y da clic en publicar.`);
+      setTimeout(() => { window.location.href = AV_CONFIG.urlVendedor; }, 1200);
+    }
+  });
+
+  function esperarElemento(id, callback, intentos = 20) {
+    if (document.getElementById(id)) { callback(); return; }
+    if (intentos <= 0) return;
+    setTimeout(() => esperarElemento(id, callback, intentos - 1), 300);
+  }
+
+  function aplicarProductoNuevoPendiente() {
+    const raw = sessionStorage.getItem('av_pending_new_product');
+    if (!raw) return;
+    sessionStorage.removeItem('av_pending_new_product');
+    let datos;
+    try { datos = JSON.parse(raw); } catch (_) { return; }
+    esperarElemento('pNombre', () => {
+      const setVal = (id, val) => { const el = document.getElementById(id); if (el && val) el.value = val; };
+      setVal('pNombre', datos.nombre);
+      setVal('pPrecio', datos.precio);
+      setVal('pStock', datos.stock);
+      setVal('pTalla', datos.info);
+      setVal('pDescripcion', datos.descripcion);
+      if (datos.categoria) {
+        const catEl = document.getElementById('pCategoria');
+        if (catEl) seleccionarOpcionPorTexto(catEl, datos.categoria);
+      }
+      if (typeof window.switchTab === 'function') window.switchTab('form');
+      mostrarBurbuja('Revisa los datos del producto, agrega fotos y da clic en "Publicar producto".', 'info', 'Asistente');
+    });
+  }
+
   // ---- Comando: VER OFERTAS --------------------------------------------
   registrarComando({
     id: 'ver-ofertas',
@@ -684,7 +769,7 @@
     id: 'ayuda',
     frases: ['ayuda', 'que puedes hacer', 'qué puedes hacer', 'comandos disponibles'],
     accion: () => {
-      hablar('Puedo buscar productos, filtrar por hombre, mujer, categoría o talla, ordenar por precio, agregar productos al carrito, abrir el carrito, llevarte al inicio o al catálogo, leer tus notificaciones y contarte el estado de tu pedido. Por ejemplo: buscar camisetas rojas, o agrega la primera al carrito.');
+      hablar('Puedo buscar productos, filtrar por hombre, mujer, categoría o talla, ordenar por precio, agregar productos al carrito, abrir el carrito, agregar un producto nuevo como vendedor, llevarte al inicio o al catálogo, leer tus notificaciones y contarte el estado de tu pedido. Por ejemplo: agregar producto nuevo llamado perfume, vale 40 pesos, tengo 8, información 50 mililitros.');
     }
   });
 
@@ -932,6 +1017,7 @@
     cargarEstadoGuardado();
     observarPanelDePreferencias();
     aplicarFiltrosPendientes(); // retoma búsqueda/filtros si veníamos de otra página por voz
+    aplicarProductoNuevoPendiente(); // precarga el formulario de vendedor.html si veníamos de "agregar producto nuevo"
 
     // Si el usuario ya había encendido el asistente en una visita
     // anterior, lo reactivamos automáticamente en esta página. El
