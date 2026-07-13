@@ -1,5 +1,5 @@
 const CACHE_NAME    = 'zr-cache-v30';
-const DYNAMIC_CACHE = 'zr-dynamic-v12';
+const DYNAMIC_CACHE = 'zr-dynamic-v14';
 const OFFLINE_URL   = '/ZNR/offline.html';
 
 const STATIC_ASSETS = [
@@ -148,10 +148,11 @@ async function networkFirst(request) {
 }
 
 async function staleWhileRevalidate(request) {
-  const cached = await caches.match(request);
-  const fetchPromise = fetch(request).then(net => {
+  const cache = await caches.open(CACHE_NAME);
+  const cached = await cache.match(request);
+  const fetchPromise = fetch(request, { cache: 'reload' }).then(net => {
     if (net?.status === 200) {
-      caches.open(CACHE_NAME).then(c => c.put(request, net.clone()));
+      cache.put(request, net.clone());
     }
     return net;
   }).catch(() => null);
