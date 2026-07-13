@@ -116,11 +116,13 @@ async function _buscarPorFoto(file) {
   try {
     const resultado = await clasificarImagen(file);
     if (!resultado || !resultado.embedding) {
+      console.error('[ai-busqueda-visual] clasificarImagen no devolvió embedding:', resultado);
       if (typeof window.showTemporaryMessage === 'function') {
         window.showTemporaryMessage('No se pudo analizar la foto, intenta con otra.', 'error');
       }
       return;
     }
+    console.error(`[ai-busqueda-visual] Embedding de la foto de búsqueda: ${resultado.embedding.length} valores.`);
 
     const tabla = await _obtenerEmbeddingsCatalogo();
     if (!tabla) {
@@ -129,14 +131,20 @@ async function _buscarPorFoto(file) {
       }
       return;
     }
+    console.error(`[ai-busqueda-visual] Tabla de embeddings descargada: ${Object.keys(tabla).length} productos.`);
 
-    const similitudes = Object.entries(tabla)
+    const todasLasSimilitudes = Object.entries(tabla)
       .map(([id, vector]) => ({ id, similitud: _similitudCoseno(resultado.embedding, vector) }))
+      .sort((a, b) => b.similitud - a.similitud);
+    console.error('[ai-busqueda-visual] Top 5 similitudes (antes del umbral):',
+      todasLasSimilitudes.slice(0, 5).map(s => `${s.id}: ${s.similitud.toFixed(3)}`));
+
+    const similitudes = todasLasSimilitudes
       .filter(r => r.similitud >= SIMILITUD_MINIMA)
-      .sort((a, b) => b.similitud - a.similitud)
       .slice(0, MAX_RESULTADOS);
 
     if (!similitudes.length) {
+      console.error(`[ai-busqueda-visual] Ningún producto pasó el umbral de similitud (${SIMILITUD_MINIMA}). La similitud más alta encontrada fue ${todasLasSimilitudes[0]?.similitud.toFixed(3) ?? 'N/A'}.`);
       if (typeof window.showTemporaryMessage === 'function') {
         window.showTemporaryMessage('No encontramos productos parecidos a esa foto todavía.', 'info');
       }
@@ -144,12 +152,15 @@ async function _buscarPorFoto(file) {
     }
 
     const productos = await _obtenerProductosPorIds(similitudes.map(s => s.id));
+    console.error(`[ai-busqueda-visual] IDs pedidos al backend: ${similitudes.length}, productos recibidos: ${productos.length}.`);
+
     const mapaSimilitud = new Map(similitudes.map(s => [String(s.id), s.similitud]));
     const productosOrdenados = productos
       .filter(p => mapaSimilitud.has(String(p.id)))
       .sort((a, b) => mapaSimilitud.get(String(b.id)) - mapaSimilitud.get(String(a.id)));
 
     if (!productosOrdenados.length) {
+      console.error('[ai-busqueda-visual] El backend no devolvió productos que coincidan con los IDs pedidos (revisar obtenerProductosPorIds / estado=aprobado / tipo de id).');
       if (typeof window.showTemporaryMessage === 'function') {
         window.showTemporaryMessage('No encontramos productos parecidos a esa foto todavía.', 'info');
       }
