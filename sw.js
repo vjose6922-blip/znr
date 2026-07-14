@@ -1,4 +1,4 @@
-const CACHE_NAME    = 'zr-cache-v30';
+const CACHE_NAME    = 'zr-cache-v31';
 const DYNAMIC_CACHE = 'zr-dynamic-v14';
 const OFFLINE_URL   = '/ZNR/offline.html';
 
@@ -28,7 +28,7 @@ const STATIC_ASSETS = [
   '/ZNR/offline-manager.js',
   '/ZNR/cache-manager.js',
   '/ZNR/error-monitor.js',
-  '/ZNR/icons.svg',
+  '/ZNR/icons.js',
   '/ZNR/manifest.json',
   '/ZNR/placeholder.svg',
 ];
