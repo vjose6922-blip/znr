@@ -1142,14 +1142,17 @@ const el = document.getElementById(id);
 if (el) el.value = '';
 });
 const cat = document.getElementById('pCategoria');
-if (cat) { cat.value = ''; cat.dataset.aiSugerida = 'false'; cat.style.fontWeight = ''; }
+if (cat) cat.value = '';
 [1,2,3].forEach(n => {
   clearSlotPreview(n);
   const fileInput = document.getElementById(`file-${n}`);
-  if (fileInput) fileInput.value = ''; // sin esto, el <input> real seguía "recordando" la foto anterior
-  selectedFiles[n] = null;
+  if (fileInput) fileInput.value = '';
 });
 uploadedImages = { 1: null, 2: null, 3: null };
+selectedFiles = { 1: null, 2: null, 3: null };
+const iaBox = document.getElementById('ia-sugerencia-box');
+if (iaBox) iaBox.style.display = 'none';
+window.__znrSugerenciaIA = null;
 }
 
 // ── SUBIR IMÁGENES ────────────────────────────────────────
@@ -1299,6 +1302,66 @@ reader.onerror = reject;
 reader.readAsDataURL(file);
 });
 }
+
+// ── COMPLETAR ANUNCIO CON IA (Groq) ───────────────────────
+window.completarAnuncioConIA = async function() {
+  if (!vendorSession || !vendorSession.token) {
+    showTemporaryMessage('Sesión expirada. Vuelve a iniciar sesión.', 'error');
+    return;
+  }
+
+  const btn = document.getElementById('btn-completar-ia');
+  const categoria = document.getElementById('pCategoria')?.value || '';
+  const nombreActual = document.getElementById('pNombre')?.value.trim() || '';
+  const descripcionActual = document.getElementById('pDescripcion')?.value.trim() || '';
+  const talla = document.getElementById('pTalla')?.value.trim() || '';
+
+  if (!categoria && !nombreActual && !descripcionActual) {
+    showTemporaryMessage('Agrega al menos una foto, categoría o nombre primero.', 'error');
+    return;
+  }
+
+  if (btn) { btn.disabled = true; btn.textContent = '☁ Generando anuncio...'; }
+
+  try {
+    const res = await apiFetch({
+      action: 'completarAnuncioIA',
+      vendorToken: vendorSession.token,
+      categoria, nombreActual, descripcionActual, talla
+    });
+
+    if (!res.ok) {
+      showTemporaryMessage(res.error || 'No se pudo generar el anuncio ahora mismo.', 'error');
+      return;
+    }
+
+    document.getElementById('ia-sugerencia-nombre').textContent = res.nombre || '(sin cambios)';
+    document.getElementById('ia-sugerencia-descripcion').textContent = res.descripcion || '(sin cambios)';
+    window.__znrSugerenciaIA = { nombre: res.nombre || '', descripcion: res.descripcion || '' };
+
+    const box = document.getElementById('ia-sugerencia-box');
+    if (box) box.style.display = 'block';
+  } catch (err) {
+    console.error('[completarAnuncioIA] Error:', err);
+    showTemporaryMessage('Error de red al generar el anuncio.', 'error');
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = '✨ Completar anuncio con IA'; }
+  }
+};
+
+window.usarSugerenciaIA = function() {
+  const sug = window.__znrSugerenciaIA;
+  if (!sug) return;
+  if (sug.nombre) document.getElementById('pNombre').value = sug.nombre;
+  if (sug.descripcion) document.getElementById('pDescripcion').value = sug.descripcion;
+  document.getElementById('ia-sugerencia-box').style.display = 'none';
+  showTemporaryMessage('✨ Anuncio actualizado con la sugerencia de IA', 'success');
+};
+
+window.descartarSugerenciaIA = function() {
+  document.getElementById('ia-sugerencia-box').style.display = 'none';
+  window.__znrSugerenciaIA = null;
+};
 
 // ── PUBLICAR PRODUCTO ─────────────────────────────────────
 window.submitProduct = async function() {
