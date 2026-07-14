@@ -1,53 +1,8 @@
-/* ============================================================
- * ASISTENTE DE VOZ — Z&R
- * ------------------------------------------------------------
- * Archivo único: no crea un botón flotante. En su lugar, inyecta
- * un switch de encendido/apagado dentro del panel de "Preferencias"
- * (el que abre el ícono de engranaje del header, #up-open-btn /
- * #up-panel en common.js) sin necesidad de tocar common.js.
- *
- * Cómo lo logra sin editar common.js:
- * Un MutationObserver vigila el <body>. Cada vez que el panel de
- * preferencias se abre (common.js crea un nuevo #up-panel desde
- * cero cada vez), este script detecta su aparición e inyecta la
- * fila "Asistente de voz" dentro de la pestaña "Apariencia".
- *
- * Con el switch en ON, el asistente queda escuchando de forma
- * continua (no hace falta mantener presionado ni hacer clic cada
- * vez): basta con decir un comando, ej. "buscar camisetas rojas".
- *
- * CÓMO INSTALARLO
- * ----------------
- * 1) Copia este archivo como "asistente-voz.js" en la raíz del
- *    proyecto (junto a common.js, script.js, etc).
- * 2) Agrega, en cada página donde quieras el asistente, DESPUÉS
- *    de common.js:
- *
- *      <script src="common.js" defer></script>
- *      <script src="asistente-voz.js" defer></script>
- *
- *    En catalogo.html, después de script.js también:
- *      <script src="script.js" defer></script>
- *      <script src="asistente-voz.js" defer></script>
- *
- * 3) No requiere nada más. El switch aparece solo la próxima vez
- *    que el usuario abra Preferencias (ícono de engranaje).
- *
- * CÓMO AGREGAR COMANDOS NUEVOS
- * ------------------------------
- *   AsistenteVoz.registerCommand({
- *     id: 'ir-a-perfil',
- *     frases: ['ir a mi perfil', 'ver mi perfil', 'mi cuenta'],
- *     accion: () => { window.location.href = 'perfil-vendedor.html'; }
- *   });
- * ============================================================ */
+
 
 (function () {
   'use strict';
 
-  // ============================================================
-  // 0) CONFIGURACIÓN GENERAL
-  // ============================================================
   const AV_CONFIG = {
     idioma: 'es-MX',
     urlOfertas: 'catalogo.html',     // aún no existe página de ofertas dedicada
@@ -58,20 +13,12 @@
     duracionBurbuja: 4500,           // ms que se muestra el mensaje en pantalla
     storageKey: 'zr_voice_assistant_enabled',
     requierePalabraActivacion: true, // si es true, ignora todo lo que no empiece/incluya la palabra de activación
-    palabraActivacion: 'oye asistente' // di, por ejemplo: "oye asistente, busca camisetas rojas"
+    palabraActivacion: 'oye asistente', // di, por ejemplo: "oye asistente, busca camisetas rojas"
+    nluHabilitado: true,   // si es false, solo usa el matching local por frases (comportamiento actual)
+    nluEndpoint: 'https://script.google.com/macros/s/TU_DEPLOYMENT_ID/exec?action=interpretarComandoVoz', // TODO: reemplazar con tu Web App de GAS
+    nluTimeoutMs: 6000
   };
 
-  // ============================================================
-  // 1) DATOS SIMULADOS (reemplázalos por datos reales cuando quieras)
-  // ------------------------------------------------------------
-  // Notificaciones reales: expón fetchNotificaciones() agregando al
-  // final de notification-center.js:
-  //   window.ZNR_fetchNotificaciones = fetchNotificaciones;
-  // y sustituye leerNotificaciones() más abajo.
-  //
-  // Pedidos reales: usa el endpoint GAS de pedidos del cliente en
-  // vez de PEDIDO_SIMULADO.
-  // ============================================================
   const NOTIFICACIONES_SIMULADAS = [
     { titulo: 'Descuento especial', mensaje: 'Tienes un 20% de descuento en vestidos esta semana.' },
     { titulo: 'Nuevo look disponible', mensaje: 'Se agregaron nuevas chamarras para caballero al catálogo.' },
@@ -360,11 +307,88 @@
     return false;
   }
 
-  // Si requierePalabraActivacion está activo, solo procesa frases que
-  // incluyan la palabra de activación (en cualquier posición), y la quita
-  // del texto para que el resto se interprete como el comando en sí.
-  // Si NO está presente, se ignora en silencio (no responde ni muestra
-  // nada) — así el asistente no reacciona a conversación normal.
+  // ============================================================
+  // 6.0) NLU REMOTO (fallback cuando ninguna frase local matchea)
+  // ------------------------------------------------------------
+  // Contrato esperado del backend (POST JSON, respuesta JSON):
+  //   Request:  { comando: "camisetas rojas de mujer talla m" }
+  //   Response: { accion: "buscar", parametros: { query: "camisetas rojas" } }
+  // "accion" debe ser una de las claves de ACCIONES_NLU más abajo.
+  // Si el backend no puede interpretar nada, debe devolver:
+  //   { accion: "desconocido", parametros: { respuesta: "..." } }
+  // ============================================================
+  async function consultarNLU(textoOriginal) {
+    if (!AV_CONFIG.nluHabilitado || !AV_CONFIG.nluEndpoint) return null;
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), AV_CONFIG.nluTimeoutMs);
+    try {
+      const resp = await fetch(AV_CONFIG.nluEndpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' }, // evita preflight CORS con Apps Script
+        body: JSON.stringify({ comando: textoOriginal }),
+        signal: controller.signal
+      });
+      clearTimeout(timeoutId);
+      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+      const data = await resp.json();
+      if (!data || !data.accion) throw new Error('Respuesta sin "accion"');
+      return data;
+    } catch (err) {
+      clearTimeout(timeoutId);
+      console.error('[AsistenteVoz] Error consultando NLU remoto:', err);
+      return null;
+    }
+  }
+
+  const ACCIONES_NLU = {
+    buscar: (p) => aplicarYConfirmarFiltro({ search: p.query || '' }, `Buscando ${p.query || ''}.`),
+    filtrar_genero: (p) => aplicarYConfirmarFiltro({ gender: (p.genero || '').toUpperCase() }, `Mostrando ropa de ${p.genero || ''}.`),
+    filtrar_categoria: (p) => aplicarYConfirmarFiltro({ category: p.categoria }, `Filtrando por categoría ${p.categoria}.`),
+    filtrar_talla: (p) => aplicarYConfirmarFiltro({ size: p.talla }, `Filtrando por talla ${p.talla}.`),
+    ordenar_precio: (p) => aplicarYConfirmarFiltro(
+      { sort: p.direccion === 'desc' ? 'price-desc' : 'price-asc' },
+      `Ordenando por precio, de ${p.direccion === 'desc' ? 'mayor a menor' : 'menor a mayor'}.`
+    ),
+    limpiar_filtros: () => {
+      if (!catalogoListo()) { hablar('Los filtros solo están disponibles en el catálogo.'); return; }
+      ['gender-filter', 'category-filter', 'sort-select', 'size-filter'].forEach(id => {
+        const el = document.getElementById(id); if (el) el.value = '';
+      });
+      const si = document.getElementById('search-input'); if (si) si.value = '';
+      window.applyFilters();
+      hablar('Quité todos los filtros.');
+    },
+    agregar_carrito: (p) => p.producto ? intentarAgregarConNombre(p.producto, false) : intentarAgregarSinNombre(),
+    ir_carrito: () => {
+      if (typeof window.openCartDrawer === 'function' && document.getElementById('cart-drawer')) {
+        window.openCartDrawer();
+        hablar('Aquí está tu carrito.');
+      } else {
+        hablar('El carrito no está disponible en esta página.');
+      }
+    },
+    crear_producto: (p) => {
+      const datos = { nombre: p.nombre || '', precio: p.precio || '', stock: p.stock || '', info: p.info || '', descripcion: p.descripcion || '', categoria: p.categoria || '' };
+      if (!datos.nombre) { hablar('¿Cómo se llama el producto que quieres agregar?'); return; }
+      sessionStorage.setItem('av_pending_new_product', JSON.stringify(datos));
+      hablar(`Te llevo a publicar ${datos.nombre}. Revisa los datos, agrega fotos y da clic en publicar.`);
+      setTimeout(() => { window.location.href = AV_CONFIG.urlVendedor; }, 1200);
+    },
+    ver_ofertas: () => { hablar('Te muestro las ofertas disponibles.'); setTimeout(() => { window.location.href = AV_CONFIG.urlOfertas; }, 800); },
+    ir_inicio: () => { hablar('Vamos al inicio.'); setTimeout(() => { window.location.href = AV_CONFIG.urlInicio; }, 700); },
+    ir_catalogo: () => { hablar('Abriendo el catálogo.'); setTimeout(() => { window.location.href = AV_CONFIG.urlCatalogo; }, 700); },
+    ir_comunidad: () => { hablar('Abriendo comunidad.'); setTimeout(() => { window.location.href = AV_CONFIG.urlComunidad; }, 700); },
+    leer_notificaciones: () => {
+      if (!NOTIFICACIONES_SIMULADAS.length) { hablar('No tienes notificaciones nuevas.'); return; }
+      const resumen = NOTIFICACIONES_SIMULADAS.map(n => `${n.titulo}. ${n.mensaje}`).join(' ... ');
+      hablar(`Tienes ${NOTIFICACIONES_SIMULADAS.length} notificaciones. ${resumen}`);
+    },
+    leer_pedido: () => { hablar(PEDIDO_SIMULADO.texto); },
+    ayuda: () => { hablar('Puedo buscar productos, filtrar, ordenar, agregar al carrito, llevarte a otras secciones, leer tus notificaciones y contarte el estado de tu pedido. Pregúntame casi cualquier cosa relacionada con la tienda.'); },
+    detener: () => { window.speechSynthesis.cancel(); setEstadoPill(AV_STATE.enabled ? 'idle-on' : 'idle'); },
+    desconocido: (p) => { hablar((p && p.respuesta) || 'No entendí ese comando. Puedes decir "ayuda" para escuchar lo que puedo hacer.'); }
+  };
+
   function extraerComandoTrasActivacion(textoNorm, textoOriginal) {
     if (!AV_CONFIG.requierePalabraActivacion) {
       return { activado: true, textoNorm, textoOriginal };
@@ -405,6 +429,19 @@
         return;
       }
     }
+
+    // Ninguna frase local matcheó: probamos con el NLU remoto (Groq vía GAS).
+    const nlu = await consultarNLU(textoParaComando);
+    if (nlu && ACCIONES_NLU[nlu.accion]) {
+      try {
+        await ACCIONES_NLU[nlu.accion](nlu.parametros || {});
+      } catch (err) {
+        console.error('[AsistenteVoz] Error ejecutando acción NLU:', err);
+        hablar('Ocurrió un error al ejecutar ese comando.');
+      }
+      return;
+    }
+
     hablar('No entendí ese comando. Puedes decir "ayuda" para escuchar lo que puedo hacer.');
   }
 
