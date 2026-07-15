@@ -109,6 +109,7 @@
             <span class="vest-${_escapeHtml(v.estado)}">${_escapeHtml(v.estado)}</span>
             <span style="font-size:11px;color:#aaa;margin-left:8px">${v.fecha ? new Date(v.fecha).toLocaleDateString() : ''}</span>
             ${v.productos != null ? `<span style="font-size:11px;color:#888;margin-left:8px"> ${v.productos} productos</span>` : ''}
+            ${v.resetSolicitado ? `<div style="margin-top:6px;padding:6px 10px;background:#fef9c3;border:1px solid #fde047;border-radius:8px;font-size:11.5px;color:#854d0e;display:flex;align-items:center;gap:5px;"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" aria-hidden="true"><use href="#ic-lock"/></svg> Solicitó recuperar su contraseña</div>` : ''}
           </div>
           <div class="actions" style="flex-wrap:wrap;gap:6px;">
             ${v.estado === 'pendiente' ? `
@@ -116,7 +117,8 @@
               <button class="btn-reject"  onclick="AdminComunidad.rechazarVendedor('${_escapeHtml(v.uid)}', this)"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" aria-hidden="true"><use href="#ic-x"/></svg> Rechazar</button>` : ''}
             ${v.estado === 'activo' ? `
               <button class="btn-suspend" onclick="AdminComunidad.suspenderVendedor('${_escapeHtml(v.uid)}','${_escapeHtml(v.nombre)}')"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" aria-hidden="true"><use href="#ic-suspend"/></svg> Suspender</button>
-              <button class="btn-stats"   onclick="AdminComunidad.verEstadisticas('${_escapeHtml(v.uid)}','${_escapeHtml(v.nombre)}')"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" aria-hidden="true"><use href="#ic-stats"/></svg> Stats</button>` : ''}
+              <button class="btn-stats"   onclick="AdminComunidad.verEstadisticas('${_escapeHtml(v.uid)}','${_escapeHtml(v.nombre)}')"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" aria-hidden="true"><use href="#ic-stats"/></svg> Stats</button>
+              <button class="${v.resetSolicitado ? 'btn-approve' : 'btn-stats'}" onclick="AdminComunidad.resetPasswordVendedor('${_escapeHtml(v.uid)}', this)"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" aria-hidden="true"><use href="#ic-lock"/></svg> Nueva contraseña</button>` : ''}
             ${(v.estado === 'suspendido' || v.estado === 'rechazado') ? `
               <button class="btn-approve" onclick="AdminComunidad.aprobarVendedor('${_escapeHtml(v.uid)}', this)"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.348a1.125 1.125 0 010 1.971l-11.54 6.347a1.125 1.125 0 01-1.667-.985V5.653z"/></svg> Activar</button>` : ''}
           </div>
@@ -167,6 +169,53 @@
     }
     };
     if (btn && window.withButtonLoading) await window.withButtonLoading(btn, runFn, loadingText);
+    else await runFn();
+  }
+
+  async function resetPasswordVendedor(uid, btn) {
+    if (typeof showCustomConfirm !== 'function') { await _doResetPassword(uid, btn); return; }
+    showCustomConfirm({
+      title: '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" aria-hidden="true"><use href="#ic-lock"/></svg> Nueva contraseña',
+      message: '¿Generar una contraseña temporal nueva para este vendedor? La anterior dejará de funcionar.',
+      icon: '', confirmText: 'Generar', cancelText: 'Cancelar',
+      onConfirm: async () => { await _doResetPassword(uid, btn); }
+    });
+  }
+
+  async function _doResetPassword(uid, btn) {
+    const runFn = async () => {
+    try {
+      const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+      let waWindow = null;
+      if (!isMobile) {
+        waWindow = window.open('', '_blank');
+        if (waWindow) waWindow.document.write('<p style="font-family:sans-serif;padding:20px">⏳ Generando contraseña, un momento...</p>');
+      }
+      const data = await _gasPost({ action: 'resetPasswordVendedor', uid, token: _getToken() });
+      if (!data.ok) { if (waWindow) waWindow.close(); throw new Error(data.error); }
+      if (data.codigo && data.telefono) {
+        const row    = document.getElementById(`vrow-${uid}`);
+        const nombre = row ? row.querySelector('.info strong')?.textContent?.trim() || 'Vendedor' : 'Vendedor';
+        const mensaje =
+          ` *Recuperación de contraseña* \n\n` +
+          `Hola ${nombre}, tu nueva contraseña temporal para Z&R Comunidad es:\n\n` +
+          `*${data.codigo}*\n\n` +
+          `Puedes cambiarla después de iniciar sesión.\n\n` +
+          ` Accede aquí: vjose6922-blip.github.io/ZNR/vendedor.html`;
+        if (isMobile) {
+          if (waWindow) waWindow.close();
+          window.location.href = `whatsapp://send?phone=52${data.telefono}&text=${encodeURIComponent(mensaje)}`;
+        } else {
+          if (waWindow) waWindow.location.href = `https://wa.me/52${data.telefono}?text=${encodeURIComponent(mensaje)}`;
+        }
+      }
+      _msg(' Contraseña generada y enviada', 'success');
+      loadVendors();
+    } catch (err) {
+      _msg(' ' + err.message, 'error');
+    }
+    };
+    if (btn && window.withButtonLoading) await window.withButtonLoading(btn, runFn, 'Generando…');
     else await runFn();
   }
 
@@ -408,6 +457,7 @@
     loadPendingProducts,
     aprobarVendedor,
     rechazarVendedor,
+    resetPasswordVendedor,
     aprobarProducto,
     rechazarProducto,
     suspenderVendedor,

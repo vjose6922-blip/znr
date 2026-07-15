@@ -1484,6 +1484,8 @@ localStorage.removeItem('vendor_session');
 const loginBtn = document.getElementById('login-btn');
 if (loginBtn) loginBtn.addEventListener('click', vendorLogin);
 
+initForgotPasswordModal();
+
 const logoutBtn = document.getElementById('logout-btn');
 if (logoutBtn) logoutBtn.addEventListener('click', vendorLogout);
 
@@ -2054,6 +2056,63 @@ document.body.style.overflow = '';
 document.getElementById('settings-modal')?.addEventListener('click', function(e) {
 if (e.target === this) closeSettingsModal();
 });
+
+function initForgotPasswordModal() {
+  const link = document.getElementById('forgot-password-link');
+  if (link) link.addEventListener('click', openForgotPasswordModal);
+
+  const modal = document.getElementById('forgot-password-modal');
+  if (modal) modal.addEventListener('click', (e) => { if (e.target === modal) closeForgotPasswordModal(); });
+
+  const submitBtn = document.getElementById('forgot-password-submit-btn');
+  if (submitBtn) submitBtn.addEventListener('click', submitForgotPassword);
+
+  const phoneInput = document.getElementById('forgot-password-phone');
+  if (phoneInput) phoneInput.addEventListener('keypress', e => { if (e.key === 'Enter') submitForgotPassword(); });
+}
+
+function openForgotPasswordModal() {
+  const modal = document.getElementById('forgot-password-modal');
+  if (!modal) return;
+  document.getElementById('forgot-password-phone').value = '';
+  document.getElementById('forgot-password-msg').textContent = '';
+  modal.style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+}
+
+function closeForgotPasswordModal() {
+  const modal = document.getElementById('forgot-password-modal');
+  if (modal) modal.style.display = 'none';
+  document.body.style.overflow = '';
+}
+
+async function submitForgotPassword() {
+  const phone = document.getElementById('forgot-password-phone')?.value.trim().replace(/\D/g, '');
+  const msgEl = document.getElementById('forgot-password-msg');
+  const btn   = document.getElementById('forgot-password-submit-btn');
+
+  if (!phone || phone.length !== 10) {
+    if (msgEl) { msgEl.textContent = 'Escribe un teléfono válido de 10 dígitos'; msgEl.style.color = '#ef4444'; }
+    return;
+  }
+
+  if (btn) { btn.disabled = true; btn.textContent = 'Enviando...'; }
+  try {
+    const res = await apiFetch({ action: 'solicitarResetPasswordVendedor', telefono: phone });
+    if (!res.ok) throw new Error(res.error || 'No se pudo enviar la solicitud');
+    if (msgEl) {
+      msgEl.style.color = '#16a34a';
+      msgEl.textContent = 'Si tu cuenta existe, un administrador te contactará por WhatsApp con tu nueva contraseña.';
+    }
+    setTimeout(closeForgotPasswordModal, 2500);
+  } catch (err) {
+    if (msgEl) { msgEl.style.color = '#ef4444'; msgEl.textContent = err.message; }
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = 'Enviar solicitud'; }
+  }
+}
+
+window.closeForgotPasswordModal = closeForgotPasswordModal;
 
 async function guardarPerfil() {
   const btn = document.getElementById('btn-guardar-perfil');

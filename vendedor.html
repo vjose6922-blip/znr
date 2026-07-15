@@ -245,7 +245,10 @@
  <input type="password" id="login-password" placeholder="••••••••">
  </div>
  <button class="btn-primary" id="login-btn"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" aria-hidden="true"><use href="#ic-logout"/></svg> Entrar</button>
- <p style="text-align:center;margin-top:16px;font-size:13px;color:#888">
+ <p style="text-align:center;margin-top:12px;font-size:13px;">
+ <span style="color:#888;cursor:pointer;display:inline-flex;align-items:center;gap:4px;" id="forgot-password-link"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" aria-hidden="true"><use href="#ic-lock"/></svg> ¿Olvidaste tu contraseña?</span>
+ </p>
+ <p style="text-align:center;margin-top:8px;font-size:13px;color:#888">
  ¿No tienes cuenta? <span style="color:#ff4f81;font-weight:600;cursor:pointer;" id="switch-to-register">Regístrate aquí</span>
  </p>
  </div>
@@ -762,6 +765,23 @@ document.addEventListener('DOMContentLoaded', () => {
         </button>
       </div>
 
+    </div>
+  </div>
+</div>
+
+<div id="forgot-password-modal" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.65);align-items:center;justify-content:center;padding:20px;">
+  <div style="background:#fff;border-radius:16px;width:100%;max-width:360px;padding:0;overflow:hidden;">
+    <div style="padding:16px 20px 12px;border-bottom:1px solid #f0f0f0;display:flex;align-items:center;justify-content:space-between;">
+      <h2 style="margin:0;font-size:1rem;font-weight:700;color:#111;display:flex;align-items:center;gap:6px;"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" aria-hidden="true"><use href="#ic-lock"/></svg> Recuperar contraseña</h2>
+      <button onclick="closeForgotPasswordModal()" style="background:none;border:none;font-size:22px;cursor:pointer;color:#888;line-height:1;"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" aria-hidden="true"><use href="#ic-x"/></svg></button>
+    </div>
+    <div style="padding:18px 20px 22px;">
+      <p style="margin:0 0 14px;font-size:.85rem;color:#666;">Escribe el teléfono con el que te registraste. Si tu cuenta existe, un administrador te enviará una contraseña nueva por WhatsApp.</p>
+      <label style="font-size:.8rem;color:#555;display:block;margin-bottom:4px;">Teléfono (10 dígitos)</label>
+      <input type="tel" id="forgot-password-phone" placeholder="8671234567" maxlength="10"
+        style="width:100%;box-sizing:border-box;padding:9px 12px;border-radius:10px;border:1px solid #ddd;font-size:.9rem;margin-bottom:14px;outline:none;">
+      <p id="forgot-password-msg" style="min-height:16px;font-size:.8rem;margin:0 0 12px;"></p>
+      <button id="forgot-password-submit-btn" class="btn-primary" style="width:100%;">Enviar solicitud</button>
     </div>
   </div>
 </div>

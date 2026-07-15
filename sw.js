@@ -1,4 +1,4 @@
-const CACHE_NAME    = 'zr-cache-v31';
+const CACHE_NAME    = 'zr-cache-v32';
 const DYNAMIC_CACHE = 'zr-dynamic-v14';
 const OFFLINE_URL   = '/ZNR/offline.html';
 
