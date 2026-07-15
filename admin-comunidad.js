@@ -123,7 +123,7 @@
               <button class="btn-approve" onclick="AdminComunidad.aprobarVendedor('${_escapeHtml(v.uid)}', this)"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.348a1.125 1.125 0 010 1.971l-11.54 6.347a1.125 1.125 0 01-1.667-.985V5.653z"/></svg> Activar</button>` : ''}
           </div>
         </div>`).join('');
-      const pending = vendors.filter(v => v.estado === 'pendiente').length;
+      const pending = vendors.filter(v => v.estado === 'pendiente' || v.resetSolicitado).length;
       if (typeof window._updateNotifTabBadge === 'function') window._updateNotifTabBadge('vendors', pending);
     } catch (err) {
       container.innerHTML = `<p style="color:#ef4444">Error: ${_escapeHtml(err.message)}</p>`;
