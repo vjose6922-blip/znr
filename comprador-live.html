@@ -25,6 +25,7 @@
 <link rel="preload" href="styles.css" as="style">
 <link rel="stylesheet" href="styles.css">
 <script src="api-config.js"></script>
+<script src="icons.js" defer></script>
 <style>
   .live-wrap { max-width: 640px; margin: 0 auto; padding: 0 0 40px; }
   .video-anchor { position: relative; width: 100%; aspect-ratio: 16/9; background: #000; }
@@ -178,7 +179,7 @@
 <header class="app-header">
   <div class="header-left">
     <a href="lives.html" class="logo-touch-area" style="text-decoration:none;">
-      <span class="logo-mark">←</span>
+      <span class="logo-mark"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" aria-hidden="true"><use href="#ic-arrow-left"/></svg></span>
     </a>
     <div class="header-text">
       <h1 class="app-title">En vivo</h1>
@@ -186,7 +187,7 @@
   </div>
 </header>
 
-<button id="btn-reportar" class="btn-reportar-flotante" title="Reportar esta transmisión" style="display:none;">🚩</button>
+<button id="btn-reportar" class="btn-reportar-flotante" title="Reportar esta transmisión" style="display:none;"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" aria-hidden="true"><use href="#ic-flag"/></svg></button>
 
 <main class="live-wrap" id="live-wrap">
   <div class="loading-spinner"></div>
@@ -303,7 +304,7 @@ async function iniciarPlayerSincronizado(containerId, youtubeId, fechaInicioMs) 
     <iframe id="${containerId}-iframe"
       src="https://www.youtube-nocookie.com/embed/${esc(youtubeId)}?enablejsapi=1&autoplay=1&mute=1&controls=0&disablekb=1&modestbranding=1&rel=0&playsinline=1&iv_load_policy=3&origin=${origin}"
       allow="autoplay; encrypted-media" allowfullscreen title="Transmisión en vivo"></iframe>
-    <button class="sound-overlay" id="${containerId}-sound">🔊 Toca para activar el sonido</button>
+    <button class="sound-overlay" id="${containerId}-sound">${Icon('speaker')} Toca para activar el sonido</button>
   `;
   const YT = await loadYouTubeAPI();
   ytPlayer = new YT.Player(containerId + '-iframe', {
@@ -453,7 +454,7 @@ function mostrarReporte() {
   overlay.className = 'identity-overlay';
   overlay.innerHTML = `
     <div class="identity-sheet">
-      <h2>🚩 Reportar esta transmisión</h2>
+      <h2><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" aria-hidden="true"><use href="#ic-flag"/></svg> Reportar esta transmisión</h2>
       <p>Cuéntanos qué está pasando. Un administrador va a revisarlo. Esto no cancela nada que hayas apartado ni te saca del chat.</p>
       <label for="rep-motivo">¿Qué está pasando?</label>
       <textarea id="rep-motivo" maxlength="300" placeholder="Ej. contenido inapropiado, producto engañoso, lenguaje ofensivo…"></textarea>
@@ -501,7 +502,7 @@ function renderNoId() {
   document.body.classList.remove('live-active');
   wrap.innerHTML = `
     <div class="center-card">
-      <div class="icon">🔗</div>
+      <div class="icon">${Icon('link', {size:40})}</div>
       <h2>Link inválido</h2>
       <p>Este link de transmisión no es válido. Pide al vendedor que te comparta el link de nuevo.</p>
     </div>`;
@@ -524,7 +525,7 @@ function renderEnded() {
   document.body.classList.remove('live-active');
   wrap.innerHTML = `
     <div class="center-card">
-      <div class="icon">✅</div>
+      <div class="icon">${Icon('check', {size:40})}</div>
       <h2>Esta transmisión ya terminó</h2>
       <p>Gracias por acompañar a ${esc(sesion.vendedor_nombre)}. Si apartaste algo, el vendedor se pondrá en contacto contigo.</p>
     </div>`;
@@ -534,7 +535,7 @@ function renderScheduledWait() {
   document.body.classList.remove('live-active');
   wrap.innerHTML = `
     <div class="center-card">
-      <div class="icon">⏳</div>
+      <div class="icon">${Icon('clock', {size:40})}</div>
       <h2>${esc(sesion.titulo)}</h2>
       <p>${esc(sesion.vendedor_nombre)} todavía no inicia su transmisión. Vuelve a entrar en unos minutos.</p>
     </div>`;
@@ -565,8 +566,8 @@ function askIdentity(onDone) {
       <input type="tel" id="idn-tel" placeholder="10 dígitos" maxlength="10" value="${esc(prev.telefono || '')}">
       <label for="idn-dir">Dirección de entrega</label>
       <textarea id="idn-dir" placeholder="Calle, número, colonia, referencias… (o usa tu ubicación abajo)" maxlength="200">${esc(prev.direccion || '')}</textarea>
-      <button type="button" class="btn-gps" id="idn-gps-btn">📍 Usar mi ubicación actual</button>
-      <p class="gps-status ${gpsCoords ? 'ok' : ''}" id="idn-gps-status">${gpsCoords ? '✅ Ya tenemos tu ubicación guardada.' : ''}</p>
+      <button type="button" class="btn-gps" id="idn-gps-btn"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" aria-hidden="true"><use href="#ic-map-pin"/></svg> Usar mi ubicación actual</button>
+      <p class="gps-status ${gpsCoords ? 'ok' : ''}" id="idn-gps-status">${gpsCoords ? Icon('check') + ' Ya tenemos tu ubicación guardada.' : ''}</p>
       <label for="idn-horario">Horario para entrega</label>
       <input type="text" id="idn-horario" placeholder="Ej. Tardes después de 5pm, fines de semana…" maxlength="80" value="${esc(prev.horario || '')}">
       <button id="idn-btn">Entrar al chat</button>
@@ -585,7 +586,7 @@ function askIdentity(onDone) {
     navigator.geolocation.getCurrentPosition((pos) => {
       gpsCoords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
       statusEl.className = 'gps-status ok';
-      statusEl.textContent = '✅ Ubicación capturada. El vendedor podrá verla en el mapa.';
+      statusEl.innerHTML = Icon('check') + ' Ubicación capturada. El vendedor podrá verla en el mapa.';
     }, (err) => {
       gpsCoords = null;
       statusEl.className = 'gps-status error';
@@ -631,7 +632,7 @@ function renderLive() {
     <div class="chat-messages" id="chat-messages"><div class="chat-empty">Sé el primero en comentar 👋</div></div>
     <div class="chat-input-row">
       <input type="text" id="chat-input" placeholder="Escribe un comentario…" maxlength="300">
-      <button id="chat-send">➤</button>
+      <button id="chat-send"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" aria-hidden="true"><use href="#ic-arrow-right"/></svg></button>
     </div>`;
 
   const videoMarkup = `
@@ -651,7 +652,7 @@ function renderLive() {
       <div class="live-info-compact">
         <span class="status-dot"></span>
         <strong>${esc(sesion.titulo)}</strong>
-        <span class="viewer-badge">👀 <span id="viewer-count">0</span></span>
+        <span class="viewer-badge">${Icon('eye')} <span id="viewer-count">0</span></span>
       </div>
       <div id="producto-slot"></div>
       <div class="chat-section">
@@ -665,7 +666,7 @@ function renderLive() {
       </div>
       <div class="live-info">
         <span class="status-badge live"><span class="status-dot"></span> EN VIVO</span>
-        <span class="viewer-badge">👀 <span id="viewer-count">0</span></span>
+        <span class="viewer-badge">${Icon('eye')} <span id="viewer-count">0</span></span>
         <h1>${esc(sesion.titulo)}</h1>
         <p class="vendor">Por ${esc(sesion.vendedor_nombre)}</p>
       </div>
@@ -713,7 +714,7 @@ function renderProductoActual() {
     if (!identity) { askIdentity(() => enviarMensaje(palabra)); return; }
     enviarMensaje(palabra);
     const textoOriginal = btn.textContent;
-    btn.textContent = '✅ Enviado';
+    btn.innerHTML = Icon('check') + ' Enviado';
     btn.disabled = true;
     setTimeout(() => { btn.textContent = textoOriginal; btn.disabled = false; }, 1200);
   });
@@ -750,9 +751,9 @@ function setupChat() {
     const msgs = Object.values(data).sort((a, b) => (a.ts || 0) - (b.ts || 0)).slice(-100);
     messagesEl.innerHTML = msgs.map(m => `
       <div class="chat-msg ${identity && m.author === identity.nombre ? 'mine' : ''}">
-        <span class="author">${esc(m.author)}${m.isVendor ? ' 🛍️' : ''}:</span>
+        <span class="author">${esc(m.author)}${m.isVendor ? ' ' + Icon('shopping-bag') : ''}:</span>
         <span class="text">${esc(m.text)}</span>
-        ${m.vendido ? '<span class="vendido-tag">✅ Vendido</span>' : ''}
+        ${m.vendido ? '<span class="vendido-tag">' + Icon('check') + ' Vendido</span>' : ''}
       </div>
     `).join('');
     messagesEl.scrollTop = messagesEl.scrollHeight;

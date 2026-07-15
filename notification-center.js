@@ -8,26 +8,26 @@
   let cache = { items: [], loaded: false };
 
   const TIPO_INFO = {
-    confirmacion_stock:     { grupo: 'pedidos', icono: '📦' },
-    sin_stock:               { grupo: 'pedidos', icono: '❌' },
-    solicitud_comprador:     { grupo: 'pedidos', icono: '🛍️' },
-    confirmacion_vendedor:   { grupo: 'pedidos', icono: '✅' },
-    sin_stock_vendedor:      { grupo: 'pedidos', icono: '❌' },
-    pedido_en_camino:        { grupo: 'pedidos', icono: '🚚' },
-    pedido_entregado:        { grupo: 'pedidos', icono: '📬' },
-    cuenta_aprobada:         { grupo: 'cuenta',  icono: '🎉' },
-    cuenta_rechazada:        { grupo: 'cuenta',  icono: '🚫' },
-    cuenta_suspendida:       { grupo: 'cuenta',  icono: '⛔' },
-    cuenta_reactivada:       { grupo: 'cuenta',  icono: '♻️' },
-    producto_aprobado:       { grupo: 'cuenta',  icono: '✅' },
-    producto_rechazado:      { grupo: 'cuenta',  icono: '🚫' },
-    producto_reportado:      { grupo: 'cuenta',  icono: '🚩' },
-    beneficiario_aprobado:   { grupo: 'cuenta',  icono: '💜' },
-    beneficiario_rechazado:  { grupo: 'cuenta',  icono: '🚫' },
-    plus_aprobado:           { grupo: 'cuenta',  icono: '⭐' },
-    plus_rechazado:          { grupo: 'cuenta',  icono: '⭐' },
-    donacion_recibida:       { grupo: 'cuenta',  icono: '🎁' },
-    donacion_retirada:       { grupo: 'cuenta',  icono: '📤' }
+    confirmacion_stock:     { grupo: 'pedidos', icono: Icon('box') },
+    sin_stock:               { grupo: 'pedidos', icono: Icon('x') },
+    solicitud_comprador:     { grupo: 'pedidos', icono: Icon('shopping-bag') },
+    confirmacion_vendedor:   { grupo: 'pedidos', icono: Icon('check') },
+    sin_stock_vendedor:      { grupo: 'pedidos', icono: Icon('x') },
+    pedido_en_camino:        { grupo: 'pedidos', icono: Icon('truck') },
+    pedido_entregado:        { grupo: 'pedidos', icono: Icon('mail') },
+    cuenta_aprobada:         { grupo: 'cuenta',  icono: Icon('sparkles') },
+    cuenta_rechazada:        { grupo: 'cuenta',  icono: Icon('ban') },
+    cuenta_suspendida:       { grupo: 'cuenta',  icono: Icon('ban') },
+    cuenta_reactivada:       { grupo: 'cuenta',  icono: Icon('refresh') },
+    producto_aprobado:       { grupo: 'cuenta',  icono: Icon('check') },
+    producto_rechazado:      { grupo: 'cuenta',  icono: Icon('ban') },
+    producto_reportado:      { grupo: 'cuenta',  icono: Icon('flag') },
+    beneficiario_aprobado:   { grupo: 'cuenta',  icono: Icon('heart-fill') },
+    beneficiario_rechazado:  { grupo: 'cuenta',  icono: Icon('ban') },
+    plus_aprobado:           { grupo: 'cuenta',  icono: Icon('star') },
+    plus_rechazado:          { grupo: 'cuenta',  icono: Icon('star') },
+    donacion_recibida:       { grupo: 'cuenta',  icono: Icon('gift') },
+    donacion_retirada:       { grupo: 'cuenta',  icono: Icon('send') }
   };
 
   function getIdentity() {
@@ -161,8 +161,8 @@
     modal.id = 'nc-modal';
     modal.innerHTML = `
       <div class="nc-header">
-        <p class="nc-title">🔔 Notificaciones</p>
-        <button class="nc-close" id="nc-close-btn">✕</button>
+        <p class="nc-title">${Icon('bell')} Notificaciones</p>
+        <button class="nc-close" id="nc-close-btn">${Icon('x')}</button>
       </div>
       <div class="nc-tabs">
         <button class="nc-tab active" data-tab="pedidos">Pedidos</button>
@@ -206,15 +206,15 @@
     if (!listEl) return;
     const items = cache.items.filter(n => (TIPO_INFO[n.tipo] || {}).grupo === currentTab || (!TIPO_INFO[n.tipo] && currentTab === 'pedidos'));
     if (!items.length) {
-      listEl.innerHTML = `<div class="nc-empty">Sin notificaciones por aquí todavía 👀</div>`;
+      listEl.innerHTML = `<div class="nc-empty">Sin notificaciones por aquí todavía ${Icon('eye')}</div>`;
       return;
     }
     listEl.innerHTML = items.map(n => {
-      const info = TIPO_INFO[n.tipo] || { icono: '🔔' };
+      const info = TIPO_INFO[n.tipo] || { icono: Icon('bell') };
       let meta = {};
       try { meta = n.meta ? JSON.parse(n.meta) : {}; } catch (_) {}
       const waBtn = meta.whatsappUrl
-        ? `<a class="nc-wa-btn" href="${meta.whatsappUrl}" target="_blank" rel="noopener" onclick="event.stopPropagation()">📲 Escribir por WhatsApp</a>`
+        ? `<a class="nc-wa-btn" href="${meta.whatsappUrl}" target="_blank" rel="noopener" onclick="event.stopPropagation()">${Icon('whatsapp')} Escribir por WhatsApp</a>`
         : '';
       return `
         <div class="nc-item ${n.leida ? '' : 'unread'}" data-id="${n.id}" data-url="${n.url || ''}">

@@ -870,7 +870,7 @@ if (typeof shareContent === 'function') {
 } else {
 
   navigator.clipboard?.writeText(`${text}\n${url}`)
-    .then(() => showTemporaryMessage?.('✓ Enlace copiado', 'success'))
+    .then(() => showTemporaryMessage?.('Enlace copiado', 'success'))
     .catch(() => {});
 }
 });
@@ -972,7 +972,13 @@ container.parentNode.insertBefore(paginationDiv, container.nextSibling);
 }
 function createPaginationButton(text, onClick) {
 const btn = document.createElement("button");
+if (text === "← Anterior") {
+btn.innerHTML = Icon('arrow-left') + " Anterior";
+} else if (text === "Siguiente →") {
+btn.innerHTML = "Siguiente " + Icon('arrow-right');
+} else {
 btn.textContent = text;
+}
 btn.onclick = onClick;
 if (text === "Siguiente →" && currentLooksPage < Math.ceil(allLooks.length / looksPerPage)) {
 btn.addEventListener('mouseenter', () => {

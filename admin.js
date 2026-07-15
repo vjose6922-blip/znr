@@ -290,7 +290,7 @@ pagination.innerHTML = "";
 if (totalPages <= 1) return;
 if (adminCurrentPage > 1) {
 const prevBtn = document.createElement("button");
-prevBtn.textContent = "← Anterior";
+prevBtn.innerHTML = Icon('arrow-left') + " Anterior";
 prevBtn.onclick = () => { adminCurrentPage--; renderAdminProductsWithFilters(); window.scrollTo({ top: 0, behavior: 'smooth' }); };
 pagination.appendChild(prevBtn);
 }
@@ -306,7 +306,7 @@ pagination.appendChild(btn);
 }
 if (adminCurrentPage < totalPages) {
 const nextBtn = document.createElement("button");
-nextBtn.textContent = "Siguiente →";
+nextBtn.innerHTML = "Siguiente " + Icon('arrow-right');
 nextBtn.onclick = () => { adminCurrentPage++; renderAdminProductsWithFilters(); window.scrollTo({ top: 0, behavior: 'smooth' }); };
 pagination.appendChild(nextBtn);
 }
@@ -393,7 +393,7 @@ function fillFormForEdit(product) {
     if (img3) img3.value = product.Imagen3 || "";
     
 
-    document.getElementById("product-form-title").textContent = "✏️ Editar Producto";
+    document.getElementById("product-form-title").innerHTML = Icon('edit') + " Editar Producto";
     
 
     if (product.Imagen1) {
@@ -989,7 +989,7 @@ const SECTIONS_HTML = `
 </section>
 <section class="admin-card" id="admin-pending-products-section">
 <div class="admin-card-header">
-<h2>⏳ Productos pendientes de aprobación</h2>
+<h2>${Icon('clock')} Productos pendientes de aprobación</h2>
 <button class="icon-button" onclick="AdminComunidad.loadPendingProducts()" title="Actualizar"></button>
 </div>
 <div id="admin-pending-list" style="margin-top:12px">
@@ -1303,7 +1303,7 @@ onConfirm: async () => {
 try {
 const data = await gasPost({ action: 'rechazarVendedor', uid, token: getToken() });
 if (!data.ok) throw new Error(data.error);
-if (typeof showTemporaryMessage === 'function') showTemporaryMessage('⏸ Vendedor suspendido', 'success');
+if (typeof showTemporaryMessage === 'function') showTemporaryMessage('Vendedor suspendido', 'success');
 loadVendors();
 } catch(err) {
 if (typeof showTemporaryMessage === 'function') showTemporaryMessage(' ' + err.message, 'error');

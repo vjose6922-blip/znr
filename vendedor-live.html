@@ -26,6 +26,7 @@
 <link rel="preload" href="styles.css" as="style">
 <link rel="stylesheet" href="styles.css">
 <script src="api-config.js"></script>
+<script src="icons.js" defer></script>
 <style>
   .live-wrap { max-width: 640px; margin: 0 auto; padding: 16px; padding-bottom: 100px; }
 
@@ -327,7 +328,7 @@
 <header class="app-header">
   <div class="header-left">
     <a href="vendedor.html" class="logo-touch-area" style="text-decoration:none;">
-      <span class="logo-mark">←</span>
+      <span class="logo-mark"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" aria-hidden="true"><use href="#ic-arrow-left"/></svg></span>
     </a>
     <div class="header-text">
       <h1 class="app-title">Transmitir en vivo</h1>
@@ -505,11 +506,11 @@ function mostrarEspectadores() {
   const overlay = document.createElement('div');
   overlay.className = 'sheet-overlay';
   const filas = lastViewers.length
-    ? lastViewers.map(v => `<div class="viewer-row"><span>👤 ${esc(v.nombre || 'Invitado')}</span><span class="hace">${esc(hace(v.ts))}</span></div>`).join('')
+    ? lastViewers.map(v => `<div class="viewer-row"><span>${Icon('user',{size:14})} ${esc(v.nombre || 'Invitado')}</span><span class="hace">${esc(hace(v.ts))}</span></div>`).join('')
     : '<div class="chat-empty">Nadie te está viendo en este momento.</div>';
   overlay.innerHTML = `
     <div class="sheet-panel">
-      <h2>👀 Te están viendo (${lastViewers.length})</h2>
+      <h2>${Icon('eye')} Te están viendo (${lastViewers.length})</h2>
       ${filas}
       <button class="cerrar" id="btn-cerrar-espectadores">Cerrar</button>
     </div>`;
@@ -568,7 +569,7 @@ async function iniciarPlayerSincronizado(containerId, youtubeId, fechaInicioMs) 
     <iframe id="${containerId}-iframe"
       src="https://www.youtube-nocookie.com/embed/${esc(youtubeId)}?enablejsapi=1&autoplay=1&mute=1&controls=0&disablekb=1&modestbranding=1&rel=0&playsinline=1&iv_load_policy=3&origin=${origin}"
       allow="autoplay; encrypted-media" allowfullscreen title="Video de la transmisión"></iframe>
-    <button class="sound-overlay" id="${containerId}-sound">🔊 Toca para activar el sonido</button>
+    <button class="sound-overlay" id="${containerId}-sound">${Icon('speaker')} Toca para activar el sonido</button>
   `;
   const YT = await loadYouTubeAPI();
   ytPlayer = new YT.Player(containerId + '-iframe', {
@@ -609,7 +610,7 @@ function renderNoSession() {
   document.body.classList.remove('live-active');
   wrap.innerHTML = `
     <div class="live-card center-text">
-      <div class="upsell-icon">🔒</div>
+      <div class="upsell-icon"><svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" aria-hidden="true"><use href="#ic-lock"/></svg></div>
       <h2>Necesitas iniciar sesión</h2>
       <p class="hint">Entra a tu cuenta de vendedor para transmitir en vivo.</p>
       <a href="vendedor.html" style="text-decoration:none;">
@@ -622,7 +623,7 @@ function renderNoPlus() {
   document.body.classList.remove('live-active');
   wrap.innerHTML = `
     <div class="live-card center-text">
-      <div class="upsell-icon">✨</div>
+      <div class="upsell-icon"><svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" aria-hidden="true"><use href="#ic-sparkles"/></svg></div>
       <h2>Transmitir en vivo es Plan Plus</h2>
       <p class="hint">Mejora tu cuenta a Plan Plus para poder transmitir en vivo a tus compradores, además de subir hasta 200 productos, logo de tienda y más.</p>
       <a href="notificaciones.html" style="text-decoration:none;">
@@ -650,7 +651,7 @@ async function renderCreateForm() {
             <label class="tipo-option-header">
               <input type="radio" name="tipo" value="grabado" checked>
               <span class="tipo-text">
-                <strong>🎥 Video grabado <span class="badge-recomendado">Recomendado</span></strong>
+                <strong><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" aria-hidden="true"><use href="#ic-video-camera"/></svg> Video grabado <span class="badge-recomendado">Recomendado</span></strong>
               </span>
             </label>
             <details class="tipo-detalle">
@@ -662,7 +663,7 @@ async function renderCreateForm() {
             <label class="tipo-option-header">
               <input type="radio" name="tipo" value="vivo">
               <span class="tipo-text">
-                <strong>🔴 Transmisión en vivo real</strong>
+                <strong><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" aria-hidden="true"><use href="#ic-signal"/></svg> Transmisión en vivo real</strong>
               </span>
             </label>
             <details class="tipo-detalle">
@@ -686,7 +687,7 @@ async function renderCreateForm() {
         <input type="text" id="f-youtube" placeholder="https://youtube.com/watch?v=... o /live/...">
         <div class="error-msg" id="f-youtube-error" style="display:none;"></div>
         <details class="tipo-detalle no-indent">
-          <summary>📌 Cómo evitar que salgan anuncios en tu video</summary>
+          <summary><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" aria-hidden="true"><use href="#ic-map-pin"/></svg> Cómo evitar que salgan anuncios en tu video</summary>
           <p>Los anuncios pausan la sincronización del video para quien los ve, y como no le salen a todos al mismo tiempo, tus compradores pueden verse desfasados entre ellos. Para evitarlo:</p>
           <ul>
             <li>Si tu canal tiene la monetización activada, entra a YouTube Studio → tu video → Monetización → Anuncios, y apágalos para ese video en específico.</li>
@@ -700,11 +701,11 @@ async function renderCreateForm() {
         <div class="orient-options">
           <label class="orient-chip selected" id="orient-h-label">
             <input type="radio" name="orientacion" value="horizontal" checked>
-            <span>▭ Horizontal</span>
+            <span><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" aria-hidden="true"><use href="#ic-landscape"/></svg> Horizontal</span>
           </label>
           <label class="orient-chip" id="orient-v-label">
             <input type="radio" name="orientacion" value="vertical">
-            <span>▯ Vertical</span>
+            <span><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" aria-hidden="true"><use href="#ic-portrait"/></svg> Vertical</span>
           </label>
         </div>
         <p class="hint" style="margin-top:6px;">Elige vertical si grabaste con el celular en modo retrato (como TikTok o Reels). Tus compradores van a ver el video más grande y el chat va a flotar encima con un fondo semitransparente.</p>
@@ -839,7 +840,7 @@ function renderScheduled() {
   const esGrabado = currentSesion.tipo !== 'vivo';
   wrap.innerHTML = `
     <div class="live-card">
-      <span class="status-badge scheduled">📅 PROGRAMADO</span>
+      <span class="status-badge scheduled"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" aria-hidden="true"><use href="#ic-calendar"/></svg> PROGRAMADO</span>
       <h2 style="margin-top:12px;">${esc(currentSesion.titulo)}</h2>
       <p class="hint">${esc(currentSesion.descripcion || 'Sin descripción')}</p>
 
@@ -853,7 +854,7 @@ function renderScheduled() {
         ? 'Comparte el link con tus compradores y cuando estés lista toca "Iniciar" — desde ahí todos verán tu video sincronizado.'
         : 'Cuando estés lista: abre YouTube, empieza tu transmisión en vivo, y regresa aquí a tocar "Iniciar".'}</p>
 
-      <button class="btn-live primary" id="btn-iniciar">🔴 Iniciar transmisión</button>
+      <button class="btn-live primary" id="btn-iniciar"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" aria-hidden="true"><use href="#ic-signal"/></svg> Iniciar transmisión</button>
       <div style="height:8px;"></div>
       <button class="btn-live ghost" id="btn-cancelar">Cancelar transmisión</button>
     </div>`;
@@ -915,10 +916,10 @@ async function renderLiveFallback() {
           </div>
           <div class="li-sub-line">
             <span class="li-desc">${esc(currentSesion.descripcion || 'Transmisión en vivo')}</span>
-            <button class="li-views" id="btn-viewers">👀 <span id="viewer-count">0</span></button>
+            <button class="li-views" id="btn-viewers">${Icon('eye')} <span id="viewer-count">0</span></button>
           </div>
         </div>
-        <button id="btn-copy" class="btn-copy-icon" title="Copiar link para compradores">🔗</button>
+        <button id="btn-copy" class="btn-copy-icon" title="Copiar link para compradores">${Icon('link')}</button>
       </div>
     </div>
 
@@ -932,12 +933,12 @@ async function renderLiveFallback() {
       <div class="chat-panel">
         <div class="chat-panel-header">
           <span>Chat</span>
-          <button id="btn-finalizar" class="btn-finalizar-mini">⏹️ Finalizar</button>
+          <button id="btn-finalizar" class="btn-finalizar-mini">${Icon('stop')} Finalizar</button>
         </div>
         <div class="chat-messages" id="chat-messages"><div class="chat-empty">Aún no hay mensajes.</div></div>
         <div class="chat-input-row">
           <input type="text" id="chat-input" placeholder="Responde a tus compradores…" maxlength="300">
-          <button id="chat-send">➤</button>
+          <button id="chat-send"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" aria-hidden="true"><use href="#ic-arrow-right"/></svg></button>
         </div>
       </div>
     </div>
@@ -945,8 +946,8 @@ async function renderLiveFallback() {
   document.getElementById('btn-copy').addEventListener('click', () => {
     navigator.clipboard.writeText(shareUrl).catch(() => {});
     const btn = document.getElementById('btn-copy');
-    btn.textContent = '✅';
-    setTimeout(() => { btn.textContent = '🔗'; }, 1500);
+    btn.innerHTML = Icon('check');
+    setTimeout(() => { btn.innerHTML = Icon('link'); }, 1500);
   });
   document.getElementById('btn-viewers').addEventListener('click', mostrarEspectadores);
   document.getElementById('btn-finalizar').addEventListener('click', () => {
@@ -986,10 +987,10 @@ async function renderLiveFull() {
           </div>
           <div class="li-sub-line">
             <span class="li-desc">${esc(descLinea)}</span>
-            <button class="li-views" id="btn-viewers">👀 <span id="viewer-count">0</span></button>
+            <button class="li-views" id="btn-viewers">${Icon('eye')} <span id="viewer-count">0</span></button>
           </div>
         </div>
-        <button id="btn-copy" class="btn-copy-icon" title="Copiar link para compradores">🔗</button>
+        <button id="btn-copy" class="btn-copy-icon" title="Copiar link para compradores">${Icon('link')}</button>
       </div>
     </div>
 
@@ -1004,7 +1005,7 @@ async function renderLiveFull() {
               <div class="chip-name">${esc(p.nombre)}</div>
             </div>
           `).join('') : (String(currentSesion.productos_ids || '').trim()
-              ? `<div class="chat-empty" style="text-align:left; font-size:11px; font-family:monospace; white-space:pre-wrap;">⚠️ Diagnóstico: guardaste productos pero no coinciden con tu catálogo cargado.
+              ? `<div class="chat-empty" style="text-align:left; font-size:11px; font-family:monospace; white-space:pre-wrap;">${Icon('error')} Diagnóstico: guardaste productos pero no coinciden con tu catálogo cargado.
 productos_ids guardado: "${esc(String(currentSesion.productos_ids))}"
 productos cargados (allProducts): ${allProducts.length}
 IDs cargados: ${esc(allProducts.map(p => p.id).join(', '))}</div>`
@@ -1016,12 +1017,12 @@ IDs cargados: ${esc(allProducts.map(p => p.id).join(', '))}</div>`
         <div class="chat-panel">
           <div class="chat-panel-header">
             <span>Chat</span>
-            <button id="btn-finalizar" class="btn-finalizar-mini">⏹️ Finalizar</button>
+            <button id="btn-finalizar" class="btn-finalizar-mini">${Icon('stop')} Finalizar</button>
           </div>
           <div class="chat-messages" id="chat-messages"><div class="chat-empty">Aún no hay mensajes.</div></div>
           <div class="chat-input-row">
             <input type="text" id="chat-input" placeholder="Responde…" maxlength="300">
-            <button id="chat-send">➤</button>
+            <button id="chat-send"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" aria-hidden="true"><use href="#ic-arrow-right"/></svg></button>
           </div>
         </div>
       </div>
@@ -1031,8 +1032,8 @@ IDs cargados: ${esc(allProducts.map(p => p.id).join(', '))}</div>`
   document.getElementById('btn-copy').addEventListener('click', () => {
     navigator.clipboard.writeText(shareUrl).catch(() => {});
     const btn = document.getElementById('btn-copy');
-    btn.textContent = '✅';
-    setTimeout(() => { btn.textContent = '🔗'; }, 1500);
+    btn.innerHTML = Icon('check');
+    setTimeout(() => { btn.innerHTML = Icon('link'); }, 1500);
   });
 
   document.getElementById('btn-viewers').addEventListener('click', mostrarEspectadores);
@@ -1095,7 +1096,7 @@ async function finalizarTransmision(finBtn) {
         ventas: JSON.stringify(ventas)
       }), 8000);
       if (resp.ok) {
-        alert(`✅ ${resp.added} venta(s) de ${resp.compradores} comprador(es) enviadas a tus notificaciones para confirmar.`);
+        alert(`${resp.added} venta(s) de ${resp.compradores} comprador(es) enviadas a tus notificaciones para confirmar.`);
       } else {
         alert('No se pudieron registrar las ventas: ' + (resp.error || 'error desconocido') + '. Puedes revisarlas manualmente en el chat.');
       }
@@ -1174,16 +1175,16 @@ function renderEnded(entregaUrl) {
   subtitle.textContent = 'Finalizada';
   wrap.innerHTML = `
     <div class="live-card center-text">
-      <div class="upsell-icon">✅</div>
+      <div class="upsell-icon"><svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" aria-hidden="true"><use href="#ic-check"/></svg></div>
       <h2>Transmisión finalizada</h2>
       <p class="hint">¡Buen trabajo! Cuando quieras, puedes crear una nueva transmisión.</p>
       ${entregaUrl ? `
-        <p class="hint" style="text-align:left;">📦 Ya puedes coordinar las entregas de esta transmisión. Comparte este link con tu repartidor si lo necesitas:</p>
+        <p class="hint" style="text-align:left;">${Icon('box')} Ya puedes coordinar las entregas de esta transmisión. Comparte este link con tu repartidor si lo necesitas:</p>
         <div class="share-box">
           <input type="text" readonly value="${esc(entregaUrl)}" id="entrega-url">
           <button id="btn-copy-entrega">Copiar</button>
         </div>
-        <button class="btn-live primary" id="btn-abrir-entregas">📦 Ver página de entregas</button>
+        <button class="btn-live primary" id="btn-abrir-entregas">${Icon('box')} Ver página de entregas</button>
         <div style="height:8px;"></div>
       ` : ''}
       <button class="btn-live ${entregaUrl ? 'ghost' : 'primary'}" id="btn-nueva">Crear nueva transmisión</button>
@@ -1240,9 +1241,9 @@ function setupChat(liveId, myName, isVendor) {
         </div>` : '';
       return `
       <div class="chat-msg ${m.author === myName ? 'mine' : ''}" data-key="${esc(key)}" style="${!m.isVendor ? 'cursor:pointer;' : ''}">
-        <span class="author">${esc(m.author)}${m.isVendor ? ' 🛍️' : ''}:</span>
+        <span class="author">${esc(m.author)}${m.isVendor ? ' ' + Icon('shopping-bag') : ''}:</span>
         <span class="text">${esc(m.text)}</span>
-        ${m.vendido ? '<span class="vendido-tag" style="display:inline-block;margin-left:6px;font-size:10px;font-weight:700;background:rgba(74,222,128,.15);color:#4ade80;padding:2px 7px;border-radius:999px;">✅ Vendido</span>' : ''}
+        ${m.vendido ? '<span class="vendido-tag" style="display:inline-block;margin-left:6px;font-size:10px;font-weight:700;background:rgba(74,222,128,.15);color:#4ade80;padding:2px 7px;border-radius:999px;">${Icon('check')} Vendido</span>' : ''}
         ${prodTag}
       </div>`;
     }).join('');

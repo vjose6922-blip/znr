@@ -537,11 +537,11 @@ const bar = document.getElementById('active-filter-chips');
 if (!bar) return;
 const chips = [];
 const genderLabels = { HOMBRE:' Caballero', MUJER:' Dama' };
-const sortLabels  = { 'price-asc':'Precio ↑', 'price-desc':'Precio ↓' };
+const sortLabels  = { 'price-asc':'Precio: menor a mayor', 'price-desc':'Precio: mayor a menor' };
 if (genderValue)  chips.push({ label: genderLabels[genderValue] || genderValue, clear: () => { document.getElementById('gender-filter').value = ''; applyFilters(); } });
 if (categoryValue) chips.push({ label: ` ${categoryValue}`, clear: () => { document.getElementById('category-filter').value = ''; applyFilters(); } });
 if (sizeValue)    chips.push({ label: ` ${sizeValue}`, clear: () => { document.getElementById('size-filter').value = ''; applyFilters(); } });
-if (sortValue)  chips.push({ label: `↕ ${sortLabels[sortValue] || sortValue}`, clear: () => { document.getElementById('sort-select').value = ''; applyFilters(); } });
+if (sortValue)  chips.push({ label: `${Icon('arrow-up-down')} ${sortLabels[sortValue] || sortValue}`, clear: () => { document.getElementById('sort-select').value = ''; applyFilters(); } });
 if (searchValue)  chips.push({ label: ` "${searchValue}"`, clear: () => { document.getElementById('search-input').value = ''; applyFilters(); } });
 if (!chips.length) { bar.style.display = 'none'; bar.innerHTML = ''; return; }
 bar.style.display = 'flex';
@@ -602,7 +602,7 @@ function renderPagination() {
   // Botón Anterior
   if (currentPageGlobal > 1) {
     const prevBtn = document.createElement("button");
-    prevBtn.textContent = "← Anterior";
+    prevBtn.innerHTML = Icon('arrow-left') + " Anterior";
     prevBtn.onclick = () => {
       fetchProducts(false, currentPageGlobal - 1, currentFilters);
       window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -631,7 +631,7 @@ function renderPagination() {
   // Botón Siguiente
   if (currentPageGlobal < totalPages) {
     const nextBtn = document.createElement("button");
-    nextBtn.textContent = "Siguiente →";
+    nextBtn.innerHTML = "Siguiente " + Icon('arrow-right');
     nextBtn.onclick = () => {
       fetchProducts(false, currentPageGlobal + 1, currentFilters);
       window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -886,7 +886,7 @@ window.history.replaceState({}, document.title, window.location.pathname);
 alert(" El pago no pudo completarse.\n\nPor favor, intenta nuevamente.");
 window.history.replaceState({}, document.title, window.location.pathname);
 } else if (paymentStatus === "pending") {
-alert("⏳ Tu pago está siendo procesado.\n\nTe notificaremos cuando se confirme.");
+alert("Tu pago está siendo procesado.\n\nTe notificaremos cuando se confirme.");
 window.history.replaceState({}, document.title, window.location.pathname);
 }
 }

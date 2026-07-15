@@ -500,7 +500,7 @@ ${(n.items || []).map(it => `
 ${n.clientPhone ? `<div style="font-size:12px;color:${esConfirmada ? '#4d8064' : '#8a7238'};margin-top:4px;">Cliente: +52 ${esc2(n.clientPhone)}</div>` : ''}
 <div style="display:flex;gap:8px;margin-top:10px;">
 ${esConfirmada
-? `<button class="vsn-delivered-btn" style="flex:1;padding:8px;border:none;border-radius:10px;background:#16a34a;color:#fff;font-size:12.5px;font-weight:700;cursor:pointer;">📬 Marcar como entregado</button>`
+? `<button class="vsn-delivered-btn" style="flex:1;padding:8px;border:none;border-radius:10px;background:#16a34a;color:#fff;font-size:12.5px;font-weight:700;cursor:pointer;"  >${Icon('mail')} Marcar como entregado</button>`
 : `<button class="vsn-confirm-btn" style="flex:1;padding:8px;border:none;border-radius:10px;background:#16a34a;color:#fff;font-size:12.5px;font-weight:700;cursor:pointer;">Confirmar (sí hay stock)</button>
 <button class="vsn-nostock-btn" style="flex:1;padding:8px;border:none;border-radius:10px;background:#fff;border:1.5px solid #dc2626;color:#dc2626;font-size:12.5px;font-weight:700;cursor:pointer;">Sin stock</button>`}
 </div>
@@ -579,8 +579,8 @@ function renderInformeSemanal(informe) {
 
   el.innerHTML = `
     <div class="informe-semanal-flotante" id="informe-semanal-flotante">
-      <button type="button" class="informe-semanal-cerrar" id="informe-semanal-cerrar-btn" aria-label="Cerrar">✕</button>
-      <div class="titulo">📊 Informe semanal</div>
+      <button type="button" class="informe-semanal-cerrar" id="informe-semanal-cerrar-btn" aria-label="Cerrar">${Icon('x')}</button>
+      <div class="titulo">${Icon('stats')} Informe semanal</div>
       <div class="texto">${_escapeHtmlInforme(informe.resumen_texto || '')}</div>
     </div>
   `;
@@ -1321,7 +1321,7 @@ window.completarAnuncioConIA = async function() {
     return;
   }
 
-  if (btn) { btn.disabled = true; btn.textContent = '☁ Generando anuncio...'; }
+  if (btn) { btn.disabled = true; btn.innerHTML = Icon('refresh') + ' Generando anuncio...'; }
 
   try {
     const res = await apiFetch({
@@ -1345,7 +1345,7 @@ window.completarAnuncioConIA = async function() {
     console.error('[completarAnuncioIA] Error:', err);
     showTemporaryMessage('Error de red al generar el anuncio.', 'error');
   } finally {
-    if (btn) { btn.disabled = false; btn.textContent = '✨ Completar anuncio con IA'; }
+    if (btn) { btn.disabled = false; btn.innerHTML = Icon('sparkles') + ' Completar anuncio con IA'; }
   }
 };
 
@@ -1355,7 +1355,7 @@ window.usarSugerenciaIA = function() {
   if (sug.nombre) document.getElementById('pNombre').value = sug.nombre;
   if (sug.descripcion) document.getElementById('pDescripcion').value = sug.descripcion;
   document.getElementById('ia-sugerencia-box').style.display = 'none';
-  showTemporaryMessage('✨ Anuncio actualizado con la sugerencia de IA', 'success');
+  showTemporaryMessage('Anuncio actualizado con la sugerencia de IA', 'success');
 };
 
 window.descartarSugerenciaIA = function() {
@@ -1742,7 +1742,7 @@ return `
 <span> ${escapeHtml(v.telefono)}</span>
 <a class="vp-wa-link" href="${waUrl}" target="_blank" rel="noopener">WhatsApp</a>
 ${v.estado === 'pendiente'
-? '<span class="vp-badge-pendiente">⏳ pendiente</span>'
+? `<span class="vp-badge-pendiente">${Icon('clock')} pendiente</span>`
 : '<span style="display:inline-block;padding:2px 10px;border-radius:20px;font-size:11px;font-weight:700;background:#e8f5e9;color:#2e7d32"> activo</span>'
 }
 ${confiableBadge}
@@ -1987,7 +1987,7 @@ function openSettingsModal() {
   const planEl = document.getElementById('settings-header-plan');
   if (esPlus) {
     const vence = vendorSession.planVence ? new Date(vendorSession.planVence).toLocaleDateString('es-MX', {day:'2-digit',month:'short',year:'numeric'}) : '—';
-    planEl.innerHTML = '<span style="background:#a855f7;color:#fff;padding:2px 8px;border-radius:999px;font-size:.7rem;font-weight:700;">⭐ Plus</span> <span style="color:#aaa;font-size:.75rem;">· vence ' + vence + '</span>';
+    planEl.innerHTML = '<span style="background:#a855f7;color:#fff;padding:2px 8px;border-radius:999px;font-size:.7rem;font-weight:700;">' + Icon('star') + ' Plus</span> <span style="color:#aaa;font-size:.75rem;">· vence ' + vence + '</span>';
   } else {
     planEl.innerHTML = '<span style="background:#e5e7eb;color:#555;padding:2px 8px;border-radius:999px;font-size:.7rem;font-weight:600;">Free</span>';
   }
@@ -1997,7 +1997,7 @@ function openSettingsModal() {
     if (esPlus) {
       const vence = vendorSession.planVence ? new Date(vendorSession.planVence).toLocaleDateString('es-MX', {day:'2-digit',month:'long',year:'numeric'}) : '—';
       planInfoEl.innerHTML = '<div style="background:#f5f3ff;border-radius:10px;padding:12px 14px;">' +
-        '<p style="margin:0;font-weight:700;color:#7c3aed;">⭐ Plan Plus activo</p>' +
+        '<p style="margin:0;font-weight:700;color:#7c3aed;">' + Icon('star') + ' Plan Plus activo</p>' +
         '<p style="margin:4px 0 0;color:#6b7280;font-size:.82rem;">Vence el ' + vence + '</p></div>';
     } else {
       planInfoEl.innerHTML = '<div style="background:#f9f9f9;border-radius:10px;padding:12px 14px;">' +
@@ -2032,11 +2032,11 @@ function openSettingsModal() {
       showLoader('Subiendo foto...');
       try {
         await uploadVendorLogo(file);
-        showTemporaryMessage('✅ Foto actualizada', 'success');
+        showTemporaryMessage('Foto actualizada', 'success');
         updateVendorAvatar();
         openSettingsModal();
       } catch(err) {
-        showTemporaryMessage('⚠️ ' + err.message, 'error');
+        showTemporaryMessage(err.message, 'error');
       } finally {
         hideLoader();
         photoInput.value = '';
@@ -2118,7 +2118,7 @@ async function guardarPerfil() {
     document.getElementById('settings-header-name').textContent = nombre;
 
     msg.style.color = '#16a34a';
-    msg.textContent = '✅ Cambios guardados';
+    msg.innerHTML = Icon('check') + ' Cambios guardados';
 
   } catch(e) {
     msg.style.color = '#dc2626';
@@ -2144,7 +2144,7 @@ btn.disabled = true; btn.textContent = 'Cambiando...';
 try {
 const res = await apiCall({ action: 'cambiarPasswordVendedor', vendorToken: vendorSession.token, vendorUid: vendorSession.uid, oldPassword: oldP, newPassword: newP });
 if (!res.ok) { msg.style.color = '#dc2626'; msg.textContent = res.error || 'Error al cambiar contraseña.'; return; }
-msg.style.color = '#16a34a'; msg.textContent = '✅ Contraseña actualizada';
+msg.style.color = '#16a34a'; msg.innerHTML = Icon('check') + ' Contraseña actualizada';
 document.getElementById('settings-pwd-old').value = '';
 document.getElementById('settings-pwd-new').value = '';
 document.getElementById('settings-pwd-confirm').value = '';
@@ -2170,16 +2170,16 @@ window.eliminarMiCuenta = async function() {
   });
 
   const paso1 = await confirmar({
-    title: '⚠️ Eliminar mi cuenta',
+    title: 'Eliminar mi cuenta',
     message: 'Esto borrará permanentemente tus productos, imágenes, sesiones en vivo, entregas y tu cuenta de vendedor. No hay forma de deshacerlo. ¿Deseas continuar?',
-    icon: '', confirmText: 'Continuar', cancelText: 'Cancelar'
+    icon: 'trash', confirmText: 'Continuar', cancelText: 'Cancelar'
   });
   if (!paso1) return;
 
   const paso2 = await confirmar({
-    title: '🚨 Última confirmación',
+    title: 'Última confirmación',
     message: 'Al confirmar, tu cuenta y todos tus datos se eliminarán de inmediato y no podrás recuperarlos. ¿Eliminar definitivamente?',
-    icon: '', confirmText: 'Sí, eliminar todo', cancelText: 'Cancelar'
+    icon: 'error', confirmText: 'Sí, eliminar todo', cancelText: 'Cancelar'
   });
   if (!paso2) return;
 
@@ -2187,10 +2187,10 @@ window.eliminarMiCuenta = async function() {
   try {
     const res = await apiCall({ action: 'eliminarCuentaVendedor', vendorToken: vendorSession.token, uid: vendorSession.uid });
     if (!res.ok) throw new Error(res.error || 'No se pudo eliminar la cuenta');
-    showTemporaryMessage('🗑️ Tu cuenta fue eliminada por completo', 'info');
+    showTemporaryMessage('Tu cuenta fue eliminada por completo', 'info');
     setTimeout(() => { vendorLogout(); }, 1200);
   } catch (err) {
-    showTemporaryMessage('❌ ' + err.message, 'error');
+    showTemporaryMessage(err.message, 'error');
   } finally {
     hideLoader();
   }
@@ -2206,8 +2206,8 @@ window.verMisEstadisticas = async function() {
     modal.style.cssText = 'display:flex;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9999;align-items:center;justify-content:center;';
     modal.innerHTML = `
       <div style="background:#fff;border-radius:20px;padding:24px;max-width:420px;width:90%;max-height:82vh;overflow-y:auto;position:relative;">
-        <button id="mis-stats-close" style="position:absolute;top:14px;right:14px;background:#f0f0f5;border:none;width:32px;height:32px;border-radius:50%;font-size:16px;cursor:pointer;color:#666;">✕</button>
-        <h3 style="margin:0 0 16px;font-size:1.1rem;">📊 Mis estadísticas</h3>
+        <button id="mis-stats-close" style="position:absolute;top:14px;right:14px;background:#f0f0f5;border:none;width:32px;height:32px;border-radius:50%;font-size:16px;cursor:pointer;color:#666;">${Icon('x')}</button>
+        <h3 style="margin:0 0 16px;font-size:1.1rem;">${Icon('stats')} Mis estadísticas</h3>
         <div id="mis-stats-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;">
           <p style="grid-column:span 2;text-align:center;color:#aaa;">Cargando...</p>
         </div>
@@ -2267,7 +2267,7 @@ window.verMisEstadisticas = async function() {
     if (rData.ok && rData.total > 0) {
       ratingSlot.innerHTML = `
         <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:14px;padding:12px;text-align:center;">
-          <div style="font-size:20px;font-weight:800;color:#b45309;">⭐ ${rData.promedio}</div>
+          <div style="font-size:20px;font-weight:800;color:#b45309;">${Icon('star')} ${rData.promedio}</div>
           <div style="font-size:11px;color:#92400e;">${rData.total} calificación${rData.total === 1 ? '' : 'es'} de compradores</div>
         </div>`;
     } else {
@@ -2288,14 +2288,14 @@ const sol = res.solicitud;
 if (!sol) {
 area.innerHTML = `<button onclick="solicitarPlanPlus('${areaId}')" class="btn-solicitar-plus"
 style="display:inline-flex;align-items:center;gap:6px;padding:9px 16px;border-radius:999px;border:none;background:linear-gradient(135deg,#7c3aed,#a855f7);color:#fff;font-size:13px;font-weight:700;cursor:pointer;">
-⭐ Solicitar plan Plus
+${Icon('star')} Solicitar plan Plus
 </button>`;
 return;
 }
 
 if (sol.estado === 'pending') {
 area.innerHTML = `<div style="background:#f3e8ff;border-radius:10px;padding:10px 14px;font-size:12.5px;color:#7c3aed;font-weight:600;">
-⏳ Solicitud enviada — en espera de aprobación del administrador.
+${Icon('clock')} Solicitud enviada — en espera de aprobación del administrador.
 </div>`;
 return;
 }
@@ -2304,10 +2304,10 @@ if (sol.estado === 'approved') {
 let mpBtn = sol.mp_link
 ? `<a href="${sol.mp_link}" target="_blank" rel="noopener"
 style="display:inline-flex;align-items:center;gap:6px;margin-top:8px;padding:8px 16px;border-radius:999px;background:#00b1ea;color:#fff;font-size:12.5px;font-weight:700;text-decoration:none;">
-💳 Pagar $49 con Mercado Pago
+${Icon('credit-card')} Pagar $49 con Mercado Pago
 </a>` : '';
 area.innerHTML = `<div style="background:#f0fdf4;border:1px solid #86efac;border-radius:12px;padding:12px 14px;">
-<p style="margin:0 0 4px;color:#16a34a;font-weight:700;font-size:13px;">✅ ¡Plan Plus aprobado!</p>
+<p style="margin:0 0 4px;color:#16a34a;font-weight:700;font-size:13px;">${Icon('check')} ¡Plan Plus aprobado!</p>
 <p style="margin:0 0 8px;color:#374151;font-size:12px;">Realiza tu pago para activarlo. El admin lo confirmará.</p>
 <p style="margin:0 0 2px;color:#555;font-size:12px;">Clabe interbancaria:</p>
 <p style="margin:0 0 8px;font-size:15px;font-weight:700;letter-spacing:.05em;color:#111;font-family:monospace;">${sol.clabe}</p>
@@ -2320,7 +2320,7 @@ return;
 if (sol.estado === 'denied') {
 const motivo = sol.motivo ? `<p style="margin:4px 0 0;color:#6b7280;font-size:12px;">Motivo: ${escapeHtml(sol.motivo)}</p>` : '';
 area.innerHTML = `<div style="background:#fef2f2;border:1px solid #fca5a5;border-radius:12px;padding:12px 14px;">
-<p style="margin:0;color:#dc2626;font-weight:700;font-size:13px;">❌ Solicitud rechazada</p>
+<p style="margin:0;color:#dc2626;font-weight:700;font-size:13px;">${Icon('x')} Solicitud rechazada</p>
 ${motivo}
 <button onclick="solicitarPlanPlus('${areaId}')" style="margin-top:10px;display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:999px;border:none;background:linear-gradient(135deg,#7c3aed,#a855f7);color:#fff;font-size:12px;font-weight:700;cursor:pointer;">
 Volver a solicitar
@@ -2329,7 +2329,7 @@ Volver a solicitar
 }
 } catch(e) {
 console.warn('loadPlusSolicitudVendedor:', e);
-area.innerHTML = '<p style="color:#ef4444;font-size:.78rem;margin:0;">⚠️ No se pudo cargar. Cierra y vuelve a abrir esta sección.</p>';
+area.innerHTML = '<p style="color:#ef4444;font-size:.78rem;margin:0;">' + Icon('error') + ' No se pudo cargar. Cierra y vuelve a abrir esta sección.</p>';
 }
 }
 
@@ -2340,15 +2340,15 @@ if (btn) { btn.disabled = true; btn.textContent = 'Enviando...'; }
 try {
 const res = await apiCall({ action: 'solicitarPlanPlus', vendorToken: vendorSession.token });
 if (!res.ok) {
-showTemporaryMessage('⚠️ ' + (res.error || 'Error al enviar'), 'error');
-if (btn) { btn.disabled = false; btn.innerHTML = '⭐ Solicitar plan Plus'; }
+showTemporaryMessage((res.error || 'Error al enviar'), 'error');
+if (btn) { btn.disabled = false; btn.innerHTML = Icon('star') + ' Solicitar plan Plus'; }
 return;
 }
-showTemporaryMessage('✅ Solicitud enviada', 'success');
+showTemporaryMessage('Solicitud enviada', 'success');
 loadPlusSolicitudVendedor(areaId);
 } catch(e) {
-showTemporaryMessage('⚠️ Error de red', 'error');
-if (btn) { btn.disabled = false; btn.innerHTML = '⭐ Solicitar plan Plus'; }
+showTemporaryMessage('Error de red', 'error');
+if (btn) { btn.disabled = false; btn.innerHTML = Icon('star') + ' Solicitar plan Plus'; }
 }
 }
 
@@ -2387,7 +2387,7 @@ window.toggleSettingsSection = function(btn) {
 // ── Modal de gestión de donaciones ──────────────────────────
 window.openDonarProductosModal = async function(productoId) {
   const prod = window._vendorProducts && window._vendorProducts.find(p => String(p.id) === String(productoId));
-  if (!prod) { showTemporaryMessage('⚠️ Recarga tus productos primero', 'error'); return; }
+  if (!prod) { showTemporaryMessage('Recarga tus productos primero', 'error'); return; }
 
   const donado = prod.donado === true || prod.donado === 'TRUE' || prod.donado === 'true';
   const esc = s => String(s||'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -2405,7 +2405,7 @@ if (prod.imagen1) {
   modal.innerHTML = `
     <div style="background:#fff;border-radius:20px 20px 0 0;width:100%;max-width:480px;padding:0 0 36px;">
       <div style="padding:16px 20px 12px;border-bottom:1px solid #f0f0f0;display:flex;align-items:center;justify-content:space-between;">
-        <h2 style="margin:0;font-size:1rem;font-weight:800;">❤️ Donar producto</h2>
+        <h2 style="margin:0;font-size:1rem;font-weight:800;">${Icon('heart-fill')} Donar producto</h2>
         <button id="btn-close-donar" style="background:none;border:none;font-size:22px;cursor:pointer;color:#888;line-height:1;">×</button>
       </div>
       <div style="padding:16px 20px 0;">
@@ -2415,7 +2415,7 @@ if (prod.imagen1) {
           <div style="flex:1;min-width:0;">
             <div style="font-size:.88rem;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(prod.nombre||'')}</div>
             <div style="font-size:.75rem;color:#888;">$${Number(prod.precio||0).toLocaleString()} · Stock: ${prod.stock||0}</div>
-            ${donado ? '<div style="font-size:.72rem;color:#f97316;margin-top:1px;">❤️ Donando actualmente</div>' : ''}
+            ${donado ? '<div style="font-size:.72rem;color:#f97316;margin-top:1px;">' + Icon('heart-fill') + ' Donando actualmente</div>' : ''}
           </div>
         </div>
 
@@ -2432,7 +2432,7 @@ if (prod.imagen1) {
           <option value="">Cargando beneficiarios…</option>
         </select>
         <button id="btn-donar-asignar" style="width:100%;padding:13px;border:none;border-radius:12px;background:linear-gradient(135deg,#f97316,#ef4444);color:#fff;font-weight:800;font-size:.9rem;cursor:pointer;">
-          ❤️ Asignar donación
+          ${Icon('heart-fill')} Asignar donación
         </button>`}
 
       </div>
@@ -2444,7 +2444,7 @@ if (prod.imagen1) {
 
   const showMsg = (txt, ok) => {
     const el = document.getElementById('donar-msg');
-    el.textContent = txt; el.style.display = 'block';
+    el.innerHTML = (ok ? Icon('check') : Icon('error')) + ' <span></span>'; el.querySelector('span').textContent = txt; el.style.display = 'block';
     el.style.background = ok ? '#dcfce7' : '#fee2e2';
     el.style.color = ok ? '#166534' : '#991b1b';
   };
@@ -2455,9 +2455,9 @@ if (prod.imagen1) {
       btn.disabled = true; btn.textContent = 'Quitando…';
       try {
         const data = await apiFetch({ action:'desasignarDonacion', producto_id: String(productoId), vendor_token: vendorSession.token });
-        if (data.ok) { showMsg('✅ Donación removida', true); window.invalidateVendorProductsCache(); loadMyProducts(true); setTimeout(() => modal.remove(), 1400); }
-        else { showMsg('⚠️ ' + (data.error||'Error'), false); btn.disabled = false; btn.textContent = 'Quitar donación'; }
-      } catch(e) { showMsg('⚠️ Error de conexión', false); btn.disabled = false; btn.textContent = 'Quitar donación'; }
+        if (data.ok) { showMsg('Donación removida', true); window.invalidateVendorProductsCache(); loadMyProducts(true); setTimeout(() => modal.remove(), 1400); }
+        else { showMsg((data.error||'Error'), false); btn.disabled = false; btn.textContent = 'Quitar donación'; }
+      } catch(e) { showMsg('Error de conexión', false); btn.disabled = false; btn.textContent = 'Quitar donación'; }
     });
   } else {
     const selEl = document.getElementById('donar-ben-select');
@@ -2473,7 +2473,7 @@ const benData = await window.apiFetch({ action:'obtenerBeneficiariosAprobados' }
 
     if (!benData.ok) {
       window.debugPanel.log('DEBUG 4', 'benData.ok = false');
-      selEl.innerHTML = '<option value="">⚠️ No se pudo cargar — toca para reintentar</option>';
+      selEl.innerHTML = '<option value="">' + Icon('error') + ' No se pudo cargar — toca para reintentar</option>';
       return;
     }
 
@@ -2492,7 +2492,7 @@ const benData = await window.apiFetch({ action:'obtenerBeneficiariosAprobados' }
     }
   } catch (e) {
     window.debugPanel.log('DEBUG ERROR', String(e && e.message ? e.message : e));
-    selEl.innerHTML = '<option value="">⚠️ Error de conexión — toca para reintentar</option>';
+    selEl.innerHTML = '<option value="">' + Icon('error') + ' Error de conexión — toca para reintentar</option>';
   }
 };
     await cargarBeneficiarios();
@@ -2506,12 +2506,12 @@ const benData = await window.apiFetch({ action:'obtenerBeneficiariosAprobados' }
         const payload = { action:'asignarDonacion', producto_id: String(productoId), beneficiario_id: benId, vendor_token: vendorSession.token };
         window.debugPanel && window.debugPanel.log('DEBUG PAYLOAD', JSON.stringify(payload));
         const data = await apiFetch(payload);
-        if (data.ok) { showMsg('✅ Donación asignada correctamente', true); window.invalidateVendorProductsCache(); loadMyProducts(true); setTimeout(() => modal.remove(), 1400); }
-        else { showMsg('⚠️ ' + (data.error||'Error'), false); btn.disabled = false; btn.textContent = '❤️ Asignar donación'; }
+        if (data.ok) { showMsg('Donación asignada correctamente', true); window.invalidateVendorProductsCache(); loadMyProducts(true); setTimeout(() => modal.remove(), 1400); }
+        else { showMsg((data.error||'Error'), false); btn.disabled = false; btn.innerHTML = Icon('heart-fill') + ' Asignar donación'; }
       } catch(e) {
         window.debugPanel && window.debugPanel.log('DEBUG ERROR', e.message || String(e));
-        showMsg('⚠️ Error de conexión: ' + (e.message||''), false);
-        btn.disabled = false; btn.textContent = '❤️ Asignar donación';
+        showMsg('Error de conexión: ' + (e.message||''), false);
+        btn.disabled = false; btn.innerHTML = Icon('heart-fill') + ' Asignar donación';
       }
     });
   }
@@ -2529,7 +2529,7 @@ window.openGestionarDonacionesModal = async function() {
   modal.innerHTML = `
     <div style="background:#fff;border-radius:20px 20px 0 0;width:100%;max-width:480px;max-height:88vh;overflow-y:auto;padding:0 0 32px;">
       <div style="position:sticky;top:0;background:#fff;z-index:1;padding:16px 20px 12px;border-bottom:1px solid #f0f0f0;display:flex;align-items:center;justify-content:space-between;">
-        <h2 style="margin:0;font-size:1rem;font-weight:800;">❤️ Gestionar donaciones</h2>
+        <h2 style="margin:0;font-size:1rem;font-weight:800;">${Icon('heart-fill')} Gestionar donaciones</h2>
         <button id="btn-close-gestionar" style="background:none;border:none;font-size:22px;cursor:pointer;color:#888;line-height:1;">×</button>
       </div>
       <div id="gestionar-lista" style="padding:32px 20px;text-align:center;color:#aaa;">Actualizando productos…</div>
@@ -2553,7 +2553,7 @@ window.openGestionarDonacionesModal = async function() {
   lista.style.padding = '14px 20px 0';
   lista.style.textAlign = '';
   lista.innerHTML = `
-        <p style="font-size:.78rem;color:#888;margin:0 0 12px;line-height:1.5;">Toca ❤️ en cualquier producto para asignar o quitar una donación.</p>
+        <p style="font-size:.78rem;color:#888;margin:0 0 12px;line-height:1.5;">Toca ${Icon('heart-fill')} en cualquier producto para asignar o quitar una donación.</p>
         <div>
           ${productos.length === 0
             ? '<p style="color:#aaa;text-align:center;padding:24px 0;">No tienes productos en Comunidad.<br><small>Publica uno primero desde el formulario.</small></p>'
@@ -2565,13 +2565,13 @@ window.openGestionarDonacionesModal = async function() {
                   <div style="flex:1;min-width:0;">
                     <div style="font-size:.83rem;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(p.nombre||'')}</div>
                     <div style="font-size:.72rem;color:#888;">$${Number(p.precio||0).toLocaleString()} · Stock: ${p.stock||0}</div>
-                    ${donado ? '<div style="font-size:.7rem;color:#f97316;margin-top:1px;">❤️ Donando</div>' : '<div style="font-size:.7rem;color:#bbb;margin-top:1px;">Sin asignar</div>'}
+                    ${donado ? '<div style="font-size:.7rem;color:#f97316;margin-top:1px;">' + Icon('heart-fill') + ' Donando</div>' : '<div style="font-size:.7rem;color:#bbb;margin-top:1px;">Sin asignar</div>'}
                   </div>
                   <button onclick="document.getElementById('modal-gestionar-donaciones').remove();openDonarProductosModal(${p.id})"
                     style="flex-shrink:0;width:36px;height:36px;border-radius:50%;border:none;
                     background:${donado ? 'linear-gradient(135deg,#f97316,#ef4444)' : '#f5f5f8'};
                     color:${donado ? '#fff' : '#aaa'};font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;">
-                    ❤️
+                    ${Icon('heart-fill')}
                   </button>
                 </div>`;
               }).join('')
@@ -2591,7 +2591,7 @@ window.openEntregasLiveModal = async function() {
   modal.innerHTML = `
     <div style="background:#fff;border-radius:20px 20px 0 0;width:100%;max-width:480px;max-height:88vh;overflow-y:auto;padding:0 0 32px;">
       <div style="position:sticky;top:0;background:#fff;z-index:1;padding:16px 20px 12px;border-bottom:1px solid #f0f0f0;display:flex;align-items:center;justify-content:space-between;">
-        <h2 style="margin:0;font-size:1rem;font-weight:800;">📦 Entregas de tus transmisiones</h2>
+        <h2 style="margin:0;font-size:1rem;font-weight:800;">${Icon('box')} Entregas de tus transmisiones</h2>
         <button id="btn-close-entregas-live" style="background:none;border:none;font-size:22px;cursor:pointer;color:#888;line-height:1;">×</button>
       </div>
       <div id="entregas-live-lista" style="padding:32px 20px;text-align:center;color:#aaa;">Cargando…</div>
@@ -2628,7 +2628,7 @@ window.openEntregasLiveModal = async function() {
         <div style="font-size:.78rem;color:#888;margin:4px 0 8px;">${entregados}/${total} entregado(s) · ${pct}%</div>
         <a href="${esc(url)}" target="_blank" rel="noopener"
           style="display:inline-block;padding:8px 14px;border-radius:8px;background:#fff7ed;border:1.5px solid #fb923c;color:#c2410c;font-size:.8rem;font-weight:700;text-decoration:none;">
-          Ver / actualizar entregas →
+          Ver / actualizar entregas ${Icon('arrow-right',{size:13})}
         </a>
       </div>`;
     }).join('');
@@ -2668,24 +2668,24 @@ async function loadBeneficiarioDonaciones() {
     const miBen = await buscarMiPerfilBeneficiario();
     const perfilHtml = miBen ? `
       <div style="margin-top:12px;padding:12px;background:#fff7ed;border:1px solid #fed7aa;border-radius:12px;">
-        <p style="margin:0 0 6px;font-size:.78rem;font-weight:800;color:#c2410c;">❤️ Tu perfil de fundación</p>
+        <p style="margin:0 0 6px;font-size:.78rem;font-weight:800;color:#c2410c;">${Icon('heart-fill')} Tu perfil de fundación</p>
         ${[miBen.imagen1, miBen.imagen2, miBen.imagen3].filter(Boolean).length
           ? `<div style="display:flex;gap:6px;overflow-x:auto;margin-bottom:8px;">${[miBen.imagen1, miBen.imagen2, miBen.imagen3].filter(Boolean).map(u=>`<img src="${esc(u)}" style="height:64px;border-radius:8px;object-fit:cover;flex-shrink:0;">`).join('')}</div>`
           : ''}
         <div style="font-size:.85rem;font-weight:700;">${esc(miBen.nombre)}</div>
         ${miBen.organizacion ? `<div style="font-size:.75rem;color:#888;margin-bottom:4px;">${esc(miBen.organizacion)}</div>` : ''}
-        ${miBen.ubicacion ? `<div style="font-size:.75rem;color:#555;margin:2px 0;">📍 ${esc(miBen.ubicacion)}</div>` : ''}
+        ${miBen.ubicacion ? `<div style="font-size:.75rem;color:#555;margin:2px 0;">${Icon('map-pin',{size:12})} ${esc(miBen.ubicacion)}</div>` : ''}
         ${miBen.historia ? `<div style="font-size:.78rem;color:#555;margin:6px 0;line-height:1.5;">${esc(miBen.historia)}</div>` : ''}
-        ${miBen.cuenta_bancaria ? `<div style="font-size:.78rem;font-family:monospace;background:#fff;border-radius:8px;padding:6px 8px;margin-top:4px;">💳 ${esc(miBen.cuenta_bancaria)}</div>` : ''}
+        ${miBen.cuenta_bancaria ? `<div style="font-size:.78rem;font-family:monospace;background:#fff;border-radius:8px;padding:6px 8px;margin-top:4px;">${Icon('credit-card',{size:13})} ${esc(miBen.cuenta_bancaria)}</div>` : ''}
         <div style="display:flex;gap:8px;margin-top:10px;">
-          <button id="btn-editar-fundacion" style="flex:1;padding:8px;border-radius:9px;border:1.5px solid #f97316;background:#fff;color:#c2410c;font-weight:700;font-size:.78rem;cursor:pointer;">✏️ Editar información</button>
-          <button id="btn-eliminar-fundacion" style="flex:1;padding:8px;border-radius:9px;border:1.5px solid #ef4444;background:#fff;color:#dc2626;font-weight:700;font-size:.78rem;cursor:pointer;">🗑️ Eliminar</button>
+          <button id="btn-editar-fundacion" style="flex:1;padding:8px;border-radius:9px;border:1.5px solid #f97316;background:#fff;color:#c2410c;font-weight:700;font-size:.78rem;cursor:pointer;">${Icon('edit',{size:13})} Editar información</button>
+          <button id="btn-eliminar-fundacion" style="flex:1;padding:8px;border-radius:9px;border:1.5px solid #ef4444;background:#fff;color:#dc2626;font-weight:700;font-size:.78rem;cursor:pointer;">${Icon('trash',{size:13})} Eliminar</button>
         </div>
         <div id="fundacion-accion-msg" style="display:none;margin-top:8px;padding:8px;border-radius:8px;font-size:.76rem;"></div>
         <p style="margin:8px 0 0;font-size:.7rem;color:#a16207;">Los cambios y la eliminación pasan por revisión del administrador antes de aplicarse.</p>
       </div>`
       : `<div style="margin-top:12px;padding:10px;background:#fff7ed;border:1px solid #fed7aa;border-radius:12px;">
-          <p style="margin:0;font-size:.78rem;color:#c2410c;">❤️ Estás registrado como fundación, pero no pudimos cargar el detalle completo de tu perfil ahora mismo.</p>
+          <p style="margin:0;font-size:.78rem;color:#c2410c;">${Icon('heart-fill')} Estás registrado como fundación, pero no pudimos cargar el detalle completo de tu perfil ahora mismo.</p>
         </div>`;
 
     area.innerHTML = perfilHtml + `<div style="margin-top:12px;padding-top:12px;border-top:1px solid #f5f5f5;">
@@ -2743,7 +2743,7 @@ function abrirEditarFundacionVendedor(miBen) {
       <div style="display:flex;gap:8px;margin-bottom:16px;">
         ${[1,2,3].map(n => `
         <label style="flex:1;aspect-ratio:1;border:1.5px dashed #e0e0e0;border-radius:10px;display:flex;align-items:center;justify-content:center;cursor:pointer;overflow:hidden;background:#fafafa;">
-          <span id="ef-img-placeholder-${n}" style="font-size:1.4rem;display:${miBen['imagen'+n] ? 'none' : ''};">📷</span>
+          <span id="ef-img-placeholder-${n}" style="font-size:1.4rem;display:${miBen['imagen'+n] ? 'none' : ''};">${Icon('camera',{size:22})}</span>
           <img id="ef-img-preview-${n}" src="${escv(miBen['imagen'+n]||'')}" style="display:${miBen['imagen'+n]?'block':'none'};width:100%;height:100%;object-fit:cover;">
           <input type="file" id="ef-img-${n}" accept="image/*" style="display:none;">
         </label>`).join('')}
@@ -2769,7 +2769,7 @@ function abrirEditarFundacionVendedor(miBen) {
   document.getElementById('btn-submit-edit-fund').addEventListener('click', async function() {
     const showMsg = (txt, ok) => {
       const el = document.getElementById('edit-fund-msg');
-      el.textContent = txt; el.style.display = 'block';
+      el.innerHTML = (ok ? Icon('check') : Icon('error')) + ' <span></span>'; el.querySelector('span').textContent = txt; el.style.display = 'block';
       el.style.background = ok ? '#dcfce7' : '#fee2e2';
       el.style.color = ok ? '#166534' : '#991b1b';
     };
@@ -2825,14 +2825,14 @@ function abrirEditarFundacionVendedor(miBen) {
       });
       const data = await res.json();
       if (data.ok) {
-        showMsg('✅ Cambios enviados. El administrador los revisará.', true);
+        showMsg('Cambios enviados. El administrador los revisará.', true);
         setTimeout(() => modal.remove(), 2500);
       } else {
-        showMsg('⚠️ ' + (data.error || 'Error al enviar'), false);
+        showMsg((data.error || 'Error al enviar'), false);
         btn.disabled = false; btn.textContent = 'Enviar cambios';
       }
     } catch (err) {
-      showMsg('⚠️ Error de conexión: ' + err.message, false);
+      showMsg('Error de conexión: ' + err.message, false);
       btn.disabled = false; btn.textContent = 'Enviar cambios';
     }
   });
@@ -2844,7 +2844,7 @@ async function solicitarEliminarFundacionVendedor(miBen) {
   const msgEl = document.getElementById('fundacion-accion-msg');
   const showMsg = (txt, ok) => {
     if (!msgEl) return;
-    msgEl.textContent = txt; msgEl.style.display = 'block';
+    msgEl.innerHTML = (ok ? Icon('check') : Icon('error')) + ' <span></span>'; msgEl.querySelector('span').textContent = txt; msgEl.style.display = 'block';
     msgEl.style.background = ok ? '#dcfce7' : '#fee2e2';
     msgEl.style.color = ok ? '#166534' : '#991b1b';
   };
@@ -2854,10 +2854,10 @@ async function solicitarEliminarFundacionVendedor(miBen) {
       body: new URLSearchParams({ action:'solicitarEliminacionBeneficiario', id_beneficiario: miBen.id, vendorToken: vendorSession.token }).toString()
     });
     const data = await res.json();
-    if (data.ok) showMsg('✅ Solicitud de eliminación enviada. El administrador la revisará.', true);
-    else showMsg('⚠️ ' + (data.error || 'Error al enviar'), false);
+    if (data.ok) showMsg('Solicitud de eliminación enviada. El administrador la revisará.', true);
+    else showMsg((data.error || 'Error al enviar'), false);
   } catch (e) {
-    showMsg('⚠️ Error de conexión.', false);
+    showMsg('Error de conexión.', false);
   }
 }
 

@@ -15,10 +15,10 @@ const _icWarn   = '<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13
 const NOTIF_CACHE_KEY = 'zr_notifications_v2';
 const NOTIF_CACHE_TTL = 30000;
 
-const LIST = '';
-const CLOCK = '';
-const CHECK = '';
-const X_ICO = '';
+const LIST = _icList;
+const CLOCK = _icClock;
+const CHECK = _icCheck;
+const X_ICO = _icX;
 
 if (typeof escapeHtml !== 'function') {
   window.escapeHtml = function(str) {
@@ -95,7 +95,7 @@ const filters = [
 { value: 'all',       label: `${LIST}  Todas`,      color: '#3b1f5f' },
 { value: 'pending',   label: `${CLOCK} Pendientes`, color: '#f97316' },
 { value: 'confirmed', label: `${CHECK} Confirmadas`,color: '#22c55e' },
-{ value: 'cancelled', label: `✕ Canceladas`,         color: '#ef4444' },
+{ value: 'cancelled', label: `${X_ICO} Canceladas`,         color: '#ef4444' },
 { value: 'rejected',  label: `${X_ICO} Rechazadas`, color: '#9ca3af' }
 ];
 filters.forEach(filter => {
@@ -369,7 +369,7 @@ function createOptimizedNotificationCard(group) {
         <button class="btn btn-cancel" data-action="cancel"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" aria-hidden="true"><use href="#ic-x"/></svg> Cancelar</button>
       ` : `
         <span class="completed-badge ${groupStatus}">
-          ${groupStatus === 'confirmed' ? 'confirmado' : groupStatus === 'cancelled' ? '✕ Cancelado por cliente' : 'cancelado'}
+          ${groupStatus === 'confirmed' ? 'confirmado' : groupStatus === 'cancelled' ? _icX + ' Cancelado por cliente' : 'cancelado'}
         </span>
       `}
     </div>
@@ -732,7 +732,7 @@ window.loadBeneficiarios = async function(force) {
           <div style="flex:1;min-width:0;">
             <div style="font-weight:700;font-size:.9rem;margin-bottom:2px;">${esc(b.nombre)}</div>
             ${b.organizacion ? `<div style="font-size:.75rem;color:#888;">${esc(b.organizacion)}</div>` : ''}
-            <div style="font-size:.75rem;color:#888;margin-top:2px;">📍 ${esc(b.ubicacion)} · 📱 ${esc(b.telefono)}</div>
+            <div style="font-size:.75rem;color:#888;margin-top:2px;">${Icon('map-pin',{size:13})} ${esc(b.ubicacion)} · ${_icPhone} ${esc(b.telefono)}</div>
             <div style="font-size:.78rem;margin-top:6px;color:#555;line-height:1.5;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">${esc(b.historia)}</div>
             <div style="font-size:.72rem;color:#aaa;margin-top:4px;">
               ${b.facebook ? `<a href="${esc(b.facebook)}" target="_blank" rel="noopener" style="color:#1877f2;">Facebook</a> · ` : ''}
@@ -740,9 +740,9 @@ window.loadBeneficiarios = async function(force) {
             </div>
           </div>
           <div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0;">
-            <button onclick="adminAprobarBeneficiario('${esc(b.id)}', this)" style="padding:7px 12px;border:none;border-radius:20px;background:#22c55e;color:#fff;font-weight:700;font-size:.75rem;cursor:pointer;">✅ Aprobar</button>
-            <button onclick="window.openBeneficiarioModal && window.openBeneficiarioModal('${esc(b.id)}')" style="padding:7px 12px;border:none;border-radius:20px;background:#e0e7ff;color:#3730a3;font-weight:700;font-size:.75rem;cursor:pointer;">👁 Ver</button>
-            <button onclick="adminRechazarBeneficiario('${esc(b.id)}', this)" style="padding:7px 12px;border:none;border-radius:20px;background:#fee2e2;color:#b91c1c;font-weight:700;font-size:.75rem;cursor:pointer;">❌ Rechazar</button>
+            <button onclick="adminAprobarBeneficiario('${esc(b.id)}', this)" style="padding:7px 12px;border:none;border-radius:20px;background:#22c55e;color:#fff;font-weight:700;font-size:.75rem;cursor:pointer;">${_icCheck} Aprobar</button>
+            <button onclick="window.openBeneficiarioModal && window.openBeneficiarioModal('${esc(b.id)}')" style="padding:7px 12px;border:none;border-radius:20px;background:#e0e7ff;color:#3730a3;font-weight:700;font-size:.75rem;cursor:pointer;">${Icon('eye',{size:13})} Ver</button>
+            <button onclick="adminRechazarBeneficiario('${esc(b.id)}', this)" style="padding:7px 12px;border:none;border-radius:20px;background:#fee2e2;color:#b91c1c;font-weight:700;font-size:.75rem;cursor:pointer;">${_icX} Rechazar</button>
           </div>
         </div>
       </div>`).join('');
@@ -807,7 +807,7 @@ window.loadSolicitudesBeneficiario = async function(force) {
       return `<div style="margin-bottom:6px;">
         <div style="font-size:.68rem;color:#888;text-transform:uppercase;">${label}</div>
         <div style="font-size:.8rem;${cambio?'color:#888;text-decoration:line-through;':''}">${esc(actual)||'—'}</div>
-        ${cambio ? `<div style="font-size:.8rem;color:#16a34a;font-weight:700;">→ ${esc(nuevo)||'—'}</div>` : ''}
+        ${cambio ? `<div style="font-size:.8rem;color:#16a34a;font-weight:700;">${Icon('arrow-right',{size:12})} ${esc(nuevo)||'—'}</div>` : ''}
       </div>`;
     };
     // Miniatura simple (para la tarjeta de eliminación, o cuando no hay cambio de foto)
@@ -822,7 +822,7 @@ window.loadSolicitudesBeneficiario = async function(force) {
         <div style="font-size:.62rem;color:#888;text-transform:uppercase;margin-bottom:3px;">${label}</div>
         <div style="display:flex;align-items:center;gap:4px;justify-content:center;">
           ${thumb(urlActual)}
-          ${cambio ? `<span style="color:#16a34a;font-size:.9rem;">→</span>${thumb(urlNueva)}` : ''}
+          ${cambio ? `<span style="color:#16a34a;font-size:.9rem;">${Icon('arrow-right',{size:13})}</span>${thumb(urlNueva)}` : ''}
         </div>
       </div>`;
     };
@@ -832,13 +832,13 @@ window.loadSolicitudesBeneficiario = async function(force) {
         const fotosActuales = [s.actual && s.actual.imagen1, s.actual && s.actual.imagen2, s.actual && s.actual.imagen3].filter(Boolean);
         return `<div class="vendor-card" style="border-left:4px solid #ef4444;">
           <div style="padding:14px 16px;">
-            <div style="font-weight:700;font-size:.9rem;color:#dc2626;">🗑️ Solicitud de eliminación</div>
+            <div style="font-weight:700;font-size:.9rem;color:#dc2626;">${_icTrash} Solicitud de eliminación</div>
             <div style="font-size:.82rem;margin-top:4px;">${esc(s.actual ? s.actual.nombre : s.id_beneficiario)}</div>
             <div style="font-size:.72rem;color:#888;margin-top:2px;">${s.fecha ? new Date(s.fecha).toLocaleDateString('es-MX') : ''}</div>
             ${fotosActuales.length ? `<div style="display:flex;gap:6px;margin-top:8px;">${fotosActuales.map(thumb).join('')}</div>` : ''}
             <div style="display:flex;gap:8px;margin-top:10px;">
-              <button onclick="adminAprobarSolicitudBeneficiario('${esc(s.id)}', this)" style="flex:1;padding:7px;border:none;border-radius:8px;background:#ef4444;color:#fff;font-weight:700;font-size:.75rem;cursor:pointer;">✅ Confirmar eliminación</button>
-              <button onclick="adminRechazarSolicitudBeneficiario('${esc(s.id)}', this)" style="flex:1;padding:7px;border:none;border-radius:8px;background:#e5e7eb;color:#374151;font-weight:700;font-size:.75rem;cursor:pointer;">❌ Rechazar</button>
+              <button onclick="adminAprobarSolicitudBeneficiario('${esc(s.id)}', this)" style="flex:1;padding:7px;border:none;border-radius:8px;background:#ef4444;color:#fff;font-weight:700;font-size:.75rem;cursor:pointer;">${_icCheck} Confirmar eliminación</button>
+              <button onclick="adminRechazarSolicitudBeneficiario('${esc(s.id)}', this)" style="flex:1;padding:7px;border:none;border-radius:8px;background:#e5e7eb;color:#374151;font-weight:700;font-size:.75rem;cursor:pointer;">${_icX} Rechazar</button>
             </div>
           </div>
         </div>`;
@@ -847,7 +847,7 @@ window.loadSolicitudesBeneficiario = async function(force) {
       const nuevo = s.nuevo || {};
       return `<div class="vendor-card" style="border-left:4px solid #f97316;">
         <div style="padding:14px 16px;">
-          <div style="font-weight:700;font-size:.9rem;color:#c2410c;">✏️ Solicitud de edición</div>
+          <div style="font-weight:700;font-size:.9rem;color:#c2410c;">${Icon('edit',{size:13})} Solicitud de edición</div>
           <div style="font-size:.72rem;color:#888;margin:2px 0 10px;">${s.fecha ? new Date(s.fecha).toLocaleDateString('es-MX') : ''}</div>
           ${campo('Nombre', actual.nombre, nuevo.nombre)}
           ${campo('Organización', actual.organizacion, nuevo.organizacion)}
@@ -860,8 +860,8 @@ window.loadSolicitudesBeneficiario = async function(force) {
             ? `<div style="display:flex;gap:14px;margin-top:8px;flex-wrap:wrap;">${campoImg('Foto 1', actual.imagen1, nuevo.imagen1)}${campoImg('Foto 2', actual.imagen2, nuevo.imagen2)}${campoImg('Foto 3', actual.imagen3, nuevo.imagen3)}</div>`
             : ''}
           <div style="display:flex;gap:8px;margin-top:10px;">
-            <button onclick="adminAprobarSolicitudBeneficiario('${esc(s.id)}', this)" style="flex:1;padding:7px;border:none;border-radius:8px;background:#22c55e;color:#fff;font-weight:700;font-size:.75rem;cursor:pointer;">✅ Aplicar cambios</button>
-            <button onclick="adminRechazarSolicitudBeneficiario('${esc(s.id)}', this)" style="flex:1;padding:7px;border:none;border-radius:8px;background:#e5e7eb;color:#374151;font-weight:700;font-size:.75rem;cursor:pointer;">❌ Rechazar</button>
+            <button onclick="adminAprobarSolicitudBeneficiario('${esc(s.id)}', this)" style="flex:1;padding:7px;border:none;border-radius:8px;background:#22c55e;color:#fff;font-weight:700;font-size:.75rem;cursor:pointer;">${_icCheck} Aplicar cambios</button>
+            <button onclick="adminRechazarSolicitudBeneficiario('${esc(s.id)}', this)" style="flex:1;padding:7px;border:none;border-radius:8px;background:#e5e7eb;color:#374151;font-weight:700;font-size:.75rem;cursor:pointer;">${_icX} Rechazar</button>
           </div>
         </div>
       </div>`;
@@ -933,15 +933,15 @@ window.loadReportesLive = async function() {
     list.innerHTML = reportes.map(r => `
       <div class="reporte-row" data-reporte-id="${esc(r.reporteId)}">
         <div class="info">
-          <strong>📺 ${esc(r.liveTitulo || 'Transmisión sin título')}</strong>
+          <strong>${Icon('tv',{size:14})} ${esc(r.liveTitulo || 'Transmisión sin título')}</strong>
           <span>Vendedor: ${esc(r.vendedorNombre || r.vendedorUid || 'Desconocido')}</span><br>
-          <span>${new Date(r.timestamp).toLocaleString('es-MX')}${r.telefonoUsuario ? ' · 📱 ' + esc(r.telefonoUsuario) : ''}</span>
+          <span>${new Date(r.timestamp).toLocaleString('es-MX')}${r.telefonoUsuario ? ' · ' + _icPhone + ' ' + esc(r.telefonoUsuario) : ''}</span>
           <div style="margin-top:6px;font-size:.82rem;color:#333;background:#fff0f0;border-radius:8px;padding:8px 10px;">${esc(r.motivo)}</div>
         </div>
         <div class="actions">
-          ${r.youtubeLink ? `<a class="btn-marcar-revisado" style="background:#e3f2fd;color:#1565c0;text-decoration:none;" href="${esc(r.youtubeLink)}" target="_blank" rel="noopener">▶️ Ver video</a>` : ''}
-          <button class="btn-suspend" onclick="adminSuspenderVendedorDesdeReporte('${esc(r.vendedorUid)}','${esc(r.reporteId)}', this)">🚫 Suspender cuenta</button>
-          <button class="btn-marcar-revisado" onclick="adminMarcarReporteLiveRevisado('${esc(r.reporteId)}', this)">✅ Marcar revisado</button>
+          ${r.youtubeLink ? `<a class="btn-marcar-revisado" style="background:#e3f2fd;color:#1565c0;text-decoration:none;" href="${esc(r.youtubeLink)}" target="_blank" rel="noopener"  >${Icon('play',{size:13})} Ver video</a>` : ''}
+          <button class="btn-suspend" onclick="adminSuspenderVendedorDesdeReporte('${esc(r.vendedorUid)}','${esc(r.reporteId)}', this)">${Icon('ban',{size:13})} Suspender cuenta</button>
+          <button class="btn-marcar-revisado" onclick="adminMarcarReporteLiveRevisado('${esc(r.reporteId)}', this)">${_icCheck} Marcar revisado</button>
         </div>
       </div>`).join('');
   } catch(err) {

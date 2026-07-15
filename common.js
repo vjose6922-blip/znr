@@ -215,12 +215,15 @@ async function withButtonLoading(btn, asyncFn, loadingText) {
   }
 }
 window.withButtonLoading = withButtonLoading;
+const TOAST_ICON_BY_TYPE = { success: 'check', error: 'x', warning: 'error', info: 'bell' };
 function showTemporaryMessage(text, type = "info") {
 const existing = document.querySelector('.temporary-message');
 if (existing) existing.remove();
 const messageDiv = document.createElement("div");
 messageDiv.className = `temporary-message ${type}`;
-messageDiv.textContent = text;
+const iconName = TOAST_ICON_BY_TYPE[type] || 'bell';
+messageDiv.innerHTML = (typeof Icon === 'function' ? Icon(iconName) : '') + ' <span></span>';
+messageDiv.querySelector('span').textContent = text;
 document.body.appendChild(messageDiv);
 setTimeout(() => {
 messageDiv.style.animation = "slideDown 0.3s ease";
@@ -242,7 +245,7 @@ const modal = document.createElement("div");
 modal.className = "custom-alert-modal";
 modal.innerHTML = `
 <div class="custom-alert-content">
-<div class="custom-alert-header"><span class="custom-alert-icon">${escapeHtml(icon)}</span><h3>${escapeHtml(title)}</h3></div>
+<div class="custom-alert-header"><span class="custom-alert-icon">${icon ? Icon(icon, {size:22}) : ''}</span><h3>${escapeHtml(title)}</h3></div>
 <div class="custom-alert-body"><p>${escapeHtml(message)}</p></div>
 <div class="custom-alert-footer"><button class="custom-alert-btn confirm"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" aria-hidden="true"><use href="#ic-check"/></svg> ${escapeHtml(confirmText)}</button></div>
 </div>
@@ -264,7 +267,7 @@ const modal = document.createElement("div");
 modal.className = "custom-alert-modal";
 modal.innerHTML = `
 <div class="custom-alert-content">
-<div class="custom-alert-header"><span class="custom-alert-icon">${escapeHtml(icon)}</span><h3>${escapeHtml(title)}</h3></div>
+<div class="custom-alert-header"><span class="custom-alert-icon">${icon ? Icon(icon, {size:22}) : ''}</span><h3>${escapeHtml(title)}</h3></div>
 <div class="custom-alert-body"><p>${escapeHtml(message)}</p></div>
 <div class="custom-alert-footer">
 <button class="custom-alert-btn cancel"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" aria-hidden="true"><use href="#ic-x"/></svg> ${escapeHtml(cancelText)}</button>
@@ -291,7 +294,7 @@ const modal = document.createElement("div");
 modal.className = "custom-alert-modal";
 modal.innerHTML = `
 <div class="custom-alert-content">
-<div class="custom-alert-header"><span class="custom-alert-icon">${escapeHtml(icon)}</span><h3>${escapeHtml(title)}</h3></div>
+<div class="custom-alert-header"><span class="custom-alert-icon">${icon ? Icon(icon, {size:22}) : ''}</span><h3>${escapeHtml(title)}</h3></div>
 <div class="custom-alert-body">
 <p>${escapeHtml(message)}</p>
 <input type="text" class="custom-alert-input" id="custom-prompt-input" value="${escapeHtml(defaultValue)}" autocomplete="off">
@@ -600,7 +603,7 @@ modal.innerHTML = `
 <h3>Finalidad</h3><p>Tus datos serán utilizados EXCLUSIVAMENTE para:</p>
 <ul><li>Confirmar tu identidad en las solicitudes de compra</li><li>Enviarte el link de pago cuando el administrador confirme tu pedido</li><li>Coordinar la entrega en tu dirección y horario indicados</li><li>Comunicarnos contigo sobre el estado de tu compra</li></ul>
 <h3>No compartimos tus datos</h3><p>Tu número, dirección y horario NO serán vendidos, cedidos ni compartidos con terceros. Solo serán visibles para el administrador de Z&R para procesar y entregar tu pedido.</p>
-<h3>⏰ Conservación</h3><p>Tus datos se conservarán únicamente durante el tiempo necesario para cumplir con las finalidades descritas. Puedes eliminarlos en cualquier momento desde el panel de Preferencias.</p>
+<h3>${Icon('clock')} Conservación</h3><p>Tus datos se conservarán únicamente durante el tiempo necesario para cumplir con las finalidades descritas. Puedes eliminarlos en cualquier momento desde el panel de Preferencias.</p>
 <h3>Tus derechos (ARCO)</h3><p>Puedes solicitar la eliminación de tus datos escribiendo a: <strong>znrcomunity@gmail.com</strong></p>
 <p class="privacy-date">Última actualización: Abril 2026</p>
 </div>
@@ -814,7 +817,7 @@ const vendorBadge = item._comunidad && item._vendedor
 ? `<span class="cart-item-vendor"> ${escapeHtml(item._vendedor)}</span>`
 : '';
 const donationBadge = item._donacion
-? `<span style="display:inline-block;background:rgba(249,115,22,.12);color:#f97316;font-size:10.5px;font-weight:700;border-radius:20px;padding:2px 8px;margin:2px 0;">❤️ Donativo${item._beneficiario && item._beneficiario.nombre ? ' · se paga a ' + escapeHtml(item._beneficiario.nombre) : ''}</span>`
+? `<span style="display:inline-block;background:rgba(249,115,22,.12);color:#f97316;font-size:10.5px;font-weight:700;border-radius:20px;padding:2px 8px;margin:2px 0;">${Icon('heart-fill')} Donativo${item._beneficiario && item._beneficiario.nombre ? ' · se paga a ' + escapeHtml(item._beneficiario.nombre) : ''}</span>`
 : '';
 row.innerHTML = `
 ${imgHtml}
@@ -1795,10 +1798,10 @@ function shareContent({ id, title, text, url }) {
   const copyToClipboard = () => {
     if (navigator.clipboard && window.isSecureContext) {
       navigator.clipboard.writeText(`${shareText}\n${shareUrl}`)
-        .then(() => showTemporaryMessage('✓ Enlace copiado', 'success'))
-        .catch(() => showTemporaryMessage('✓ Enlace: ' + shareUrl, 'info'));
+        .then(() => showTemporaryMessage('Enlace copiado', 'success'))
+        .catch(() => showTemporaryMessage('Enlace: ' + shareUrl, 'info'));
     } else {
-      showTemporaryMessage('✓ Enlace: ' + shareUrl, 'info');
+      showTemporaryMessage('Enlace: ' + shareUrl, 'info');
     }
   };
 
@@ -1954,7 +1957,7 @@ btn.style.color  = active ? '#ff4f81' : '#aaa';
 });
 overlay.querySelector('#_gps-btn').addEventListener('click', () => {
 const gpsBtn = overlay.querySelector('#_gps-btn');
-gpsBtn.textContent = '⏳ Obteniendo…';
+gpsBtn.innerHTML = Icon('clock') + ' Obteniendo…';
 gpsBtn.disabled = true;
 if (!navigator.geolocation) {
 gpsBtn.textContent = ' Sin GPS';
@@ -2309,7 +2312,7 @@ display:flex;align-items:flex-end;justify-content:center;
 const itemsHtml = items.map(i => `
 <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.07)">
 <div style="flex:1;min-width:0">
-<div style="font-size:13px;font-weight:600;color:var(--color-text-primary,#fff);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escapeHtml(i.name)}${i._donacion ? ' <span style="color:#f97316;font-weight:700;">❤️ Donativo</span>' : ''}</div>
+<div style="font-size:13px;font-weight:600;color:var(--color-text-primary,#fff);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escapeHtml(i.name)}${i._donacion ? ` <span style="color:#f97316;font-weight:700;">${Icon('heart-fill')} Donativo</span>` : ''}</div>
 <div style="font-size:12px;color:#aaa">${i.Talla ? ' ' + escapeHtml(i.Talla) + ' · ' : ''} ${i.quantity} × ${formatCurrency(i.price)}</div>
 </div>
 <div style="font-size:13px;font-weight:700;color:#ff4f81;white-space:nowrap">${formatCurrency(i.price * i.quantity)}</div>
@@ -2323,7 +2326,7 @@ const hasDonations = donationList.length > 0;
 const allDonated = hasDonations && items.every(i => i._donacion);
 const donationHtml = hasDonations ? `
 <div style="background:rgba(249,115,22,.1);border:1px solid rgba(249,115,22,.25);border-radius:14px;padding:14px;margin-bottom:8px">
-<div style="font-size:12.5px;font-weight:700;color:#f97316;margin-bottom:8px;">❤️ Pago de artículo(s) donado(s)</div>
+<div style="font-size:12.5px;font-weight:700;color:#f97316;margin-bottom:8px;">${Icon('heart-fill')} Pago de artículo(s) donado(s)</div>
 <p style="font-size:11.5px;color:#fdba74;margin:0 0 10px;line-height:1.5">Este dinero se transfiere directo al beneficiario, no al vendedor.</p>
 ${donationList.map((g, gi) => `
 <div style="background:rgba(0,0,0,.18);border-radius:10px;padding:10px 12px;${gi > 0 ? 'margin-top:8px;' : ''}">
@@ -2383,7 +2386,7 @@ padding:15px;border-radius:16px;border:none;
 background:linear-gradient(135deg,#ff4f81,#7c3aed);
 color:#fff;font-size:15px;font-weight:700;
 cursor:pointer;-webkit-tap-highlight-color:transparent">
-<span style="font-size:20px">🔔</span>Enviar pedido a ${escapeHtml(nombre)}
+${Icon('bell', {size:20})}Enviar pedido a ${escapeHtml(nombre)}
 </button>`
 : `<div style="padding:14px;border-radius:16px;background:rgba(239,68,68,.12);color:#ef4444;text-align:center;font-size:13px;line-height:1.5">Este vendedor no tiene forma de contacto registrada.<br>Búscalo directamente en la sección Comunidad.
 </div>`
@@ -2394,8 +2397,8 @@ border:1.5px solid rgba(255,255,255,.1);
 color:#aaa;font-size:14px;font-weight:600;cursor:pointer;
 -webkit-tap-highlight-color:transparent">
 ${remaining > 0
-? `← Volver al carrito · ${remaining} vendedor${remaining > 1 ? 'es' : ''} más`
-: '← Volver al carrito'}
+? `${Icon('arrow-left')} Volver al carrito · ${remaining} vendedor${remaining > 1 ? 'es' : ''} más`
+: `${Icon('arrow-left')} Volver al carrito`}
 </button>
 </div>
 </div>
@@ -2465,7 +2468,7 @@ setTimeout(() => { modal.remove(); resolve(true); }, 900);
 showStatus(' No pudimos notificar a este vendedor. Intenta de nuevo más tarde o búscalo en Comunidad.', 'error');
 sendBtn.disabled = false;
 sendBtn.style.opacity = '1';
-sendBtn.textContent = `🔔 Enviar pedido a ${nombre}`;
+sendBtn.innerHTML = `${Icon('bell')} Enviar pedido a ${nombre}`;
 }
 });
 }
@@ -3428,22 +3431,22 @@ const items = (o.items||[]).map(i=>`
 </div>`).join('');
 
 const statusMap = {
-  pendiente:  { color:'#f59e0b', icon:'⏳', label:'pendiente'       },
-  confirmado: { color:'#22c55e', icon:'✅', label:'confirmado'       },
-  cancelled:  { color:'#ef4444', icon:'❌', label:'Cancelación'      },
-  rejected:   { color:'#9ca3af', icon:'🚫', label:'Cancelado'        },
-  cancelado:  { color:'#9ca3af', icon:'🚫', label:'Cancelado'        }
+  pendiente:  { color:'#f59e0b', icon: Icon('clock'), label:'pendiente'       },
+  confirmado: { color:'#22c55e', icon: Icon('check'), label:'confirmado'       },
+  cancelled:  { color:'#ef4444', icon: Icon('x'), label:'Cancelación'      },
+  rejected:   { color:'#9ca3af', icon: Icon('ban'), label:'Cancelado'        },
+  cancelado:  { color:'#9ca3af', icon: Icon('ban'), label:'Cancelado'        }
 };
-const st = statusMap[o.status] || { color:'#f59e0b', icon:'⏳', label: o.status||'pendiente' };
+const st = statusMap[o.status] || { color:'#f59e0b', icon: Icon('clock'), label: o.status||'pendiente' };
 
 let actionBtn = '';
 if (o.status === 'pendiente') {
-  actionBtn = `<button class="up-order-cancel-btn" data-request-id="${_upEsc(o.requestId)}" style="margin-top:10px;width:100%;padding:8px;border:none;border-radius:10px;background:#fee2e2;color:#dc2626;font-size:13px;font-weight:600;cursor:pointer;">✕ Cancelar pedido</button>`;
+  actionBtn = `<button class="up-order-cancel-btn" data-request-id="${_upEsc(o.requestId)}" style="margin-top:10px;width:100%;padding:8px;border:none;border-radius:10px;background:#fee2e2;color:#dc2626;font-size:13px;font-weight:600;cursor:pointer;">${Icon('x')} Cancelar pedido</button>`;
 } else if (o.status === 'confirmado') {
   const adminPhone = (typeof WHATSAPP_NUMBER !== 'undefined' ? WHATSAPP_NUMBER : '');
   const itemsList  = (o.items||[]).map(i=>`• ${i.name} x${i.quantity}`).join('\n');
   const msg = encodeURIComponent(`Hola, quisiera solicitar la *cancelación* de mi pedido:\n\n*ID:* ${o.requestId||''}\n*Productos:*\n${itemsList}\n*Total:* $${(o.total||0).toLocaleString()}\n\nEste pedido ya fue confirmado. ¿Es posible cancelarlo?`);
-  actionBtn = `<a href="https://wa.me/${adminPhone}?text=${msg}" target="_blank" style="display:block;margin-top:10px;padding:8px;border-radius:10px;background:#fff3cd;color:#92400e;font-size:13px;font-weight:600;text-align:center;text-decoration:none;">📩 Solicitar cancelación al admin</a>`;
+  actionBtn = `<a href="https://wa.me/${adminPhone}?text=${msg}" target="_blank" style="display:block;margin-top:10px;padding:8px;border-radius:10px;background:#fff3cd;color:#92400e;font-size:13px;font-weight:600;text-align:center;text-decoration:none;">${Icon('mail')} Solicitar cancelación al admin</a>`;
 }
 return `
 <div class="up-order-card" data-order-id="${_upEsc(o.requestId||'')}">
@@ -3473,7 +3476,7 @@ async function clientCancelOrder(requestId) {
   showCustomConfirm({
     title: '¿Cancelar pedido?',
     message: '¿Estás seguro de que deseas cancelar el pedido ' + requestId + '? Esta acción no se puede deshacer.',
-    icon: '🗑️',
+    icon: 'trash',
     confirmText: 'Sí, cancelar',
     cancelText: 'No',
     onConfirm: async () => {
@@ -3683,7 +3686,7 @@ panel.querySelector(`[data-content="${tab.dataset.tab}"]`).classList.add('active
 if (tab.dataset.tab === 'pedidos') {
   const list = document.getElementById('up-orders-list');
   if (list) {
-    list.innerHTML = '<p style="text-align:center;color:var(--color-text-muted);padding:20px;font-size:13px;">⏳ Actualizando pedidos...</p>';
+    list.innerHTML = `<p style="text-align:center;color:var(--color-text-muted);padding:20px;font-size:13px;">${Icon('clock')} Actualizando pedidos...</p>`;
     refreshOrderStatuses()
       .catch(() => {})
       .finally(() => {
@@ -3828,7 +3831,7 @@ function _buildAndActivateTab(tabName) {
     if (tabName === 'pedidos') {
       const list = document.getElementById('up-orders-list');
       if (!list) return;
-      list.innerHTML = '<p style="text-align:center;color:var(--color-text-muted);padding:20px;font-size:13px;">⏳ Actualizando pedidos...</p>';
+      list.innerHTML = `<p style="text-align:center;color:var(--color-text-muted);padding:20px;font-size:13px;">${Icon('clock')} Actualizando pedidos...</p>`;
 
       refreshOrderStatuses()
         .catch(() => {})

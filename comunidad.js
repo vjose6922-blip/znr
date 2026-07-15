@@ -275,13 +275,13 @@ async function loadComunidadPageGAS(page, filters, opts = {}) {
       filteredProducts     = [...cached];
       renderProducts();
       if (typeof window.showTemporaryMessage === 'function') {
-        window.showTemporaryMessage('⚠️ Mostrando datos guardados — sin conexión', 'info');
+        window.showTemporaryMessage('Mostrando datos guardados — sin conexión', 'info');
       }
     } else if (allCommunityProducts.length === 0 && gridContainer) {
       gridContainer.innerHTML = `<div style="grid-column:1/-1; text-align:center; padding:40px; color:var(--color-error,#ef4444);">
         Error al cargar productos de la comunidad.<br>
         <small style="color:var(--color-text-muted,#888);font-size:11px;">${err.message || ''}</small><br>
-        <button onclick="loadComunidadPage(1,{})" style="margin-top:12px; padding:8px 20px; border-radius:30px; border:none; background:#ff4f81; color:white; cursor:pointer; font-weight:600;">🔄 Reintentar</button>
+        <button onclick="loadComunidadPage(1,{})" style="margin-top:12px; padding:8px 20px; border-radius:30px; border:none; background:#ff4f81; color:white; cursor:pointer; font-weight:600;"  >${Icon('refresh')} Reintentar</button>
       </div>`;
     }
   } finally {
@@ -544,12 +544,12 @@ function updateComunidadChips(filters) {
   const bar = document.getElementById('comunidad-filter-chips');
   if (!bar) return;
   const ordenLabels = {
-    verificados:  '✔️ Verificados',
-    calificacion: '⭐ Mejor calificado',
-    precio_asc:   '💲 Menor a mayor precio'
+    verificados:  `${Icon('check')} Verificados`,
+    calificacion: `${Icon('star')} Mejor calificado`,
+    precio_asc:   `${Icon('dollar')} Menor a mayor precio`
   };
   const chips = [];
-  if (filters.busqueda)  chips.push({ label: `🔍 "${filters.busqueda}"`, clear: () => { const el = document.getElementById('comunidad-search'); if (el) el.value = ''; applyFilters(); } });
+  if (filters.busqueda)  chips.push({ label: `${Icon('search')} "${filters.busqueda}"`, clear: () => { const el = document.getElementById('comunidad-search'); if (el) el.value = ''; applyFilters(); } });
   if (filters.categoria) chips.push({ label: `${filters.categoria}`, clear: () => { if (catSelect) catSelect.value = ''; applyFilters(); } });
   if (filters.vendedor)  chips.push({ label: `${vendorSelect && vendorSelect.selectedOptions[0] ? vendorSelect.selectedOptions[0].textContent : 'Vendedor'}`, clear: () => { if (vendorSelect) vendorSelect.value = ''; applyFilters(); } });
   if (filters.orden)     chips.push({ label: ordenLabels[filters.orden] || filters.orden, clear: () => { const el = document.getElementById('comunidad-orden'); if (el) el.value = ''; applyFilters(); } });
@@ -670,7 +670,7 @@ setTimeout(() => cardElement.remove(), 320);
 invalidateComunidadCache();
 // Recargar la página actual para reflejar el cambio
 loadComunidadPage(currentPage, currentFilters, { force: true });
-window.showTemporaryMessage('✅ Producto eliminado de la comunidad', 'success');
+window.showTemporaryMessage('Producto eliminado de la comunidad', 'success');
 } catch (err) {
 console.error('Error eliminando producto:', err);
 window.showTemporaryMessage(' Error al eliminar: ' + err.message, 'error');
@@ -804,7 +804,7 @@ const vendorAvatarHtml = (esVendorPlus && vendorLogo)
   : `<span style="width:18px;height:18px;border-radius:50%;background:#f3e8ff;color:#7c3aed;font-size:9px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;border:1px solid #e9d5ff;">${esc(vendorInitials)}</span>`;
 card.innerHTML = `
 <div class="product-slider" style="position:relative;cursor:pointer;">
-${product.vendedor_plan === 'plus' ? '<span style="position:absolute;top:8px;right:8px;font-size:9px;padding:2px 8px; background: linear-gradient(135deg, #f7c948, #f0962f);color:#fff;border-radius:20px;font-weight:800;z-index:1;">✓✓</span>' : ''}
+${product.vendedor_plan === 'plus' ? `<span style="position:absolute;top:8px;right:8px;font-size:9px;padding:2px 8px; background: linear-gradient(135deg, #f7c948, #f0962f);color:#fff;border-radius:20px;font-weight:800;z-index:1;">${Icon('check')}</span>` : ''}
 ${esDonativo ? '<span style="position:absolute;top:' + (product.vendedor_plan === 'plus' ? '8px' : '8px') + ';left:8px;font-size:11px;padding:2px 8px;background:linear-gradient(135deg,#f97316,#ef4444);color:#fff;border-radius:20px;font-weight:800;z-index:1;">Donativo</span>' : ''}
 ${inspectorMode ? `<span style="position:absolute;top:8px;right:8px;z-index:2;"><button class="btn-inspector-delete" title="Eliminar (Admin)" aria-label="Eliminar producto" style="background:var(--color-error,#ef4444);color:#fff;border:none;border-radius:50%;width:30px;height:30px;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.3);"><svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" aria-hidden="true"><use href="#ic-trash"/></svg></button></span>` : ''}
 <img class="product-img-main" src="${esc(imgUrl)}" alt="${esc(safeString(product.nombre))}" loading="lazy"
@@ -938,7 +938,7 @@ function renderPagination() {
   // Botón Anterior
   if (currentPage > 1) {
     const prevBtn = document.createElement('button');
-    prevBtn.textContent = '← Anterior';
+    prevBtn.innerHTML = Icon('arrow-left') + ' Anterior';
     prevBtn.onclick = () => {
       loadComunidadPage(currentPage - 1, currentFilters, { isPageChange: true });
       window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -964,7 +964,7 @@ function renderPagination() {
   // Botón Siguiente
   if (currentPage < totalPages) {
     const nextBtn = document.createElement('button');
-    nextBtn.textContent = 'Siguiente →';
+    nextBtn.innerHTML = 'Siguiente ' + Icon('arrow-right');
     nextBtn.onclick = () => {
       loadComunidadPage(currentPage + 1, currentFilters, { isPageChange: true });
       window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -1162,7 +1162,7 @@ function initBeneficiariosToggle() {
       if (grid) grid.style.display = '';
       if (pagination) pagination.style.display = '';
       if (toolbarArea) toolbarArea.style.display = '';
-      btn.textContent = '❤️ Ver fundaciones';
+      btn.innerHTML = Icon('heart-fill') + ' Ver fundaciones';
     } else {
       // Mostrar fundaciones
       wrap.style.display = 'block';
@@ -1170,7 +1170,7 @@ function initBeneficiariosToggle() {
       if (pagination) pagination.style.display = 'none';
       if (chipsBar) chipsBar.style.display = 'none';
       if (toolbarArea) toolbarArea.style.display = 'none';
-      btn.textContent = '🛍️ Ver productos';
+      btn.innerHTML = Icon('shopping-bag') + ' Ver productos';
       if (!beneficiariosCargados) loadBeneficiariosGrid();
     }
   });
@@ -1198,12 +1198,12 @@ async function loadBeneficiariosGrid() {
           border:1px solid rgba(255,255,255,.08);display:flex;flex-direction:column;">
           <div style="width:100%;aspect-ratio:1;background:#26262f;display:flex;align-items:center;justify-content:center;overflow:hidden;">
             ${img ? `<img src="${esc(img)}" alt="${esc(b.nombre)}" loading="lazy" style="width:100%;height:100%;object-fit:cover;">`
-                  : `<span style="font-size:2rem;">❤️</span>`}
+                  : `<span style="font-size:2rem;">${Icon('heart-fill',{size:32})}</span>`}
           </div>
           <div style="padding:10px;">
             <div style="font-size:.85rem;font-weight:700;color:var(--color-text-primary,#fff);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(b.nombre)}</div>
             ${b.organizacion ? `<div style="font-size:.72rem;color:#888;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(b.organizacion)}</div>` : ''}
-            ${b.ubicacion ? `<div style="font-size:.7rem;color:#666;margin-top:2px;">📍 ${esc(b.ubicacion)}</div>` : ''}
+            ${b.ubicacion ? `<div style="font-size:.7rem;color:#666;margin-top:2px;">${Icon('map-pin',{size:12})} ${esc(b.ubicacion)}</div>` : ''}
           </div>
         </div>`;
     }).join('');
@@ -1217,7 +1217,7 @@ async function loadBeneficiariosGrid() {
     console.error('Error cargando fundaciones:', err);
     grid.innerHTML = `<div style="grid-column:1/-1; text-align:center; padding:40px; color:var(--color-error,#ef4444);">
       Error al cargar fundaciones.<br>
-      <button onclick="window.__reloadBeneficiariosGrid && window.__reloadBeneficiariosGrid()" style="margin-top:12px; padding:8px 20px; border-radius:30px; border:none; background:#ff4f81; color:white; cursor:pointer; font-weight:600;">🔄 Reintentar</button>
+      <button onclick="window.__reloadBeneficiariosGrid && window.__reloadBeneficiariosGrid()" style="margin-top:12px; padding:8px 20px; border-radius:30px; border:none; background:#ff4f81; color:white; cursor:pointer; font-weight:600;"  >${Icon('refresh')} Reintentar</button>
     </div>`;
     window.__reloadBeneficiariosGrid = () => { beneficiariosCargados = false; loadBeneficiariosGrid(); };
   }
@@ -1241,9 +1241,9 @@ async function checkLiveBanner() {
         <span style="width:9px; height:9px; border-radius:50%; background:#ef4444; flex-shrink:0;
           animation: znr-live-pulse 1.4s infinite;"></span>
         <span style="flex:1; color:var(--color-text-primary,#dde1e8); font-size:13px; font-weight:600;">
-          🔴 En vivo ahora: ${nombres}${n > 2 ? ` y ${n - 2} más` : ''}
+          ${Icon('signal')} En vivo ahora: ${nombres}${n > 2 ? ` y ${n - 2} más` : ''}
         </span>
-        <span style="color:var(--color-accent,#f472b6); font-size:12px; font-weight:700;">Ver →</span>
+        <span style="color:var(--color-accent,#f472b6); font-size:12px; font-weight:700;">Ver ${Icon('arrow-right',{size:12})}</span>
       </a>
       <style>@keyframes znr-live-pulse { 0%,100%{opacity:1;} 50%{opacity:.3;} }</style>
     `;
@@ -1309,7 +1309,7 @@ function mostrarModalCalificar(item, phone) {
   const spans = [];
   for (let i = 0; i < 5; i++) {
     const span = document.createElement('span');
-    span.textContent = '★';
+    span.innerHTML = Icon('star');
     span.dataset.value = String(i + 1);
     spans.push(span);
     starsEl.appendChild(span);
@@ -1360,10 +1360,10 @@ function mostrarModalCalificar(item, phone) {
         }
       } catch (e) {}
 
-      if (typeof window.showTemporaryMessage === 'function') window.showTemporaryMessage('⭐ ¡Gracias por tu calificación!', 'success');
+      if (typeof window.showTemporaryMessage === 'function') window.showTemporaryMessage('¡Gracias por tu calificación!', 'success');
       close();
     } catch (err) {
-      if (typeof window.showTemporaryMessage === 'function') window.showTemporaryMessage('❌ ' + err.message, 'error');
+      if (typeof window.showTemporaryMessage === 'function') window.showTemporaryMessage(err.message, 'error');
     }
     }, 'Enviando…');
   });
@@ -1428,17 +1428,17 @@ window.openBeneficiarioRegister = function(modoEdicion, idBeneficiario, datosAct
       <label style="font-size:.78rem;font-weight:700;color:#888;display:block;margin-bottom:3px;">Fotos (opcional, máx. 3 — puedes elegir varias a la vez)</label>
       <div style="display:flex;gap:8px;margin-bottom:16px;" id="ben-img-previews">
         <label style="flex:1;aspect-ratio:1;border:1.5px dashed #e0e0e0;border-radius:10px;display:flex;align-items:center;justify-content:center;cursor:pointer;overflow:hidden;background:#fafafa;" id="ben-img-label-1">
-          <span id="ben-img-placeholder-1" style="font-size:1.4rem;display:${d.imagen1 ? 'none' : ''};">📷</span>
+          <span id="ben-img-placeholder-1" style="font-size:1.4rem;display:${d.imagen1 ? 'none' : ''};">${Icon('camera',{size:22})}</span>
           <img id="ben-img-preview-1" src="${escv(d.imagen1||'')}" style="display:${d.imagen1?'block':'none'};width:100%;height:100%;object-fit:cover;">
           <input type="file" id="ben-img-1" accept="image/*" multiple style="display:none;">
         </label>
         <label style="flex:1;aspect-ratio:1;border:1.5px dashed #e0e0e0;border-radius:10px;display:flex;align-items:center;justify-content:center;cursor:pointer;overflow:hidden;background:#fafafa;" id="ben-img-label-2">
-          <span id="ben-img-placeholder-2" style="font-size:1.4rem;display:${d.imagen2 ? 'none' : ''};">📷</span>
+          <span id="ben-img-placeholder-2" style="font-size:1.4rem;display:${d.imagen2 ? 'none' : ''};">${Icon('camera',{size:22})}</span>
           <img id="ben-img-preview-2" src="${escv(d.imagen2||'')}" style="display:${d.imagen2?'block':'none'};width:100%;height:100%;object-fit:cover;">
           <input type="file" id="ben-img-2" accept="image/*" multiple style="display:none;">
         </label>
         <label style="flex:1;aspect-ratio:1;border:1.5px dashed #e0e0e0;border-radius:10px;display:flex;align-items:center;justify-content:center;cursor:pointer;overflow:hidden;background:#fafafa;" id="ben-img-label-3">
-          <span id="ben-img-placeholder-3" style="font-size:1.4rem;display:${d.imagen3 ? 'none' : ''};">📷</span>
+          <span id="ben-img-placeholder-3" style="font-size:1.4rem;display:${d.imagen3 ? 'none' : ''};">${Icon('camera',{size:22})}</span>
           <img id="ben-img-preview-3" src="${escv(d.imagen3||'')}" style="display:${d.imagen3?'block':'none'};width:100%;height:100%;object-fit:cover;">
           <input type="file" id="ben-img-3" accept="image/*" multiple style="display:none;">
         </label>
@@ -1496,7 +1496,8 @@ window.openBeneficiarioRegister = function(modoEdicion, idBeneficiario, datosAct
     const idBen = this.dataset.id || '';
     const showMsg = (txt, ok) => {
       const el = document.getElementById('ben-reg-msg');
-      el.textContent = txt;
+      el.innerHTML = (ok ? Icon('check') : Icon('error')) + ' <span></span>';
+      el.querySelector('span').textContent = txt;
       el.style.display = 'block';
       el.style.background = ok ? '#dcfce7' : '#fee2e2';
       el.style.color = ok ? '#166534' : '#991b1b';
@@ -1525,7 +1526,7 @@ window.openBeneficiarioRegister = function(modoEdicion, idBeneficiario, datosAct
 
     const vendor = window.vendorSession;
     if (!vendor || !vendor.token) {
-      showMsg('⚠️ Debes iniciar sesión como vendedor para registrarte como beneficiario. Ve a "Mi cuenta de vendedor".', false);
+      showMsg('Debes iniciar sesión como vendedor para registrarte como beneficiario. Ve a "Mi cuenta de vendedor".', false);
       // Opcional: agregar un enlace para ir a vendedor.html
       const link = document.createElement('a');
       link.href = 'vendedor.html';
@@ -1540,7 +1541,7 @@ window.openBeneficiarioRegister = function(modoEdicion, idBeneficiario, datosAct
 
     // Validar que el teléfono coincida con el de la sesión (opcional)
     if (vendor.telefono && String(vendor.telefono).replace(/\D/g, '') !== tel) {
-      showMsg('⚠️ El teléfono no coincide con tu cuenta de vendedor. Usa el número registrado: ' + vendor.telefono, false);
+      showMsg('El teléfono no coincide con tu cuenta de vendedor. Usa el número registrado: ' + vendor.telefono, false);
       return;
     }
 
@@ -1581,7 +1582,7 @@ window.openBeneficiarioRegister = function(modoEdicion, idBeneficiario, datosAct
           try {
             imgUrls[n - 1] = await uploadBenImg(fileInput.files[0]);
           } catch (e) {
-            showMsg('⚠️ Error al subir la imagen ' + n + ': ' + e.message, false);
+            showMsg('Error al subir la imagen ' + n + ': ' + e.message, false);
             btn.disabled = false;
             btn.textContent = 'Enviar solicitud';
             return;
@@ -1613,20 +1614,20 @@ window.openBeneficiarioRegister = function(modoEdicion, idBeneficiario, datosAct
 
       const data = await res.json();
       if (data.ok) {
-        showMsg(modo === 'editar' ? '✅ ¡Cambios enviados! El administrador los revisará antes de aplicarlos.' : '✅ ¡Solicitud enviada! El administrador te contactará pronto por WhatsApp.', true);
+        showMsg(modo === 'editar' ? '¡Cambios enviados! El administrador los revisará antes de aplicarlos.' : '¡Solicitud enviada! El administrador te contactará pronto por WhatsApp.', true);
         btn.textContent = 'Enviado';
         setTimeout(() => {
           const modal = document.getElementById('modal-beneficiario-register');
           if (modal) modal.remove();
         }, 3000);
       } else {
-        showMsg('⚠️ ' + (data.error || 'Error al enviar'), false);
+        showMsg((data.error || 'Error al enviar'), false);
         btn.disabled = false;
         btn.textContent = modo === 'editar' ? 'Enviar cambios' : 'Enviar solicitud';
       }
     } catch (err) {
       console.error('Error en registro beneficiario:', err);
-      showMsg('⚠️ Error de conexión: ' + err.message, false);
+      showMsg('Error de conexión: ' + err.message, false);
       btn.disabled = false;
       btn.textContent = modo === 'editar' ? 'Enviar cambios' : 'Enviar solicitud';
     }
@@ -1644,7 +1645,7 @@ window.openBeneficiarioModal = async function(beneficiarioId) {
   modal.innerHTML = `
     <div style="background:var(--color-surface,#fff);border-radius:20px 20px 0 0;width:100%;max-width:480px;max-height:88vh;overflow-y:auto;padding:24px 20px 32px;">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
-        <h2 style="margin:0;font-size:1rem;font-weight:800;">❤️ Beneficiario</h2>
+        <h2 style="margin:0;font-size:1rem;font-weight:800;">${Icon('heart-fill')} Beneficiario</h2>
         <button id="btn-close-ben-det" style="background:none;border:none;font-size:22px;cursor:pointer;">×</button>
       </div>
       <div id="ben-det-body"><p style="color:#aaa;text-align:center;padding:24px 0;">Cargando…</p></div>
@@ -1664,13 +1665,13 @@ window.openBeneficiarioModal = async function(beneficiarioId) {
       ${imgs.length ? `<div style="display:flex;gap:8px;overflow-x:auto;margin-bottom:14px;">${imgs.map(u=>`<img src="${esc2(u)}" style="height:120px;border-radius:10px;object-fit:cover;flex-shrink:0;">`).join('')}</div>` : ''}
       <h3 style="margin:0 0 4px;font-size:1.05rem;">${esc2(b.nombre)}</h3>
       ${b.organizacion ? `<p style="margin:0 0 8px;font-size:.8rem;color:#888;">${esc2(b.organizacion)}</p>` : ''}
-      <p style="margin:0 0 6px;font-size:.82rem;"><strong>📍</strong> ${esc2(b.ubicacion)}</p>
-      ${b.facebook ? `<p style="margin:0 0 10px;font-size:.82rem;"><a href="${esc2(b.facebook)}" target="_blank" rel="noopener" style="color:#1877f2;">Facebook →</a></p>` : ''}
+      <p style="margin:0 0 6px;font-size:.82rem;"><strong>${Icon('map-pin',{size:13})}</strong> ${esc2(b.ubicacion)}</p>
+      ${b.facebook ? `<p style="margin:0 0 10px;font-size:.82rem;"><a href="${esc2(b.facebook)}" target="_blank" rel="noopener" style="color:#1877f2;">Facebook ${Icon('arrow-right',{size:12})}</a></p>` : ''}
       <div style="background:#fff7ed;border-radius:10px;padding:12px;margin-bottom:14px;">
         <p style="margin:0;font-size:.85rem;line-height:1.6;">${esc2(b.historia)}</p>
       </div>
       <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:12px;">
-        <p style="margin:0 0 4px;font-weight:700;font-size:.8rem;color:#166534;">💳 Datos de pago directo</p>
+        <p style="margin:0 0 4px;font-weight:700;font-size:.8rem;color:#166534;">${Icon('credit-card')} Datos de pago directo</p>
         <p style="margin:0;font-size:.88rem;font-family:monospace;letter-spacing:.05em;">${esc2(b.cuenta_bancaria)}</p>
         <p style="margin:4px 0 0;font-size:.75rem;color:#888;">A nombre de: ${esc2(b.nombre)}</p>
       </div>`;

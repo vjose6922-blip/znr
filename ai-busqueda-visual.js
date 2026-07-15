@@ -85,10 +85,10 @@ function _mostrarEstadoBoton(boton, estado) {
   if (!boton) return;
   if (estado === 'buscando') {
     boton.classList.add('buscando');
-    boton.textContent = '⏳';
+    boton.innerHTML = Icon('clock');
   } else {
     boton.classList.remove('buscando');
-    boton.textContent = '📷';
+    boton.innerHTML = Icon('camera');
   }
 }
 
@@ -99,7 +99,7 @@ function _mostrarChipBusquedaVisual() {
   const chip = document.createElement('button');
   chip.className = 'filter-chip';
   chip.id = 'chip-busqueda-visual';
-  chip.innerHTML = '📷 Búsqueda por foto <span class="chip-x">✕</span>';
+  chip.innerHTML = Icon('camera') + ' Búsqueda por foto <span class="chip-x">' + Icon('x') + '</span>';
   chip.addEventListener('click', () => {
     chip.remove();
     if (typeof window.restaurarBusquedaNormalComunidad === 'function') {

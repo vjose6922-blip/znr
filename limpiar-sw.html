@@ -72,18 +72,19 @@
 </head>
 <body>
     <div class="card">
-        <h1>🧹 Gestor de Service Workers</h1>
+        <h1><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" aria-hidden="true"><use href="#ic-trash"/></svg> Gestor de Service Workers</h1>
         <p>Esta página te permite <strong>desregistrar (eliminar)</strong> cualquier Service Worker registrado en este dominio, incluyendo tu <code>sw.js</code>.</p>
         <p><em>Nota: La página debe estar servida desde el mismo dominio (HTTPS o localhost) para que funcione.</em></p>
 
         <hr>
 
-        <button id="btnCargar" onclick="cargarWorkers()">🔍 Buscar Service Workers activos</button>
+        <button id="btnCargar" onclick="cargarWorkers()"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" aria-hidden="true"><use href="#ic-search"/></svg> Buscar Service Workers activos</button>
 
         <div id="lista"></div>
         <div id="mensaje"></div>
     </div>
 
+    <script src="icons.js"></script>
     <script>
         async function cargarWorkers() {
             const listaDiv = document.getElementById('lista');
@@ -96,19 +97,19 @@
 
             // Verificar si el navegador soporta Service Workers
             if (!('serviceWorker' in navigator)) {
-                mensajeDiv.innerHTML = '<div class="mensaje error">❌ Tu navegador no soporta Service Workers.</div>';
+                mensajeDiv.innerHTML = '<div class="mensaje error">' + Icon('x') + ' Tu navegador no soporta Service Workers.</div>';
                 return;
             }
 
             try {
                 btn.disabled = true;
-                btn.textContent = '⏳ Buscando...';
+                btn.innerHTML = Icon('clock') + ' Buscando...';
 
                 // Obtener todos los registros de SW para este origen
                 const registrations = await navigator.serviceWorker.getRegistrations();
 
                 if (registrations.length === 0) {
-                    listaDiv.innerHTML = '<p>✅ No hay ningún Service Worker registrado en este dominio.</p>';
+                    listaDiv.innerHTML = '<p>' + Icon('check') + ' No hay ningún Service Worker registrado en este dominio.</p>';
                     mensajeDiv.innerHTML = '<div class="mensaje info">ℹ️ No se encontraron SW para eliminar.</div>';
                     return;
                 }
@@ -130,10 +131,10 @@
                     html += `
                         <div class="sw-item">
                             <strong>#${index + 1}</strong><br>
-                            <span class="url">📄 ${scriptURL}</span><br>
-                            <span style="font-size:0.9em; color:#555;">📍 Scope: ${scope}</span>
+                            <span class="url">${Icon('document-text')} ${scriptURL}</span><br>
+                            <span style="font-size:0.9em; color:#555;">${Icon('map-pin')} Scope: ${scope}</span>
                             <br>
-                            <button class="boton-borrar" onclick="eliminarWorker('${scope}', ${index})">🗑️ Eliminar este SW</button>
+                            <button class="boton-borrar" onclick="eliminarWorker('${scope}', ${index})">${Icon('trash')} Eliminar este SW</button>
                         </div>
                     `;
                 });
@@ -142,19 +143,19 @@
                 html += `
                     <hr>
                     <button onclick="eliminarTodos()" style="background:#c0392b; width:100%; padding:15px;">
-                        ⚠️ Eliminar TODOS los Service Workers de este dominio
+                        ${Icon('error')} Eliminar TODOS los Service Workers de este dominio
                     </button>
                 `;
 
                 listaDiv.innerHTML = html;
-                mensajeDiv.innerHTML = '<div class="mensaje info">📌 Haz clic en el botón de cada SW para eliminarlo individualmente.</div>';
+                mensajeDiv.innerHTML = '<div class="mensaje info">' + Icon('map-pin') + ' Haz clic en el botón de cada SW para eliminarlo individualmente.</div>';
 
             } catch (error) {
-                mensajeDiv.innerHTML = `<div class="mensaje error">❌ Error al cargar: ${error.message}</div>`;
+                mensajeDiv.innerHTML = `<div class="mensaje error">${Icon('x')} Error al cargar: ${error.message}</div>`;
                 console.error(error);
             } finally {
                 btn.disabled = false;
-                btn.textContent = '🔍 Buscar Service Workers activos';
+                btn.innerHTML = Icon('search') + ' Buscar Service Workers activos';
             }
         }
 
@@ -171,19 +172,19 @@
                 const regToRemove = registrations.find(reg => reg.scope === scope);
                 
                 if (!regToRemove) {
-                    mensajeDiv.innerHTML = '<div class="mensaje error">❌ No se encontró ese registro (puede que ya se haya eliminado).</div>';
+                    mensajeDiv.innerHTML = '<div class="mensaje error">' + Icon('x') + ' No se encontró ese registro (puede que ya se haya eliminado).</div>';
                     cargarWorkers(); // Recargar lista
                     return;
                 }
 
                 await regToRemove.unregister();
-                mensajeDiv.innerHTML = `<div class="mensaje exito">✅ Service Worker con scope "${scope}" eliminado correctamente.</div>`;
+                mensajeDiv.innerHTML = `<div class="mensaje exito">${Icon('check')} Service Worker con scope "${scope}" eliminado correctamente.</div>`;
                 
                 // Recargar la lista para actualizar
                 cargarWorkers();
 
             } catch (error) {
-                mensajeDiv.innerHTML = `<div class="mensaje error">❌ Error al eliminar: ${error.message}</div>`;
+                mensajeDiv.innerHTML = `<div class="mensaje error">${Icon('x')} Error al eliminar: ${error.message}</div>`;
                 console.error(error);
             }
         }
@@ -191,7 +192,7 @@
         // Función para eliminar TODOS
         async function eliminarTodos() {
             const mensajeDiv = document.getElementById('mensaje');
-            if (!confirm('⚠️ ¿Estás seguro de que quieres eliminar TODOS los Service Workers de este dominio?')) {
+            if (!confirm('¿Estás seguro de que quieres eliminar TODOS los Service Workers de este dominio?')) {
                 return;
             }
 
@@ -208,11 +209,11 @@
                     if (result) eliminados++;
                 }
 
-                mensajeDiv.innerHTML = `<div class="mensaje exito">✅ Se eliminaron ${eliminados} de ${registrations.length} Service Workers.</div>`;
+                mensajeDiv.innerHTML = `<div class="mensaje exito">${Icon('check')} Se eliminaron ${eliminados} de ${registrations.length} Service Workers.</div>`;
                 cargarWorkers(); // Recargar lista
 
             } catch (error) {
-                mensajeDiv.innerHTML = `<div class="mensaje error">❌ Error al eliminar todos: ${error.message}</div>`;
+                mensajeDiv.innerHTML = `<div class="mensaje error">${Icon('x')} Error al eliminar todos: ${error.message}</div>`;
                 console.error(error);
             }
         }

@@ -304,7 +304,7 @@ window.sugerirYAplicar = async function(file) {
     console.error(`[ai-clasificador] Sugerencia aplicada: ${resultado.categoria} (${Math.round(resultado.confianza * 100)}%)`);
 
     if (typeof window.showTemporaryMessage === 'function') {
-      window.showTemporaryMessage(`✨ Categoría sugerida: ${resultado.categoria} (${Math.round(resultado.confianza * 100)}%)`, 'info');
+      window.showTemporaryMessage(`Categoría sugerida: ${resultado.categoria} (${Math.round(resultado.confianza * 100)}%)`, 'info');
     }
   } catch (err) {
     // Cualquier error aquí es silencioso: el auto-tag es un extra, nunca un bloqueo.

@@ -35,7 +35,7 @@ timestamp: Date.now(),
 retries: 0
 });
 savePendingActions();
-showMessage(`📡 Producto guardado localmente. Se sincronizará cuando haya internet.`, 'info');
+showMessage(`Producto guardado localmente. Se sincronizará cuando haya internet.`, 'info');
 console.log(`📝 Acción "${type}" guardada. Total pendientes: ${pendingActions.length}`);
 }
 const ADMIN_API = window.API_URL || "";
@@ -46,7 +46,7 @@ return;
 }
 if (pendingActions.length === 0) return;
 console.log(`🔄 Sincronizando ${pendingActions.length} acciones pendientes...`);
-showMessage(`🔄 Sincronizando ${pendingActions.length} producto(s)...`, 'info');
+showMessage(`Sincronizando ${pendingActions.length} producto(s)...`, 'info');
 for (let i = 0; i < pendingActions.length; i++) {
 const action = pendingActions[i];
 try {
@@ -107,7 +107,7 @@ savePendingActions();
 }
 }
 if (pendingActions.length === 0) {
-showMessage(`✅ Todos los productos sincronizados`, 'success');
+showMessage(`Todos los productos sincronizados`, 'success');
 if (typeof loadAdminProducts === 'function') {
 loadAdminProducts();
 }
@@ -140,9 +140,9 @@ font-family: monospace;
 `;
 pendingBadge.onclick = () => {
 showCustomConfirm({
-title: "📡 Sincronizar pendientes",
+title: "Sincronizar pendientes",
 message: `¿Sincronizar ${count} producto(s) pendiente(s) ahora?`,
-icon: "📡",
+icon: 'signal',
 confirmText: "Sincronizar",
 cancelText: "Cancelar",
 onConfirm: () => syncPendingActions()
@@ -153,7 +153,7 @@ document.body.appendChild(pendingBadge);
 if (pendingBadge) {
 if (count > 0) {
 pendingBadge.style.display = 'flex';
-pendingBadge.innerHTML = `📡 ${count} pendiente${count !== 1 ? 's' : ''} · Click para sincronizar`;
+pendingBadge.innerHTML = `${Icon('signal')} ${count} pendiente${count !== 1 ? 's' : ''} · Click para sincronizar`;
 } else {
 pendingBadge.style.display = 'none';
 }
@@ -190,7 +190,7 @@ Imagen3: document.getElementById("product-image3")?.value.trim() || "",
 };
 if (!productData.Nombre) {
 if (typeof showCustomAlert === 'function') {
-await showCustomAlert({ title: "⚠️ Campo requerido", message: "El nombre del producto es obligatorio.", icon: "📝", confirmText: "Aceptar" });
+await showCustomAlert({ title: "Campo requerido", message: "El nombre del producto es obligatorio.", icon: 'document-text', confirmText: "Aceptar" });
 }
 return;
 }
@@ -198,7 +198,7 @@ addPendingAction(id ? ADMIN_ACTIONS.UPDATE : ADMIN_ACTIONS.CREATE, productData, 
 if (typeof resetProductForm === 'function') resetProductForm();
 if (typeof clearImageUploads === 'function') clearImageUploads();
 if (typeof showCustomAlert === 'function') {
-await showCustomAlert({ title: "📡 Guardado localmente", message: "Se sincronizará cuando haya internet.", icon: "📡", confirmText: "Aceptar" });
+await showCustomAlert({ title: "Guardado localmente", message: "Se sincronizará cuando haya internet.", icon: 'signal', confirmText: "Aceptar" });
 }
 return;
 }
@@ -216,7 +216,7 @@ addPendingAction(ADMIN_ACTIONS.DELETE, null, id);
 const row = document.querySelector(`.admin-product-row button[data-id="${id}"]`)?.closest('.admin-product-row');
 if (row) row.remove();
 if (typeof showCustomAlert === 'function') {
-await showCustomAlert({ title: "📡 Producto marcado", message: "Se eliminará cuando haya internet.", icon: "📡", confirmText: "Aceptar" });
+await showCustomAlert({ title: "Producto marcado", message: "Se eliminará cuando haya internet.", icon: 'signal', confirmText: "Aceptar" });
 }
 return;
 }
@@ -226,12 +226,12 @@ await window._originalDelete(id);
 }
 window.addEventListener('online', () => {
 console.log("🟢 Conexión recuperada - Sincronizando...");
-showMessage("🟢 Conexión recuperada. Sincronizando cambios...", 'success');
+showMessage("Conexión recuperada. Sincronizando cambios...", 'success');
 setTimeout(() => syncPendingActions(), 1000);
 });
 window.addEventListener('offline', () => {
 console.log("🔴 Conexión perdida");
-showMessage("📡 Sin conexión - Los cambios se guardarán localmente", 'warning');
+showMessage("Sin conexión - Los cambios se guardarán localmente", 'warning');
 });
 loadPendingActions();
 setupInterception();

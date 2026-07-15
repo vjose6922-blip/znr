@@ -224,7 +224,7 @@
     }
 
     let html = `<div style="font-family:monospace;font-size:13px;max-height:80vh;overflow-y:auto;padding:10px;">`;
-    html += `<h3>📋 Registro de errores (${errors.length})</h3>`;
+    html += `<h3>${Icon('clipboard')} Registro de errores (${errors.length})</h3>`;
     html += `<table style="width:100%;border-collapse:collapse;text-align:left;">`;
     html += `<tr><th>Fecha</th><th>Nivel</th><th>Fuente</th><th>Acción</th><th>Mensaje</th></tr>`;
     errors.forEach(e => {
@@ -246,7 +246,7 @@
     });
     html += `</table>`;
     html += `<div style="margin-top:10px;display:flex;gap:10px;">`;
-    html += `<button onclick="ZRMonitor.clear();alert('Errores borrados');location.reload();" style="padding:6px 14px;border:none;border-radius:6px;background:#ef4444;color:#fff;cursor:pointer;">🗑️ Borrar todos</button>`;
+    html += `<button onclick="ZRMonitor.clear();alert('Errores borrados');location.reload();" style="padding:6px 14px;border:none;border-radius:6px;background:#ef4444;color:#fff;cursor:pointer;">${Icon('trash')} Borrar todos</button>`;
     html += `<button onclick="document.getElementById('error-log-modal').remove();" style="padding:6px 14px;border:none;border-radius:6px;background:#666;color:#fff;cursor:pointer;">Cerrar</button>`;
     html += `</div></div>`;
 

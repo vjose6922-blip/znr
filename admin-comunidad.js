@@ -180,7 +180,7 @@
         try {
           const data = await _gasPost({ action: 'rechazarVendedor', uid, token: _getToken() });
           if (!data.ok) throw new Error(data.error);
-          _msg('⏸ Vendedor suspendido', 'success');
+          _msg('Vendedor suspendido', 'success');
           loadVendors();
         } catch (err) { _msg(' ' + err.message, 'error'); }
       }
