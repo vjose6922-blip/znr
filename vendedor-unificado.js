@@ -990,6 +990,9 @@ window.loadMyProducts = async function loadMyProducts(force = false, page = 1) {
 //    y el modal de donaciones — misma clave, así cualquiera de los dos
 //    "calienta" la caché para el otro) ─────────────────────────────────
 async function fetchVendorProductsPageRaw(uid, page, limit, status) {
+  if (!vendorSession || !vendorSession.token) {
+    throw new Error('Tu sesión expiró, vuelve a iniciar sesión.');
+  }
   const data = await apiFetch({
     action: 'listarComunidad',
     vendedor_uid: uid,
@@ -2627,7 +2630,8 @@ window.openGestionarDonacionesModal = async function(page = 1) {
   try {
     result = await getVendorProductsPageCached(uid, page, DONACION_PAGE_LIMIT, 'todos');
   } catch (e) {
-    lista.innerHTML = `<p style="color:#ef4444;text-align:center;padding:24px 0;">No se pudieron cargar tus productos.</p>`;
+    console.error('openGestionarDonacionesModal:', e);
+    lista.innerHTML = `<p style="color:#ef4444;text-align:center;padding:24px 0;">No se pudieron cargar tus productos.<br><small style="color:#f0abab;">${(e && e.message) ? String(e.message).replace(/[<>]/g,'') : ''}</small></p>`;
     return;
   }
 
