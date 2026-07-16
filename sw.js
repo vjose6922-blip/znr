@@ -30,7 +30,6 @@ const STATIC_ASSETS = [
   '/ZNR/error-monitor.js',
   '/ZNR/icons.js',
   '/ZNR/manifest.json',
-  '/ZNR/manifest-admin.json',
   '/ZNR/placeholder.svg',
   '/ZNR/labels.txt',
 ];
