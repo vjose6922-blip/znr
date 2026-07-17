@@ -114,8 +114,9 @@ function _injectOverlayStyles() {
   gap: 20px;
   padding: 32px 28px;
   border-radius: 24px;
+  /* Usa las variables del tema actual */
   background: var(--color-surface, #252831);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--color-border-subtle, rgba(255,255,255,0.08));
   box-shadow: 0 8px 40px rgba(0, 0, 0, 0.4);
   max-width: 300px;
   width: 100%;
@@ -134,12 +135,13 @@ function _injectOverlayStyles() {
 }
 .bv-ring {
   fill: none;
+  /* Color adaptable: en oscuro se ve sobre fondo oscuro, en claro sobre fondo claro */
   stroke: rgba(255, 79, 129, 0.18);
   stroke-width: 5;
 }
 .bv-arc {
   fill: none;
-  stroke: #ff4f81;
+  stroke: #ff4f81; /* El color de la marca, se mantiene igual en ambos temas */
   stroke-width: 5;
   stroke-linecap: round;
   stroke-dasharray: 90 150;
@@ -148,7 +150,7 @@ function _injectOverlayStyles() {
 }
 .bv-cam {
   fill: none;
-  stroke: #ff4f81;
+  stroke: #ff4f81; /* El color de la marca, se mantiene igual en ambos temas */
   stroke-width: 2.5;
 }
 @keyframes bv-spin {
@@ -157,7 +159,8 @@ function _injectOverlayStyles() {
 .bv-text {
   font-size: 14px;
   font-weight: 600;
-  color: var(--color-text-secondary, #bbb);
+  /* Texto adaptable: en oscuro se ve claro, en claro se ve oscuro */
+  color: var(--color-text-muted, #bbb);
   text-align: center;
   margin: 0;
 }
