@@ -367,7 +367,7 @@ function _renderAfterLoad(products, meta) {
     }
   } catch(err) {
     console.error('Error en _renderAfterLoad:', err);
-    mostrarMensajeFlotante('❌ Error: ' + err.message, 15000);
+    if (typeof showTemporaryMessage === 'function') showTemporaryMessage('❌ Error: ' + err.message, 'error');
   } finally {
     _suppressFilterEvents = false;
   }

@@ -3387,7 +3387,7 @@ return null;
 }
 function sizeMatches(talla, user) {
 if (!talla||!user) return false;
-const h = talla.toLowerCase(), n = user.toLowerCase();
+const h = String(talla).toLowerCase(), n = String(user).toLowerCase();
 return h===n || h.split(/[\s,\/\-]+/).some(t=>t.trim()===n);
 }
 function getSizeScore(p, prefs) {
