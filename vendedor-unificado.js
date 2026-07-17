@@ -708,8 +708,50 @@ window.setVendorProductsCache = function(uid, products) {
       JSON.stringify({ data: products, timestamp: Date.now() }));
   } catch(e) {}
 };
+
+// ── CACHÉ POR PÁGINA (compartida entre vendedor.html y el modal
+//    de "Gestionar donaciones" — misma clave = mismo caché, en ambos
+//    sentidos: lo que pagina uno lo puede reutilizar el otro) ──────
+const VENDOR_PAGE_CACHE_TTL = 3 * 60 * 1000; // 3 min, igual que antes
+
+function vendorPageCacheKey(uid, page, status) {
+  return `vendor_products_${uid}_page_${page}_status_${status}`;
+}
+function getVendorPageCache(uid, page, status) {
+  try {
+    const raw = sessionStorage.getItem(vendorPageCacheKey(uid, page, status));
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (Date.now() - parsed.timestamp > VENDOR_PAGE_CACHE_TTL) {
+      sessionStorage.removeItem(vendorPageCacheKey(uid, page, status));
+      return null;
+    }
+    return parsed;
+  } catch(e) { return null; }
+}
+function setVendorPageCache(uid, page, status, payload) {
+  try {
+    sessionStorage.setItem(vendorPageCacheKey(uid, page, status),
+      JSON.stringify({ ...payload, timestamp: Date.now() }));
+  } catch(e) {}
+}
+window.invalidateVendorPagesCache = function(uid) {
+  try {
+    const u = uid || vendorSession?.uid;
+    const prefix = `vendor_products_${u}_page_`;
+    Object.keys(sessionStorage).forEach(k => {
+      if (k.startsWith(prefix)) sessionStorage.removeItem(k);
+    });
+  } catch(e) {}
+};
+
 window.invalidateVendorProductsCache = function(uid) {
-  try { sessionStorage.removeItem(VENDOR_PRODUCTS_CACHE_KEY + '_' + (uid || vendorSession?.uid)); } catch(e) {}
+  const u = uid || vendorSession?.uid;
+  try { sessionStorage.removeItem(VENDOR_PRODUCTS_CACHE_KEY + '_' + u); } catch(e) {}
+  // Una donación asignada/quitada cambia el flag "donado" de un producto que
+  // puede estar cacheado en cualquier página → se invalidan todas las páginas
+  // de este vendedor, no solo la actual.
+  window.invalidateVendorPagesCache(u);
 };
 
 function showVendorProductsSkeleton(container, count = 3) {
@@ -988,58 +1030,54 @@ window.loadMyProducts = async function loadMyProducts(force = false, page = 1) {
   const limit = 20;
   const status = currentStatusFilter || 'todos';
 
-  // Construir clave de caché incluyendo página y filtro
-  const cacheKey = `vendor_products_${uid}_page_${page}_status_${status}`;
-  const cached = !force ? sessionStorage.getItem(cacheKey) : null;
+  const cached = !force ? getVendorPageCache(uid, page, status) : null;
 
   if (cached) {
-    try {
-      const parsed = JSON.parse(cached);
-      applyMyProducts(parsed.data, container, parsed.total, parsed.page, parsed.totalPages);
-      // Revalidar en background
-      fetchPage(uid, page, limit, status, true);
-      return;
-    } catch (e) {}
+    applyMyProducts(cached.data, container, cached.total, cached.page, cached.totalPages);
+    // Revalidar en background (esto también refresca el caché compartido
+    // que puede estar usando el modal de "Gestionar donaciones")
+    fetchPage(uid, page, limit, status, true);
+    return;
   }
 
   showVendorProductsSkeleton(container, Math.min(limit, 6));
   await fetchPage(uid, page, limit, status, false);
 };
 
+// Hace la llamada a GAS y guarda el resultado en el caché por página
+// compartido. Es el único punto de red para "mis productos paginados",
+// tanto vendedor.html como el modal de donaciones pasan por aquí.
+async function fetchAndCacheVendorPage(uid, page, limit, status) {
+  const data = await apiFetch({
+    action: 'listarComunidad',
+    vendedor_uid: uid,
+    admin: 'true',
+    limit: limit,
+    page: page,
+    estado: status !== 'todos' ? status : undefined,
+    vendorToken: vendorSession.token
+  }, 'GET');
+
+  if (!data.ok) throw new Error(data.error || 'Error al cargar productos');
+
+  // Filtrar por uid por si acaso
+  const myProducts = (data.products || []).filter(p => p.vendedor_uid === uid);
+  const total = data.total || myProducts.length;
+  const totalPages = data.totalPages || Math.ceil(total / limit) || 1;
+
+  const payload = { data: myProducts, total, page, totalPages };
+  setVendorPageCache(uid, page, status, payload);
+  return payload;
+}
+
 async function fetchPage(uid, page, limit, status, background = false) {
   const container = document.getElementById('products-container');
   if (!container) return;
 
   try {
-    const data = await apiFetch({
-      action: 'listarComunidad',
-      vendedor_uid: uid,
-      admin: 'true',
-      limit: limit,
-      page: page,
-      estado: status !== 'todos' ? status : undefined,
-      vendorToken: vendorSession.token
-    }, 'GET');
-
-    if (!data.ok) throw new Error(data.error);
-
-    // Filtrar por uid por si acaso
-    const myProducts = (data.products || []).filter(p => p.vendedor_uid === uid);
-    const total = data.total || myProducts.length;
-    const totalPages = data.totalPages || Math.ceil(total / limit);
-
-    // Guardar en caché
-    const cacheKey = `vendor_products_${uid}_page_${page}_status_${status}`;
-    sessionStorage.setItem(cacheKey, JSON.stringify({
-      data: myProducts,
-      total: total,
-      page: page,
-      totalPages: totalPages,
-      timestamp: Date.now()
-    }));
-
+    const payload = await fetchAndCacheVendorPage(uid, page, limit, status);
     if (!background) {
-      applyMyProducts(myProducts, container, total, page, totalPages);
+      applyMyProducts(payload.data, container, payload.total, payload.page, payload.totalPages);
     }
   } catch (err) {
     if (!background) {
@@ -2577,37 +2615,70 @@ const benData = await window.apiFetch({ action:'obtenerBeneficiariosAprobados' }
 };
 
 // ── "Gestionar donaciones" desde ajustes ──────────────────────
-window.openGestionarDonacionesModal = async function() {
-  const esc = s => String(s||'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-
-  const old = document.getElementById('modal-gestionar-donaciones');
-  if (old) old.remove();
-  const modal = document.createElement('div');
-  modal.id = 'modal-gestionar-donaciones';
-  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.65);backdrop-filter:blur(4px);z-index:99999;display:flex;align-items:flex-end;justify-content:center;';
-  modal.innerHTML = `
-    <div style="background:#fff;border-radius:20px 20px 0 0;width:100%;max-width:480px;max-height:88vh;overflow-y:auto;padding:0 0 32px;">
-      <div style="position:sticky;top:0;background:#fff;z-index:1;padding:16px 20px 12px;border-bottom:1px solid #f0f0f0;display:flex;align-items:center;justify-content:space-between;">
-        <h2 style="margin:0;font-size:1rem;font-weight:800;">${Icon('heart-fill')} Gestionar donaciones</h2>
-        <button id="btn-close-gestionar" style="background:none;border:none;font-size:22px;cursor:pointer;color:#888;line-height:1;">×</button>
-      </div>
-      <div id="gestionar-lista" style="padding:32px 20px;text-align:center;color:#aaa;">Actualizando productos…</div>
-    </div>`;
-  document.body.appendChild(modal);
-  document.getElementById('btn-close-gestionar').onclick = () => modal.remove();
-  modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
-
+// Pagina igual que vendedor.html (20 por página) y usa el MISMO caché
+// por página/estado: si el usuario ya visitó la página 2 en vendedor.html
+// (o en este modal antes), se reutiliza al instante en ambos sentidos.
+window.openGestionarDonacionesModal = async function(page = 1) {
   const uid = vendorSession?.uid;
-  const cached = uid ? window.getVendorProductsCache(uid) : null;
-  if (cached) {
-    window._vendorProducts = cached;
-  } else {
-    try { await loadMyProducts(); } catch(e) { /* usa lo que haya */ }
+  if (!uid) return;
+  const limit = 20;
+  const status = currentStatusFilter || 'todos';
+
+  let modal = document.getElementById('modal-gestionar-donaciones');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'modal-gestionar-donaciones';
+    modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.65);backdrop-filter:blur(4px);z-index:99999;display:flex;align-items:flex-end;justify-content:center;';
+    modal.innerHTML = `
+      <div style="background:#fff;border-radius:20px 20px 0 0;width:100%;max-width:480px;max-height:88vh;overflow-y:auto;padding:0 0 32px;">
+        <div style="position:sticky;top:0;background:#fff;z-index:1;padding:16px 20px 12px;border-bottom:1px solid #f0f0f0;display:flex;align-items:center;justify-content:space-between;">
+          <h2 style="margin:0;font-size:1rem;font-weight:800;">${Icon('heart-fill')} Gestionar donaciones</h2>
+          <button id="btn-close-gestionar" style="background:none;border:none;font-size:22px;cursor:pointer;color:#888;line-height:1;">×</button>
+        </div>
+        <div id="gestionar-lista" style="padding:32px 20px;text-align:center;color:#aaa;">Actualizando productos…</div>
+      </div>`;
+    document.body.appendChild(modal);
+    document.getElementById('btn-close-gestionar').onclick = () => modal.remove();
+    modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
   }
 
-  const productos = window._vendorProducts || [];
   const lista = document.getElementById('gestionar-lista');
   if (!lista) return;
+
+  const cached = getVendorPageCache(uid, page, status);
+  if (cached) {
+    // Instantáneo: ya sea porque vendedor.html cacheó esta página, o
+    // porque el usuario ya la había abierto antes en este modal.
+    renderGestionarLista(lista, cached.data, page, cached.totalPages, cached.total, status);
+    fetchAndCacheVendorPage(uid, page, limit, status)
+      .then(payload => {
+        // Solo repinta si el modal sigue abierto en la misma página
+        if (document.getElementById('modal-gestionar-donaciones') && window._gestionarDonacionesPage === page) {
+          renderGestionarLista(lista, payload.data, page, payload.totalPages, payload.total, status);
+        }
+      })
+      .catch(() => {});
+    return;
+  }
+
+  lista.style.padding = '32px 20px';
+  lista.style.textAlign = 'center';
+  lista.innerHTML = 'Actualizando productos…';
+  try {
+    const payload = await fetchAndCacheVendorPage(uid, page, limit, status);
+    renderGestionarLista(lista, payload.data, page, payload.totalPages, payload.total, status);
+  } catch (e) {
+    lista.style.padding = '24px 20px';
+    lista.innerHTML = `<p style="color:#ef4444;text-align:center;">Error al cargar: ${String(e && e.message || e || '')}</p>`;
+  }
+};
+
+function renderGestionarLista(lista, productos, page, totalPages, total, status) {
+  const esc = s => String(s||'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+  window._vendorProducts = productos;
+  window._gestionarDonacionesPage = page;
+  if (typeof window.updateDonacionesBadge === 'function') window.updateDonacionesBadge();
 
   lista.style.padding = '14px 20px 0';
   lista.style.textAlign = '';
@@ -2636,7 +2707,41 @@ window.openGestionarDonacionesModal = async function() {
               }).join('')
           }
         </div>`;
-};
+
+  // ── Paginación (misma UX que vendedor.html) ──
+  const oldPag = document.getElementById('gestionar-pagination');
+  if (oldPag) oldPag.remove();
+  if (totalPages && totalPages > 1) {
+    const pagDiv = document.createElement('div');
+    pagDiv.id = 'gestionar-pagination';
+    pagDiv.style.cssText = 'display:flex;justify-content:center;align-items:center;gap:12px;margin-top:16px;padding:8px 0 4px;';
+
+    if (page > 1) {
+      const prevBtn = document.createElement('button');
+      prevBtn.textContent = '‹';
+      prevBtn.className = 'btn-secondary';
+      prevBtn.style.padding = '8px 16px';
+      prevBtn.onclick = () => openGestionarDonacionesModal(page - 1);
+      pagDiv.appendChild(prevBtn);
+    }
+
+    const pageInfo = document.createElement('span');
+    pageInfo.textContent = `Página ${page} de ${totalPages}`;
+    pageInfo.style.cssText = 'font-size:14px;color:#555;';
+    pagDiv.appendChild(pageInfo);
+
+    if (page < totalPages) {
+      const nextBtn = document.createElement('button');
+      nextBtn.textContent = '›';
+      nextBtn.className = 'btn-secondary';
+      nextBtn.style.padding = '8px 16px';
+      nextBtn.onclick = () => openGestionarDonacionesModal(page + 1);
+      pagDiv.appendChild(nextBtn);
+    }
+
+    lista.appendChild(pagDiv);
+  }
+}
 
 // ── Modal: entregas de mis transmisiones en vivo ─────────────
 window.openEntregasLiveModal = async function() {
