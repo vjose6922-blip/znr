@@ -1,4 +1,3 @@
-
 (function () {
   'use strict';
 
@@ -148,6 +147,15 @@
 .nc-item-fecha{font-size:11px;color:var(--color-text-muted,#777)}
 .nc-wa-btn{display:inline-flex;align-items:center;gap:5px;margin-top:8px;padding:6px 12px;border-radius:20px;background:#25d36622;color:#25d366;font-size:11.5px;font-weight:700;border:1px solid #25d36655;text-decoration:none}
 .nc-wa-btn:hover{background:#25d36633}
+.nc-skel-item{display:flex;gap:12px;padding:14px;border-radius:14px;background:rgba(255,255,255,.03);margin-bottom:10px;border:1px solid rgba(255,255,255,.06)}
+.nc-skel-icon{flex-shrink:0;width:32px;height:32px;border-radius:10px;background:linear-gradient(90deg,#2a2f3a 25%,#323848 50%,#2a2f3a 75%);background-size:200% 100%;animation:nc-shimmer 1.5s ease-in-out infinite}
+.nc-skel-body{flex:1;min-width:0}
+.nc-skel-line{height:12px;border-radius:6px;background:linear-gradient(90deg,#2a2f3a 25%,#323848 50%,#2a2f3a 75%);background-size:200% 100%;animation:nc-shimmer 1.5s ease-in-out infinite;margin-bottom:8px}
+.nc-skel-line.nc-skel-title{width:55%;height:13.5px}
+.nc-skel-line.nc-skel-msg{width:90%}
+.nc-skel-line.nc-skel-msg2{width:70%}
+.nc-skel-line.nc-skel-date{width:35%;height:11px;margin-bottom:0}
+@keyframes nc-shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
 `;
     document.head.appendChild(s);
   }
@@ -199,6 +207,21 @@
       return d.toLocaleDateString('es-MX', { day: '2-digit', month: 'short' }) + ' · ' +
              d.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' });
     } catch (_) { return ''; }
+  }
+
+  function renderSkeleton(count = 5) {
+    const listEl = document.getElementById('nc-list');
+    if (!listEl) return;
+    listEl.innerHTML = Array.from({ length: count }).map(() => `
+      <div class="nc-skel-item">
+        <div class="nc-skel-icon"></div>
+        <div class="nc-skel-body">
+          <div class="nc-skel-line nc-skel-title"></div>
+          <div class="nc-skel-line nc-skel-msg"></div>
+          <div class="nc-skel-line nc-skel-msg2"></div>
+          <div class="nc-skel-line nc-skel-date"></div>
+        </div>
+      </div>`).join('');
   }
 
   function renderList() {
@@ -294,6 +317,13 @@
     buildModal();
     document.getElementById('nc-overlay').classList.add('visible');
     document.getElementById('nc-modal').classList.add('visible');
+    // Si ya tenemos datos en cache los mostramos al instante (sin skeleton);
+    // si es la primera vez, mostramos el skeleton mientras llega la respuesta.
+    if (cache.loaded && cache.items.length) {
+      renderList();
+    } else {
+      renderSkeleton();
+    }
     loadNotificaciones({ autoSelectTab: true });
   }
 
