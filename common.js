@@ -2434,7 +2434,6 @@ sendBtn.addEventListener('click', async () => {
 sendBtn.disabled = true;
 sendBtn.style.opacity = '.7';
 sendBtn.textContent = 'Enviando notificación…';
-let enviados = 0;
 let ok = false;
 try {
 if (vendorUid && window.API_URL) {
@@ -2450,17 +2449,32 @@ items: notifItems
 });
 const data = await res.json();
 ok = !!(data && data.ok);
-enviados = (data && data.enviados) || 0;
 }
 } catch (err) {
 console.error("No se pudo notificar al vendedor:", err);
 }
-if (ok && enviados > 0) {
-// Push entregado: WhatsApp NO se usa, es solo respaldo.
-showStatus(` Notificamos a ${nombre}. Te avisaremos aquí mismo en cuanto confirme.`, 'success');
-setTimeout(() => { modal.remove(); resolve(true); }, 1200);
+// El backend ya no manda "enviados": el push al vendedor se procesa de forma
+// diferida (hasta ~60s después, vía cola + trigger), así que en este punto no
+// hay manera de saber si llegó. Por eso ya NO se decide el fallback de
+// WhatsApp según ese dato. Si la notificación quedó encolada con éxito (ok),
+// confiamos en que el push va a intentarse solo; WhatsApp queda disponible
+// como botón manual, nunca se abre automáticamente. Solo se abre solo si la
+// llamada al backend falló del todo, porque ahí no quedó nada encolado.
+if (ok) {
+showStatus(` Notificamos a ${nombre}. Te avisaremos aquí mismo en cuanto confirme.` + (waUrl ? ' Si no responde pronto, puedes escribirle por WhatsApp.' : ''), 'success');
+if (waUrl) {
+const waBtn = document.createElement('a');
+waBtn.href = waUrl;
+waBtn.target = '_blank';
+waBtn.rel = 'noopener';
+waBtn.textContent = '💬 Escribirle por WhatsApp';
+waBtn.style.cssText = 'display:block;text-align:center;margin-top:10px;padding:12px;border-radius:14px;background:rgba(37,211,102,.12);color:#25D366;font-size:13px;font-weight:700;text-decoration:none;';
+statusBox.insertAdjacentElement('afterend', waBtn);
+}
+setTimeout(() => { modal.remove(); resolve(true); }, 1600);
 } else if (waUrl) {
-// Respaldo: el push no llegó a ningún dispositivo del vendedor.
+// La llamada al backend falló (red/error) — acá sí no quedó ninguna
+// notificación encolada en ningún lado, así que WhatsApp es la única vía.
 showStatus(' No pudimos notificar a este vendedor por la app, así que se abrirá WhatsApp para contactarlo directo.', 'info');
 window.open(waUrl, '_blank');
 setTimeout(() => { modal.remove(); resolve(true); }, 900);
