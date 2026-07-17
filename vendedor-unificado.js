@@ -2628,6 +2628,13 @@ window.openGestionarDonacionesModal = async function(page = 1) {
   const DONACION_PAGE_LIMIT = 20;
   let result;
   try {
+    if (typeof getVendorProductsPageCached !== 'function') {
+      throw new Error('DIAG: getVendorProductsPageCached=' + typeof getVendorProductsPageCached +
+        ' | fetchVendorProductsPageRaw=' + typeof fetchVendorProductsPageRaw +
+        ' | scriptSrc=' + (document.currentScript ? document.currentScript.src : 'n/a') +
+        ' | totalScripts=' + document.querySelectorAll('script[src*="vendedor-unificado"]').length +
+        ' | srcs=' + Array.from(document.querySelectorAll('script[src*="vendedor-unificado"]')).map(s=>s.src).join(','));
+    }
     result = await getVendorProductsPageCached(uid, page, DONACION_PAGE_LIMIT, 'todos');
   } catch (e) {
     console.error('openGestionarDonacionesModal:', e);
