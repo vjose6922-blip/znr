@@ -3849,18 +3849,6 @@ if (location.pathname.includes('admin') || location.pathname.includes('notificac
 const btn = document.getElementById('up-open-btn');
 if (!btn) return;
 btn.addEventListener('click', buildPanel);
-refreshHeaderDot(btn);
-}
-function refreshHeaderDot(btn) {
-if (!btn) btn = document.getElementById('up-open-btn');
-if (!btn) return;
-const prefs = loadPrefs();
-const hasSizes = Object.values(prefs).some(v=>v);
-btn.style.position = 'relative';
-let dot = btn.querySelector('.up-header-dot');
-if (hasSizes && !dot) {
-dot = document.createElement('span'); dot.className='up-header-dot'; btn.appendChild(dot);
-} else if (!hasSizes && dot) dot.remove();
 }
 function injectStyles() {
 if (document.getElementById('up-styles')) return;
@@ -3925,7 +3913,6 @@ s.textContent = `
 .up-danger-btn{flex-shrink:0;background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);color:#ef4444;padding:6px 12px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;transition:all .15s;white-space:nowrap}
 .up-danger-btn:hover{background:rgba(239,68,68,.2)}
 .up-privacy-note{font-size:11px;color:var(--color-text-secondary,#888);line-height:1.6}
-.up-header-dot{position:absolute;top:-2px;right:-2px;width:8px;height:8px;background:#ff4f81;border-radius:50%;border:1.5px solid var(--color-surface,#252831);pointer-events:none}
 [data-theme="light"] #up-panel{background:#fff;border-left-color:rgba(0,0,0,.08)}
 [data-theme="light"] .up-theme-btn,[data-theme="light"] .up-layout-btn,[data-theme="light"] .up-size-btn{border-color:#c5c8d0;background:#f4f5f8;color:#333;font-weight:500}
 [data-theme="light"] .up-theme-btn.active,[data-theme="light"] .up-layout-btn.active{background:rgba(255,79,129,.12);border-color:#ff4f81;color:#ff4f81}
