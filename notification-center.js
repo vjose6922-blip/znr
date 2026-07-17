@@ -1,32 +1,32 @@
 (function () {
   'use strict';
 
-  const POLL_MS = 600000; // 🔧 red de seguridad (antes 3 min); push + visibilitychange son la vía principal
+  const POLL_MS = 600000; // red de seguridad
   let modalBuilt = false;
   let currentTab = 'pedidos';
   let cache = { items: [], loaded: false };
 
   const TIPO_INFO = {
     confirmacion_stock:     { grupo: 'pedidos', icono: Icon('box') },
-    sin_stock:               { grupo: 'pedidos', icono: Icon('x') },
-    solicitud_comprador:     { grupo: 'pedidos', icono: Icon('shopping-bag') },
-    confirmacion_vendedor:   { grupo: 'pedidos', icono: Icon('check') },
-    sin_stock_vendedor:      { grupo: 'pedidos', icono: Icon('x') },
-    pedido_en_camino:        { grupo: 'pedidos', icono: Icon('truck') },
-    pedido_entregado:        { grupo: 'pedidos', icono: Icon('mail') },
-    cuenta_aprobada:         { grupo: 'cuenta',  icono: Icon('sparkles') },
-    cuenta_rechazada:        { grupo: 'cuenta',  icono: Icon('ban') },
-    cuenta_suspendida:       { grupo: 'cuenta',  icono: Icon('ban') },
-    cuenta_reactivada:       { grupo: 'cuenta',  icono: Icon('refresh') },
-    producto_aprobado:       { grupo: 'cuenta',  icono: Icon('check') },
-    producto_rechazado:      { grupo: 'cuenta',  icono: Icon('ban') },
-    producto_reportado:      { grupo: 'cuenta',  icono: Icon('flag') },
-    beneficiario_aprobado:   { grupo: 'cuenta',  icono: Icon('heart-fill') },
-    beneficiario_rechazado:  { grupo: 'cuenta',  icono: Icon('ban') },
-    plus_aprobado:           { grupo: 'cuenta',  icono: Icon('star') },
-    plus_rechazado:          { grupo: 'cuenta',  icono: Icon('star') },
-    donacion_recibida:       { grupo: 'cuenta',  icono: Icon('gift') },
-    donacion_retirada:       { grupo: 'cuenta',  icono: Icon('send') }
+    sin_stock:              { grupo: 'pedidos', icono: Icon('x') },
+    solicitud_comprador:    { grupo: 'pedidos', icono: Icon('shopping-bag') },
+    confirmacion_vendedor:  { grupo: 'pedidos', icono: Icon('check') },
+    sin_stock_vendedor:     { grupo: 'pedidos', icono: Icon('x') },
+    pedido_en_camino:       { grupo: 'pedidos', icono: Icon('truck') },
+    pedido_entregado:       { grupo: 'pedidos', icono: Icon('mail') },
+    cuenta_aprobada:        { grupo: 'cuenta',  icono: Icon('sparkles') },
+    cuenta_rechazada:       { grupo: 'cuenta',  icono: Icon('ban') },
+    cuenta_suspendida:      { grupo: 'cuenta',  icono: Icon('ban') },
+    cuenta_reactivada:      { grupo: 'cuenta',  icono: Icon('refresh') },
+    producto_aprobado:      { grupo: 'cuenta',  icono: Icon('check') },
+    producto_rechazado:     { grupo: 'cuenta',  icono: Icon('ban') },
+    producto_reportado:     { grupo: 'cuenta',  icono: Icon('flag') },
+    beneficiario_aprobado:  { grupo: 'cuenta',  icono: Icon('heart-fill') },
+    beneficiario_rechazado: { grupo: 'cuenta',  icono: Icon('ban') },
+    plus_aprobado:          { grupo: 'cuenta',  icono: Icon('star') },
+    plus_rechazado:         { grupo: 'cuenta',  icono: Icon('star') },
+    donacion_recibida:      { grupo: 'cuenta',  icono: Icon('gift') },
+    donacion_retirada:      { grupo: 'cuenta',  icono: Icon('send') }
   };
 
   function getIdentity() {
@@ -65,8 +65,6 @@
     const requests = [];
     if (identity.type === 'vendedor') {
       requests.push(fetchFeed('misNotificacionesVendedor', { vendorToken: identity.vendorToken }));
-      // El vendedor también puede comprar con su propio teléfono: traemos
-      // esas notificaciones también y las combinamos con las de vendedor.
       if (identity.telefono) {
         requests.push(fetchFeed('misNotificacionesCliente', { phone: identity.telefono }));
       }
@@ -86,9 +84,6 @@
     return fetch(apiUrl(), { method: 'POST', body: JSON.stringify(body) }).catch(() => {});
   }
 
-  // Recibe la notificación completa (no solo el id) porque, si el usuario
-  // es vendedor+comprador a la vez, cada notificación puede pertenecer a
-  // una identidad distinta (vendedor por uid, o cliente por teléfono).
   async function marcarLeida(notif) {
     const identity = getIdentity();
     if (!identity || !apiUrl() || !notif) return;
@@ -137,13 +132,17 @@
 .nc-markall{background:none;border:none;color:#ff4f81;font-size:12px;font-weight:600;cursor:pointer;padding:8px 16px;text-align:right}
 .nc-list{flex:1;overflow-y:auto;padding:10px 14px 20px}
 .nc-empty{text-align:center;color:var(--color-text-muted,#888);padding:60px 20px;font-size:13px}
-.nc-item{display:flex;gap:12px;padding:14px;border-radius:14px;background:rgba(255,255,255,.03);margin-bottom:10px;border:1px solid rgba(255,255,255,.06);cursor:pointer;position:relative}
+.nc-item{display:flex;gap:12px;padding:14px;border-radius:14px;background:rgba(255,255,255,.03);margin-bottom:10px;border:1px solid rgba(255,255,255,.06);cursor:pointer;position:relative;border-bottom:1px solid rgba(255,255,255,.08)}
 .nc-item.unread{background:rgba(255,79,129,.07);border-color:rgba(255,79,129,.25)}
 .nc-item.unread::before{content:'';position:absolute;top:14px;left:5px;width:7px;height:7px;border-radius:50%;background:#ff4f81}
 .nc-icon{font-size:20px;flex-shrink:0;width:32px;height:32px;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.05);border-radius:10px}
 .nc-body{flex:1;min-width:0}
-.nc-item-title{font-size:13.5px;font-weight:700;color:var(--color-text-primary,#fff);margin:0 0 3px}
-.nc-item-msg{font-size:12.5px;color:var(--color-text-secondary,#bbb);margin:0 0 6px;line-height:1.4}
+.nc-item-title{font-size:13.5px;font-weight:700;color:var(--color-text-primary,#fff);margin:0 0 3px;display:flex;align-items:center;gap:6px}
+.nc-item-title .nc-expand-icon{font-size:10px;color:var(--color-text-muted);transition:transform .2s}
+.nc-item.expanded .nc-expand-icon{transform:rotate(180deg)}
+.nc-msg-collapsed{max-height:0;overflow:hidden;transition:max-height .3s ease, opacity .2s ease;opacity:0}
+.nc-item.expanded .nc-msg-collapsed{max-height:200px;opacity:1}
+.nc-item-msg{font-size:12.5px;color:var(--color-text-secondary,#bbb);margin:6px 0 6px;line-height:1.4}
 .nc-item-fecha{font-size:11px;color:var(--color-text-muted,#777)}
 .nc-wa-btn{display:inline-flex;align-items:center;gap:5px;margin-top:8px;padding:6px 12px;border-radius:20px;background:#25d36622;color:#25d366;font-size:11.5px;font-weight:700;border:1px solid #25d36655;text-decoration:none}
 .nc-wa-btn:hover{background:#25d36633}
@@ -193,9 +192,11 @@
     });
     modal.querySelectorAll('.nc-tab').forEach(tab => {
       tab.addEventListener('click', () => {
+        if (tab.classList.contains('active')) return;
         currentTab = tab.dataset.tab;
         modal.querySelectorAll('.nc-tab').forEach(t => t.classList.toggle('active', t === tab));
-        renderList();
+        renderSkeleton(3);
+        setTimeout(renderList, 180);
       });
     });
     document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
@@ -243,26 +244,38 @@
         <div class="nc-item ${n.leida ? '' : 'unread'}" data-id="${n.id}" data-url="${n.url || ''}">
           <div class="nc-icon">${info.icono}</div>
           <div class="nc-body">
-            <p class="nc-item-title">${n.titulo || ''}</p>
-            <p class="nc-item-msg">${n.mensaje || ''}</p>
-            <p class="nc-item-fecha">${fechaCorta(n.fecha)}</p>
-            ${waBtn}
+            <p class="nc-item-title">
+              ${n.titulo || ''}
+              <span class="nc-expand-icon">▼</span>
+            </p>
+            <div class="nc-msg-collapsed">
+              <p class="nc-item-msg">${n.mensaje || ''}</p>
+              <p class="nc-item-fecha">${fechaCorta(n.fecha)}</p>
+              ${waBtn}
+            </div>
           </div>
         </div>`;
     }).join('');
 
+    // Evento click: expandir / colapsar y marcar como leída
     listEl.querySelectorAll('.nc-item').forEach(el => {
-      el.addEventListener('click', async () => {
-        const id = el.dataset.id;
-        const url = el.dataset.url;
+      el.addEventListener('click', async function(e) {
+        // Evitar que el clic en un enlace dentro dispare el toggle
+        if (e.target.closest('a')) return;
+
+        const id = this.dataset.id;
         const notif = cache.items.find(n => String(n.id) === String(id));
-        if (notif && !notif.leida) {
+
+        // Expandir / colapsar
+        this.classList.toggle('expanded');
+
+        // Si se expande y no está leída, marcar como leída
+        if (this.classList.contains('expanded') && notif && !notif.leida) {
           notif.leida = true;
-          el.classList.remove('unread');
           await marcarLeida(notif);
           updateBadge();
+          this.classList.remove('unread');
         }
-        if (url) window.location.href = url;
       });
     });
   }
@@ -291,8 +304,6 @@
       const grupo = (TIPO_INFO[n.tipo] || {}).grupo || 'pedidos';
       counts[grupo] = (counts[grupo] || 0) + 1;
     });
-    // Si "Pedidos" no tiene nada sin leer pero "Cuenta" sí, abre en "Cuenta".
-    // En cualquier otro caso (ambas tienen, ninguna tiene, etc.) se queda en "Pedidos".
     if (counts.pedidos === 0 && counts.cuenta > 0) return 'cuenta';
     return 'pedidos';
   }
@@ -317,8 +328,6 @@
     buildModal();
     document.getElementById('nc-overlay').classList.add('visible');
     document.getElementById('nc-modal').classList.add('visible');
-    // Si ya tenemos datos en cache los mostramos al instante (sin skeleton);
-    // si es la primera vez, mostramos el skeleton mientras llega la respuesta.
     if (cache.loaded && cache.items.length) {
       renderList();
     } else {
@@ -358,12 +367,11 @@
       }
     });
   }
- 
-  // 🆕 Al volver a la pestaña tras estar oculta, refresca por si se perdió algún push
+
   document.addEventListener('visibilitychange', () => {
     if (!document.hidden) refreshBadgeOnly();
   });
-  
+
   function init() {
     injectStyles();
     wireBellButtons();
