@@ -154,7 +154,14 @@ border-radius: 8px;
  #reportes-badge { display:inline-flex;align-items:center;justify-content:center;background:#ef4444;color:#fff;border-radius:50%;width:18px;height:18px;font-size:10px;font-weight:700;margin-left:6px;vertical-align:middle; }
 
  
- .notif-tabs { display:flex; gap:4px; padding:8px 10px; overflow-x:auto; border-bottom:1px solid #f0f0f5; background:#faf9ff; flex-wrap:nowrap; }
+ .notif-tabs {
+  display: flex;
+  flex-wrap: wrap;          
+  gap: 6px;                 
+  padding: 8px 12px;
+  border-bottom: 1px solid #f0f0f5;
+  background: #faf9ff;
+}
  .notif-tab { white-space:nowrap; padding:8px 10px; border-radius:10px; border:1.5px solid #e0e0e0; background:#fff; font-size:12px; font-weight:600; cursor:pointer; color:#555; transition:all .2s; }
  .notif-tab.active { background:#3b1f5f; color:#fff; border-color:#3b1f5f; }
  .notif-tab-badge { background:#ff4f81; color:#fff; border-radius:50px; padding:1px 5px; font-size:10px; font-weight:800; }
