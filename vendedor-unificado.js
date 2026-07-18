@@ -591,7 +591,7 @@ ${(n.items || []).map(it => `
 <span>$${Number(it.precio || 0).toLocaleString()}</span>
 </div>
 `).join('')}
-${n.clientPhone ? `<div style="font-size:12px;color:${esConfirmada ? '#4d8064' : '#8a7238'};margin-top:4px;">Cliente: +52 ${esc2(n.clientPhone)}</div>` : ''}
+${n.clientPhone ? `<a href="https://wa.me/${(String(n.clientPhone).replace(/\D/g,'').length===10?'52':'')}${esc2(String(n.clientPhone).replace(/\D/g,''))}" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:4px;font-size:12px;color:${esConfirmada ? '#4d8064' : '#8a7238'};margin-top:4px;text-decoration:underline;">${Icon('whatsapp')} +52 ${esc2(n.clientPhone)}</a>` : ''}
 <div style="display:flex;gap:8px;margin-top:10px;">
 ${esConfirmada
 ? `<button class="vsn-delivered-btn" style="flex:1;padding:8px;border:none;border-radius:10px;background:#16a34a;color:#fff;font-size:12.5px;font-weight:700;cursor:pointer;"  >${Icon('mail')} Marcar como entregado</button>`
@@ -624,6 +624,33 @@ sin_stock: 'Marcado sin stock',
 entregado: ' ¡Entrega marcada! Se descontó el stock.'
 };
 window.showTemporaryMessage?.(mensajes[accion] || 'Actualizado', 'success');
+
+// El push al comprador avisándole del resultado se procesa de forma
+// diferida (hasta ~60s), así que acá no hay manera de saber si le va a
+// llegar. En vez de adivinar, se ofrece siempre un botón manual de
+// WhatsApp con el teléfono del comprador (nunca se abre solo).
+if (data.clientPhone && typeof window.showCustomAlert === 'function') {
+let cleanPhone = String(data.clientPhone).replace(/\D/g, '');
+if (cleanPhone.length === 10) cleanPhone = '52' + cleanPhone;
+if (cleanPhone.length >= 12) {
+const textosWa = {
+confirmar: 'Te confirmo que sí tengo stock de tu pedido. Ya puedes proceder con el pago.',
+sin_stock: 'Te aviso que tu pedido ya no tiene stock disponible, disculpa las molestias.',
+entregado: '¡Tu pedido fue entregado! Gracias por tu compra.'
+};
+const waTexto = textosWa[accion] || 'Sobre tu pedido en ZNR:';
+const manualWaUrl = 'https://wa.me/' + cleanPhone + '?text=' + encodeURIComponent(waTexto);
+const waExtraHtml = `<a href="${manualWaUrl}" target="_blank" rel="noopener" style="display:block;text-align:center;margin-top:10px;padding:12px;border-radius:14px;background:rgba(37,211,102,.12);color:#25D366;font-size:13px;font-weight:700;text-decoration:none;">💬 Escribirle por WhatsApp</a>`;
+window.showCustomAlert({
+title: mensajes[accion] || 'Actualizado',
+message: 'Le avisamos al comprador por la app. Si querés asegurarte de que se entere, también le podés escribir directo:',
+icon: '',
+confirmText: 'Listo',
+extraHtml: waExtraHtml
+});
+}
+}
+
 loadVendorSaleNotifications();
 loadMyProducts();
 } else {

@@ -590,16 +590,40 @@ async function confirmGroupPurchase(requestId) {
       summary += `\n\nTotal a pagar: $${(data.totalAmount || 0).toLocaleString()}`;
     }
     if (data.paymentLink) {
-      summary += `\n\nLink de pago generado. Se enviará al cliente por WhatsApp.`;
+      summary += `\n\nLink de pago generado. Se le notificará al cliente por la app.`;
     }
+
+    // data.whatsappUrl ya no llega resuelto: el push al cliente ahora se
+    // procesa de forma diferida (hasta ~60s después, vía cola + trigger), así
+    // que el backend no puede saber en el momento si va a llegar. Por eso acá
+    // no se auto-abre WhatsApp (eso reabriría el mismo bug que en Comunidad:
+    // se abriría siempre, incluso cuando el push sí llega). En su lugar se
+    // arma el link manualmente con el teléfono del cliente y se ofrece como
+    // botón, para que el admin decida si hace falta escribirle directo.
+    let waExtraHtml = "";
+    if (data.clientPhone) {
+      let cleanPhone = String(data.clientPhone).replace(/\D/g, '');
+      if (cleanPhone.length === 10) cleanPhone = '52' + cleanPhone;
+      if (cleanPhone.length >= 12) {
+        let waTexto;
+        if (data.approvedCount > 0) {
+          waTexto = data.paymentLink
+            ? `Se confirmó tu pedido. Total: $${(data.totalAmount || 0).toLocaleString()} MXN. Link de pago: ${data.paymentLink}`
+            : `Se confirmó tu pedido. Total: $${(data.totalAmount || 0).toLocaleString()} MXN.`;
+        } else {
+          waTexto = 'Lo que pediste ya no tiene stock disponible, disculpa las molestias.';
+        }
+        const manualWaUrl = 'https://wa.me/' + cleanPhone + '?text=' + encodeURIComponent(waTexto);
+        waExtraHtml = `<a href="${manualWaUrl}" target="_blank" rel="noopener" style="display:block;text-align:center;margin-top:10px;padding:12px;border-radius:14px;background:rgba(37,211,102,.12);color:#25D366;font-size:13px;font-weight:700;text-decoration:none;">💬 Escribirle por WhatsApp</a>`;
+      }
+    }
+
     showCustomAlert({
       title: "Compra confirmada",
       message: summary,
       icon: "",
       confirmText: "Aceptar",
-      onConfirm: () => {
-        if (data.whatsappUrl) window.open(data.whatsappUrl, '_blank');
-      }
+      extraHtml: waExtraHtml
     });
     invalidateNotificationsCache();
     if (typeof window.refreshAllAdminBadges === 'function') window.refreshAllAdminBadges();

@@ -10,6 +10,7 @@
     confirmacion_stock:     { grupo: 'pedidos', icono: Icon('box') },
     sin_stock:              { grupo: 'pedidos', icono: Icon('x') },
     solicitud_comprador:    { grupo: 'pedidos', icono: Icon('shopping-bag') },
+    pedido_enviado_vendedor:{ grupo: 'pedidos', icono: Icon('send') },
     confirmacion_vendedor:  { grupo: 'pedidos', icono: Icon('check') },
     sin_stock_vendedor:     { grupo: 'pedidos', icono: Icon('x') },
     pedido_en_camino:       { grupo: 'pedidos', icono: Icon('truck') },

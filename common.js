@@ -240,13 +240,13 @@ activeModal = null;
 }
 }
 function showCustomAlert(options) {
-const { title, message, icon = "", confirmText = "Aceptar", onConfirm } = options;
+const { title, message, icon = "", confirmText = "Aceptar", onConfirm, extraHtml = "" } = options;
 const modal = document.createElement("div");
 modal.className = "custom-alert-modal";
 modal.innerHTML = `
 <div class="custom-alert-content">
 <div class="custom-alert-header"><span class="custom-alert-icon">${icon ? Icon(icon, {size:22}) : ''}</span><h3>${escapeHtml(title)}</h3></div>
-<div class="custom-alert-body"><p>${escapeHtml(message)}</p></div>
+<div class="custom-alert-body"><p>${escapeHtml(message)}</p>${extraHtml}</div>
 <div class="custom-alert-footer"><button class="custom-alert-btn confirm"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" aria-hidden="true"><use href="#ic-check"/></svg> ${escapeHtml(confirmText)}</button></div>
 </div>
 `;
@@ -2444,7 +2444,9 @@ action: "crearNotificacionVentaComunidad",
 vendor_uid: vendorUid,
 requestId: requestId,
 clientPhone: clientPhone || "",
-items: notifItems
+items: notifItems,
+vendorNombre: nombre || "",
+waUrl: waUrl || ""
 })
 });
 const data = await res.json();
@@ -2460,8 +2462,11 @@ console.error("No se pudo notificar al vendedor:", err);
 // confiamos en que el push va a intentarse solo; WhatsApp queda disponible
 // como botón manual, nunca se abre automáticamente. Solo se abre solo si la
 // llamada al backend falló del todo, porque ahí no quedó nada encolado.
+// El backend además guarda esta misma notificación (con el link de WhatsApp
+// en meta) en la campanita propia del comprador, así que aunque el modal se
+// cierre, el link sigue disponible ahí después.
 if (ok) {
-showStatus(` Notificamos a ${nombre}. Te avisaremos aquí mismo en cuanto confirme.` + (waUrl ? ' Si no responde pronto, puedes escribirle por WhatsApp.' : ''), 'success');
+showStatus(` Notificamos a ${nombre}. Te avisaremos aquí mismo en cuanto confirme.` + (waUrl ? ' Si no responde pronto, revisa tu campanita de notificaciones: ahí vas a tener el botón para escribirle por WhatsApp.' : ''), 'success');
 if (waUrl) {
 const waBtn = document.createElement('a');
 waBtn.href = waUrl;
