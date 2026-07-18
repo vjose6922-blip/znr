@@ -1188,7 +1188,7 @@ function setupChat(liveId, myName, isVendor) {
       <div class="chat-msg ${m.author === myName ? 'mine' : ''}" data-key="${esc(key)}" style="${!m.isVendor ? 'cursor:pointer;' : ''}">
         <span class="author">${esc(m.author)}${m.isVendor ? ' ' + Icon('shopping-bag') : ''}:</span>
         <span class="text">${esc(m.text)}</span>
-        ${m.vendido ? '<span class="vendido-tag" style="display:inline-block;margin-left:6px;font-size:10px;font-weight:700;background:rgba(74,222,128,.15);color:#4ade80;padding:2px 7px;border-radius:999px;">${Icon('check')} Vendido</span>' : ''}
+        ${m.vendido ? `<span class="vendido-tag" style="display:inline-block;margin-left:6px;font-size:10px;font-weight:700;background:rgba(74,222,128,.15);color:#4ade80;padding:2px 7px;border-radius:999px;">${Icon('check')} Vendido</span>` : ''}
         ${prodTag}
       </div>`;
     }).join('');
