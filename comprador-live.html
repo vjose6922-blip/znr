@@ -4,12 +4,12 @@
 <meta charset="UTF-8">
 <meta http-equiv="Content-Security-Policy" content="
  default-src 'self';
- script-src 'self' 'unsafe-inline' https://www.gstatic.com https://www.youtube.com https://s.ytimg.com https://*.firebaseio.com;
+ script-src 'self' 'unsafe-inline' https://www.gstatic.com https://connect.facebook.net https://*.firebaseio.com;
  style-src 'self' 'unsafe-inline';
- img-src 'self' data: blob: https://lh3.googleusercontent.com https://drive.google.com https://placehold.co https://via.placeholder.com https://i.ytimg.com;
- connect-src 'self' https://script.google.com https://script.googleusercontent.com https://wttr.in https://www.gstatic.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firebaseinstallations.googleapis.com https://fcmregistrations.googleapis.com https://firebase.googleapis.com https://znr-live-default-rtdb.firebaseio.com wss://znr-live-default-rtdb.firebaseio.com https://*.firebaseio.com wss://*.firebaseio.com https://nominatim.openstreetmap.org;
+ img-src 'self' data: blob: https://lh3.googleusercontent.com https://drive.google.com https://placehold.co https://via.placeholder.com https://*.fbcdn.net;
+ connect-src 'self' https://script.google.com https://script.googleusercontent.com https://wttr.in https://www.gstatic.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firebaseinstallations.googleapis.com https://fcmregistrations.googleapis.com https://firebase.googleapis.com https://znr-live-default-rtdb.firebaseio.com wss://znr-live-default-rtdb.firebaseio.com https://*.firebaseio.com wss://*.firebaseio.com https://nominatim.openstreetmap.org https://graph.facebook.com;
  font-src 'self';
- frame-src https://www.youtube-nocookie.com https://www.youtube.com https://*.firebaseio.com;
+ frame-src https://www.facebook.com https://staticxx.facebook.com https://*.firebaseio.com;
  frame-ancestors 'none';
  object-src 'none';
  base-uri 'self';
@@ -37,12 +37,7 @@
   }
   .video-slot-inner { position: absolute; inset: 0; }
   .video-box iframe { width: 100%; height: 100%; border: 0; display: block; }
-  .sound-overlay {
-    position: absolute; inset: 0; z-index: 5; border: none; cursor: pointer;
-    background: rgba(0,0,0,.4); color: #fff; font-size: 14px; font-weight: 700;
-    display: flex; align-items: center; justify-content: center; gap: 8px;
-  }
-  .video-tap-blocker { position: absolute; inset: 0; z-index: 5; background: transparent; }
+  .video-box .fb-video, .video-box .fb-video iframe { width: 100% !important; height: 100% !important; }
 
   .live-info { padding: 14px 16px; border-bottom: 1px solid var(--color-border-subtle); }
   .live-info h1 { margin: 0 0 4px; font-size: 16px; color: var(--color-text-primary); }
@@ -175,6 +170,7 @@
 </style>
 </head>
 <body>
+<div id="fb-root"></div>
 
 <header class="app-header">
   <div class="header-left">
@@ -256,99 +252,42 @@ let stickyObserver = null;
 let stickySentinel = null;
 let stickyResizeHandler = null;
 
-// ── Reproductor sincronizado (video grabado que se comporta como en vivo) ──
-let ytPlayer = null;
-let ytSyncInterval = null;
-let ytMuteCheckInterval = null;
-let ytApiPromise = null;
+// ── Reproductor de Facebook Video/Live ──
+// Nota: a diferencia de YouTube, el SDK de Facebook no expone una API
+// de JS para leer/forzar la posición de reproducción (seekTo,
+// getCurrentTime, getDuration). Por eso el modo "grabado" ya NO se
+// sincroniza entre compradores: cada quien ve el video desde el
+// inicio en el momento que entra. El modo "vivo real" no se ve
+// afectado (todos ven la misma transmisión en curso).
+const FB_APP_ID = '1587883199599777';
 
-function loadYouTubeAPI() {
-  if (ytApiPromise) return ytApiPromise;
-  ytApiPromise = new Promise((resolve) => {
-    if (window.YT && window.YT.Player) { resolve(window.YT); return; }
-    const prevCallback = window.onYouTubeIframeAPIReady;
-    window.onYouTubeIframeAPIReady = () => {
-      if (typeof prevCallback === 'function') prevCallback();
-      resolve(window.YT);
+let fbSdkPromise = null;
+function loadFacebookSDK() {
+  if (fbSdkPromise) return fbSdkPromise;
+  fbSdkPromise = new Promise((resolve) => {
+    if (window.FB) { resolve(window.FB); return; }
+    const prevInit = window.fbAsyncInit;
+    window.fbAsyncInit = function () {
+      if (typeof prevInit === 'function') prevInit();
+      window.FB.init({ appId: FB_APP_ID, xfbml: false, version: 'v21.0' });
+      resolve(window.FB);
     };
-    if (!document.querySelector('script[src="https://www.youtube.com/iframe_api"]')) {
+    if (!document.querySelector('script[src*="connect.facebook.net"]')) {
       const tag = document.createElement('script');
-      tag.src = 'https://www.youtube.com/iframe_api';
-      document.head.appendChild(tag);
+      tag.src = 'https://connect.facebook.net/es_LA/sdk.js';
+      tag.async = true; tag.defer = true; tag.crossOrigin = 'anonymous';
+      document.body.appendChild(tag);
     }
   });
-  return ytApiPromise;
+  return fbSdkPromise;
 }
 
-function resincronizarVideo(fechaInicioMs) {
-  if (!ytPlayer || typeof ytPlayer.getDuration !== 'function') return;
-  let duracion;
-  try { duracion = ytPlayer.getDuration(); } catch (e) { return; }
-  if (!duracion) return;
-  let elapsed = (Date.now() - fechaInicioMs) / 1000;
-  if (elapsed < 0) elapsed = 0;
-  elapsed = elapsed % duracion;
-  let actual = 0;
-  try { actual = ytPlayer.getCurrentTime(); } catch (e) {}
-  if (Math.abs(actual - elapsed) > 3) {
-    try { ytPlayer.seekTo(elapsed, true); } catch (e) {}
-  }
-  try { ytPlayer.playVideo(); } catch (e) {}
-}
-
-async function iniciarPlayerSincronizado(containerId, youtubeId, fechaInicioMs) {
+async function renderFacebookVideo(containerId, facebookUrl) {
   const container = document.getElementById(containerId);
-  if (!container) return;
-  const origin = encodeURIComponent(location.origin);
-  container.innerHTML = `
-    <iframe id="${containerId}-iframe"
-      src="https://www.youtube-nocookie.com/embed/${esc(youtubeId)}?enablejsapi=1&autoplay=1&mute=1&controls=0&disablekb=1&modestbranding=1&rel=0&playsinline=1&iv_load_policy=3&origin=${origin}"
-      allow="autoplay; encrypted-media" allowfullscreen title="Transmisión en vivo"></iframe>
-    <button class="sound-overlay" id="${containerId}-sound">${Icon('speaker')} Toca para activar el sonido</button>
-  `;
-  const YT = await loadYouTubeAPI();
-  ytPlayer = new YT.Player(containerId + '-iframe', {
-    events: {
-      onReady: () => {
-        resincronizarVideo(fechaInicioMs);
-        if (ytSyncInterval) clearInterval(ytSyncInterval);
-        ytSyncInterval = setInterval(() => resincronizarVideo(fechaInicioMs), 5000);
-        if (ytMuteCheckInterval) clearInterval(ytMuteCheckInterval);
-        ytMuteCheckInterval = setInterval(() => {
-          if (ytPlayer && typeof ytPlayer.isMuted === 'function' && !ytPlayer.isMuted()) {
-            bloquearInteraccionVideo(containerId);
-          }
-        }, 1000);
-      },
-      onStateChange: (e) => {
-        if (e.data === YT.PlayerState.ENDED) resincronizarVideo(fechaInicioMs);
-      }
-    }
-  });
-  const soundBtn = document.getElementById(containerId + '-sound');
-  if (soundBtn) {
-    soundBtn.addEventListener('click', () => {
-      if (ytPlayer && ytPlayer.unMute) {
-        ytPlayer.unMute();
-        ytPlayer.setVolume(100);
-      }
-      bloquearInteraccionVideo(containerId);
-    });
-  }
-}
-
-function bloquearInteraccionVideo(containerId) {
-  if (ytMuteCheckInterval) { clearInterval(ytMuteCheckInterval); ytMuteCheckInterval = null; }
-  const container = document.getElementById(containerId);
-  if (!container) return;
-  const soundBtn = document.getElementById(containerId + '-sound');
-  if (soundBtn) soundBtn.remove();
-  if (!document.getElementById(containerId + '-blocker')) {
-    const blocker = document.createElement('div');
-    blocker.id = containerId + '-blocker';
-    blocker.className = 'video-tap-blocker';
-    container.appendChild(blocker);
-  }
+  if (!container || !facebookUrl) return;
+  container.innerHTML = `<div class="fb-video" data-href="${esc(facebookUrl)}" data-width="auto" data-show-text="false" data-autoplay="true" data-allowfullscreen="true"></div>`;
+  const FB = await loadFacebookSDK();
+  FB.XFBML.parse(container);
 }
 
 function detenerStickyVideo() {
@@ -403,12 +342,8 @@ function setupStickyVideo() {
 }
 
 function detenerPlayerSincronizado() {
-  if (ytSyncInterval) { clearInterval(ytSyncInterval); ytSyncInterval = null; }
-  if (ytMuteCheckInterval) { clearInterval(ytMuteCheckInterval); ytMuteCheckInterval = null; }
-  if (ytPlayer && typeof ytPlayer.destroy === 'function') {
-    try { ytPlayer.destroy(); } catch (e) {}
-  }
-  ytPlayer = null;
+  // El plugin de Facebook no expone un objeto "player" para destruir;
+  // basta con que el contenedor se reemplace al renderizar otro estado.
 }
 
 // ── Presencia (contador de espectadores en vivo) ──
@@ -478,7 +413,7 @@ function mostrarReporte() {
         liveTitulo: sesion.titulo || '',
         vendedor_uid: sesion.vendedor_id || '',
         vendedor_nombre: sesion.vendedor_nombre || '',
-        youtubeLink: sesion.youtube_id ? `https://www.youtube.com/watch?v=${sesion.youtube_id}` : '',
+        facebookLink: sesion.facebook_link || '',
         motivo,
         telefonoUsuario: identity ? (identity.telefono || '') : ''
       }, 'POST');
@@ -625,7 +560,6 @@ function askIdentity(onDone) {
 
 function renderLive() {
   document.body.classList.add('live-active');
-  const esGrabado = sesion.tipo !== 'vivo';
   const esVertical = sesion.orientacion === 'vertical';
 
   const chatMarkup = `
@@ -635,11 +569,7 @@ function renderLive() {
       <button id="chat-send"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" aria-hidden="true"><use href="#ic-arrow-right"/></svg></button>
     </div>`;
 
-  const videoMarkup = `
-    <div class="video-slot-inner" id="video-slot">
-      ${esGrabado ? '' : `<iframe src="https://www.youtube-nocookie.com/embed/${esc(sesion.youtube_id)}?autoplay=1"
-        allow="autoplay; encrypted-media" allowfullscreen title="Transmisión en vivo"></iframe>`}
-    </div>`;
+  const videoMarkup = `<div class="video-slot-inner" id="video-slot"></div>`;
 
   if (esVertical) {
     // Estilo YouTube: el video se queda fijo arriba; todo lo demás
@@ -686,12 +616,7 @@ function renderLive() {
   document.getElementById('chat-send').addEventListener('click', enviarMensaje);
   document.getElementById('chat-input').addEventListener('keydown', (e) => { if (e.key === 'Enter') enviarMensaje(); });
 
-  if (esGrabado && sesion.youtube_id && sesion.fecha_inicio) {
-    const fechaInicioMs = new Date(sesion.fecha_inicio).getTime();
-    if (!isNaN(fechaInicioMs)) {
-      iniciarPlayerSincronizado('video-slot', sesion.youtube_id, fechaInicioMs);
-    }
-  }
+  renderFacebookVideo('video-slot', sesion.facebook_link);
 }
 
 function renderProductoActual() {

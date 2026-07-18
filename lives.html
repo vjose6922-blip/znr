@@ -4,12 +4,12 @@
 <meta charset="UTF-8">
 <meta http-equiv="Content-Security-Policy" content="
  default-src 'self';
- script-src 'self' 'unsafe-inline' https://www.gstatic.com https://www.youtube.com https://s.ytimg.com https://*.firebaseio.com;
+ script-src 'self' 'unsafe-inline' https://www.gstatic.com https://*.firebaseio.com;
  style-src 'self' 'unsafe-inline';
- img-src 'self' data: blob: https://lh3.googleusercontent.com https://drive.google.com https://placehold.co https://via.placeholder.com https://i.ytimg.com;
+ img-src 'self' data: blob: https://lh3.googleusercontent.com https://drive.google.com https://placehold.co https://via.placeholder.com;
  connect-src 'self' https://script.google.com https://script.googleusercontent.com https://wttr.in https://www.gstatic.com https://firebaseinstallations.googleapis.com https://fcmregistrations.googleapis.com https://firebase.googleapis.com https://znr-live-default-rtdb.firebaseio.com wss://znr-live-default-rtdb.firebaseio.com https://*.firebaseio.com wss://*.firebaseio.com https://nominatim.openstreetmap.org;
  font-src 'self';
- frame-src https://www.youtube-nocookie.com https://www.youtube.com;
+ frame-src 'none';
  frame-ancestors 'none';
  object-src 'none';
  base-uri 'self';
@@ -38,6 +38,11 @@
   }
   .live-card .thumb-wrap { position: relative; width: 100%; aspect-ratio: 16/9; background: #000; }
   .live-card .thumb-wrap img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .live-card .thumb-placeholder {
+    width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;
+    background: linear-gradient(135deg, #1a1d24, #23262f);
+  }
+  .live-card .thumb-placeholder svg { opacity: .35; }
 
   .status-badge {
     position: absolute; top: 10px; left: 10px;
@@ -158,7 +163,7 @@ function withTimeout(promise, ms) {
     wrap.innerHTML = `<div class="lives-grid">${lives.map(l => `
       <a class="live-card" href="comprador-live.html?id=${esc(l.id)}">
         <div class="thumb-wrap">
-          <img src="https://i.ytimg.com/vi/${esc(l.youtube_id)}/hqdefault.jpg" alt="${esc(l.titulo)}" loading="lazy">
+          <div class="thumb-placeholder">${Icon('tv', {size:36})}</div>
           <span class="status-badge"><span class="status-dot"></span> EN VIVO</span>
           <span class="viewer-mini">${Icon('eye', {size:14})} ${l.espectadores || 0}</span>
         </div>

@@ -4,12 +4,12 @@
 <meta charset="UTF-8">
 <meta http-equiv="Content-Security-Policy" content="
  default-src 'self';
- script-src 'self' 'unsafe-inline' https://www.gstatic.com https://www.youtube.com https://s.ytimg.com https://*.firebaseio.com;
+ script-src 'self' 'unsafe-inline' https://www.gstatic.com https://connect.facebook.net https://*.firebaseio.com;
  style-src 'self' 'unsafe-inline';
- img-src 'self' data: blob: https://lh3.googleusercontent.com https://drive.google.com https://placehold.co https://via.placeholder.com https://i.ytimg.com;
- connect-src 'self' https://script.google.com https://script.googleusercontent.com https://wttr.in https://www.gstatic.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firebaseinstallations.googleapis.com https://fcmregistrations.googleapis.com https://firebase.googleapis.com https://znr-live-default-rtdb.firebaseio.com wss://znr-live-default-rtdb.firebaseio.com https://*.firebaseio.com wss://*.firebaseio.com https://nominatim.openstreetmap.org;
+ img-src 'self' data: blob: https://lh3.googleusercontent.com https://drive.google.com https://placehold.co https://via.placeholder.com https://*.fbcdn.net;
+ connect-src 'self' https://script.google.com https://script.googleusercontent.com https://wttr.in https://www.gstatic.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firebaseinstallations.googleapis.com https://fcmregistrations.googleapis.com https://firebase.googleapis.com https://znr-live-default-rtdb.firebaseio.com wss://znr-live-default-rtdb.firebaseio.com https://*.firebaseio.com wss://*.firebaseio.com https://nominatim.openstreetmap.org https://graph.facebook.com;
  font-src 'self';
- frame-src https://www.youtube-nocookie.com https://www.youtube.com https://*.firebaseio.com;
+ frame-src https://www.facebook.com https://staticxx.facebook.com https://*.firebaseio.com;
  frame-ancestors 'none';
  object-src 'none';
  base-uri 'self';
@@ -181,11 +181,7 @@
     border-radius: var(--radius-lg); overflow: hidden; margin-bottom: 12px;
   }
   .video-box iframe { width: 100%; height: 100%; border: 0; display: block; }
-  .sound-overlay {
-    position: absolute; inset: 0; z-index: 5; border: none; cursor: pointer;
-    background: rgba(0,0,0,.4); color: #fff; font-size: 13px; font-weight: 700;
-    display: flex; align-items: center; justify-content: center; gap: 8px;
-  }
+  .video-box .fb-video, .video-box .fb-video iframe { width: 100% !important; height: 100% !important; }
   .sync-note {
     font-size: 11px; color: var(--color-text-soft); text-align: center;
     margin: -6px 0 14px;
@@ -324,6 +320,7 @@
 </style>
 </head>
 <body>
+<div id="fb-root"></div>
 
 <header class="app-header">
   <div class="header-left">
@@ -519,89 +516,45 @@ function mostrarEspectadores() {
   overlay.addEventListener('click', (e) => { if (e.target === overlay) document.body.removeChild(overlay); });
 }
 
-// ── Reproductor sincronizado (video grabado que se comporta como en vivo) ──
-// Todos los que ven la transmisión (compradores + tú aquí) quedan anclados
-// al mismo segundo del video según el reloj real, no según cuándo cada quien
-// le dio play. Así nadie ve "desde cero" un producto que ya se mostró/vendió.
-let ytPlayer = null;
-let ytSyncInterval = null;
-let ytApiPromise = null;
+// ── Reproductor de Facebook Video/Live (vista previa del vendedor) ──
+// Nota: el SDK de Facebook no expone una API de JS para forzar la
+// posición de reproducción, así que aquí solo mostramos el video/
+// live tal cual — sin el truco de sincronización que antes hacíamos
+// con YouTube.
+const FB_APP_ID = '1587883199599777';
 
-function loadYouTubeAPI() {
-  if (ytApiPromise) return ytApiPromise;
-  ytApiPromise = new Promise((resolve) => {
-    if (window.YT && window.YT.Player) { resolve(window.YT); return; }
-    const prevCallback = window.onYouTubeIframeAPIReady;
-    window.onYouTubeIframeAPIReady = () => {
-      if (typeof prevCallback === 'function') prevCallback();
-      resolve(window.YT);
+let fbSdkPromise = null;
+function loadFacebookSDK() {
+  if (fbSdkPromise) return fbSdkPromise;
+  fbSdkPromise = new Promise((resolve) => {
+    if (window.FB) { resolve(window.FB); return; }
+    const prevInit = window.fbAsyncInit;
+    window.fbAsyncInit = function () {
+      if (typeof prevInit === 'function') prevInit();
+      window.FB.init({ appId: FB_APP_ID, xfbml: false, version: 'v21.0' });
+      resolve(window.FB);
     };
-    if (!document.querySelector('script[src="https://www.youtube.com/iframe_api"]')) {
+    if (!document.querySelector('script[src*="connect.facebook.net"]')) {
       const tag = document.createElement('script');
-      tag.src = 'https://www.youtube.com/iframe_api';
-      document.head.appendChild(tag);
+      tag.src = 'https://connect.facebook.net/es_LA/sdk.js';
+      tag.async = true; tag.defer = true; tag.crossOrigin = 'anonymous';
+      document.body.appendChild(tag);
     }
   });
-  return ytApiPromise;
+  return fbSdkPromise;
 }
 
-function resincronizarVideo(fechaInicioMs) {
-  if (!ytPlayer || typeof ytPlayer.getDuration !== 'function') return;
-  let duracion;
-  try { duracion = ytPlayer.getDuration(); } catch (e) { return; }
-  if (!duracion) return;
-  let elapsed = (Date.now() - fechaInicioMs) / 1000;
-  if (elapsed < 0) elapsed = 0;
-  elapsed = elapsed % duracion; // si el video ya terminó, lo hace loop
-  let actual = 0;
-  try { actual = ytPlayer.getCurrentTime(); } catch (e) {}
-  if (Math.abs(actual - elapsed) > 3) {
-    try { ytPlayer.seekTo(elapsed, true); } catch (e) {}
-  }
-  try { ytPlayer.playVideo(); } catch (e) {}
-}
-
-async function iniciarPlayerSincronizado(containerId, youtubeId, fechaInicioMs) {
+async function renderFacebookVideo(containerId, facebookUrl) {
   const container = document.getElementById(containerId);
-  if (!container) return;
-  const origin = encodeURIComponent(location.origin);
-  container.innerHTML = `
-    <iframe id="${containerId}-iframe"
-      src="https://www.youtube-nocookie.com/embed/${esc(youtubeId)}?enablejsapi=1&autoplay=1&mute=1&controls=0&disablekb=1&modestbranding=1&rel=0&playsinline=1&iv_load_policy=3&origin=${origin}"
-      allow="autoplay; encrypted-media" allowfullscreen title="Video de la transmisión"></iframe>
-    <button class="sound-overlay" id="${containerId}-sound">${Icon('speaker')} Toca para activar el sonido</button>
-  `;
-  const YT = await loadYouTubeAPI();
-  ytPlayer = new YT.Player(containerId + '-iframe', {
-    events: {
-      onReady: () => {
-        resincronizarVideo(fechaInicioMs);
-        if (ytSyncInterval) clearInterval(ytSyncInterval);
-        ytSyncInterval = setInterval(() => resincronizarVideo(fechaInicioMs), 5000);
-      },
-      onStateChange: (e) => {
-        if (e.data === YT.PlayerState.ENDED) resincronizarVideo(fechaInicioMs);
-      }
-    }
-  });
-  const soundBtn = document.getElementById(containerId + '-sound');
-  if (soundBtn) {
-    soundBtn.addEventListener('click', () => {
-      if (ytPlayer && ytPlayer.unMute) {
-        ytPlayer.unMute();
-        ytPlayer.setVolume(100);
-      }
-      soundBtn.remove();
-    });
-  }
+  if (!container || !facebookUrl) return;
+  container.innerHTML = `<div class="fb-video" data-href="${esc(facebookUrl)}" data-width="auto" data-show-text="false" data-autoplay="true" data-allowfullscreen="true"></div>`;
+  const FB = await loadFacebookSDK();
+  FB.XFBML.parse(container);
 }
 
 function detenerPlayerSincronizado() {
-  if (ytSyncInterval) { clearInterval(ytSyncInterval); ytSyncInterval = null; }
-  if (ytPlayer && typeof ytPlayer.destroy === 'function') {
-    try { ytPlayer.destroy(); } catch (e) {}
-  }
-  ytPlayer = null;
+  // El plugin de Facebook no expone un objeto "player" para destruir;
+  // basta con que el contenedor se reemplace al renderizar otro estado.
 }
 
 // ── Estados de render ──
@@ -656,7 +609,7 @@ async function renderCreateForm() {
             </label>
             <details class="tipo-detalle">
               <summary>¿Cómo funciona?</summary>
-              <p>Graba un video mostrando tus productos, súbelo a YouTube (puede ser "No listado") y pega el link. Z&R lo muestra a tus compradores sincronizado, como si fuera en vivo — no necesitas transmitir en tiempo real ni tener suscriptores.</p>
+              <p>Graba un video mostrando tus productos, súbelo a Facebook (puede ser una publicación de tu perfil o de tu Página) y pega el link. Z&R lo muestra a tus compradores en cuanto entran — no necesitas transmitir en tiempo real.</p>
             </details>
           </div>
           <div class="tipo-option" id="tipo-vivo-label">
@@ -668,7 +621,7 @@ async function renderCreateForm() {
             </label>
             <details class="tipo-detalle">
               <summary>¿Cómo funciona?</summary>
-              <p>Transmite en vivo desde la app de YouTube y pega aquí el link. Nota: YouTube pide mínimo 50 suscriptores para poder transmitir en vivo desde el celular.</p>
+              <p>Transmite en vivo desde la app de Facebook y pega aquí el link de la publicación en vivo.</p>
             </details>
           </div>
         </div>
@@ -683,18 +636,10 @@ async function renderCreateForm() {
         <textarea id="f-desc" maxlength="200" placeholder="¿Qué vas a mostrar hoy?"></textarea>
       </div>
       <div class="field-group">
-        <label>Link de YouTube</label>
-        <input type="text" id="f-youtube" placeholder="https://youtube.com/watch?v=... o /live/...">
-        <div class="error-msg" id="f-youtube-error" style="display:none;"></div>
-        <details class="tipo-detalle no-indent">
-          <summary><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" aria-hidden="true"><use href="#ic-map-pin"/></svg> Cómo evitar que salgan anuncios en tu video</summary>
-          <p>Los anuncios pausan la sincronización del video para quien los ve, y como no le salen a todos al mismo tiempo, tus compradores pueden verse desfasados entre ellos. Para evitarlo:</p>
-          <ul>
-            <li>Si tu canal tiene la monetización activada, entra a YouTube Studio → tu video → Monetización → Anuncios, y apágalos para ese video en específico.</li>
-            <li>Evita música con derechos de autor de fondo — aunque el video esté "No listado" y tú no lo monetices, YouTube puede meter anuncios por Content ID si detecta la canción.</li>
-            <li>Si no tienes el Programa de Partners activado, normalmente no te salen anuncios propios, pero los de Content ID por música o clips de terceros sí pueden aplicar igual.</li>
-          </ul>
-        </details>
+        <label>Link de Facebook</label>
+        <input type="text" id="f-facebook" placeholder="https://facebook.com/.../videos/... o /watch/live/?v=...">
+        <div class="error-msg" id="f-facebook-error" style="display:none;"></div>
+        <p class="hint" style="margin-top:6px;">El video o el live debe ser público — si tiene restricción de privacidad, tus compradores no podrán verlo.</p>
       </div>
       <div class="field-group">
         <label>Orientación de tu video</label>
@@ -791,15 +736,20 @@ async function loadProductGrid() {
 async function crearSesion() {
   const titulo = document.getElementById('f-titulo').value.trim();
   const desc = document.getElementById('f-desc').value.trim();
-  const youtube = document.getElementById('f-youtube').value.trim();
+  const facebook = document.getElementById('f-facebook').value.trim();
   const btn = document.getElementById('btn-crear-sesion');
-  const ytError = document.getElementById('f-youtube-error');
+  const fbError = document.getElementById('f-facebook-error');
   const genError = document.getElementById('f-general-error');
-  ytError.style.display = 'none';
+  fbError.style.display = 'none';
   genError.style.display = 'none';
 
   if (!titulo) { genError.textContent = 'Ponle un título a tu transmisión.'; genError.style.display = 'block'; return; }
-  if (!youtube) { ytError.textContent = 'Pega el link de tu video de YouTube.'; ytError.style.display = 'block'; return; }
+  if (!facebook) { fbError.textContent = 'Pega el link de tu video o live de Facebook.'; fbError.style.display = 'block'; return; }
+  if (!/facebook\.com|fb\.watch/i.test(facebook)) {
+    fbError.textContent = 'Ese link no parece ser de Facebook. Revisa que lo hayas copiado bien.';
+    fbError.style.display = 'block';
+    return;
+  }
 
   btn.disabled = true;
   btn.textContent = 'Creando…';
@@ -809,7 +759,7 @@ async function crearSesion() {
       action: 'crearSesionLive',
       vendorToken: vendorSession.token,
       titulo, descripcion: desc,
-      youtube_link: youtube,
+      facebook_link: facebook,
       tipo: tipoSeleccionado,
       orientacion: orientacionSeleccionada,
       productos_ids: Array.from(selectedProductIds).join(';')
@@ -851,8 +801,8 @@ function renderScheduled() {
       </div>
 
       <p class="hint">${esGrabado
-        ? 'Comparte el link con tus compradores y cuando estés lista toca "Iniciar" — desde ahí todos verán tu video sincronizado.'
-        : 'Cuando estés lista: abre YouTube, empieza tu transmisión en vivo, y regresa aquí a tocar "Iniciar".'}</p>
+        ? 'Comparte el link con tus compradores y cuando estés lista toca "Iniciar" — desde ahí podrán ver tu video.'
+        : 'Cuando estés lista: abre Facebook, empieza tu transmisión en vivo, y regresa aquí a tocar "Iniciar".'}</p>
 
       <button class="btn-live primary" id="btn-iniciar"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" aria-hidden="true"><use href="#ic-signal"/></svg> Iniciar transmisión</button>
       <div style="height:8px;"></div>
@@ -974,7 +924,7 @@ async function renderLiveFull() {
 
   const descLinea = currentSesion.descripcion
     ? currentSesion.descripcion
-    : (esGrabado ? 'Video sincronizado con tus compradores' : 'Transmisión en vivo');
+    : (esGrabado ? 'Video de tus productos' : 'Transmisión en vivo');
 
   wrap.innerHTML = `
     <div class="live-top-fixed">
@@ -1057,12 +1007,7 @@ IDs cargados: ${esc(allProducts.map(p => p.id).join(', '))}</div>`
   setupChat(currentSesion.id, vendorSession.nombre, true);
   setupContadorEspectadores(currentSesion.id);
 
-  if (esGrabado && currentSesion.youtube_id && currentSesion.fecha_inicio) {
-    const fechaInicioMs = new Date(currentSesion.fecha_inicio).getTime();
-    if (!isNaN(fechaInicioMs)) {
-      iniciarPlayerSincronizado('vendor-video-slot', currentSesion.youtube_id, fechaInicioMs);
-    }
-  }
+  renderFacebookVideo('vendor-video-slot', currentSesion.facebook_link);
 }
 
 // ── Cierre de transmisión: registra ventas, genera la página de
