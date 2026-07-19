@@ -884,6 +884,10 @@
  <span class="amc-icon"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" aria-hidden="true"><use href="#ic-refresh"/></svg></span>
  <span class="amc-label">Sincronizar productos de vendedor</span>
  </button>
+ <button type="button" class="admin-mini-card" onclick="resincronizarComunidadAlgoliaBtn()">
+ <span class="amc-icon"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" aria-hidden="true"><use href="#ic-refresh"/></svg></span>
+ <span class="amc-label">Resincronizar todo Comunidad con Algolia</span>
+ </button>
  </div>
  </section>
 <div id="upload-log" style="position:fixed; bottom:10px; right:10px; background:#333; color:#0f0; padding:8px 12px; border-radius:8px; font-size:12px; max-width:300px; z-index:9999; display:none;"></div>
@@ -1296,6 +1300,68 @@ function esc_(s) { return String(s||'').replace(/[&<>"']/g, c=>({'&':'&amp;','<'
 
 // ── Monitor de Errores (movido al panel de Notificaciones > Herramientas) ──
 // ── Reentrenar modelo de IA (auto-tag de categoría) ───────────────────────
+async function resincronizarComunidadAlgoliaBtn() {
+  const confirmado = await new Promise((resolve) => {
+    showCustomConfirm({
+      title: 'Resincronizar Comunidad con Algolia',
+      message: 'Esto recorre todo el índice de Algolia y borra cualquier producto que ya no exista o no esté aprobado en la hoja (productos "fantasma"). Puede tardar unos segundos si el catálogo es grande. ¿Continuar?',
+      icon: 'refresh',
+      confirmText: 'Sí, resincronizar',
+      cancelText: 'Cancelar',
+      onConfirm: () => resolve(true),
+      onCancel: () => resolve(false)
+    });
+  });
+  if (!confirmado) return;
+
+  showLoader('Resincronizando Comunidad con Algolia...');
+  try {
+    const api = window.API_URL || '';
+    const token = sessionStorage.getItem('admin_token') || '';
+    if (!api || !token) {
+      hideLoader();
+      showCustomAlert({
+        title: 'Sin sesión activa',
+        message: 'No hay API_URL o token de admin disponible. Inicia sesión de nuevo.',
+        icon: 'error',
+        confirmText: 'Entendido'
+      });
+      return;
+    }
+    const res = await fetch(api, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({ action: 'resincronizarComunidadAlgolia', token }).toString()
+    });
+    const data = await res.json();
+    hideLoader();
+    if (!data || !data.ok) {
+      showCustomAlert({
+        title: 'No se pudo resincronizar',
+        message: (data && data.error) || 'Error desconocido.',
+        icon: 'error',
+        confirmText: 'Entendido'
+      });
+      return;
+    }
+    showCustomAlert({
+      title: 'Resincronización disparada',
+      message: data.message || 'Revisa el Registro de ejecución en Apps Script para el detalle.',
+      icon: 'check',
+      confirmText: 'Entendido'
+    });
+  } catch (err) {
+    hideLoader();
+    console.error('Error resincronizarComunidadAlgolia:', err);
+    showCustomAlert({
+      title: 'Error de conexión',
+      message: 'No se pudo contactar al servidor. Intenta de nuevo.',
+      icon: 'error',
+      confirmText: 'Entendido'
+    });
+  }
+}
+
 async function reentrenarModeloIA() {
   const confirmado = await new Promise((resolve) => {
     showCustomConfirm({
