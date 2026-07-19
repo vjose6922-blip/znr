@@ -2476,13 +2476,27 @@ waBtn.textContent = '💬 Escribirle por WhatsApp';
 waBtn.style.cssText = 'display:block;text-align:center;margin-top:10px;padding:12px;border-radius:14px;background:rgba(37,211,102,.12);color:#25D366;font-size:13px;font-weight:700;text-decoration:none;';
 statusBox.insertAdjacentElement('afterend', waBtn);
 }
-setTimeout(() => { modal.remove(); resolve(true); }, 1600);
+// No se auto-cierra con un timeout: con el mensaje ya más largo (menciona la
+// campanita), un timeout fijo siempre corre el riesgo de ser muy corto para
+// alguien leyendo despacio, o muy largo para alguien que ya terminó. Mejor
+// que la persona decida cuándo cerrar.
+sendBtn.style.display = 'none';
+const listoBtn = document.createElement('button');
+listoBtn.textContent = 'Listo';
+listoBtn.style.cssText = 'padding:15px;border-radius:16px;border:none;background:rgba(255,255,255,.07);border:1.5px solid rgba(255,255,255,.1);color:#fff;font-size:14px;font-weight:700;cursor:pointer;margin-top:10px;';
+sendBtn.insertAdjacentElement('afterend', listoBtn);
+listoBtn.addEventListener('click', () => { modal.remove(); resolve(true); });
 } else if (waUrl) {
 // La llamada al backend falló (red/error) — acá sí no quedó ninguna
 // notificación encolada en ningún lado, así que WhatsApp es la única vía.
 showStatus(' No pudimos notificar a este vendedor por la app, así que se abrirá WhatsApp para contactarlo directo.', 'info');
 window.open(waUrl, '_blank');
-setTimeout(() => { modal.remove(); resolve(true); }, 900);
+sendBtn.style.display = 'none';
+const listoBtn2 = document.createElement('button');
+listoBtn2.textContent = 'Listo';
+listoBtn2.style.cssText = 'padding:15px;border-radius:16px;border:none;background:rgba(255,255,255,.07);border:1.5px solid rgba(255,255,255,.1);color:#fff;font-size:14px;font-weight:700;cursor:pointer;margin-top:10px;';
+sendBtn.insertAdjacentElement('afterend', listoBtn2);
+listoBtn2.addEventListener('click', () => { modal.remove(); resolve(true); });
 } else {
 showStatus(' No pudimos notificar a este vendedor. Intenta de nuevo más tarde o búscalo en Comunidad.', 'error');
 sendBtn.disabled = false;
