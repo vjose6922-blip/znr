@@ -2481,6 +2481,13 @@ statusBox.insertAdjacentElement('afterend', waBtn);
 // alguien leyendo despacio, o muy largo para alguien que ya terminó. Mejor
 // que la persona decida cuándo cerrar.
 sendBtn.style.display = 'none';
+// El botón "Volver al carrito" resuelve la promesa como false (cancelado),
+// lo que le indica al llamador que NO limpie el carrito. Si se dejara
+// visible acá, tocarlo después de un envío exitoso haría que el pedido ya
+// mandado pareciera "cancelado" y el artículo se quedara pegado en el
+// carrito para siempre. Por eso se oculta apenas el pedido se envía.
+const backBtnEl = modal.querySelector('#vcm-back-btn');
+if (backBtnEl) backBtnEl.style.display = 'none';
 const listoBtn = document.createElement('button');
 listoBtn.textContent = 'Listo';
 listoBtn.style.cssText = 'padding:15px;border-radius:16px;border:none;background:rgba(255,255,255,.07);border:1.5px solid rgba(255,255,255,.1);color:#fff;font-size:14px;font-weight:700;cursor:pointer;margin-top:10px;';
@@ -2492,6 +2499,8 @@ listoBtn.addEventListener('click', () => { modal.remove(); resolve(true); });
 showStatus(' No pudimos notificar a este vendedor por la app, así que se abrirá WhatsApp para contactarlo directo.', 'info');
 window.open(waUrl, '_blank');
 sendBtn.style.display = 'none';
+const backBtnEl2 = modal.querySelector('#vcm-back-btn');
+if (backBtnEl2) backBtnEl2.style.display = 'none';
 const listoBtn2 = document.createElement('button');
 listoBtn2.textContent = 'Listo';
 listoBtn2.style.cssText = 'padding:15px;border-radius:16px;border:none;background:rgba(255,255,255,.07);border:1.5px solid rgba(255,255,255,.1);color:#fff;font-size:14px;font-weight:700;cursor:pointer;margin-top:10px;';
