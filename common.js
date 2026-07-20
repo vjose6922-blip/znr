@@ -1,8 +1,3 @@
-// Nota: el sprite de iconos SVG (#ic-*) ya no vive aquí.
-// Se movió a icons.js — cárgalo en el HTML ANTES que common.js:
-//   <script src="icons.js" defer></script>
-//   <script src="common.js" defer></script>
-
 
 const CACHE_KEY = 'zr_products_cache';
 const CACHE_EXPIRY = 5 * 60 * 1000;
@@ -37,26 +32,20 @@ if (!category || category === '') return allProductsIndexed;
 return productsByCategoryMap?.get(category) || [];
 }
 
-
-
-// ── Filtros globales (categorías y tallas) ──
 window.globalCategories = [];
 window.globalSizes = [];
 const FILTER_OPTIONS_CACHE_KEY = 'zr_filter_options_cache';
 const FILTER_OPTIONS_TTL = 60 * 60 * 1000; // 1 hora
 
 async function fetchFilterOptions(force = false) {
-  // 1. Intentar cargar desde localStorage (para modo offline y velocidad)
   if (!force) {
     try {
       const cached = localStorage.getItem(FILTER_OPTIONS_CACHE_KEY);
       if (cached) {
         const data = JSON.parse(cached);
-        // Validar que tenga timestamp y no esté expirado
         if (data.timestamp && (Date.now() - data.timestamp) < FILTER_OPTIONS_TTL) {
           window.globalCategories = data.categories || [];
           window.globalSizes = data.sizes || [];
-          // Llenar los selects si ya existen en el DOM
           populateFilterSelects();
           return;
         }
@@ -64,7 +53,6 @@ async function fetchFilterOptions(force = false) {
     } catch (e) {}
   }
 
-  // 2. Si no hay caché o expiró, pedir al backend
   try {
     const url = new URL(API_URL);
     url.searchParams.set('action', 'getFilterOptions');
@@ -73,7 +61,6 @@ async function fetchFilterOptions(force = false) {
     if (data.ok) {
       window.globalCategories = data.categories || [];
       window.globalSizes = data.sizes || [];
-      // Guardar en localStorage con timestamp
       try {
         localStorage.setItem(FILTER_OPTIONS_CACHE_KEY, JSON.stringify({
           categories: window.globalCategories,
@@ -87,7 +74,6 @@ async function fetchFilterOptions(force = false) {
     }
   } catch (err) {
     console.warn('Error fetching filter options:', err);
-    // Si falla la red y tenemos caché aunque sea vieja, la usamos
     try {
       const cached = localStorage.getItem(FILTER_OPTIONS_CACHE_KEY);
       if (cached) {
@@ -109,7 +95,6 @@ function populateCategoryFilterGlobal() {
   const select = document.getElementById("category-filter");
   if (!select) return;
   const currentVal = select.value;
-  // Solo reconstruir si hay datos globales
   if (window.globalCategories.length === 0) return;
   
   select.innerHTML = '<option value="">Categorías</option>';
@@ -119,7 +104,6 @@ function populateCategoryFilterGlobal() {
     opt.textContent = cat;
     select.appendChild(opt);
   });
-  // Restaurar selección si el valor sigue existiendo
   if (currentVal && window.globalCategories.includes(currentVal)) {
     select.value = currentVal;
   } else {
@@ -147,25 +131,8 @@ function populateSizeFilterGlobal() {
   }
 }
 
-// Exponer funciones al ámbito global
 window.fetchFilterOptions = fetchFilterOptions;
 window.populateFilterSelects = populateFilterSelects;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 function clearProductIndex() {
 productsByCategoryMap = null;
@@ -190,11 +157,6 @@ const loader = document.getElementById("global-loader");
 if (loader) loader.classList.add("hidden");
 }
 
-// Feedback de carga POR BOTÓN (no bloquea toda la pantalla), para acciones
-// puntuales como "Aprobar", "Enviar calificación", "Guardar", etc.
-// Guarda el contenido original del botón, muestra spinner + texto opcional,
-// deshabilita el botón, corre el async fn, y SIEMPRE restaura el estado
-// (incluso si el propio fn ya quitó el botón del DOM).
 async function withButtonLoading(btn, asyncFn, loadingText) {
   if (!btn) return asyncFn();
   const prevHTML = btn.innerHTML;
@@ -205,8 +167,6 @@ async function withButtonLoading(btn, asyncFn, loadingText) {
   try {
     return await asyncFn();
   } finally {
-    // Si el botón sigue en el DOM (la acción no lo removió/reemplazó su
-    // contenedor), lo regresamos a su estado original.
     if (document.body.contains(btn)) {
       btn.innerHTML = prevHTML;
       btn.disabled = prevDisabled;
@@ -406,9 +366,6 @@ if (subtitleEl) subtitleEl.textContent = 'Opcional — para envío a domicilio';
 }
 }
 }
-// ── Reintenta una llamada async con backoff. Antes vivía duplicada en
-// comunidad.js y home.js; centralizada aquí porque common.js siempre carga
-// primero en las páginas que la usan. ────────────────────────────────────
 async function fetchWithRetry(fn, maxAttempts = 3, delays = [2000, 5000, 10000]) {
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
     try {
@@ -456,7 +413,6 @@ return result + string + escaped;
 function optimizeDriveUrl(url, size = 400) {
   if (!url) return "https://placehold.co/400x400/3b1f5f/white?text=Z%26R";
   
-  // ✅ Si la URL no es http o data:image, devolver placeholder (evita que se intente cargar un HTML como imagen)
   if (!url.startsWith('http') && !url.startsWith('data:image')) {
     return "https://placehold.co/400x400/3b1f5f/white?text=Z%26R";
   }
@@ -476,20 +432,17 @@ function optimizeDriveUrl(url, size = 400) {
     actualSize = Math.min(size, 800);
   }
 
-  // Si ya viene en formato lh3.googleusercontent.com
   const lh3Match = url.match(/lh3\.googleusercontent\.com\/d\/([-\w]{25,})/);
   if (lh3Match) {
     return `https://lh3.googleusercontent.com/d/${lh3Match[1]}=w${actualSize}-h${actualSize}-rw`;
   }
 
-  // Cualquier otro link de Drive (ej. /file/d/ o ?id=) → normalizar a lh3
   const match = url.match(/[-\w]{25,}/);
   if (match) {
     const id = match[0];
     return `https://lh3.googleusercontent.com/d/${id}=w${actualSize}-h${actualSize}-rw`;
   }
 
-  // Si no se pudo procesar, devolver la URL original (aunque ya validamos al inicio)
   return url;
 }
 
@@ -782,8 +735,6 @@ function renderCart() {
 
 const container = document.getElementById("cart-items-container");
 if (!container) {
-  // Es normal que esto pase en páginas sin carrito (ej: admin.html),
-  // así que no lo tratamos como error real.
   console.warn(" [RENDER] No existe #cart-items-container (normal si esta página no tiene carrito)");
   return;
 }
@@ -1015,11 +966,6 @@ _handleModalBuyClick(p);
 }
 }
 
-// Dado el id de un beneficiario, trae su nombre y cuenta bancaria desde la API.
-// Se usa en cualquier punto donde se añada al carrito un artículo donado
-// (modal de producto, botón directo en la tarjeta de comunidad, etc.) para
-// que el checkout siempre muestre la cuenta real, sin depender de campos
-// que no vienen incluidos en el producto.
 window.resolveBeneficiario = async function(beneficiarioId) {
 const beneficiario = { id: beneficiarioId || '', nombre: '', cuenta_bancaria: '' };
 if (!beneficiarioId || !window.API_URL) return beneficiario;
@@ -1142,8 +1088,6 @@ function _renderMagazinePanel(modal) {
     );
     related = otherCat.sort(() => Math.random() - 0.5).slice(0, 3);
     if (related.length < 3) {
-      // Si no hay suficientes de otras categorías, rellenamos con lo que haya
-      // (incluyendo la misma categoría) para no dejar el panel vacío.
       const others = pool.filter(p =>
         p._id !== currentId &&
         p._stock > 0 &&
@@ -1282,21 +1226,16 @@ function initImageModalControls() {
   if (!modal || modal.dataset.imInit) return;
   modal.dataset.imInit = '1';
 
-  // --- Variables para el auto-slide ---
   let _autoSlideTimer = null;
   const _SLIDE_INTERVAL = 4000; // 4 segundos
 
-  // --- Funciones de control del auto-slide ---
   function _startAutoSlide() {
     _stopAutoSlide();
-    // Solo inicia si hay más de 1 imagen (detectado por la cantidad de dots)
     const dots = modal.querySelectorAll('.im-dot');
     if (dots.length <= 1) return;
     
     _autoSlideTimer = setInterval(() => {
-      // Solo avanza si el modal sigue abierto
       if (modal.classList.contains('open')) {
-        // Llama a la navegación existente (asumo que _modalNav está definida globalmente)
         if (typeof _modalNav === 'function') {
           _modalNav(1);
         }
@@ -1316,7 +1255,6 @@ function initImageModalControls() {
     _startAutoSlide();
   }
 
-  // --- Inyección del nuevo HTML (con Top Bar) ---
   modal.innerHTML = `
     <div class="im-magazine-layout">
       
@@ -1346,14 +1284,12 @@ function initImageModalControls() {
     </div>
   `;
 
-  // --- Asignación de Eventos ---
   const closeBtn = modal.querySelector('.im-close');
   const prevBtn = modal.querySelector('.im-prev');
   const nextBtn = modal.querySelector('.im-next');
 
   closeBtn.addEventListener('click', closeImageModal);
   
-  // Al hacer clic en navegación, reiniciamos el auto-slide
   prevBtn.addEventListener('click', () => {
     if (typeof _modalNav === 'function') _modalNav(-1);
     _resetAutoSlide();
@@ -1364,12 +1300,10 @@ function initImageModalControls() {
     _resetAutoSlide();
   });
 
-  // Cerrar al hacer clic en el fondo
   modal.addEventListener('click', e => {
     if (e.target === modal) closeImageModal();
   });
 
-  // Gestos táctiles (Swipe)
   let _modalTouchStartX = 0;
   modal.addEventListener('touchstart', e => {
     _modalTouchStartX = e.touches[0].clientX;
@@ -1383,7 +1317,6 @@ function initImageModalControls() {
     }
   }, { passive: true });
 
-  // Teclado
   document.addEventListener('keydown', e => {
     if (!modal.classList.contains('open')) return;
     if (e.key === 'ArrowRight') {
@@ -1397,7 +1330,6 @@ function initImageModalControls() {
     if (e.key === 'Escape') closeImageModal();
   });
 
-  // --- Observador para detectar apertura/cierre del modal ---
   const observer = new MutationObserver(() => {
     if (modal.classList.contains('open')) {
       _startAutoSlide(); // Al abrir, arranca el auto-slide
@@ -1407,7 +1339,6 @@ function initImageModalControls() {
   });
   observer.observe(modal, { attributes: true, attributeFilter: ['class'] });
 
-  // --- Estilos CSS Mejorados ---
   if (!document.getElementById('im-styles')) {
     const st = document.createElement('style');
     st.id = 'im-styles';
@@ -1569,7 +1500,6 @@ function initImageModalControls() {
 .im-dot { width: 6px; height: 6px; border-radius: 50%; background: rgba(255,255,255,.35); transition: all .2s; }
 .im-dot.active { background: #ff4f81; width: 16px; border-radius: 3px; }
 
-/* ── SECCIÓN CORREGIDA ── */
 .im-product-info {
   width: 100%;
   margin: 0;
@@ -1687,7 +1617,6 @@ function initImageModalControls() {
   cursor: not-allowed;
   box-shadow: none;
 }
-/* ── FIN SECCIÓN CORREGIDA ── */
 
 .im-magazine-panel {
   flex: 0 0 auto;
@@ -1743,13 +1672,11 @@ function initImageModalControls() {
 .im-exit-left  { animation: im-slide-out-left  .2s ease forwards; }
 .im-exit-right  { animation: im-slide-out-right .2s ease forwards; }
 
-/* Responsive */
 @media (min-width: 600px) {
   .im-magazine-layout { width: min(520px, 92vw); }
   .im-wrapper { height: 54dvh; }
 }
 
-/* ── Tema claro ── */
 [data-theme="light"] .im-magazine-layout { background: #ffffff; box-shadow: 0 32px 80px rgba(0,0,0,.25); }
 [data-theme="light"] .im-top-bar { background: #ffffff; border-bottom-color: rgba(0,0,0,.08); }
 [data-theme="light"] .im-vendor-pill { background: rgba(0,0,0,.06); color: #222; }
@@ -1785,7 +1712,6 @@ window.shareProduct = shareProduct;
 window.highlightSharedElement = highlightSharedElement;
 window.openImageModal  = openImageModal;
 window.applyLayoutGlobal = applyLayoutGlobal;
-window.applyTheme = applyTheme;
 window.toggleTheme = toggleTheme;
 window.closeImageModal = closeImageModal;
 window.initImageModalControls = initImageModalControls;
@@ -1827,8 +1753,6 @@ function shareProduct(id, nombre, precio) {
   shareContent({ id, title, text });
 }
 
-// Resalta temporalmente un elemento (artículo compartido) cuando se abre desde un link directo.
-// Hace scroll hasta el elemento y le agrega un brillo/pulso de 2 segundos.
 function highlightSharedElement(el, duration = 2000) {
   if (!el) return;
   try {
@@ -2131,10 +2055,6 @@ requestId, timestamp: Date.now(), status: 'pendiente', total,
 items: znrItems.map(i => ({ name: i.name, quantity: i.quantity, price: i.price }))
 });
 }
-// El administrador ya recibe una notificación push automática (ver más abajo,
-// action: "createNotification"). Ya NO abrimos WhatsApp en paralelo aquí:
-// WhatsApp queda como respaldo y solo se ofrece si el push no llega
-// (eso lo maneja el propio backend / centro de notificaciones).
 try {
 await fetch(API_URL, {
 method: "POST",
@@ -2214,7 +2134,6 @@ const remaining  = vendors.length - 1;
 const { tel, nombre, logo, plan, vendorUid, items } = firstVendor;
 const subtotal = items.reduce((s, i) => s + i.price * i.quantity, 0);
 
-// Agrupar los artículos donados de este vendedor por beneficiario: ese dinero se paga directo a su cuenta, no al vendedor
 const donationGroups = new Map();
 items.forEach(item => {
 if (item._donacion && item._beneficiario && item._beneficiario.id) {
@@ -2287,8 +2206,6 @@ renderCart();
 if (remaining === 0) {
 closeCartDrawer();
 } else {
-// Sigue automáticamente con el siguiente vendedor, igual que se hace
-// entre Z&R y Comunidad, en vez de dejarlo esperando a un segundo clic.
 const nextItems = Object.values(localCart).filter(i => i._comunidad);
 if (nextItems.length > 0) {
 await _checkoutComunidad(nextItems);
@@ -2461,16 +2378,6 @@ ok = !!(data && data.ok);
 } catch (err) {
 console.error("No se pudo notificar al vendedor:", err);
 }
-// El backend ya no manda "enviados": el push al vendedor se procesa de forma
-// diferida (hasta ~60s después, vía cola + trigger), así que en este punto no
-// hay manera de saber si llegó. Por eso ya NO se decide el fallback de
-// WhatsApp según ese dato. Si la notificación quedó encolada con éxito (ok),
-// confiamos en que el push va a intentarse solo; WhatsApp queda disponible
-// como botón manual, nunca se abre automáticamente. Solo se abre solo si la
-// llamada al backend falló del todo, porque ahí no quedó nada encolado.
-// El backend además guarda esta misma notificación (con el link de WhatsApp
-// en meta) en la campanita propia del comprador, así que aunque el modal se
-// cierre, el link sigue disponible ahí después.
 if (ok) {
 showStatus(` Notificamos a ${nombre}. Te avisaremos aquí mismo en cuanto confirme.` + (waUrl ? ' Si no responde pronto, revisa tu campanita de notificaciones: ahí vas a tener el botón para escribirle por WhatsApp.' : ''), 'success');
 if (waUrl) {
@@ -2482,16 +2389,7 @@ waBtn.textContent = '💬 Escribirle por WhatsApp';
 waBtn.style.cssText = 'display:block;text-align:center;margin-top:10px;padding:12px;border-radius:14px;background:rgba(37,211,102,.12);color:#25D366;font-size:13px;font-weight:700;text-decoration:none;';
 statusBox.insertAdjacentElement('afterend', waBtn);
 }
-// No se auto-cierra con un timeout: con el mensaje ya más largo (menciona la
-// campanita), un timeout fijo siempre corre el riesgo de ser muy corto para
-// alguien leyendo despacio, o muy largo para alguien que ya terminó. Mejor
-// que la persona decida cuándo cerrar.
 sendBtn.style.display = 'none';
-// El botón "Volver al carrito" resuelve la promesa como false (cancelado),
-// lo que le indica al llamador que NO limpie el carrito. Si se dejara
-// visible acá, tocarlo después de un envío exitoso haría que el pedido ya
-// mandado pareciera "cancelado" y el artículo se quedara pegado en el
-// carrito para siempre. Por eso se oculta apenas el pedido se envía.
 const backBtnEl = modal.querySelector('#vcm-back-btn');
 if (backBtnEl) backBtnEl.style.display = 'none';
 const listoBtn = document.createElement('button');
@@ -2500,8 +2398,6 @@ listoBtn.className = 'zr-listo-btn';
 sendBtn.insertAdjacentElement('afterend', listoBtn);
 listoBtn.addEventListener('click', () => { modal.remove(); resolve(true); });
 } else if (waUrl) {
-// La llamada al backend falló (red/error) — acá sí no quedó ninguna
-// notificación encolada en ningún lado, así que WhatsApp es la única vía.
 showStatus(' No pudimos notificar a este vendedor por la app, así que se abrirá WhatsApp para contactarlo directo.', 'info');
 window.open(waUrl, '_blank');
 sendBtn.style.display = 'none';
@@ -2555,10 +2451,8 @@ await fetchProductsAPI(true);
 return allProductsIndexed;
 }
 async function loadProductsUnified({ onProducts, onError, force = false, page = 1, limit = 10, filters = {} } = {}) {
-  // Determinar si esta es una petición con filtros/paginación o una carga simple
   const hasPagination = page > 1 || limit !== 10 || Object.keys(filters).length > 0;
 
-  // Construir URL con todos los parámetros
   function buildUrl() {
     const url = new URL(API_URL);
     url.searchParams.set('action', 'list');
@@ -2574,14 +2468,11 @@ async function loadProductsUnified({ onProducts, onError, force = false, page = 
     onProducts(products, fromCache, meta || null);
   };
 
-  // Solo usamos caché cuando es la carga inicial sin filtros ni paginación
   if (!force && !hasPagination) {
     const cached = getCachedProducts();
     if (cached && cached.length > 0) {
-      // Fabricar un meta aproximado para la primera carga desde caché
       const cachedMeta = { page: 1, totalPages: 1, total: cached.length };
       deliver(cached, true, cachedMeta);
-      // Actualizar en background si hay conexión
       if (navigator.onLine) {
         fetch(buildUrl())
           .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
@@ -2599,7 +2490,6 @@ async function loadProductsUnified({ onProducts, onError, force = false, page = 
     }
   }
 
-  // Sin conexión: intentar datos guardados (solo para carga inicial)
   if (!navigator.onLine) {
     const stale = (() => {
       try {
@@ -2615,7 +2505,6 @@ async function loadProductsUnified({ onProducts, onError, force = false, page = 
     return;
   }
 
-  // Petición real al backend con page/limit/filters
   try {
     showLoader('Cargando productos...');
     const res = await fetchWithRetry(() => {
@@ -2630,7 +2519,6 @@ async function loadProductsUnified({ onProducts, onError, force = false, page = 
       totalPages: data.totalPages || 1,
       total: data.total || products.length
     };
-    // Solo guardamos en caché la primera página sin filtros
     if (page === 1 && Object.keys(filters).length === 0) {
       setCachedProducts(products);
     }
@@ -3320,7 +3208,6 @@ const observer = new MutationObserver(mutations => {
     mut.addedNodes.forEach(node => {
       if (node.nodeType !== 1) return;
       if (node.classList?.contains('product-card')) {
-        // Solo inyectamos si no está dentro del panel de vendedor
         if (!node.closest('#panel-section')) {
           injectWishlistBtn(node);
         }
@@ -3345,13 +3232,6 @@ injectAll();
 observer.observe(document.body, { childList: true, subtree: true });
 }
 })();
-function _upEsc(str) {
-const fn = window.escapeHtml;
-if (typeof fn === 'function') return fn(str);
-return String(str)
-.replace(/&/g,'&amp;').replace(/</g,'&lt;')
-.replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-}
 const SIZE_SECTIONS = {
 torso: {
 label:'Torso', icon:'',
@@ -3402,34 +3282,6 @@ function saveOrders(orders) {
 try { localStorage.setItem(ORDERS_KEY, JSON.stringify(orders)); } catch {}
 }
 window.saveOrderToHistory = saveOrder;
-
-async function refreshOrderStatuses() {
-try {
-const orders = loadOrders();
-if (!orders.length) return;
-const toCheck = orders.filter(o => o.status === 'pendiente' || o.status === 'pending');
-if (!toCheck.length) return;
-// 🔧 Antes: una llamada GAS por pedido pendiente (N+1). Ahora: un solo
-// checkRequestStatusBatch con todos los requestId de una vez.
-const ids = toCheck.map(o => o.requestId);
-const res  = await fetch(`${API_URL}?action=checkRequestStatusBatch&requestIds=${encodeURIComponent(JSON.stringify(ids))}`);
-const data = await res.json();
-if (!data.ok || !data.statuses) return;
-const map = { pending:'pendiente', approved:'confirmado', cancelled:'cancelled', rejected:'rejected' };
-const all = loadOrders();
-let changed = false;
-toCheck.forEach(o => {
-const entry = data.statuses[o.requestId];
-if (!entry) return;
-const newStatus = map[entry.status] || entry.status;
-if (newStatus !== o.status) {
-  const idx = all.findIndex(x => x.requestId === o.requestId);
-  if (idx !== -1) { all[idx].status = newStatus; changed = true; }
-}
-});
-if (changed) saveOrders(all);
-} catch {}
-}
 function detectSection(product) {
 const hay = [product.Nombre||'', product.Categoria||'', product.Descripcion||'']
 .join(' ').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
@@ -3454,536 +3306,27 @@ return [...products].sort((a,b)=>getSizeScore(b,prefs)-getSizeScore(a,prefs));
 window.sortByUserSize  = sortByUserSize;
 window.getSizeScore  = getSizeScore;
 window.detectSection  = detectSection;
-function currentTheme() {
-return localStorage.getItem('theme') || document.documentElement.getAttribute('data-theme') || 'dark';
-}
-function applyTheme(theme) {
-document.documentElement.setAttribute('data-theme', theme);
-document.body.className = document.body.className.replace(/theme-\S+/g,'').trim();
-document.body.classList.add('theme-aeromexico');
-localStorage.setItem('theme', theme);
-updateThemeIcon(theme);
-window.dispatchEvent(new CustomEvent('themeChanged', { detail: { theme } }));
-}
-function renderOrders() {
-const orders = loadOrders();
-if (!orders.length) return `
-<div class="up-empty-state">
-<div class="up-empty-icon"></div>
-<p>Aún no tienes pedidos registrados.<br>
-<small>Tus compras aparecerán aquí una vez que las solicites.</small>
-</p>
-</div>`;
-return orders.map(o=>{
-const date = new Date(o.timestamp||Date.now()).toLocaleDateString('es-MX',{day:'2-digit',month:'short',year:'numeric'});
-const items = (o.items||[]).map(i=>`
-<div class="up-order-item">
-<span>${_upEsc(i.name||'Producto')}</span>
-<span class="up-order-qty">x${i.quantity||1} · $${(i.price||0).toLocaleString()}</span>
-</div>`).join('');
 
-const statusMap = {
-  pendiente:  { color:'#f59e0b', icon: Icon('clock'), label:'pendiente'       },
-  confirmado: { color:'#22c55e', icon: Icon('check'), label:'confirmado'       },
-  cancelled:  { color:'#ef4444', icon: Icon('x'), label:'Cancelación'      },
-  rejected:   { color:'#9ca3af', icon: Icon('ban'), label:'Cancelado'        },
-  cancelado:  { color:'#9ca3af', icon: Icon('ban'), label:'Cancelado'        }
+let _accountPanelPromise = null;
+function _loadAccountPanel() {
+if (_accountPanelPromise) return _accountPanelPromise;
+_accountPanelPromise = new Promise((resolve, reject) => {
+const s = document.createElement('script');
+s.src = 'account-panel.js';
+s.onload = resolve;
+s.onerror = () => { _accountPanelPromise = null; reject(new Error('account-panel.js failed to load')); };
+document.head.appendChild(s);
+});
+return _accountPanelPromise;
+}
+window.openPanelOnTab = function(tabName) {
+_loadAccountPanel().then(() => window._openPanelOnTabReal(tabName)).catch(() => {});
 };
-const st = statusMap[o.status] || { color:'#f59e0b', icon: Icon('clock'), label: o.status||'pendiente' };
-
-let actionBtn = '';
-if (o.status === 'pendiente') {
-  actionBtn = `<button class="up-order-cancel-btn" data-request-id="${_upEsc(o.requestId)}" style="margin-top:10px;width:100%;padding:8px;border:none;border-radius:10px;background:#fee2e2;color:#dc2626;font-size:13px;font-weight:600;cursor:pointer;">${Icon('x')} Cancelar pedido</button>`;
-} else if (o.status === 'confirmado') {
-  const adminPhone = (typeof WHATSAPP_NUMBER !== 'undefined' ? WHATSAPP_NUMBER : '');
-  const itemsList  = (o.items||[]).map(i=>`• ${i.name} x${i.quantity}`).join('\n');
-  const msg = encodeURIComponent(`Hola, quisiera solicitar la *cancelación* de mi pedido:\n\n*ID:* ${o.requestId||''}\n*Productos:*\n${itemsList}\n*Total:* $${(o.total||0).toLocaleString()}\n\nEste pedido ya fue confirmado. ¿Es posible cancelarlo?`);
-  actionBtn = `<a href="https://wa.me/${adminPhone}?text=${msg}" target="_blank" style="display:block;margin-top:10px;padding:8px;border-radius:10px;background:#fff3cd;color:#92400e;font-size:13px;font-weight:600;text-align:center;text-decoration:none;">${Icon('mail')} Solicitar cancelación al admin</a>`;
-}
-return `
-<div class="up-order-card" data-order-id="${_upEsc(o.requestId||'')}">
-<div class="up-order-header">
-<div>
-<span class="up-order-id">${_upEsc(o.requestId||'—')}</span>
-<span class="up-order-date">${date}</span>
-</div>
-<span class="up-order-status" style="color:${st.color};font-weight:600;">
-${st.icon} ${st.label}
-</span>
-</div>
-<div class="up-order-items">${items}</div>
-<div class="up-order-total">Total: <strong>$${(o.total||0).toLocaleString()}</strong></div>
-${actionBtn}
-</div>`;
-}).join('');
-}
-
-async function clientCancelOrder(requestId) {
-  const phone = localStorage.getItem('client_phone') || '';
-  if (!phone) {
-    showTemporaryMessage('No se encontró tu número de teléfono. Intenta de nuevo desde el carrito.', 'error');
-    return;
-  }
-
-  showCustomConfirm({
-    title: '¿Cancelar pedido?',
-    message: '¿Estás seguro de que deseas cancelar el pedido ' + requestId + '? Esta acción no se puede deshacer.',
-    icon: 'trash',
-    confirmText: 'Sí, cancelar',
-    cancelText: 'No',
-    onConfirm: async () => {
-      try {
-        showLoader('Cancelando pedido...');
-
-        const orders = loadOrders();
-        const idx = orders.findIndex(o => o.requestId === requestId);
-        const prevStatus = idx !== -1 ? orders[idx].status : null;
-        if (idx !== -1) { orders[idx].status = 'cancelled'; saveOrders(orders); }
-        const list = document.getElementById('up-orders-list');
-        if (list) list.innerHTML = renderOrders();
-        attachOrderCancelListeners();
-
-        let gasOk = false;
-        try {
-          const res = await fetch(API_URL, {
-  method: 'POST',
-  body: JSON.stringify({ action: 'clientCancelRequest', requestId, phone })
-});
-
-          const responseText = await res.text();
-
-          let data;
-          try {
-            data = JSON.parse(responseText);
-          } catch (parseError) {
-            console.error('❌ No se pudo parsear JSON:', responseText);
-            throw new Error('El servidor devolvió: ' + responseText.substring(0, 200));
-          }
-          if (!data) {
-            throw new Error('Sin conexión con el servidor. Intenta de nuevo.');
-          }
-          
-          if (data && data.ok && data.cancelled) {
-            gasOk = true;
-          } else if (data && data.ok && data.alreadyConfirmed) {
-
-            if (idx !== -1 && prevStatus) {
-              const all = loadOrders();
-              const i2 = all.findIndex(o => o.requestId === requestId);
-              if (i2 !== -1) { all[i2].status = 'confirmado'; saveOrders(all); }
-              if (list) list.innerHTML = renderOrders();
-              attachOrderCancelListeners();
-            }
-            hideLoader();
-            showTemporaryMessage('Tu pedido ya fue confirmado. Usa el botón de WhatsApp para solicitar la cancelación al admin.', 'warning', 6000);
-            return;
-          } else {
-
-            throw new Error(data?.error || ('Respuesta inesperada: ' + JSON.stringify(data)));
-          }
-
-        } catch (fetchErr) {
-
-          if (idx !== -1 && prevStatus) {
-            const all = loadOrders();
-            const i2 = all.findIndex(o => o.requestId === requestId);
-            if (i2 !== -1) { all[i2].status = prevStatus; saveOrders(all); }
-            if (list) list.innerHTML = renderOrders();
-            attachOrderCancelListeners();
-          }
-          hideLoader();
-          showTemporaryMessage('Error al cancelar: ' + fetchErr.message, 'error');
-          return;
-        }
-
-        hideLoader();
-        if (gasOk) showTemporaryMessage('Pedido cancelado correctamente.', 'success');
-
-      } catch (err) {
-        hideLoader();
-        showTemporaryMessage('Error inesperado: ' + err.message, 'error');
-      }
-    }
-  });
-}
-
-function attachOrderCancelListeners() {
-  document.querySelectorAll('.up-order-cancel-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const requestId = btn.getAttribute('data-request-id');
-      if (requestId) clientCancelOrder(requestId);
-    });
-  });
-}
-function buildPanel() {
-if (document.getElementById('up-panel')) return;
-const prefs = loadPrefs();
-const theme = currentTheme();
-const savedPhone = localStorage.getItem('client_phone')||'';
-const savedAddress = localStorage.getItem('client_address')||'';
-const layout = localStorage.getItem('products_layout')||'list';
-const overlay = document.createElement('div');
-overlay.id = 'up-overlay';
-overlay.addEventListener('click', closePanel);
-const panel = document.createElement('div');
-panel.id = 'up-panel';
-panel.setAttribute('role','dialog');
-panel.setAttribute('aria-modal','true');
-panel.innerHTML = `
-<div class="up-header">
-<div class="up-title-row">
-<span class="up-logo">Z&R</span>
-<h2 class="up-title">Preferencias</h2>
-</div>
-<button class="up-close" id="up-close-btn" aria-label="Cerrar"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" aria-hidden="true"><use href="#ic-x"/></svg></button>
-</div>
-<div class="up-tabs" role="tablist">
-<button class="up-tab active" data-tab="apariencia" role="tab"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" aria-hidden="true"><use href="#ic-refresh"/></svg> Apariencia</button>
-<button class="up-tab" data-tab="tallas" role="tab"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9.568 3H5.25A2.25 2.25 0 003 5.25v4.318c0 .597.237 1.17.659 1.591l9.581 9.581c.699.699 1.78.872 2.595.33a18.095 18.095 0 005.223-5.223c.542-.815.369-1.896-.33-2.595L9.568 3z"/></svg> Tallas</button>
-<button class="up-tab" data-tab="pedidos" role="tab"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75 2.25 2.25 0 00-.1-.664m-5.8 0A2.251 2.251 0 0113.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25zM6.75 12h.008v.008H6.75V12zm0 3h.008v.008H6.75V15zm0 3h.008v.008H6.75V18z"/></svg> Pedidos</button>
-<button class="up-tab" data-tab="privacidad" role="tab"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.955 11.955 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z"/></svg> Privacidad</button>
-</div>
-<div class="up-body">
-<section class="up-tab-content active" data-content="apariencia">
-<h3 class="up-section-title">Tema visual</h3>
-<div class="up-theme-row">
-<button class="up-theme-btn ${theme==='dark'?'active':''}" data-theme="dark"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" aria-hidden="true"><use href="#ic-moon"/></svg> Oscuro</button>
-<button class="up-theme-btn ${theme==='light'?'active':''}" data-theme="light"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" aria-hidden="true"><use href="#ic-sun"/></svg> Claro</button>
-</div>
-<h3 class="up-section-title" style="margin-top:24px">Vista del catálogo</h3>
-<div class="up-theme-row">
-<button class="up-layout-btn ${layout==='list'?'active':''}" data-layout="list"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" aria-hidden="true"><use href="#ic-list"/></svg> Lista</button>
-<button class="up-layout-btn ${layout==='grid'?'active':''}" data-layout="grid"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" aria-hidden="true"><use href="#ic-grid"/></svg> Cuadrícula</button>
-</div>
-</section>
-<section class="up-tab-content" data-content="tallas">
-<p class="up-section-hint">Selecciona tu talla en cada sección para ver primero los productos que te quedan.</p>
-${Object.entries(SIZE_SECTIONS).map(([key,cfg])=>`
-<div class="up-size-block">
-<div class="up-size-label">
-<span class="up-size-icon">${cfg.icon}</span>
-<div>
-<strong>${cfg.label}</strong>
-<span class="up-size-hint">${cfg.hint}</span>
-</div>
-${prefs[key]?`<span class="up-size-badge" data-badge="${key}">${_upEsc(prefs[key])}</span>`:`<span class="up-size-badge" data-badge="${key}" style="display:none"></span>`}
-</div>
-<div class="up-size-grid">
-${cfg.sizes.map(sz=>`
-<button class="up-size-btn${prefs[key]===sz?' selected':''}"
-data-section="${key}" data-size="${sz}">${sz}</button>
-`).join('')}
-<button class="up-size-btn up-size-clear${!prefs[key]?' hidden':''}"
-data-section="${key}" data-size=""><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" aria-hidden="true"><use href="#ic-trash"/></svg> Quitar</button>
-</div>
-</div>
-`).join('')}
-<button class="up-save-btn" id="up-save-sizes-btn"><svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg> Guardar tallas</button>
-</section>
-<section class="up-tab-content" data-content="pedidos">
-<h3 class="up-section-title">Mis pedidos</h3>
-<div id="up-orders-list">${renderOrders()}</div>
-</section>
-<section class="up-tab-content" data-content="privacidad">
-<h3 class="up-section-title">Mis datos guardados</h3>
-<div class="up-privacy-item">
-<div class="up-privacy-info">
-<span class="up-privacy-icon"></span>
-<div>
-<strong>Número de teléfono</strong>
-<span class="up-privacy-value">${savedPhone ? '+52 '+_upEsc(savedPhone) : 'No guardado'}</span>
-</div>
-</div>
-${savedPhone?`<button class="up-danger-btn" id="up-delete-phone-btn"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" aria-hidden="true"><use href="#ic-trash"/></svg> Eliminar</button>`:''}
-</div>
-<div class="up-privacy-item">
-<div class="up-privacy-info">
-<span class="up-privacy-icon"></span>
-<div>
-<strong>Dirección de envío</strong>
-<span class="up-privacy-value">${savedAddress ? _upEsc(savedAddress) : 'No guardada'}</span>
-</div>
-</div>
-<div style="display:flex;gap:6px;flex-shrink:0">
-<button class="up-secondary-btn" id="up-edit-address-btn">${savedAddress ? '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" aria-hidden="true"><use href="#ic-edit"/></svg> Editar' : '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" aria-hidden="true"><use href="#ic-plus"/></svg> Añadir'}</button>
-${savedAddress?`<button class="up-danger-btn" id="up-delete-address-btn"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" aria-hidden="true"><use href="#ic-trash"/></svg> Eliminar</button>`:''}
-</div>
-</div>
-</div>
-<div class="up-divider"></div>
-<p class="up-privacy-note">Tus datos se guardan únicamente en este dispositivo y se usan solo para agilizar
-el proceso de compra. Puedes eliminarlos en cualquier momento.
-Para solicitar eliminación de datos en nuestros registros escríbenos a
-<strong>znrcomunity@gmail.com</strong>
-</p>
-</section>
-</div>
-`;
-document.body.appendChild(overlay);
-document.body.appendChild(panel);
-attachPanelEvents(panel);
-requestAnimationFrame(()=>{
-overlay.classList.add('visible');
-panel.classList.add('visible');
-});
-}
-function attachPanelEvents(panel) {
-panel.querySelector('#up-close-btn').addEventListener('click', closePanel);
-panel.querySelectorAll('.up-tab').forEach(tab=>{
-tab.addEventListener('click',()=>{
-panel.querySelectorAll('.up-tab').forEach(t=>t.classList.remove('active'));
-panel.querySelectorAll('.up-tab-content').forEach(c=>c.classList.remove('active'));
-tab.classList.add('active');
-panel.querySelector(`[data-content="${tab.dataset.tab}"]`).classList.add('active');
-if (tab.dataset.tab === 'pedidos') {
-  const list = document.getElementById('up-orders-list');
-  if (list) {
-    list.innerHTML = `<p style="text-align:center;color:var(--color-text-muted);padding:20px;font-size:13px;">${Icon('clock')} Actualizando pedidos...</p>`;
-    refreshOrderStatuses()
-      .catch(() => {})
-      .finally(() => {
-        list.innerHTML = renderOrders();
-        attachOrderCancelListeners();
-      });
-  }
-}
-});
-});
-
-attachOrderCancelListeners();
-panel.querySelectorAll('.up-theme-btn').forEach(btn=>{
-btn.addEventListener('click',()=>{
-panel.querySelectorAll('.up-theme-btn').forEach(b=>b.classList.remove('active'));
-btn.classList.add('active');
-applyTheme(btn.dataset.theme);
-});
-});
-panel.querySelectorAll('.up-layout-btn').forEach(btn=>{
-btn.addEventListener('click',()=>{
-const layout = btn.dataset.layout;
-localStorage.setItem('products_layout', layout);
-localStorage.setItem('comunidad_layout', layout);
-localStorage.setItem('home_layout', layout);
-applyLayoutGlobal(layout);
-});
-});
-panel.querySelectorAll('.up-size-btn').forEach(btn=>{
-btn.addEventListener('click',()=>{
-const sec  = btn.dataset.section;
-const size = btn.dataset.size;
-panel.querySelectorAll(`.up-size-btn[data-section="${sec}"]`).forEach(b=>{
-b.classList.remove('selected');
-});
-if (size) btn.classList.add('selected');
-const clear = panel.querySelector(`.up-size-clear[data-section="${sec}"]`);
-if (clear) clear.classList.toggle('hidden', !size);
-const badge = panel.querySelector(`[data-badge="${sec}"]`);
-if (badge) { badge.textContent=size; badge.style.display=size?'':'none'; }
-});
-});
-const saveBtn = panel.querySelector('#up-save-sizes-btn');
-if (saveBtn) {
-saveBtn.addEventListener('click',()=>{
-const prefs = {torso:'',piernas:'',pies:''};
-panel.querySelectorAll('.up-size-btn.selected').forEach(b=>{
-if (b.dataset.size) prefs[b.dataset.section]=b.dataset.size;
-});
-savePrefs(prefs);
-if (typeof applyFilters==='function') applyFilters();
-const orig = saveBtn.textContent;
-saveBtn.textContent=' ¡Guardado!';
-saveBtn.classList.add('saved');
-setTimeout(()=>{ saveBtn.textContent=orig; saveBtn.classList.remove('saved'); }, 1400);
-});
-}
-const delPhone = panel.querySelector('#up-delete-phone-btn');
-if (delPhone) {
-delPhone.addEventListener('click',()=>{
-if (typeof showCustomConfirm==='function') {
-showCustomConfirm({
-title:' Eliminar teléfono',
-message:'¿Eliminar el número guardado? Tendrás que ingresarlo de nuevo al comprar.',
-icon:'', confirmText:'Sí, eliminar', cancelText:'Cancelar',
-onConfirm:()=>{ localStorage.removeItem('client_phone'); closePanel(); buildPanel(); }
-});
-} else {
-localStorage.removeItem('client_phone');
-closePanel(); buildPanel();
-}
-});
-}
-const delAddr = panel.querySelector('#up-delete-address-btn');
-const editAddr = panel.querySelector('#up-edit-address-btn');
-if (editAddr) {
-editAddr.addEventListener('click', async () => {
-const data = await _collectAddressAndSchedule();
-if (data) {
-localStorage.setItem('client_address',  data.address);
-localStorage.setItem('client_schedule', data.schedule);
-if (data.note !== undefined) localStorage.setItem('client_note', data.note);
-updateSavedPhoneDisplay();
-closePanel(); buildPanel();
-}
-});
-}
-if (delAddr) {
-delAddr.addEventListener('click',()=>{
-if (typeof showCustomConfirm==='function') {
-showCustomConfirm({
-title:' Eliminar dirección',
-message:'¿Eliminar la dirección guardada?',
-icon:'', confirmText:'Sí, eliminar', cancelText:'Cancelar',
-onConfirm:()=>{ localStorage.removeItem('client_address'); localStorage.removeItem('client_schedule'); localStorage.removeItem('client_note'); localStorage.removeItem('client_days'); localStorage.removeItem('client_hour_from'); localStorage.removeItem('client_hour_to'); localStorage.removeItem('client_gps_lat'); localStorage.removeItem('client_gps_lng'); closePanel(); buildPanel(); }
-});
-} else {
-localStorage.removeItem('client_address');
-localStorage.removeItem('client_schedule');
-localStorage.removeItem('client_note');
-localStorage.removeItem('client_days');
-localStorage.removeItem('client_hour_from');
-localStorage.removeItem('client_hour_to');
-closePanel(); buildPanel();
-}
-});
-}
-}
-function closePanel() {
-const panel = document.getElementById('up-panel');
-const ov  = document.getElementById('up-overlay');
-if (!panel) return;
-panel.classList.remove('visible');
-ov.classList.remove('visible');
-setTimeout(()=>{ panel.remove(); ov.remove(); }, 280);
-}
-
-function openPanelOnTab(tabName) {
-
-  const existing = document.getElementById('up-panel');
-  if (existing) {
-    closePanel();
-    setTimeout(() => _buildAndActivateTab(tabName), 320);
-  } else {
-    _buildAndActivateTab(tabName);
-  }
-}
-
-function _buildAndActivateTab(tabName) {
-  buildPanel();
-
-  requestAnimationFrame(() => {
-    const panel = document.getElementById('up-panel');
-    if (!panel) return;
-    const targetTab = panel.querySelector(`.up-tab[data-tab="${tabName}"]`);
-    if (!targetTab) return;
-    panel.querySelectorAll('.up-tab').forEach(t => t.classList.remove('active'));
-    panel.querySelectorAll('.up-tab-content').forEach(c => c.classList.remove('active'));
-    targetTab.classList.add('active');
-    const content = panel.querySelector(`[data-content="${tabName}"]`);
-    if (content) content.classList.add('active');
-    if (tabName === 'pedidos') {
-      const list = document.getElementById('up-orders-list');
-      if (!list) return;
-      list.innerHTML = `<p style="text-align:center;color:var(--color-text-muted);padding:20px;font-size:13px;">${Icon('clock')} Actualizando pedidos...</p>`;
-
-      refreshOrderStatuses()
-        .catch(() => {})
-        .finally(() => {
-          list.innerHTML = renderOrders();
-          attachOrderCancelListeners();
-        });
-    }
-  });
-}
-window.openPanelOnTab = openPanelOnTab;
-document.addEventListener('keydown', e=>{ if(e.key==='Escape') closePanel(); });
-function wirePrefsButton() {
+function initUserPreferences() {
 if (location.pathname.includes('admin') || location.pathname.includes('notificaciones')) return;
 const btn = document.getElementById('up-open-btn');
 if (!btn) return;
-btn.addEventListener('click', buildPanel);
-}
-function injectStyles() {
-if (document.getElementById('up-styles')) return;
-const s = document.createElement('style');
-s.id = 'up-styles';
-s.textContent = `
-#up-overlay{position:fixed;inset:0;background:rgba(0,0,0,.55);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);z-index:9000;opacity:0;transition:opacity .28s ease}
-#up-overlay.visible{opacity:1}
-#up-panel{position:fixed;top:0;right:0;height:100dvh;width:min(390px,100vw);background:var(--color-surface,#252831);border-left:1px solid var(--color-border-subtle,rgba(255,255,255,.07));z-index:9001;display:flex;flex-direction:column;transform:translateX(100%);transition:transform .28s cubic-bezier(.4,0,.2,1);overflow:hidden;box-shadow:-8px 0 40px rgba(0,0,0,.4)}
-#up-panel.visible{transform:translateX(0)}
-.up-header{display:flex;align-items:center;justify-content:space-between;padding:18px 20px 14px;border-bottom:1px solid rgba(255,255,255,.07);flex-shrink:0}
-.up-title-row{display:flex;align-items:center;gap:10px}
-.up-logo{font-size:12px;font-weight:800;letter-spacing:.05em;color:#ff4f81;background:rgba(255,79,129,.12);padding:3px 8px;border-radius:6px}
-.up-title{font-size:16px;font-weight:700;margin:0;color:var(--color-text-primary,#fff)}
-.up-close{background:rgba(255,255,255,.07);border:none;color:var(--color-text-secondary,#aaa);width:32px;height:32px;border-radius:50%;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;transition:background .2s,color .2s}
-.up-close:hover{background:rgba(255,79,129,.15);color:#ff4f81}
-.up-tabs{display:flex;gap:4px;padding:12px 16px 0;border-bottom:1px solid rgba(255,255,255,.07);flex-shrink:0;overflow-x:auto;scrollbar-width:none}
-.up-tabs::-webkit-scrollbar{display:none}
-.up-tab{flex-shrink:0;background:none;border:none;border-bottom:2px solid transparent;color:var(--color-text-secondary,#888);font-size:12px;font-weight:600;padding:8px 12px;cursor:pointer;transition:color .2s,border-color .2s;white-space:nowrap}
-.up-tab.active{color:#ff4f81;border-bottom-color:#ff4f81}
-.up-body{flex:1;overflow-y:auto;padding:20px;scrollbar-width:thin;scrollbar-color:rgba(255,79,129,.3) transparent}
-.up-tab-content{display:none}
-.up-tab-content.active{display:block}
-.up-section-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--color-text-secondary,#888);margin:0 0 12px}
-.up-theme-row{display:flex;gap:8px;margin-bottom:8px}
-.up-theme-btn,.up-layout-btn{flex:1;padding:10px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.04);color:var(--color-text-secondary,#aaa);border-radius:12px;font-size:13px;font-weight:600;cursor:pointer;transition:all .15s}
-.up-theme-btn.active,.up-layout-btn.active{background:rgba(255,79,129,.18);border-color:#ff4f81;color:#ff4f81}
-.up-section-hint{font-size:12px;color:var(--color-text-secondary,#888);line-height:1.5;margin:0 0 18px}
-.up-size-block{margin-bottom:22px}
-.up-size-label{display:flex;align-items:center;gap:10px;margin-bottom:10px}
-.up-size-icon{font-size:20px;flex-shrink:0}
-.up-size-label strong{display:block;font-size:14px;font-weight:600;color:var(--color-text-primary,#fff);line-height:1.2}
-.up-size-hint{display:block;font-size:11px;color:var(--color-text-secondary,#888);margin-top:2px}
-.up-size-badge{margin-left:auto;background:rgba(255,79,129,.15);color:#ff4f81;border:1px solid rgba(255,79,129,.3);padding:3px 10px;border-radius:20px;font-size:12px;font-weight:700;flex-shrink:0}
-.up-size-grid{display:flex;flex-wrap:wrap;gap:7px}
-.up-size-btn{border:1px solid var(--color-border-subtle,rgba(255,255,255,.1));background:var(--color-surface-2,rgba(255,255,255,.04));color:var(--color-text-muted,#aaa);padding:6px 12px;border-radius:8px;font-size:13px;font-weight:500;cursor:pointer;transition:all .15s}
-.up-size-btn:hover{border-color:rgba(255,79,129,.5);color:#ff4f81}
-.up-size-btn.selected{background:rgba(255,79,129,.18);border-color:#ff4f81;color:#ff4f81;font-weight:700}
-.up-size-clear{font-size:11px;color:var(--color-text-secondary,#777)}
-.up-size-btn.hidden{display:none}
-.up-save-btn{width:100%;padding:13px;background:linear-gradient(135deg,#ff4f81,#ff7a4f);border:none;border-radius:14px;color:#fff;font-size:14px;font-weight:700;cursor:pointer;margin-top:12px;transition:opacity .2s}
-.up-save-btn:hover{opacity:.9}
-.up-save-btn.saved{background:linear-gradient(135deg,#22c55e,#16a34a)}
-.up-divider{height:1px;background:rgba(255,255,255,.07);margin:20px 0}
-.up-empty-state{text-align:center;padding:40px 20px;color:var(--color-text-secondary,#888)}
-.up-empty-icon{font-size:48px;margin-bottom:12px}
-.up-empty-state small{font-size:12px;opacity:.7}
-.up-order-card{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);border-radius:14px;padding:14px;margin-bottom:12px}
-.up-order-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;gap:8px}
-.up-order-id{display:block;font-size:10px;font-family:monospace;color:var(--color-text-secondary,#888)}
-.up-order-date{display:block;font-size:12px;font-weight:600;color:var(--color-text-primary,#fff);margin-top:2px}
-.up-order-status{font-size:12px;font-weight:700;flex-shrink:0}
-.up-order-items{border-top:1px solid rgba(255,255,255,.06);padding-top:8px;margin-top:4px}
-.up-order-item{display:flex;justify-content:space-between;font-size:12px;color:var(--color-text-secondary,#aaa);padding:3px 0}
-.up-order-qty{color:#ff4f81;font-weight:600;white-space:nowrap}
-.up-order-total{text-align:right;font-size:13px;color:var(--color-text-primary,#fff);margin-top:8px;padding-top:8px;border-top:1px solid rgba(255,255,255,.06)}
-.up-privacy-item{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);border-radius:14px;margin-bottom:10px}
-.up-privacy-info{display:flex;align-items:center;gap:12px;min-width:0}
-.up-privacy-icon{font-size:22px;flex-shrink:0}
-.up-privacy-info strong{display:block;font-size:13px;color:var(--color-text-primary,#fff)}
-.up-privacy-value{display:block;font-size:11px;color:var(--color-text-secondary,#888);margin-top:2px;word-break:break-all}
-.up-danger-btn{flex-shrink:0;background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);color:#ef4444;padding:6px 12px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;transition:all .15s;white-space:nowrap}
-.up-danger-btn:hover{background:rgba(239,68,68,.2)}
-.up-privacy-note{font-size:11px;color:var(--color-text-secondary,#888);line-height:1.6}
-[data-theme="light"] #up-panel{background:#fff;border-left-color:rgba(0,0,0,.08)}
-[data-theme="light"] .up-theme-btn,[data-theme="light"] .up-layout-btn,[data-theme="light"] .up-size-btn{border-color:#c5c8d0;background:#f4f5f8;color:#333;font-weight:500}
-[data-theme="light"] .up-theme-btn.active,[data-theme="light"] .up-layout-btn.active{background:rgba(255,79,129,.12);border-color:#ff4f81;color:#ff4f81}
-[data-theme="light"] .up-size-btn:hover{border-color:#ff4f81;color:#ff4f81;background:#fff0f5}
-[data-theme="light"] .up-size-btn.selected{background:#fff0f5;border-color:#ff4f81;color:#e11d6a;font-weight:700}
-[data-theme="light"] .up-order-card,[data-theme="light"] .up-privacy-item{background:#f4f5f8;border-color:#dde0e8}
-[data-theme="light"] .up-header,[data-theme="light"] .up-tabs{border-color:#e2e4ea}
-[data-theme="light"] .up-divider{background:#e2e4ea}
-[data-theme="light"] .up-close{background:#f0f1f5;color:#555}
-[data-theme="light"] .up-close:hover{background:#fff0f5;color:#ff4f81}
-[data-theme="light"] .up-section-title,[data-theme="light"] .up-size-hint,[data-theme="light"] .up-privacy-note,[data-theme="light"] .up-section-hint{color:#6b7280}
-[data-theme="light"] .up-title,[data-theme="light"] .up-size-label strong,[data-theme="light"] .up-order-date,[data-theme="light"] .up-privacy-info strong{color:#111318}
-@media(max-width:400px){#up-panel{width:100vw;border-left:none}}
-`;
-document.head.appendChild(s);
-}
-function initUserPreferences() {
-injectStyles();
-wirePrefsButton();
+btn.addEventListener('click', () => { _loadAccountPanel().then(() => window.buildPanel()).catch(() => {}); });
 }
 document.addEventListener('DOMContentLoaded', initUserPreferences);
 window.escapeHtml = escapeHtml;
@@ -4042,24 +3385,6 @@ margin-top: 2px;
 `;
 document.head.appendChild(style);
 
-
-
-
-
-// En common.js, después de las funciones auxiliares
-
-/**
- * Sube múltiples archivos en cola.
- * @param {FileList} files - Archivos seleccionados.
- * @param {number} startSlot - Índice del primer slot (1-3).
- * @param {Function} uploadFn - Función asíncrona que recibe (file, slotIndex) y devuelve la URL.
- * @param {Function} onProgress - Opcional: callback (slotIndex, progress) para actualizar barras.
- * @param {Function} onSuccess - Opcional: callback (slotIndex, url) al terminar cada archivo.
- */
-// --- Control global de subidas pendientes ---
-// Cualquier página (admin, vendedor, etc.) puede escuchar 'znr:uploads-status'
-// para deshabilitar su botón de "Guardar" mientras haya imágenes subiéndose,
-// y así evitar que se envíe el formulario con campos de imagen aún vacíos.
 window._znrPendingUploads = window._znrPendingUploads || 0;
 
 function _znrNotifyUploadStatus() {
@@ -4068,7 +3393,6 @@ function _znrNotifyUploadStatus() {
     }));
 }
 
-// Helper público para que cualquier formulario verifique antes de enviar.
 window.hasPendingImageUploads = function() {
     return window._znrPendingUploads > 0;
 };
@@ -4078,32 +3402,26 @@ window.uploadImagesInQueue = async function(files, startSlot = 1, uploadFn, onPr
     const filesArray = Array.from(files).slice(0, maxFiles);
     if (filesArray.length === 0) return;
 
-    // Determinar slots a usar (empezando por startSlot, sobrescribiendo si es necesario)
     const slots = [];
     for (let i = startSlot; i <= maxFiles; i++) {
         slots.push(i);
     }
-    // Si hay más archivos que slots disponibles, truncar
     const assignments = [];
     for (let i = 0; i < Math.min(filesArray.length, slots.length); i++) {
         assignments.push({ slot: slots[i], file: filesArray[i] });
     }
 
-    // Marcar estas imágenes como "subiendo" para bloquear el botón de guardar
     window._znrPendingUploads += assignments.length;
     _znrNotifyUploadStatus();
 
-    // Mostrar previsualizaciones inmediatamente
     assignments.forEach(({ slot, file }) => {
         const reader = new FileReader();
         reader.onload = function(e) {
-            // Admin: previsualización en #preview-image-upload-{slot}
             const previewAdmin = document.getElementById(`preview-image-upload-${slot}`);
             if (previewAdmin) {
                 previewAdmin.src = e.target.result;
                 previewAdmin.style.display = 'block';
             }
-            // Vendedor: previsualización en #slot-{slot} (dentro de .img-upload-slot)
             const slotDiv = document.getElementById(`slot-${slot}`);
             if (slotDiv) {
                 let img = slotDiv.querySelector('img');
@@ -4114,13 +3432,11 @@ window.uploadImagesInQueue = async function(files, startSlot = 1, uploadFn, onPr
                 }
                 img.src = e.target.result;
                 slotDiv.classList.add('has-img');
-                // Mostrar botón de eliminar (ya existe en el HTML)
             }
         };
         reader.readAsDataURL(file);
     });
 
-    // Subir en cola
     for (const { slot, file } of assignments) {
         const progressId = `progress-image-upload-${slot}`;
         const progress = document.getElementById(progressId);
@@ -4129,7 +3445,6 @@ window.uploadImagesInQueue = async function(files, startSlot = 1, uploadFn, onPr
         try {
             if (typeof onProgress === 'function') onProgress(slot, 10);
             const url = await uploadFn(file, slot);
-            // Actualizar campo de texto (si existe)
             const textInput = document.getElementById(`product-image${slot}`) || document.getElementById(`Imagen${slot}`);
             if (textInput) textInput.value = url;
             if (progress) progress.style.width = '100%';
@@ -4142,7 +3457,6 @@ window.uploadImagesInQueue = async function(files, startSlot = 1, uploadFn, onPr
             if (progress) progress.style.width = '0%';
             if (typeof onProgress === 'function') onProgress(slot, -1);
         } finally {
-            // Esta imagen ya terminó (con éxito o error): liberar el contador
             window._znrPendingUploads = Math.max(0, window._znrPendingUploads - 1);
             _znrNotifyUploadStatus();
         }
@@ -4163,8 +3477,6 @@ if ('serviceWorker' in navigator) {
     }
 }
 
-// Versión de alta resolución, pensada específicamente para el modal grande.
-// Ignora los topes de optimizeDriveUrl y pide el tamaño real necesario en pantalla.
 function getModalImageUrl(url) {
   if (!url) return "https://placehold.co/900x900/3b1f5f/white?text=Z%26R";
   if (!url.startsWith('http') && !url.startsWith('data:image')) {
@@ -4183,6 +3495,5 @@ function getModalImageUrl(url) {
   return url;
 }
 window.getModalImageUrl = getModalImageUrl;
-
 
 })();
