@@ -2171,20 +2171,23 @@ function openSettingsModal(expandirPlan) {
   }
 
   const planInfoEl = document.getElementById('settings-plan-info');
-  if (planInfoEl) {
-    if (esPlus) {
-      const vence = vendorSession.planVence ? new Date(vendorSession.planVence).toLocaleDateString('es-MX', {day:'2-digit',month:'long',year:'numeric'}) : '—';
-      planInfoEl.innerHTML = '<div style="background:#f5f3ff;border-radius:10px;padding:12px 14px;">' +
-        '<p style="margin:0;font-weight:700;color:#7c3aed;">' + Icon('star') + ' Plan Plus activo</p>' +
-        '<p style="margin:4px 0 0;color:#6b7280;font-size:.82rem;">Vence el ' + vence + '</p></div>';
-    } else {
-      planInfoEl.innerHTML = '<div style="background:#f9f9f9;border-radius:10px;padding:12px 14px;">' +
-        '<p style="margin:0;color:#374151;font-size:.85rem;">Estás en el plan <strong>Free</strong>.</p>' +
-        '<p style="margin:4px 0 0;font-size:.82rem;color:#6b7280;">Con Plus obtienes foto de perfil, destacado, logo y aprobación instantánea.</p>' +
-        '<div id="settings-plus-notif" style="margin-top:10px;"><p style="color:#aaa;font-size:.78rem;margin:0;">Cargando…</p></div></div>';
-      loadPlusSolicitudVendedor('settings-plus-notif');
-    }
+if (planInfoEl) {
+  // Resumen del plan actual
+  if (esPlus) {
+    const vence = vendorSession.planVence ? new Date(vendorSession.planVence).toLocaleDateString('es-MX', {day:'2-digit',month:'long',year:'numeric'}) : '—';
+    planInfoEl.innerHTML = '<div style="background:#f5f3ff;border-radius:10px;padding:12px 14px;">' +
+      '<p style="margin:0;font-weight:700;color:#7c3aed;">' + Icon('star') + ' Plan Plus activo</p>' +
+      '<p style="margin:4px 0 0;color:#6b7280;font-size:.82rem;">Vence el ' + vence + '</p>' +
+      '<div id="settings-plus-notif" style="margin-top:10px;"></div></div>';
+  } else {
+    planInfoEl.innerHTML = '<div style="background:#f9f9f9;border-radius:10px;padding:12px 14px;">' +
+      '<p style="margin:0;color:#374151;font-size:.85rem;">Estás en el plan <strong>Free</strong>.</p>' +
+      '<p style="margin:4px 0 0;font-size:.82rem;color:#6b7280;">Con Plus obtienes foto de perfil, destacado, logo y aprobación instantánea.</p>' +
+      '<div id="settings-plus-notif" style="margin-top:10px;"><p style="color:#aaa;font-size:.78rem;margin:0;">Cargando…</p></div></div>';
   }
+  // Siempre cargar la información de pago/renovación
+  loadPlusSolicitudVendedor('settings-plus-notif');
+}
 
   document.getElementById('si-productos').textContent = vendorSession.productosActuales ?? '—';
   document.getElementById('si-limite').textContent    = vendorSession.limiteProductos ?? '—';
@@ -2222,16 +2225,26 @@ function openSettingsModal(expandirPlan) {
     });
   }
  if (expandirPlan) {
-    setTimeout(() => {
-      const toggles = document.querySelectorAll('.settings-section-toggle');
-      for (const toggle of toggles) {
-        if (toggle.textContent.trim().includes('Plan')) {
-          if (!toggle.classList.contains('open')) toggle.click();
-          break;
-        }
+  setTimeout(() => {
+    const toggles = document.querySelectorAll('.settings-section-toggle');
+    let planToggle = null;
+    for (const toggle of toggles) {
+      if (toggle.textContent.trim().includes('Plan')) {
+        planToggle = toggle;
+        break;
       }
-    }, 300);
-  }
+    }
+    if (planToggle) {
+      if (!planToggle.classList.contains('open')) planToggle.click();
+      // Esperar un poco a que el contenido se despliegue y luego hacer scroll
+      setTimeout(() => {
+        const notifArea = document.getElementById('settings-plus-notif');
+        if (notifArea) {
+          notifArea.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      }, 300);
+    }
+  }, 300);
 }
 
 function closeSettingsModal() {
@@ -2548,6 +2561,24 @@ ${Icon('clock')} Solicitud enviada — en espera de aprobación del administrado
 return;
 }
 
+if (sol.estado === 'plus_activo') {
+  let mpBtn = sol.mp_link
+    ? `<a href="${sol.mp_link}" target="_blank" rel="noopener"
+        style="display:inline-flex;align-items:center;gap:6px;margin-top:8px;padding:8px 16px;border-radius:999px;background:#00b1ea;color:#fff;font-size:12.5px;font-weight:700;text-decoration:none;">
+        ${Icon('credit-card')} Pagar $49 para renovar
+      </a>` : '';
+  area.innerHTML = `<div style="background:#f0fdf4;border:1px solid #86efac;border-radius:12px;padding:12px 14px;">
+    <p style="margin:0 0 4px;color:#16a34a;font-weight:700;font-size:13px;">${Icon('check')} Renueva tu Plan Plus</p>
+    <p style="margin:0 0 8px;color:#374151;font-size:12px;">Tu plan está activo. Para renovar, realiza el pago y el admin extenderá tu vigencia.</p>
+    <p style="margin:0 0 2px;color:#555;font-size:12px;">Clabe interbancaria:</p>
+    <p style="margin:0 0 8px;font-size:15px;font-weight:700;letter-spacing:.05em;color:#111;font-family:monospace;">${sol.clabe}</p>
+    <p style="margin:0;color:#888;font-size:11px;">Importe: $49 MXN · ${sol.dias} días</p>
+    ${mpBtn}
+  </div>`;
+  return;
+}
+
+  
 if (sol.estado === 'approved') {
 let mpBtn = sol.mp_link
 ? `<a href="${sol.mp_link}" target="_blank" rel="noopener"
