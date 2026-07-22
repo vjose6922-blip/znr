@@ -715,8 +715,14 @@
         const slot = document.getElementById('profile-rating-slot');
         if (!slot || !uid || !window.API_URL) return;
         try {
-          const res = await fetch(`${window.API_URL}?${new URLSearchParams({ action: 'obtenerCalificacionesVendedor', vendedor_uid: uid })}`);
-          const data = await res.json();
+          let data = null;
+          if (window.znrFirestore && window.znrFirestore.getCalificacionesVendedor) {
+            data = await window.znrFirestore.getCalificacionesVendedor(uid);
+          }
+          if (!data || !data.ok) {
+            const res = await fetch(`${window.API_URL}?${new URLSearchParams({ action: 'obtenerCalificacionesVendedor', vendedor_uid: uid })}`);
+            data = await res.json();
+          }
           if (data.ok && data.total > 0) {
             slot.innerHTML = `<span style="color:#f59e0b;">${Icon('star')} ${data.promedio}</span> · ${data.total} calificación${data.total === 1 ? '' : 'es'}`;
           }
