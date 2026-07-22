@@ -13,6 +13,26 @@ Object.defineProperty(window, 'vendorSession', {
 
 const API_BASE = window.API_URL || ""
 
+// -- Caché diaria genérica (localStorage) -----------------------------
+// Para datos que se piden seguido pero casi no cambian (estadísticas,
+// calificación, estado del plan, informe semanal). TTL de 24h por
+// defecto; se puede forzar un refresh real cuando el propio vendedor
+// hace una acción que sabemos que cambia el dato (ej. solicitar Plan Plus).
+const DAILY_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
+const _DAILY_CACHE_MISS = Symbol('miss');
+function _getDailyCache(key) {
+  try {
+    const raw = localStorage.getItem(key);
+    if (!raw) return _DAILY_CACHE_MISS;
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed.timestamp !== 'number' || (Date.now() - parsed.timestamp) > DAILY_CACHE_TTL_MS) return _DAILY_CACHE_MISS;
+    return parsed.data; // puede ser null/false legítimamente (ej. "sin solicitud")
+  } catch (e) { return _DAILY_CACHE_MISS; }
+}
+function _setDailyCache(key, data) {
+  try { localStorage.setItem(key, JSON.stringify({ data, timestamp: Date.now() })); } catch (e) {}
+}
+
 function getAdminToken() {
 return sessionStorage.getItem('admin_token') || '';
 }
@@ -673,8 +693,18 @@ else await runFn();
 async function loadInformeSemanal() {
   const el = document.getElementById('informe-semanal-card');
   if (!el || !vendorSession || !vendorSession.uid) return;
+
+  const cacheKey = 'zr_vendor_informe_cache_' + vendorSession.uid;
+  const cached = _getDailyCache(cacheKey);
+  if (cached !== _DAILY_CACHE_MISS) {
+    if (cached && cached.informe) renderInformeSemanal(cached.informe);
+    else el.innerHTML = '';
+    return;
+  }
+
   try {
     const data = await apiCall({ action: 'obtenerUltimoInformeSemanal', vendor_uid: vendorSession.uid });
+    _setDailyCache(cacheKey, (data && data.ok) ? { informe: data.informe || null } : null);
     if (!data || !data.ok || !data.informe) { el.innerHTML = ''; return; }
     renderInformeSemanal(data.informe);
   } catch (e) {
@@ -2455,7 +2485,7 @@ window.eliminarMiCuenta = async function() {
   }
 };
 
-window.verMisEstadisticas = async function() {
+window.verMisEstadisticas = async function(forceRefresh) {
   if (!vendorSession || !vendorSession.token) return;
 
   let modal = document.getElementById('mis-stats-modal');
@@ -2471,17 +2501,37 @@ window.verMisEstadisticas = async function() {
           <p style="grid-column:span 2;text-align:center;color:#aaa;">Cargando...</p>
         </div>
         <div id="mis-stats-rating"></div>
+        <p style="margin:12px 0 0;text-align:center;">
+          <a href="#" id="mis-stats-refresh" style="font-size:11px;color:#999;text-decoration:underline;">Actualizar ahora</a>
+        </p>
       </div>`;
     document.body.appendChild(modal);
     modal.querySelector('#mis-stats-close').addEventListener('click', () => modal.remove());
     modal.addEventListener('click', (e) => { if (e.target === modal) modal.remove(); });
+    modal.querySelector('#mis-stats-refresh').addEventListener('click', (e) => {
+      e.preventDefault();
+      window.verMisEstadisticas(true);
+    });
   }
   modal.style.display = 'flex';
 
   const grid = document.getElementById('mis-stats-grid');
   const ratingSlot = document.getElementById('mis-stats-rating');
+
+  // Estas estadísticas casi no cambian de un momento a otro (a diferencia
+  // de las notificaciones), así que se cachean 24h en el navegador y solo
+  // se vuelven a pedir a GAS si expiran o el vendedor pide "Actualizar".
+  const cacheKey = 'zr_vendor_stats_cache_' + vendorSession.uid;
+  const cached = forceRefresh ? _DAILY_CACHE_MISS : _getDailyCache(cacheKey);
+  if (cached !== _DAILY_CACHE_MISS) {
+    _renderMisStats(cached, grid, ratingSlot);
+    return;
+  }
+
   grid.innerHTML = '<p style="grid-column:span 2;text-align:center;color:#aaa;">Cargando...</p>';
   ratingSlot.innerHTML = '';
+
+  const result = { stats: null, rating: null };
 
   try {
     const url = `${window.API_URL}?${new URLSearchParams({
@@ -2494,29 +2544,13 @@ window.verMisEstadisticas = async function() {
     const data = await res.json();
     if (!data.ok) throw new Error(data.error || 'Error al cargar');
     const all = data.products || [];
-    const aprobados  = all.filter(p => p.estado === 'aprobado').length;
-    const pendientes = all.filter(p => p.estado === 'pendiente').length;
-    const valorInventario = all
-  .filter(p => p.estado === 'aprobado')
-  .reduce((s, p) => s + (Number(p.precio) || 0) * (Number(p.stock) || 0), 0);
-
-    grid.innerHTML = `
-      <div style="background:#f0fff4;border-radius:14px;padding:14px;text-align:center;">
-        <div style="font-size:22px;font-weight:800;color:#2e7d32;">${all.length}</div>
-        <div style="font-size:11px;color:#555;">Productos</div>
-      </div>
-     <div style="background:#f5f3ff;border-radius:14px;padding:14px;text-align:center;">
-  <div style="font-size:22px;font-weight:800;color:#7c3aed;">${formatCurrency(valorInventario)}</div>
-  <div style="font-size:11px;color:#555;">Valor del inventario</div>
-</div>
-      <div style="background:#eef2ff;border-radius:14px;padding:14px;text-align:center;">
-        <div style="font-size:22px;font-weight:800;color:#4338ca;">${aprobados}</div>
-        <div style="font-size:11px;color:#555;">Aprobados</div>
-      </div>
-      <div style="background:#fff8e1;border-radius:14px;padding:14px;text-align:center;">
-        <div style="font-size:22px;font-weight:800;color:#f57f17;">${pendientes}</div>
-        <div style="font-size:11px;color:#555;">Pendientes</div>
-      </div>`;
+    result.stats = {
+      total: all.length,
+      aprobados: all.filter(p => p.estado === 'aprobado').length,
+      pendientes: all.filter(p => p.estado === 'pendiente').length,
+      valorInventario: all.filter(p => p.estado === 'aprobado')
+        .reduce((s, p) => s + (Number(p.precio) || 0) * (Number(p.stock) || 0), 0)
+    };
   } catch (err) {
     grid.innerHTML = `<p style="grid-column:span 2;color:#ef4444;text-align:center;">Error: ${err.message}</p>`;
   }
@@ -2525,26 +2559,65 @@ window.verMisEstadisticas = async function() {
     const rUrl = `${window.API_URL}?${new URLSearchParams({ action: 'obtenerCalificacionesVendedor', vendedor_uid: vendorSession.uid })}`;
     const rRes = await fetch(rUrl);
     const rData = await rRes.json();
-    if (rData.ok && rData.total > 0) {
-      ratingSlot.innerHTML = `
-        <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:14px;padding:12px;text-align:center;">
-          <div style="font-size:20px;font-weight:800;color:#b45309;">${Icon('star')} ${rData.promedio}</div>
-          <div style="font-size:11px;color:#92400e;">${rData.total} calificación${rData.total === 1 ? '' : 'es'} de compradores</div>
-        </div>`;
-    } else {
-      ratingSlot.innerHTML = `<p style="text-align:center;font-size:12px;color:#aaa;">Aún no tienes calificaciones</p>`;
-    }
+    if (rData.ok) result.rating = { promedio: rData.promedio, total: rData.total };
   } catch (e) { /* silencioso */ }
+
+  if (result.stats) {
+    _setDailyCache(cacheKey, result);
+    _renderMisStats(result, grid, ratingSlot);
+  }
 };
 
-async function loadPlusSolicitudVendedor(targetAreaId) {
+function _renderMisStats(result, grid, ratingSlot) {
+  const s = result.stats;
+  grid.innerHTML = `
+    <div style="background:#f0fff4;border-radius:14px;padding:14px;text-align:center;">
+      <div style="font-size:22px;font-weight:800;color:#2e7d32;">${s.total}</div>
+      <div style="font-size:11px;color:#555;">Productos</div>
+    </div>
+   <div style="background:#f5f3ff;border-radius:14px;padding:14px;text-align:center;">
+<div style="font-size:22px;font-weight:800;color:#7c3aed;">${formatCurrency(s.valorInventario)}</div>
+<div style="font-size:11px;color:#555;">Valor del inventario</div>
+</div>
+    <div style="background:#eef2ff;border-radius:14px;padding:14px;text-align:center;">
+      <div style="font-size:22px;font-weight:800;color:#4338ca;">${s.aprobados}</div>
+      <div style="font-size:11px;color:#555;">Aprobados</div>
+    </div>
+    <div style="background:#fff8e1;border-radius:14px;padding:14px;text-align:center;">
+      <div style="font-size:22px;font-weight:800;color:#f57f17;">${s.pendientes}</div>
+      <div style="font-size:11px;color:#555;">Pendientes</div>
+    </div>`;
+
+  const r = result.rating;
+  if (r && r.total > 0) {
+    ratingSlot.innerHTML = `
+      <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:14px;padding:12px;text-align:center;">
+        <div style="font-size:20px;font-weight:800;color:#b45309;">${Icon('star')} ${r.promedio}</div>
+        <div style="font-size:11px;color:#92400e;">${r.total} calificación${r.total === 1 ? '' : 'es'} de compradores</div>
+      </div>`;
+  } else {
+    ratingSlot.innerHTML = `<p style="text-align:center;font-size:12px;color:#aaa;">Aún no tienes calificaciones</p>`;
+  }
+}
+
+
+async function loadPlusSolicitudVendedor(targetAreaId, forceRefresh) {
 const areaId = targetAreaId || 'vendor-plus-notif-area';
 const area = document.getElementById(areaId);
 if (!area || !vendorSession) return;
 
+const cacheKey = 'zr_vendor_plan_cache_' + vendorSession.uid;
+
 try {
+let sol;
+const cached = forceRefresh ? _DAILY_CACHE_MISS : _getDailyCache(cacheKey);
+if (cached !== _DAILY_CACHE_MISS) {
+sol = cached;
+} else {
 const res = await apiCall({ action: 'getPlusSolicitudVendedor', vendorToken: vendorSession.token });
-const sol = res.solicitud;
+sol = res.solicitud || null;
+_setDailyCache(cacheKey, sol);
+}
 
 if (!sol) {
 area.innerHTML = `<button onclick="solicitarPlanPlus('${areaId}')" class="btn-solicitar-plus"
@@ -2624,7 +2697,7 @@ if (btn) { btn.disabled = false; btn.innerHTML = Icon('star') + ' Solicitar plan
 return;
 }
 showTemporaryMessage('Solicitud enviada', 'success');
-loadPlusSolicitudVendedor(areaId);
+loadPlusSolicitudVendedor(areaId, true);
 } catch(e) {
 showTemporaryMessage('Error de red', 'error');
 if (btn) { btn.disabled = false; btn.innerHTML = Icon('star') + ' Solicitar plan Plus'; }

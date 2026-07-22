@@ -1049,17 +1049,21 @@
         hideLoader();
       }
 
-      // ── Caché de perfil por UID en sessionStorage ──
+      // ── Caché de perfil por UID en localStorage ──
+      // Antes era sessionStorage + 5 min + revalidación en segundo plano
+      // (SWR), lo que seguía llamando a GAS en cada visita. Ahora es
+      // localStorage + 30 min sin revalidar: mientras el caché esté
+      // fresco, la página no toca el backend para nada.
       const PROFILE_CACHE_PREFIX = 'zr_perfil_';
-      const PROFILE_CACHE_TTL    = 5 * 60 * 1000; // 5 min en misma sesión
+      const PROFILE_CACHE_TTL    = 30 * 60 * 1000; // 30 min, persiste entre visitas
 
       function getProfileCache(uid) {
         try {
-          const raw = sessionStorage.getItem(PROFILE_CACHE_PREFIX + uid);
+          const raw = localStorage.getItem(PROFILE_CACHE_PREFIX + uid);
           if (!raw) return null;
           const { data, timestamp } = JSON.parse(raw);
           if (Date.now() - timestamp > PROFILE_CACHE_TTL) {
-            sessionStorage.removeItem(PROFILE_CACHE_PREFIX + uid);
+            localStorage.removeItem(PROFILE_CACHE_PREFIX + uid);
             return null;
           }
           return data;
@@ -1068,7 +1072,7 @@
 
       function setProfileCache(uid, data) {
         try {
-          sessionStorage.setItem(
+          localStorage.setItem(
             PROFILE_CACHE_PREFIX + uid,
             JSON.stringify({ data, timestamp: Date.now() })
           );
@@ -1121,23 +1125,10 @@
 
         const container = document.getElementById('profile-container');
 
-        // 1. Mostrar caché inmediatamente si existe
+        // 1. Si hay caché fresco (< 30 min), usarlo y no llamar a GAS
         const cached = getProfileCache(uid);
         if (cached) {
           renderProfile(cached);
-          // Revalidar en background silenciosamente
-          fetch(`${apiUrl}?action=obtenerPerfilVendedor&uid=${encodeURIComponent(uid)}`)
-            .then(r => r.json())
-            .then(fresh => {
-              if (fresh.ok) {
-                setProfileCache(uid, fresh);
-                // Solo re-render si los datos cambiaron
-                if (JSON.stringify(fresh) !== JSON.stringify(cached)) {
-                  renderProfile(fresh);
-                }
-              }
-            })
-            .catch(() => {});
           return;
         }
 

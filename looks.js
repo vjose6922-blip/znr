@@ -5,6 +5,8 @@ const LOOKS_CACHE_KEY = 'zr_looks_generated_v2';
 const MAX_WEATHER_RETRIES = 5;
 const RETRY_DELAYS = [1000, 3000, 5000, 10000, 30000];
 const DEFAULT_COORDS = '27.4863,-99.5162';
+const WEATHER_CACHE_KEY = 'zr_weather_cache_v1';
+const WEATHER_CACHE_TTL_MS = 30 * 60 * 1000; // 30 min, como recomienda gas.txt
 let weatherRetryCount = 0;
 let weatherRetryTimer = null;
 let bgProductsRetryCount = 0;
@@ -208,7 +210,30 @@ function updateWeatherWidgetUI(classified) {
   `;
   widget.classList.remove('loading');
 }
+function _getCachedWeather() {
+  try {
+    const raw = localStorage.getItem(WEATHER_CACHE_KEY);
+    if (!raw) return null;
+    const { data, timestamp } = JSON.parse(raw);
+    if (!data || (Date.now() - timestamp) > WEATHER_CACHE_TTL_MS) return null;
+    return data;
+  } catch (error) {
+    return null;
+  }
+}
+function _setCachedWeather(data) {
+  try {
+    localStorage.setItem(WEATHER_CACHE_KEY, JSON.stringify({ data, timestamp: Date.now() }));
+  } catch (error) {
+    // localStorage lleno o bloqueado: no es crítico, simplemente no se cachea
+  }
+}
 async function fetchWeatherData(coords = DEFAULT_COORDS) {
+const cached = _getCachedWeather();
+if (cached) {
+console.log('📦 Clima desde caché local (< 30 min)');
+return cached;
+}
 const controller = new AbortController();
 const timeoutId = setTimeout(() => controller.abort(), 5000);
 try {
@@ -216,7 +241,9 @@ const url = `https://wttr.in/${coords}?format=j1&lang=es`;
 const response = await fetch(url, { signal: controller.signal });
 clearTimeout(timeoutId);
 if (!response.ok) throw new Error(`HTTP ${response.status}`);
-return await response.json();
+const data = await response.json();
+_setCachedWeather(data);
+return data;
 } catch (error) {
 clearTimeout(timeoutId);
 console.warn('Error obteniendo clima:', error.message);
