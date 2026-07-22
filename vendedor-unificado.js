@@ -2556,9 +2556,15 @@ window.verMisEstadisticas = async function(forceRefresh) {
   }
 
   try {
-    const rUrl = `${window.API_URL}?${new URLSearchParams({ action: 'obtenerCalificacionesVendedor', vendedor_uid: vendorSession.uid })}`;
-    const rRes = await fetch(rUrl);
-    const rData = await rRes.json();
+    let rData = null;
+    if (window.znrFirestore && window.znrFirestore.getCalificacionesVendedor) {
+      rData = await window.znrFirestore.getCalificacionesVendedor(vendorSession.uid);
+    }
+    if (!rData || !rData.ok) {
+      const rUrl = `${window.API_URL}?${new URLSearchParams({ action: 'obtenerCalificacionesVendedor', vendedor_uid: vendorSession.uid })}`;
+      const rRes = await fetch(rUrl);
+      rData = await rRes.json();
+    }
     if (rData.ok) result.rating = { promedio: rData.promedio, total: rData.total };
   } catch (e) { /* silencioso */ }
 
