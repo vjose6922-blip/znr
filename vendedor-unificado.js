@@ -584,7 +584,13 @@ if (!window._vsnPollingStarted) {
 async function loadVendorSaleNotifications() {
 if (!vendorSession || !vendorSession.uid) return;
 try {
-const data = await apiCall({ action: 'listarNotificacionesVentaComunidad', vendorToken: vendorSession.token });
+let data = null;
+if (window.znrFirestore && window.znrFirestore.getVentasComunidadVendedor) {
+  data = await window.znrFirestore.getVentasComunidadVendedor(vendorSession.uid, vendorSession.token);
+}
+if (!data || !data.ok) {
+  data = await apiCall({ action: 'listarNotificacionesVentaComunidad', vendorToken: vendorSession.token });
+}
 if (!data || !data.ok) return;
 renderVendorSaleNotifications(data.notificaciones || []);
 } catch (e) {
