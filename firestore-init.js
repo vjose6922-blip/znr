@@ -17,7 +17,7 @@
 
 import { initializeApp, getApps, getApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
 import { getAuth, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
-import { getFirestore, collection, getDocs, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
+import { getFirestore, collection, getDocs, doc, getDoc, query, orderBy, limit } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyAaOe_lxLdQtTFCtw2BDR8KZRSafEMkkes",
@@ -103,6 +103,78 @@ window.znrFirestore.getCalificacionesVendedor = async function (vendedorUid) {
     return { ok: true, promedio: data.promedio, total: data.total, detalle: data.detalle || [] };
   } catch (err) {
     console.warn('Firestore calificaciones_vendedor falló, se usará GAS como respaldo:', err);
+    return { ok: false, error: String(err) };
+  }
+};
+
+/**
+ * Asegura que haya una sesión de Firebase Auth con el uid esperado
+ * ("vendedor_<id>" o "cliente_<id>"). Si ya está autenticado como ese
+ * uid, no hace ninguna llamada de red. Si no, pide un custom token a
+ * GAS e inicia sesión. Una vez logueado, Firebase mantiene la sesión
+ * sola entre recargas de página (no hay que repetir esto en cada
+ * visita, solo cuando cambia de identidad o no hay sesión).
+ *
+ * ownerRef: vendorToken (si ownerType === 'vendedor') o teléfono (si 'cliente')
+ */
+window.znrFirestore.ensureSignedIn = async function (ownerType, ownerId, ownerRef) {
+  const expectedUid = ownerType + '_' + String(ownerId);
+  if (auth.currentUser && auth.currentUser.uid === expectedUid) return expectedUid;
+  return await window.znrFirestore.signIn(ownerType, ownerRef);
+};
+
+function _fsNormalizarFecha(data) {
+  if (data && data.fecha && typeof data.fecha.toDate === 'function') {
+    data.fecha = data.fecha.toDate().toISOString();
+  }
+  return data;
+}
+
+/**
+ * Devuelve { ok: true, notificaciones: [...] } igual que
+ * misNotificacionesVendedor/misNotificacionesCliente (últimas 30, más
+ * recientes primero), o { ok: false, error } si falla o si no hay
+ * sesión de Firebase (el caller debe hacer fallback a GAS).
+ *
+ * ownerType: 'vendedor' | 'cliente'
+ * ownerId:   vendor.uid (vendedor) o teléfono (cliente)
+ * ownerRef:  vendorToken (vendedor) o teléfono (cliente) — lo que
+ *            necesita GAS para emitir el custom token
+ */
+window.znrFirestore.getNotificacionesCentro = async function (ownerType, ownerId, ownerRef) {
+  try {
+    const uid = await window.znrFirestore.ensureSignedIn(ownerType, ownerId, ownerRef);
+    if (!uid) return { ok: false, error: 'sin sesión de Firebase' };
+
+    const q = query(
+      collection(db, 'notificaciones_centro', ownerType + '_' + String(ownerId), 'items'),
+      orderBy('fecha', 'desc'),
+      limit(30)
+    );
+    const snap = await getDocs(q);
+    const notificaciones = snap.docs.map(d => _fsNormalizarFecha({ id: d.id, ownerType, ...d.data() }));
+    return { ok: true, notificaciones };
+  } catch (err) {
+    console.warn('Firestore notificaciones_centro falló, se usará GAS como respaldo:', err);
+    return { ok: false, error: String(err) };
+  }
+};
+
+/**
+ * Devuelve { ok: true, notificaciones: [...] } igual que
+ * listarNotificacionesVentaComunidad (un objeto por pedido agrupado),
+ * o { ok: false, error } si falla (el caller debe hacer fallback a GAS).
+ */
+window.znrFirestore.getVentasComunidadVendedor = async function (vendorUid, vendorToken) {
+  try {
+    const uid = await window.znrFirestore.ensureSignedIn('vendedor', vendorUid, vendorToken);
+    if (!uid) return { ok: false, error: 'sin sesión de Firebase' };
+
+    const snap = await getDocs(collection(db, 'ventas_comunidad', vendorUid, 'pedidos'));
+    const notificaciones = snap.docs.map(d => _fsNormalizarFecha(d.data()));
+    return { ok: true, notificaciones };
+  } catch (err) {
+    console.warn('Firestore ventas_comunidad falló, se usará GAS como respaldo:', err);
     return { ok: false, error: String(err) };
   }
 };
