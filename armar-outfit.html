@@ -1075,5 +1075,29 @@ document.addEventListener('DOMContentLoaded', function () {
 })();
 </script>
 
+
+
+
+
+
+
+
+
+<script>
+(function () {
+  var metas = document.querySelectorAll('meta[http-equiv="Content-Security-Policy"], meta[http-equiv="content-security-policy"]');
+  console.log('🔍 CSP meta tags encontrados: ' + metas.length);
+  metas.forEach(function (m, i) {
+    console.log('🔍 CSP #' + i + ': ' + m.getAttribute('content'));
+  });
+  document.addEventListener('securitypolicyviolation', function (e) {
+    console.error('🚨 CSP violation -> directiva: ' + e.violatedDirective + ' | bloqueado: ' + e.blockedURI + ' | policy: ' + e.originalPolicy);
+  });
+})();
+</script>
+
+
+
+ 
 </body>
  </html>
