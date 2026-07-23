@@ -69,6 +69,8 @@
   var counters = { errors: 0, failedReq: 0 };
   var consoleLevelFilter = { log: true, info: true, warn: true, error: true, debug: true };
   var networkTypeFilter = { fetch: true, xhr: true, ws: true };
+  var panelOpen = false;
+  var currentTab = "console";
 
   // ---------- Utilidades ----------
   function ts() {
@@ -284,154 +286,166 @@
   window.addEventListener("online", function () { addConsoleEntry("info", ["🌐 Conexión recuperada (online)"]); });
   window.addEventListener("offline", function () { addConsoleEntry("warn", ["🌐 Conexión perdida (offline)"]); });
 
-  // ---------- UI: estilos ----------
-  var css = "\
-    #znr-dc-btn{position:fixed;bottom:16px;right:16px;z-index:2147483000;\
-      width:48px;height:48px;border-radius:50%;background:#1e1e2e;color:#fff;\
-      border:2px solid #3a3a52;font-size:20px;cursor:pointer;box-shadow:0 2px 10px rgba(0,0,0,.4);\
-      display:flex;align-items:center;justify-content:center;font-family:monospace;}\
-    #znr-dc-btn .znr-badge{position:absolute;top:-6px;right:-6px;background:#e74c3c;color:#fff;\
-      font-size:11px;border-radius:10px;padding:1px 6px;font-family:sans-serif;display:none;}\
-    #znr-dc-panel{position:fixed;left:0;right:0;bottom:0;height:50vh;min-height:220px;\
-      background:#1e1e2e;color:#e6e6e6;z-index:2147483001;font-family:Consolas,monospace;\
-      font-size:12px;display:none;flex-direction:column;box-shadow:0 -2px 14px rgba(0,0,0,.5);}\
-    #znr-dc-panel.open{display:flex;}\
-    #znr-dc-drag{height:6px;cursor:ns-resize;background:#3a3a52;flex-shrink:0;}\
-    #znr-dc-head{display:flex;align-items:center;background:#151521;padding:4px 8px;gap:4px;\
-      border-bottom:1px solid #3a3a52;flex-wrap:wrap;flex-shrink:0;}\
-    #znr-dc-head b{color:#f39c12;font-size:12px;margin-right:8px;}\
-    .znr-tab{background:none;border:none;color:#aaa;padding:6px 8px;cursor:pointer;font-family:inherit;\
-      font-size:11px;border-bottom:2px solid transparent;white-space:nowrap;}\
-    .znr-tab.active{color:#fff;border-bottom:2px solid #f39c12;}\
-    .znr-spacer{flex:1;}\
-    .znr-btn-mini{background:#2c2c40;color:#ddd;border:1px solid #3a3a52;border-radius:4px;\
-      padding:3px 8px;cursor:pointer;font-size:11px;font-family:inherit;}\
-    .znr-btn-mini:hover{background:#3a3a52;}\
-    .znr-chip{background:#2c2c40;color:#999;border:1px solid #3a3a52;border-radius:10px;\
-      padding:1px 8px;cursor:pointer;font-size:10px;margin-right:4px;display:inline-block;}\
-    .znr-chip.on{color:#fff;border-color:#f39c12;}\
-    #znr-dc-body{flex:1;overflow:auto;padding:6px 8px;}\
-    #znr-dc-toolbar{padding:4px 0 8px;border-bottom:1px solid #2a2a3d;margin-bottom:6px;}\
-    .znr-row{padding:3px 4px;border-bottom:1px solid #2a2a3d;white-space:pre-wrap;word-break:break-all;}\
-    .znr-row.log{color:#e6e6e6;} .znr-row.info{color:#5dade2;}\
-    .znr-row.warn{color:#f4d03f;background:rgba(244,208,63,.06);}\
-    .znr-row.error{color:#ff6b6b;background:rgba(255,107,107,.08);}\
-    .znr-time{color:#777;margin-right:6px;}\
-    .znr-net-row{padding:4px;border-bottom:1px solid #2a2a3d;cursor:pointer;display:flex;gap:8px;}\
-    .znr-net-row:hover{background:#26263a;}\
-    .znr-net-method{color:#5dade2;width:44px;flex-shrink:0;}\
-    .znr-net-status{width:70px;flex-shrink:0;}\
-    .znr-net-status.ok{color:#2ecc71;} .znr-net-status.bad{color:#ff6b6b;} .znr-net-status.pending{color:#f4d03f;}\
-    .znr-net-url{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}\
-    .znr-net-dur{color:#888;width:60px;text-align:right;flex-shrink:0;}\
-    .znr-net-detail{background:#151521;padding:8px;border-bottom:1px solid #3a3a52;white-space:pre-wrap;word-break:break-all;}\
-    .znr-net-detail h4{margin:6px 0 2px;color:#f39c12;font-size:11px;}\
-    .znr-filter{background:#2c2c40;border:1px solid #3a3a52;color:#eee;border-radius:4px;\
-      padding:3px 6px;font-size:11px;font-family:inherit;}\
-    .znr-card{background:#26263a;border:1px solid #3a3a52;border-radius:6px;padding:8px;margin-bottom:8px;}\
-    .znr-card b{color:#f39c12;}\
-    .znr-empty{color:#777;padding:10px;text-align:center;}\
-    .znr-kv-row{display:flex;gap:6px;padding:2px 0;border-bottom:1px dashed #2a2a3d;align-items:flex-start;}\
-    .znr-kv-key{color:#5dade2;width:180px;flex-shrink:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}\
-    .znr-kv-val{flex:1;word-break:break-all;}\
-    .znr-kv-actions{flex-shrink:0;}\
-    table.znr-table{width:100%;border-collapse:collapse;}\
-    table.znr-table td,table.znr-table th{padding:3px 6px;border-bottom:1px solid #2a2a3d;text-align:left;}\
-    table.znr-table th{color:#f39c12;font-weight:normal;}\
-    ";
-  var styleEl = document.createElement("style");
-  styleEl.id = "znr-dc-style";
-  styleEl.textContent = css;
-  document.head.appendChild(styleEl);
+  // ---------- UI: se construye solo cuando document.body ya existe ----------
+  function buildUI() {
+    // Estilos: el botón ahora en la parte superior derecha con z-index: 999
+    var css = "\
+      #znr-dc-btn{position:fixed;top:16px;right:16px;z-index:999;\
+        width:48px;height:48px;border-radius:50%;background:#1e1e2e;color:#fff;\
+        border:2px solid #3a3a52;font-size:20px;cursor:pointer;box-shadow:0 2px 10px rgba(0,0,0,.4);\
+        display:flex;align-items:center;justify-content:center;font-family:monospace;}\
+      #znr-dc-btn .znr-badge{position:absolute;top:-6px;right:-6px;background:#e74c3c;color:#fff;\
+        font-size:11px;border-radius:10px;padding:1px 6px;font-family:sans-serif;display:none;}\
+      #znr-dc-panel{position:fixed;left:0;right:0;bottom:0;height:50vh;min-height:220px;\
+        background:#1e1e2e;color:#e6e6e6;z-index:999;font-family:Consolas,monospace;\
+        font-size:12px;display:none;flex-direction:column;box-shadow:0 -2px 14px rgba(0,0,0,.5);}\
+      #znr-dc-panel.open{display:flex;}\
+      #znr-dc-drag{height:6px;cursor:ns-resize;background:#3a3a52;flex-shrink:0;}\
+      #znr-dc-head{display:flex;align-items:center;background:#151521;padding:4px 8px;gap:4px;\
+        border-bottom:1px solid #3a3a52;flex-wrap:wrap;flex-shrink:0;}\
+      #znr-dc-head b{color:#f39c12;font-size:12px;margin-right:8px;}\
+      .znr-tab{background:none;border:none;color:#aaa;padding:6px 8px;cursor:pointer;font-family:inherit;\
+        font-size:11px;border-bottom:2px solid transparent;white-space:nowrap;}\
+      .znr-tab.active{color:#fff;border-bottom:2px solid #f39c12;}\
+      .znr-spacer{flex:1;}\
+      .znr-btn-mini{background:#2c2c40;color:#ddd;border:1px solid #3a3a52;border-radius:4px;\
+        padding:3px 8px;cursor:pointer;font-size:11px;font-family:inherit;}\
+      .znr-btn-mini:hover{background:#3a3a52;}\
+      .znr-chip{background:#2c2c40;color:#999;border:1px solid #3a3a52;border-radius:10px;\
+        padding:1px 8px;cursor:pointer;font-size:10px;margin-right:4px;display:inline-block;}\
+      .znr-chip.on{color:#fff;border-color:#f39c12;}\
+      #znr-dc-body{flex:1;overflow:auto;padding:6px 8px;}\
+      #znr-dc-toolbar{padding:4px 0 8px;border-bottom:1px solid #2a2a3d;margin-bottom:6px;}\
+      .znr-row{padding:3px 4px;border-bottom:1px solid #2a2a3d;white-space:pre-wrap;word-break:break-all;}\
+      .znr-row.log{color:#e6e6e6;} .znr-row.info{color:#5dade2;}\
+      .znr-row.warn{color:#f4d03f;background:rgba(244,208,63,.06);}\
+      .znr-row.error{color:#ff6b6b;background:rgba(255,107,107,.08);}\
+      .znr-time{color:#777;margin-right:6px;}\
+      .znr-net-row{padding:4px;border-bottom:1px solid #2a2a3d;cursor:pointer;display:flex;gap:8px;}\
+      .znr-net-row:hover{background:#26263a;}\
+      .znr-net-method{color:#5dade2;width:44px;flex-shrink:0;}\
+      .znr-net-status{width:70px;flex-shrink:0;}\
+      .znr-net-status.ok{color:#2ecc71;} .znr-net-status.bad{color:#ff6b6b;} .znr-net-status.pending{color:#f4d03f;}\
+      .znr-net-url{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}\
+      .znr-net-dur{color:#888;width:60px;text-align:right;flex-shrink:0;}\
+      .znr-net-detail{background:#151521;padding:8px;border-bottom:1px solid #3a3a52;white-space:pre-wrap;word-break:break-all;}\
+      .znr-net-detail h4{margin:6px 0 2px;color:#f39c12;font-size:11px;}\
+      .znr-filter{background:#2c2c40;border:1px solid #3a3a52;color:#eee;border-radius:4px;\
+        padding:3px 6px;font-size:11px;font-family:inherit;}\
+      .znr-card{background:#26263a;border:1px solid #3a3a52;border-radius:6px;padding:8px;margin-bottom:8px;}\
+      .znr-card b{color:#f39c12;}\
+      .znr-empty{color:#777;padding:10px;text-align:center;}\
+      .znr-kv-row{display:flex;gap:6px;padding:2px 0;border-bottom:1px dashed #2a2a3d;align-items:flex-start;}\
+      .znr-kv-key{color:#5dade2;width:180px;flex-shrink:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}\
+      .znr-kv-val{flex:1;word-break:break-all;}\
+      .znr-kv-actions{flex-shrink:0;}\
+      table.znr-table{width:100%;border-collapse:collapse;}\
+      table.znr-table td,table.znr-table th{padding:3px 6px;border-bottom:1px solid #2a2a3d;text-align:left;}\
+      table.znr-table th{color:#f39c12;font-weight:normal;}\
+      ";
+    var styleEl = document.createElement("style");
+    styleEl.id = "znr-dc-style";
+    styleEl.textContent = css;
+    document.head.appendChild(styleEl);
 
-  var btn = document.createElement("button");
-  btn.id = "znr-dc-btn";
-  btn.title = "ZNR DevConsole";
-  btn.innerHTML = '🛠<span class="znr-badge" id="znr-dc-badge"></span>';
-  document.body.appendChild(btn);
+    var btn = document.createElement("button");
+    btn.id = "znr-dc-btn";
+    btn.title = "ZNR DevConsole";
+    btn.innerHTML = '🛠<span class="znr-badge" id="znr-dc-badge"></span>';
+    document.body.appendChild(btn);
 
-  var panel = document.createElement("div");
-  panel.id = "znr-dc-panel";
-  panel.innerHTML =
-    '<div id="znr-dc-drag"></div>' +
-    '<div id="znr-dc-head">' +
-      '<b>ZNR DevConsole</b>' +
-      '<button class="znr-tab active" data-tab="console">Consola</button>' +
-      '<button class="znr-tab" data-tab="network">Red</button>' +
-      '<button class="znr-tab" data-tab="sw">Service Worker</button>' +
-      '<button class="znr-tab" data-tab="storage">Storage</button>' +
-      '<button class="znr-tab" data-tab="idb">IndexedDB</button>' +
-      '<button class="znr-tab" data-tab="perf">Rendimiento</button>' +
-      '<button class="znr-tab" data-tab="info">Info</button>' +
-      '<input class="znr-filter" id="znr-dc-search" placeholder="filtrar…" style="width:120px;">' +
-      '<div class="znr-spacer"></div>' +
-      '<button class="znr-btn-mini" id="znr-dc-clear">Limpiar</button>' +
-      '<button class="znr-btn-mini" id="znr-dc-copy">Copiar</button>' +
-      '<button class="znr-btn-mini" id="znr-dc-export">Exportar reporte</button>' +
-      '<button class="znr-btn-mini" id="znr-dc-off">Apagar</button>' +
-      '<button class="znr-btn-mini" id="znr-dc-close">✕</button>' +
-    '</div>' +
-    '<div id="znr-dc-body"></div>';
-  document.body.appendChild(panel);
+    var panel = document.createElement("div");
+    panel.id = "znr-dc-panel";
+    panel.innerHTML =
+      '<div id="znr-dc-drag"></div>' +
+      '<div id="znr-dc-head">' +
+        '<b>ZNR DevConsole</b>' +
+        '<button class="znr-tab active" data-tab="console">Consola</button>' +
+        '<button class="znr-tab" data-tab="network">Red</button>' +
+        '<button class="znr-tab" data-tab="sw">Service Worker</button>' +
+        '<button class="znr-tab" data-tab="storage">Storage</button>' +
+        '<button class="znr-tab" data-tab="idb">IndexedDB</button>' +
+        '<button class="znr-tab" data-tab="perf">Rendimiento</button>' +
+        '<button class="znr-tab" data-tab="info">Info</button>' +
+        '<input class="znr-filter" id="znr-dc-search" placeholder="filtrar…" style="width:120px;">' +
+        '<div class="znr-spacer"></div>' +
+        '<button class="znr-btn-mini" id="znr-dc-clear">Limpiar</button>' +
+        '<button class="znr-btn-mini" id="znr-dc-copy">Copiar</button>' +
+        '<button class="znr-btn-mini" id="znr-dc-export">Exportar reporte</button>' +
+        '<button class="znr-btn-mini" id="znr-dc-off">Apagar</button>' +
+        '<button class="znr-btn-mini" id="znr-dc-close">✕</button>' +
+      '</div>' +
+      '<div id="znr-dc-body"></div>';
+    document.body.appendChild(panel);
 
-  var panelOpen = false;
-  var currentTab = "console";
-
-  btn.addEventListener("click", function () {
-    panelOpen = !panelOpen;
-    panel.classList.toggle("open", panelOpen);
-    if (panelOpen) renderCurrentTab();
-  });
-  document.getElementById("znr-dc-close").addEventListener("click", function () {
-    panelOpen = false; panel.classList.remove("open");
-  });
-  document.getElementById("znr-dc-off").addEventListener("click", function () {
-    if (confirm("¿Apagar ZNR DevConsole en este navegador? Se puede reactivar visitando la página con ?dc=1")) {
-      try { localStorage.removeItem(STORAGE_KEY); } catch (e) {}
-      location.reload();
-    }
-  });
-  document.getElementById("znr-dc-clear").addEventListener("click", function () {
-    if (currentTab === "console") { consoleLogs = []; counters.errors = 0; renderConsole(); }
-    else if (currentTab === "network") { networkLogs = []; counters.failedReq = 0; renderNetwork(); }
-    updateBadge();
-  });
-  document.getElementById("znr-dc-copy").addEventListener("click", function () {
-    var data = currentTab === "network" ? networkLogs : consoleLogs;
-    var text = JSON.stringify(data, null, 2);
-    navigator.clipboard && navigator.clipboard.writeText(text).then(function () {
-      originalConsole.info("[ZNR DevConsole] Copiado al portapapeles (" + data.length + " registros)");
-    }).catch(function () {});
-  });
-  document.getElementById("znr-dc-export").addEventListener("click", exportFullReport);
-  document.getElementById("znr-dc-search").addEventListener("input", renderCurrentTab);
-
-  Array.prototype.forEach.call(document.querySelectorAll(".znr-tab"), function (tabBtn) {
-    tabBtn.addEventListener("click", function () {
-      Array.prototype.forEach.call(document.querySelectorAll(".znr-tab"), function (b) { b.classList.remove("active"); });
-      tabBtn.classList.add("active");
-      currentTab = tabBtn.getAttribute("data-tab");
-      renderCurrentTab();
+    btn.addEventListener("click", function () {
+      panelOpen = !panelOpen;
+      panel.classList.toggle("open", panelOpen);
+      if (panelOpen) renderCurrentTab();
     });
-  });
-
-  (function enableResize() {
-    var drag = document.getElementById("znr-dc-drag");
-    var dragging = false;
-    drag.addEventListener("mousedown", function () { dragging = true; document.body.style.userSelect = "none"; });
-    window.addEventListener("mouseup", function () { dragging = false; document.body.style.userSelect = ""; });
-    window.addEventListener("mousemove", function (e) {
-      if (!dragging) return;
-      var newHeight = window.innerHeight - e.clientY;
-      if (newHeight > 120 && newHeight < window.innerHeight - 40) panel.style.height = newHeight + "px";
+    document.getElementById("znr-dc-close").addEventListener("click", function () {
+      panelOpen = false; panel.classList.remove("open");
     });
-  })();
+    document.getElementById("znr-dc-off").addEventListener("click", function () {
+      if (confirm("¿Apagar ZNR DevConsole en este navegador? Se puede reactivar visitando la página con ?dc=1")) {
+        try { localStorage.removeItem(STORAGE_KEY); } catch (e) {}
+        location.reload();
+      }
+    });
+    document.getElementById("znr-dc-clear").addEventListener("click", function () {
+      if (currentTab === "console") { consoleLogs = []; counters.errors = 0; renderConsole(); }
+      else if (currentTab === "network") { networkLogs = []; counters.failedReq = 0; renderNetwork(); }
+      updateBadge();
+    });
+    document.getElementById("znr-dc-copy").addEventListener("click", function () {
+      var data = currentTab === "network" ? networkLogs : consoleLogs;
+      var text = JSON.stringify(data, null, 2);
+      navigator.clipboard && navigator.clipboard.writeText(text).then(function () {
+        originalConsole.info("[ZNR DevConsole] Copiado al portapapeles (" + data.length + " registros)");
+      }).catch(function () {});
+    });
+    document.getElementById("znr-dc-export").addEventListener("click", exportFullReport);
+    document.getElementById("znr-dc-search").addEventListener("input", renderCurrentTab);
 
+    Array.prototype.forEach.call(document.querySelectorAll(".znr-tab"), function (tabBtn) {
+      tabBtn.addEventListener("click", function () {
+        Array.prototype.forEach.call(document.querySelectorAll(".znr-tab"), function (b) { b.classList.remove("active"); });
+        tabBtn.classList.add("active");
+        currentTab = tabBtn.getAttribute("data-tab");
+        renderCurrentTab();
+      });
+    });
+
+    (function enableResize() {
+      var drag = document.getElementById("znr-dc-drag");
+      var dragging = false;
+      drag.addEventListener("mousedown", function () { dragging = true; document.body.style.userSelect = "none"; });
+      window.addEventListener("mouseup", function () { dragging = false; document.body.style.userSelect = ""; });
+      window.addEventListener("mousemove", function (e) {
+        if (!dragging) return;
+        var newHeight = window.innerHeight - e.clientY;
+        if (newHeight > 120 && newHeight < window.innerHeight - 40) panel.style.height = newHeight + "px";
+      });
+    })();
+  } // fin de buildUI()
+
+  if (document.body) {
+    buildUI();
+  } else {
+    document.addEventListener("DOMContentLoaded", buildUI);
+  }
+
+  // ---------- CORRECCIÓN: updateBadge ahora verifica que el elemento exista ----------
   function updateBadge() {
     var total = counters.errors + counters.failedReq;
     var badge = document.getElementById("znr-dc-badge");
-    if (total > 0) { badge.style.display = "inline-block"; badge.textContent = total > 99 ? "99+" : total; }
-    else { badge.style.display = "none"; }
+    if (!badge) return; // aún no se ha creado la UI
+    if (total > 0) {
+      badge.style.display = "inline-block";
+      badge.textContent = total > 99 ? "99+" : total;
+    } else {
+      badge.style.display = "none";
+    }
   }
 
   function renderCurrentTab() {
@@ -845,5 +859,5 @@
     originalConsole.info("[ZNR DevConsole] Reporte exportado.");
   }
 
-  originalConsole.info("%c[ZNR DevConsole] Activo (extendida). Haz clic en el botón 🛠 (abajo a la derecha).", "color:#f39c12;font-weight:bold;");
+  originalConsole.info("%c[ZNR DevConsole] Activo (extendida). Haz clic en el botón 🛠 (arriba a la derecha).", "color:#f39c12;font-weight:bold;");
 })();
