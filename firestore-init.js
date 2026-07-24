@@ -179,3 +179,18 @@ window.znrFirestore.getVentasComunidadVendedor = async function (vendorUid, vend
   }
 };
 
+/**
+ * Devuelve { ok: true, vendedor: {...} } igual que el campo "vendedor"
+ * de obtenerPerfilVendedor (sin "productos" — eso se sigue pidiendo a
+ * GAS por separado), o { ok: false, error } si falla o no existe.
+ */
+window.znrFirestore.getPerfilVendedor = async function (uid) {
+  try {
+    const snap = await getDoc(doc(db, 'perfil_vendedor', uid));
+    if (!snap.exists()) return { ok: false, error: 'doc no encontrado' };
+    return { ok: true, vendedor: _fsNormalizarFecha(snap.data()) };
+  } catch (err) {
+    console.warn('Firestore perfil_vendedor falló, se usará GAS como respaldo:', err);
+    return { ok: false, error: String(err) };
+  }
+};
