@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<script>
+  // Aplica el tema (claro/oscuro) guardado por el usuario antes de pintar,
+  // igual que el resto del sitio (common.js -> initTheme()).
+  document.documentElement.setAttribute('data-theme', localStorage.getItem('theme') || 'dark');
+</script>
+<meta http-equiv="Content-Security-Policy" content="
+ default-src 'self';
+ script-src 'self' 'unsafe-inline' https://www.gstatic.com https://apis.google.com;
+ style-src 'self' 'unsafe-inline';
+ img-src 'self' data: blob: https://lh3.googleusercontent.com https://drive.google.com https://placehold.co https://via.placeholder.com;
+ connect-src 'self' https://script.google.com https://script.googleusercontent.com;
+ font-src 'self';
+ frame-ancestors 'none';
+ object-src 'none';
+ base-uri 'self';
+">
+<script src="error-bootstrap.js"></script>
+<script src="error-monitor.js"></script>
+
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Plan Plus — Z&R</title>
+<link rel="manifest" href="/znr/manifest.json">
+<meta name="theme-color" content="#1e2128">
+<link rel="preload" href="styles.css" as="style">
+<link rel="stylesheet" href="styles.css">
+<script src="api-config.js"></script>
+<script src="icons.js" defer></script>
+<style>
+  body { background: var(--color-bg); }
+
+  .pp-wrap { max-width: 480px; margin: 0 auto; padding: 0 0 100px; }
+
+  .pp-topbar {
+    position: sticky; top: 0; z-index: 20;
+    display: flex; align-items: center; gap: 10px;
+    padding: 14px 16px;
+    background: var(--color-bg);
+    border-bottom: 1px solid var(--color-border-subtle);
+  }
+  .pp-back {
+    display: flex; align-items: center; justify-content: center;
+    width: 34px; height: 34px; border-radius: 999px;
+    background: var(--color-surface-2); color: var(--color-text-primary);
+    border: none; cursor: pointer; flex-shrink: 0;
+  }
+  .pp-topbar h1 { font-size: 16px; font-weight: 700; color: var(--color-text-primary); margin: 0; }
+
+  .pp-hero {
+    margin: 18px 16px 0;
+    text-align: center;
+    padding: 22px 18px;
+    border-radius: 20px;
+    background: linear-gradient(135deg, rgba(124,92,191,0.20), rgba(244,114,182,0.14));
+    border: 1px solid rgba(168,139,250,0.35);
+  }
+  .pp-logo {
+    width: 54px; height: 54px; border-radius: 16px; margin: 0 auto 10px;
+    display: block; box-shadow: 0 6px 18px rgba(0,0,0,0.35);
+  }
+  .pp-hero h2 { font-size: 20px; font-weight: 800; color: var(--color-text-primary); margin: 0 0 4px; }
+  .pp-hero p { font-size: 13px; color: var(--color-text-muted); margin: 0; }
+
+  .pp-numbers {
+    display: flex; align-items: center; justify-content: center; gap: 12px;
+    margin-top: 16px; font-weight: 800;
+  }
+  .pp-numbers .from { font-size: 22px; color: var(--color-text-soft); text-decoration: line-through; text-decoration-color: rgba(248,113,113,0.6); }
+  .pp-numbers .arrow { color: var(--color-accent); font-size: 18px; }
+  .pp-numbers .to { font-size: 30px; background: linear-gradient(135deg,#a78bfa,#f472b6); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .pp-numbers-label { font-size: 12px; color: var(--color-text-soft); margin-top: 4px; }
+
+  .pp-section-title {
+    margin: 22px 16px 10px; font-size: 13px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: .05em; color: var(--color-text-soft);
+  }
+
+  .pp-table {
+    margin: 0 16px;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border-subtle);
+    border-radius: 16px;
+    overflow: hidden;
+  }
+  .pp-table-header, .pp-row {
+    display: grid; grid-template-columns: 1.5fr .7fr .7fr;
+    padding: 13px 14px; align-items: center;
+    border-bottom: 1px solid var(--color-border-subtle);
+  }
+  .pp-row:last-child { border-bottom: none; }
+  .pp-table-header .col-plan { text-align: center; font-size: 12px; font-weight: 700; color: var(--color-text-soft); }
+  .pp-table-header .col-plan.plus { color: var(--color-accent); }
+  .pp-row .feature { font-size: 13.5px; color: var(--color-text-primary); line-height: 1.35; }
+  .pp-row .feature .sub { display: block; font-size: 11px; color: var(--color-text-soft); margin-top: 2px; }
+  .pp-check-free, .pp-check-plus { text-align: center; font-size: 15px; }
+  .pp-check-free { color: var(--color-text-soft); }
+  .pp-check-plus { color: var(--color-accent); font-weight: 700; }
+  .pp-val { font-size: 13px; font-weight: 700; text-align: center; }
+  .pp-val.free { color: var(--color-text-soft); }
+  .pp-val.plus { color: var(--color-accent); }
+
+  .pp-price-box { text-align: center; margin: 18px 16px 0; }
+  .pp-price-box .price { font-size: 32px; font-weight: 800; color: var(--color-text-primary); }
+  .pp-price-box .price span { font-size: 14px; color: var(--color-text-soft); font-weight: 500; }
+  .pp-price-box .sub { font-size: 12px; color: var(--color-text-soft); margin-top: 2px; }
+
+  .pp-status-card, .pp-pay-card {
+    margin: 16px 16px 0;
+    border-radius: 16px;
+    padding: 16px;
+  }
+  .pp-status-card { background: var(--color-surface-2); border: 1px solid var(--color-border-subtle); }
+  .pp-status-card p { margin: 0; font-size: 13px; color: var(--color-text-muted); }
+  .pp-status-card .title { display: flex; align-items: center; gap: 6px; font-weight: 700; font-size: 14px; color: var(--color-text-primary); margin-bottom: 4px; }
+
+  .pp-pay-card {
+    background: linear-gradient(135deg,#3a2f66,#5b3a7a);
+    color: #fff;
+  }
+  .pp-pay-card .bank-name { font-size: 13px; font-weight: 700; opacity: .85; letter-spacing: .04em; text-transform: uppercase; }
+  .pp-pay-card .clabe-label { font-size: 11.5px; opacity: .75; margin: 12px 0 2px; }
+  .pp-pay-card .clabe-number { font-size: 19px; font-weight: 700; letter-spacing: .06em; font-family: 'Courier New', monospace; word-break: break-all; }
+  .pp-pay-card .benef-label { font-size: 11.5px; opacity: .75; margin: 12px 0 2px; }
+  .pp-pay-card .benef-name { font-size: 14px; font-weight: 700; }
+  .pp-pay-card .importe { font-size: 12px; opacity: .85; margin-top: 12px; }
+  .pp-copy-btn {
+    margin-top: 10px; display: inline-flex; align-items: center; gap: 6px;
+    padding: 7px 12px; border-radius: 999px; border: none;
+    background: rgba(255,255,255,0.16); color: #fff; font-size: 12px; font-weight: 700; cursor: pointer;
+  }
+
+  .pp-cta {
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    width: calc(100% - 32px); margin: 16px auto 0;
+    padding: 14px; border: none; border-radius: 14px;
+    background: linear-gradient(135deg,#7c3aed,#a855f7);
+    color: #fff; font-size: 15px; font-weight: 700; cursor: pointer;
+    text-decoration: none; box-sizing: border-box;
+  }
+  .pp-cta.secondary { background: #00b1ea; }
+  .pp-cta.wa { background: linear-gradient(135deg,#25D366,#128C7E); }
+  .pp-cta:disabled { opacity: .6; cursor: default; }
+
+  .pp-contact {
+    text-align: center; margin: 28px 16px 0; padding-top: 16px;
+    border-top: 1px solid var(--color-border-subtle);
+  }
+  .pp-contact p { font-size: 12.5px; color: var(--color-text-soft); margin: 0 0 10px; }
+
+  .pp-loading { text-align: center; padding: 60px 16px; color: var(--color-text-soft); font-size: 13px; }
+</style>
+</head>
+<body>
+
+<div class="pp-wrap">
+  <div class="pp-topbar">
+    <button class="pp-back" id="btn-volver" aria-label="Volver">
+      <!-- ícono se inserta con JS (Icon lib) -->
+    </button>
+    <h1>Plan Plus</h1>
+  </div>
+
+  <div id="pp-loading" class="pp-loading">Cargando…</div>
+
+  <div id="pp-content" style="display:none;">
+    <div class="pp-hero">
+      <img src="logo.svg" alt="Z&R" class="pp-logo">
+      <h2>Haz crecer tu tienda</h2>
+      <p>Menos de $2 pesos al día · se paga con una sola venta</p>
+      <div class="pp-numbers">
+        <span class="from">20</span>
+        <span class="arrow">→</span>
+        <span class="to">200</span>
+      </div>
+      <div class="pp-numbers-label">artículos activos (10x más inventario)</div>
+    </div>
+
+    <div class="pp-section-title">Beneficios</div>
+    <div class="pp-table">
+      <div class="pp-table-header">
+        <div></div>
+        <div class="col-plan">Free</div>
+        <div class="col-plan plus">Plus</div>
+      </div>
+      <div class="pp-row">
+        <div class="feature">Artículos activos</div>
+        <div class="pp-val free">20</div>
+        <div class="pp-val plus">200</div>
+      </div>
+      <div class="pp-row">
+        <div class="feature">Foto y logo de tienda<span class="sub">Personaliza tu perfil</span></div>
+        <div class="pp-check-free">—</div>
+        <div class="pp-check-plus">✓</div>
+      </div>
+      <div class="pp-row">
+        <div class="feature">Insignia de verificado<span class="sub">Más confianza al comprador</span></div>
+        <div class="pp-check-free">—</div>
+        <div class="pp-check-plus">✓</div>
+      </div>
+      <div class="pp-row">
+        <div class="feature">Prioridad en búsquedas<span class="sub">Apareces primero en el catálogo</span></div>
+        <div class="pp-check-free">—</div>
+        <div class="pp-check-plus">✓</div>
+      </div>
+      <div class="pp-row">
+        <div class="feature">Ventas en vivo<span class="sub">Transmite y vende en tiempo real</span></div>
+        <div class="pp-check-free">—</div>
+        <div class="pp-check-plus">✓</div>
+      </div>
+      <div class="pp-row">
+        <div class="feature">Organización de entregas<span class="sub">Gestiona tus pedidos vendidos</span></div>
+        <div class="pp-check-free">—</div>
+        <div class="pp-check-plus">✓</div>
+      </div>
+      <div class="pp-row">
+        <div class="feature">Aprobación instantánea<span class="sub">De tus productos publicados</span></div>
+        <div class="pp-check-free">—</div>
+        <div class="pp-check-plus">✓</div>
+      </div>
+    </div>
+
+    <div class="pp-price-box">
+      <div class="price" id="pp-price">$49<span> MXN / mes</span></div>
+      <div class="sub">Cancela cuando quieras</div>
+    </div>
+
+    <div id="pp-dynamic-area"></div>
+
+    <div class="pp-contact">
+      <p>¿Tienes dudas sobre tu pago o tu plan?</p>
+      <a href="#" id="pp-wa-contact" class="pp-cta wa" style="max-width:260px;margin:0 auto;" target="_blank" rel="noopener">Escríbenos por WhatsApp</a>
+    </div>
+  </div>
+</div>
+
+<script>
+async function apiCall(data) {
+  const API_BASE = window.API_URL;
+  if (!API_BASE) throw new Error('API_URL no está disponible');
+  const params = new URLSearchParams();
+  Object.entries(data || {}).forEach(([k, v]) => {
+    if (v !== undefined && v !== null) params.append(k, v);
+  });
+  const res = await fetch(API_BASE, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: params.toString()
+  });
+  const text = await res.text();
+  try { return JSON.parse(text); } catch (_) { throw new Error('La API devolvió una respuesta no válida'); }
+}
+
+function esc(s) {
+  const d = document.createElement('div');
+  d.textContent = s == null ? '' : String(s);
+  return d.innerHTML;
+}
+
+let vendorSession = null;
+
+function goBack() {
+  if (document.referrer && document.referrer.includes(location.origin)) {
+    history.back();
+  } else {
+    location.href = 'vendedor.html';
+  }
+}
+
+function renderDynamicArea(sol) {
+  const area = document.getElementById('pp-dynamic-area');
+  const waNum = (window.WHATSAPP_NUMBER || '');
+  const nombreTienda = vendorSession.nombre || 'mi tienda';
+  const telVendedor = vendorSession.telefono || '';
+
+  // Sin solicitud todavía
+  if (!sol) {
+    area.innerHTML = `
+      <button class="pp-cta" id="pp-btn-solicitar">${Icon('star')} Solicitar Plan Plus</button>
+    `;
+    document.getElementById('pp-btn-solicitar').addEventListener('click', solicitar);
+    return;
+  }
+
+  if (sol.estado === 'pending') {
+    area.innerHTML = `
+      <div class="pp-status-card">
+        <p class="title">${Icon('clock')} Solicitud enviada</p>
+        <p>Tu solicitud está en espera de aprobación del administrador. Te avisaremos en cuanto esté lista para pagar.</p>
+      </div>`;
+    return;
+  }
+
+  if (sol.estado === 'approved' || sol.estado === 'plus_activo') {
+    const esRenovacion = sol.estado === 'plus_activo';
+    const importe = sol.importe || 49;
+    const dias = sol.dias || 30;
+    document.getElementById('pp-price').innerHTML = `$${importe}<span> MXN / mes</span>`;
+
+    const mpBtn = sol.mp_link
+      ? `<a href="${sol.mp_link}" target="_blank" rel="noopener" class="pp-cta secondary">${Icon('credit-card')} Pagar $${importe} con Mercado Pago</a>`
+      : '';
+
+    const waTexto = encodeURIComponent(`Hola, ya realicé mi pago del Plan Plus. Mi tienda: ${nombreTienda}. Teléfono: ${telVendedor}.`);
+    const waConfirmUrl = waNum ? `https://wa.me/${waNum}?text=${waTexto}` : '#';
+
+    area.innerHTML = `
+      <div class="pp-status-card">
+        <p class="title">${Icon('check')} ${esRenovacion ? 'Renueva tu Plan Plus' : '¡Plan Plus aprobado!'}</p>
+        <p>${esRenovacion ? 'Tu plan está activo. Realiza el pago y el administrador extenderá tu vigencia.' : 'Realiza tu pago para activarlo. El administrador lo confirmará.'}</p>
+      </div>
+      <div class="pp-pay-card">
+        <div class="bank-name">Transferencia bancaria</div>
+        <div class="clabe-label">CLABE interbancaria</div>
+        <div class="clabe-number" id="pp-clabe">${esc(sol.clabe || '')}</div>
+        <button class="pp-copy-btn" id="pp-copy-clabe">${Icon('clipboard')} Copiar CLABE</button>
+        <div class="benef-label">Beneficiario</div>
+        <div class="benef-name">${esc(sol.beneficiario || 'Z&R Marketplace')}</div>
+        <div class="importe">Importe: $${importe} MXN · ${dias} días</div>
+      </div>
+      ${mpBtn}
+      <a href="${waConfirmUrl}" target="_blank" rel="noopener" class="pp-cta wa">${Icon('whatsapp')} Ya pagué, avisar por WhatsApp</a>
+    `;
+
+    const copyBtn = document.getElementById('pp-copy-clabe');
+    if (copyBtn) {
+      copyBtn.addEventListener('click', async () => {
+        try {
+          await navigator.clipboard.writeText(sol.clabe || '');
+          copyBtn.innerHTML = `${Icon('check')} Copiada`;
+          setTimeout(() => { copyBtn.innerHTML = `${Icon('clipboard')} Copiar CLABE`; }, 1800);
+        } catch (_) {}
+      });
+    }
+    return;
+  }
+
+  if (sol.estado === 'denied') {
+    const motivo = sol.motivo ? `<p style="margin-top:6px;">Motivo: ${esc(sol.motivo)}</p>` : '';
+    area.innerHTML = `
+      <div class="pp-status-card">
+        <p class="title">${Icon('x')} Solicitud rechazada</p>
+        ${motivo}
+      </div>
+      <button class="pp-cta" id="pp-btn-solicitar">${Icon('star')} Volver a solicitar</button>
+    `;
+    document.getElementById('pp-btn-solicitar').addEventListener('click', solicitar);
+    return;
+  }
+}
+
+async function solicitar() {
+  const btn = document.getElementById('pp-btn-solicitar');
+  if (btn) { btn.disabled = true; btn.textContent = 'Enviando…'; }
+  try {
+    const res = await apiCall({ action: 'solicitarPlanPlus', vendorToken: vendorSession.token });
+    if (!res.ok) {
+      alert(res.error || 'No se pudo enviar la solicitud. Intenta de nuevo.');
+      if (btn) { btn.disabled = false; btn.innerHTML = `${Icon('star')} Solicitar Plan Plus`; }
+      return;
+    }
+    await cargar(true);
+  } catch (e) {
+    alert('Error de red. Intenta de nuevo.');
+    if (btn) { btn.disabled = false; btn.innerHTML = `${Icon('star')} Solicitar Plan Plus`; }
+  }
+}
+
+async function cargar(forceRefresh) {
+  try {
+    const res = await apiCall({ action: 'getPlusSolicitudVendedor', vendorToken: vendorSession.token });
+    renderDynamicArea(res.solicitud || null);
+    document.getElementById('pp-loading').style.display = 'none';
+    document.getElementById('pp-content').style.display = 'block';
+  } catch (e) {
+    document.getElementById('pp-loading').textContent = 'No se pudo cargar. Desliza para actualizar o vuelve a intentarlo.';
+  }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('btn-volver').innerHTML = Icon('arrow-left');
+  document.getElementById('btn-volver').addEventListener('click', goBack);
+
+  const waNum = window.WHATSAPP_NUMBER || '';
+  const waContact = document.getElementById('pp-wa-contact');
+  if (waContact) waContact.href = waNum ? `https://wa.me/${waNum}?text=${encodeURIComponent('Hola, tengo una duda sobre el Plan Plus de mi tienda en Z&R.')}` : '#';
+
+  const raw = localStorage.getItem('vendor_session');
+  if (!raw) {
+    document.getElementById('pp-loading').textContent = 'Debes iniciar sesión como vendedor para ver esta información.';
+    return;
+  }
+  try {
+    vendorSession = JSON.parse(raw);
+  } catch (e) {
+    document.getElementById('pp-loading').textContent = 'Tu sesión no es válida. Vuelve a iniciar sesión.';
+    return;
+  }
+  cargar();
+});
+</script>
+</body>
+</html>

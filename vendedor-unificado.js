@@ -2632,62 +2632,51 @@ _setDailyCache(cacheKey, sol);
 }
 
 if (!sol) {
-area.innerHTML = `<button onclick="solicitarPlanPlus('${areaId}')" class="btn-solicitar-plus"
+area.innerHTML = `<button onclick="location.href='plan-plus.html'" class="btn-solicitar-plus"
 style="display:inline-flex;align-items:center;gap:6px;padding:9px 16px;border-radius:999px;border:none;background:linear-gradient(135deg,#7c3aed,#a855f7);color:#fff;font-size:13px;font-weight:700;cursor:pointer;">
-${Icon('star')} Solicitar plan Plus
+${Icon('star')} Conocer Plan Plus
 </button>`;
 return;
 }
 
 if (sol.estado === 'pending') {
-area.innerHTML = `<div style="background:#f3e8ff;border-radius:10px;padding:10px 14px;font-size:12.5px;color:#7c3aed;font-weight:600;">
-${Icon('clock')} Solicitud enviada — en espera de aprobación del administrador.
+area.innerHTML = `<div style="background:#f3e8ff;border-radius:10px;padding:10px 14px;">
+<p style="margin:0 0 8px;font-size:12.5px;color:#7c3aed;font-weight:600;">${Icon('clock')} Solicitud enviada — en espera de aprobación del administrador.</p>
+<button onclick="location.href='plan-plus.html'" style="display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:999px;border:none;background:#fff;color:#7c3aed;font-size:12px;font-weight:700;cursor:pointer;">Ver detalles</button>
 </div>`;
 return;
 }
 
 if (sol.estado === 'plus_activo') {
-  let mpBtn = sol.mp_link
-    ? `<a href="${sol.mp_link}" target="_blank" rel="noopener"
-        style="display:inline-flex;align-items:center;gap:6px;margin-top:8px;padding:8px 16px;border-radius:999px;background:#00b1ea;color:#fff;font-size:12.5px;font-weight:700;text-decoration:none;">
-        ${Icon('credit-card')} Pagar $49 para renovar
-      </a>` : '';
   area.innerHTML = `<div style="background:#f0fdf4;border:1px solid #86efac;border-radius:12px;padding:12px 14px;">
-    <p style="margin:0 0 4px;color:#16a34a;font-weight:700;font-size:13px;">${Icon('check')} Renueva tu Plan Plus</p>
-    <p style="margin:0 0 8px;color:#374151;font-size:12px;">Tu plan está activo. Para renovar, realiza el pago y el admin extenderá tu vigencia.</p>
-    <p style="margin:0 0 2px;color:#555;font-size:12px;">Clabe interbancaria:</p>
-    <p style="margin:0 0 8px;font-size:15px;font-weight:700;letter-spacing:.05em;color:#111;font-family:monospace;">${sol.clabe}</p>
-    <p style="margin:0;color:#888;font-size:11px;">Importe: $49 MXN · ${sol.dias} días</p>
-    ${mpBtn}
+    <p style="margin:0 0 8px;color:#16a34a;font-weight:700;font-size:13px;">${Icon('check')} Tu Plan Plus está activo</p>
+    <button onclick="location.href='plan-plus.html'"
+      style="display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:999px;border:none;background:linear-gradient(135deg,#7c3aed,#a855f7);color:#fff;font-size:12.5px;font-weight:700;cursor:pointer;">
+      ${Icon('credit-card')} Renovar mi plan
+    </button>
   </div>`;
   return;
 }
 
-  
+
 if (sol.estado === 'approved') {
-let mpBtn = sol.mp_link
-? `<a href="${sol.mp_link}" target="_blank" rel="noopener"
-style="display:inline-flex;align-items:center;gap:6px;margin-top:8px;padding:8px 16px;border-radius:999px;background:#00b1ea;color:#fff;font-size:12.5px;font-weight:700;text-decoration:none;">
-${Icon('credit-card')} Pagar $49 con Mercado Pago
-</a>` : '';
 area.innerHTML = `<div style="background:#f0fdf4;border:1px solid #86efac;border-radius:12px;padding:12px 14px;">
-<p style="margin:0 0 4px;color:#16a34a;font-weight:700;font-size:13px;">${Icon('check')} ¡Plan Plus aprobado!</p>
-<p style="margin:0 0 8px;color:#374151;font-size:12px;">Realiza tu pago para activarlo. El admin lo confirmará.</p>
-<p style="margin:0 0 2px;color:#555;font-size:12px;">Clabe interbancaria:</p>
-<p style="margin:0 0 8px;font-size:15px;font-weight:700;letter-spacing:.05em;color:#111;font-family:monospace;">${sol.clabe}</p>
-<p style="margin:0;color:#888;font-size:11px;">Importe: $49 MXN · ${sol.dias} días</p>
-${mpBtn}
+<p style="margin:0 0 8px;color:#16a34a;font-weight:700;font-size:13px;">${Icon('check')} ¡Plan Plus aprobado!</p>
+<button onclick="location.href='plan-plus.html'"
+style="display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:999px;border:none;background:linear-gradient(135deg,#7c3aed,#a855f7);color:#fff;font-size:12.5px;font-weight:700;cursor:pointer;">
+${Icon('credit-card')} Completar mi pago
+</button>
 </div>`;
 return;
 }
 
 if (sol.estado === 'denied') {
-const motivo = sol.motivo ? `<p style="margin:4px 0 0;color:#6b7280;font-size:12px;">Motivo: ${escapeHtml(sol.motivo)}</p>` : '';
+const motivo = sol.motivo ? `<p style="margin:4px 0 8px;color:#6b7280;font-size:12px;">Motivo: ${escapeHtml(sol.motivo)}</p>` : '';
 area.innerHTML = `<div style="background:#fef2f2;border:1px solid #fca5a5;border-radius:12px;padding:12px 14px;">
 <p style="margin:0;color:#dc2626;font-weight:700;font-size:13px;">${Icon('x')} Solicitud rechazada</p>
 ${motivo}
-<button onclick="solicitarPlanPlus('${areaId}')" style="margin-top:10px;display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:999px;border:none;background:linear-gradient(135deg,#7c3aed,#a855f7);color:#fff;font-size:12px;font-weight:700;cursor:pointer;">
-Volver a solicitar
+<button onclick="location.href='plan-plus.html'" style="margin-top:6px;display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:999px;border:none;background:linear-gradient(135deg,#7c3aed,#a855f7);color:#fff;font-size:12px;font-weight:700;cursor:pointer;">
+Ver detalles y volver a solicitar
 </button>
 </div>`;
 }
