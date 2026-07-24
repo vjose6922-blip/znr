@@ -251,6 +251,18 @@ async function ensureFullCatalog(force = false) {
 
   try {
     if (!fullCatalogCache) showLoader('Cargando catálogo...');
+
+    // Intentar Firestore primero (catálogo completo, sin gastar ejecución de GAS)
+    if (window.znrFirestore && window.znrFirestore.getProductosZNR) {
+      const fs = await window.znrFirestore.getProductosZNR();
+      if (fs && fs.ok && fs.products.length) {
+        fullCatalogCache = fs.products;
+        setFullCatalogToStorage(fs.products);
+        return fullCatalogCache;
+      }
+    }
+
+    // Firestore no disponible o falló: respaldo con GAS (comportamiento anterior)
     const url = new URL(API_URL);
     url.searchParams.set('action', 'list');
     url.searchParams.set('page', '1');
@@ -273,7 +285,7 @@ async function ensureFullCatalog(force = false) {
     return fullCatalogCache || [];
   } finally {
     hideLoader();
-  }
+        }
 }
 
 function refreshFullCatalogInBackground() {
