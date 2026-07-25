@@ -3079,7 +3079,14 @@ async function loadBeneficiarioDonaciones() {
   if (!area || !vendorSession) return;
   const esc = s => String(s||'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   try {
-    const data = await apiFetch({ action:'obtenerDonacionesRecibidas', vendor_uid: vendorSession.uid }, 'GET');
+
+   let data = null;
+    if (window.znrFirestore && window.znrFirestore.getDonacionesRecibidas) {
+      data = await window.znrFirestore.getDonacionesRecibidas(vendorSession.uid);
+    }
+    if (!data || !data.ok) {
+      data = await apiFetch({ action:'obtenerDonacionesRecibidas', vendor_uid: vendorSession.uid }, 'GET');
+    }
     if (!data.ok || !data.esBeneficiario) { area.style.display = 'none'; return; }
     const dons = data.donaciones || [];
     area.style.display = 'block';
