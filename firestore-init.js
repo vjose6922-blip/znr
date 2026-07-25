@@ -1,4 +1,3 @@
-
 /**
  * firestore-init.js
  * ------------------------------------------------------------------
@@ -209,6 +208,24 @@ window.znrFirestore.getProductosZNR = async function () {
     return { ok: true, products };
   } catch (err) {
     console.warn('Firestore productos_znr falló, se usará GAS como respaldo:', err);
+    return { ok: false, error: String(err) };
+  }
+};
+
+/**
+ * Devuelve { ok: true, esBeneficiario, donaciones } igual que el
+ * endpoint GAS obtenerDonacionesRecibidas, o { ok: false, error } si
+ * falla o el vendedor no tiene doc en Firestore (el caller debe hacer
+ * fallback a GAS en ese caso).
+ */
+window.znrFirestore.getDonacionesRecibidas = async function (vendorUid) {
+  try {
+    const snap = await getDoc(doc(db, 'donaciones_recibidas', vendorUid));
+    if (!snap.exists()) return { ok: false, error: 'doc no encontrado' };
+    const data = snap.data();
+    return { ok: true, esBeneficiario: !!data.esBeneficiario, donaciones: data.donaciones || [] };
+  } catch (err) {
+    console.warn('Firestore donaciones_recibidas falló, se usará GAS como respaldo:', err);
     return { ok: false, error: String(err) };
   }
 };
