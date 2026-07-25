@@ -2507,6 +2507,7 @@ window.verMisEstadisticas = async function(forceRefresh) {
           <p style="grid-column:span 2;text-align:center;color:#aaa;">Cargando...</p>
         </div>
         <div id="mis-stats-rating"></div>
+        <div id="mis-stats-ventas"></div>
         <p style="margin:12px 0 0;text-align:center;">
           <a href="#" id="mis-stats-refresh" style="font-size:11px;color:#999;text-decoration:underline;">Actualizar ahora</a>
         </p>
@@ -2523,6 +2524,7 @@ window.verMisEstadisticas = async function(forceRefresh) {
 
   const grid = document.getElementById('mis-stats-grid');
   const ratingSlot = document.getElementById('mis-stats-rating');
+  const ventasSlot = document.getElementById('mis-stats-ventas');
 
   // Estas estadísticas casi no cambian de un momento a otro (a diferencia
   // de las notificaciones), así que se cachean 24h en el navegador y solo
@@ -2530,7 +2532,7 @@ window.verMisEstadisticas = async function(forceRefresh) {
   const cacheKey = 'zr_vendor_stats_cache_' + vendorSession.uid;
   const cached = forceRefresh ? _DAILY_CACHE_MISS : _getDailyCache(cacheKey);
   if (cached !== _DAILY_CACHE_MISS) {
-    _renderMisStats(cached, grid, ratingSlot);
+    _renderMisStats(cached, grid, ratingSlot, ventasSlot);
     return;
   }
 
@@ -2574,13 +2576,18 @@ window.verMisEstadisticas = async function(forceRefresh) {
     if (rData.ok) result.rating = { promedio: rData.promedio, total: rData.total };
   } catch (e) { /* silencioso */ }
 
+  try {
+    const vRes = await apiCall({ action: 'obtenerEstadisticasVendedor', vendorToken: vendorSession.token });
+    if (vRes.ok) result.ventas = { conversion: vRes.conversion, historialMeses: vRes.historialMeses };
+  } catch (e) { /* silencioso */ }
+
   if (result.stats) {
     _setDailyCache(cacheKey, result);
-    _renderMisStats(result, grid, ratingSlot);
+    _renderMisStats(result, grid, ratingSlot, ventasSlot);
   }
 };
 
-function _renderMisStats(result, grid, ratingSlot) {
+function _renderMisStats(result, grid, ratingSlot, ventasSlot) {
   const s = result.stats;
   grid.innerHTML = `
     <div style="background:#f0fff4;border-radius:14px;padding:14px;text-align:center;">
@@ -2610,7 +2617,33 @@ function _renderMisStats(result, grid, ratingSlot) {
   } else {
     ratingSlot.innerHTML = `<p style="text-align:center;font-size:12px;color:#aaa;">Aún no tienes calificaciones</p>`;
   }
+  const v = result.ventas;
+  if (ventasSlot && v && v.conversion) {
+    const c = v.conversion;
+    const hist = v.historialMeses || [];
+    const maxTotal = Math.max(1, ...hist.map(m => m.total));
+    ventasSlot.innerHTML = `
+      <div style="margin-top:12px;display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+        <div style="background:#ecfdf5;border-radius:14px;padding:12px;text-align:center;">
+          <div style="font-size:18px;font-weight:800;color:#059669;">${c.tasaConfirmacion}%</div>
+          <div style="font-size:11px;color:#555;">Tasa de confirmación</div>
+        </div>
+        <div style="background:#fff7ed;border-radius:14px;padding:12px;text-align:center;">
+          <div style="font-size:18px;font-weight:800;color:#ea580c;">${c.sinStock}</div>
+          <div style="font-size:11px;color:#555;">Pedidos sin stock</div>
+        </div>
+      </div>
+      <p style="font-size:11px;color:#999;margin:14px 0 8px;text-align:center;">Ventas de los últimos 6 meses</p>
+      <div style="display:flex;align-items:flex-end;gap:6px;height:70px;">
+        ${hist.map(mes => `
+          <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;justify-content:flex-end;height:100%;">
+            <div title="${formatCurrency(mes.total)}" style="width:100%;max-width:28px;background:linear-gradient(180deg,#a78bfa,#7c3aed);border-radius:5px 5px 2px 2px;height:${Math.max(3, (mes.total / maxTotal) * 50)}px;"></div>
+            <span style="font-size:10px;color:#999;">${mes.label}</span>
+          </div>`).join('')}
+      </div>`;
+  }
 }
+
 
 
 async function loadPlusSolicitudVendedor(targetAreaId, forceRefresh) {
