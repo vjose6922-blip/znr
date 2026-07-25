@@ -3297,7 +3297,6 @@ async function solicitarEliminarFundacionVendedor(miBen) {
 
 
 
-// ── Modal para compartir tienda con QR ──────────────────────
 function abrirModalCompartirTienda() {
   if (!vendorSession || !vendorSession.uid) {
     showTemporaryMessage('Inicia sesión para compartir tu tienda.', 'error');
@@ -3319,12 +3318,12 @@ function abrirModalCompartirTienda() {
         <h3 style="margin:0;font-size:1.1rem;font-weight:800;">${Icon('share')} Compartir tienda</h3>
         <button onclick="this.closest('#modal-compartir-tienda').remove()" style="background:none;border:none;font-size:24px;cursor:pointer;color:#888;">×</button>
       </div>
-      <div style="margin:10px 0 18px;">
-        <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(shareUrl)}" alt="QR" style="width:160px;height:160px;border-radius:12px;border:1px solid #eee;">
-      </div>
+      <!-- Contenedor donde se dibujará el QR estilizado -->
+      <div id="qr-code-styling-container" style="display:flex;justify-content:center;margin:10px 0 18px;"></div>
       <div style="display:flex;gap:8px;margin-bottom:10px;">
         <input type="text" id="share-url-input" value="${shareUrl}" readonly style="flex:1;padding:8px 12px;border:1px solid #ddd;border-radius:10px;font-size:.85rem;background:#f5f5f8;outline:none;">
         <button id="share-copy-btn" style="padding:8px 16px;border:none;border-radius:10px;background:#7c3aed;color:#fff;font-weight:700;cursor:pointer;">Copiar</button>
+        <button id="download-qr-btn" style="margin-top:8px;padding:6px 16px;border:none;border-radius:10px;background:#e0e7ff;color:#4c1d95;font-weight:600;cursor:pointer;font-size:.8rem;">⬇ Descargar QR</button>
       </div>
       <p style="font-size:.75rem;color:#888;margin:4px 0 0;">Escanea el QR o comparte el enlace para que otros vean tu perfil.</p>
     </div>
@@ -3332,6 +3331,46 @@ function abrirModalCompartirTienda() {
   document.body.appendChild(modal);
   modal.addEventListener('click', (e) => { if (e.target === modal) modal.remove(); });
 
+  // --- Generar el QR con QRCodeStyling ---
+  const qrContainer = document.getElementById('qr-code-styling-container');
+  // Limpiar el contenedor por si el modal se reabre
+  qrContainer.innerHTML = '';
+
+  // Instanciamos el QR con todas las opciones de estilo
+  const qrCode = new QRCodeStyling({
+    width: 180,               // Tamaño en píxeles
+    height: 180,
+    data: shareUrl,           // El enlace que se codificará
+    // image: 'https://tu-logotipo.com/logo.png', // <--- DESCOMENTA y pon tu logo si quieres
+    dotsOptions: {
+      color: "#7c3aed",       // Color de los módulos (puntos) - Usa el morado de tu botón
+      type: "rounded"         // Estilo: "square", "rounded" o "dots"
+    },
+    backgroundOptions: {
+      color: "#ffffff",       // Fondo blanco
+    },
+    cornersSquareOptions: {
+      color: "#5b21b6",       // Color de los cuadros de las esquinas (un poco más oscuro)
+      type: "dot"             // Estilo: "square", "dot" o "extra-rounded"
+    },
+    cornersDotOptions: {
+      color: "#7c3aed",       // Color de los puntitos internos de las esquinas
+      type: "dot"
+    }
+  });
+
+  // Dibujar el QR dentro del contenedor
+  qrCode.append(qrContainer);
+
+    document.getElementById('download-qr-btn')?.addEventListener('click', () => {
+    // Descarga en formato PNG (también soporta 'jpeg' y 'svg')
+    qrCode.download({ name: "qr-mi-tienda", extension: "png" });
+  });
+
+  // Opcional: Guardar la instancia en una variable global si quieres permitir descargar el QR luego
+  // window.qrInstance = qrCode; 
+
+  // --- Lógica para copiar el enlace (sin cambios) ---
   document.getElementById('share-copy-btn')?.addEventListener('click', () => {
     navigator.clipboard.writeText(shareUrl)
       .then(() => showTemporaryMessage('Enlace copiado', 'success'))
@@ -3343,7 +3382,6 @@ function abrirModalCompartirTienda() {
       });
   });
 }
-
 
 
 
