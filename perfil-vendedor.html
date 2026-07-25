@@ -779,10 +779,23 @@
       async function cargarPestanaFundacion(v) {
         if (!window.API_URL || !v || !v.uid) return;
         try {
-          const [donRes, benRes] = await Promise.all([
-            fetch(`${window.API_URL}?${new URLSearchParams({ action: 'obtenerDonacionesRecibidas', vendor_uid: v.uid })}`).then(r => r.json()).catch(() => null),
-            fetch(`${window.API_URL}?${new URLSearchParams({ action: 'obtenerBeneficiariosAprobados' })}`).then(r => r.json()).catch(() => null)
-          ]);
+          
+          async function fsOrGasDonaciones() {
+            if (window.znrFirestore && window.znrFirestore.getDonacionesRecibidas) {
+              const r = await window.znrFirestore.getDonacionesRecibidas(v.uid);
+              if (r && r.ok) return r;
+            }
+            return fetch(`${window.API_URL}?${new URLSearchParams({ action: 'obtenerDonacionesRecibidas', vendor_uid: v.uid })}`).then(r => r.json()).catch(() => null);
+          }
+          async function fsOrGasBeneficiarios() {
+            if (window.znrFirestore && window.znrFirestore.getBeneficiariosAprobados) {
+              const r = await window.znrFirestore.getBeneficiariosAprobados();
+              if (r && r.ok) return r;
+            }
+            return fetch(`${window.API_URL}?${new URLSearchParams({ action: 'obtenerBeneficiariosAprobados' })}`).then(r => r.json()).catch(() => null);
+          }
+          const [donRes, benRes] = await Promise.all([fsOrGasDonaciones(), fsOrGasBeneficiarios()]);
+          
           if (!donRes || !donRes.ok || !donRes.esBeneficiario) return;
           if (!benRes || !benRes.ok) return;
           const miTel = digitsOnly(v.telefono);
