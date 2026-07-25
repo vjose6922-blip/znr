@@ -2886,7 +2886,7 @@ window.openGestionarDonacionesModal = async function(page = 1) {
     modal.id = 'modal-gestionar-donaciones';
     modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.65);backdrop-filter:blur(4px);z-index:99999;display:flex;align-items:flex-end;justify-content:center;';
     modal.innerHTML = `
-      <div style="background:#fff;border-radius:20px 20px 0 0;width:100%;max-height:100vh;overflow-y:auto;padding:0 0 32px;">
+      <div style="background:#fff;border-radius:20px 20px 0 0;width:100%;max-height:96vh;overflow-y:auto;padding:0 0 32px;">
         <div style="position:sticky;top:0;background:#fff;z-index:1;padding:16px 20px 12px;border-bottom:1px solid #f0f0f0;display:flex;align-items:center;justify-content:space-between;">
           <h2 style="margin:0;font-size:1rem;font-weight:800;">${Icon('heart-fill')} Gestionar donaciones</h2>
           <button id="btn-close-gestionar" style="background:none;border:none;font-size:22px;cursor:pointer;color:#888;line-height:1;">×</button>
