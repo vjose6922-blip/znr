@@ -2,7 +2,7 @@
 'use strict';
 
 // ──────────────────────────────────────────────
-// v0000
+// v000000
 // ──────────────────────────────────────────────
 let vendorSession = null;
 Object.defineProperty(window, 'vendorSession', {
@@ -13,11 +13,6 @@ Object.defineProperty(window, 'vendorSession', {
 
 const API_BASE = window.API_URL || ""
 
-// -- Caché diaria genérica (localStorage) -----------------------------
-// Para datos que se piden seguido pero casi no cambian (estadísticas,
-// calificación, estado del plan, informe semanal). TTL de 24h por
-// defecto; se puede forzar un refresh real cuando el propio vendedor
-// hace una acción que sabemos que cambia el dato (ej. solicitar Plan Plus).
 const DAILY_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 const _DAILY_CACHE_MISS = Symbol('miss');
 function _getDailyCache(key) {
