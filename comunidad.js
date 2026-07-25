@@ -1763,7 +1763,7 @@ window.openBeneficiarioModal = async function(beneficiarioId) {
   modal.id = 'modal-beneficiario-detalle';
   modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.65);backdrop-filter:blur(4px);z-index:99999;display:flex;align-items:flex-end;justify-content:center;';
   modal.innerHTML = `
-    <div style="background:var(--color-surface,#fff);border-radius:20px 20px 0 0;width:100%;max-width:480px;max-height:88vh;overflow-y:auto;padding:24px 20px 32px;">
+    <div style="background:var(--color-surface,#fff);border-radius:20px 20px 0 0;width:100%;max-height:96vh;overflow-y:auto;padding:24px 20px 32px;">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
         <h2 style="margin:0;font-size:1rem;font-weight:800;">${Icon('heart-fill')} Beneficiario</h2>
         <button id="btn-close-ben-det" style="background:none;border:none;font-size:22px;cursor:pointer;">×</button>
