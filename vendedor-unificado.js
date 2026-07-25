@@ -2500,7 +2500,7 @@ window.verMisEstadisticas = async function(forceRefresh) {
     modal.id = 'mis-stats-modal';
     modal.style.cssText = 'display:flex;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9999;align-items:center;justify-content:center;';
     modal.innerHTML = `
-      <div style="background:#fff;border-radius:20px;padding:24px;max-width:420px;width:90%;max-height:82vh;overflow-y:auto;position:relative;">
+      <div style="background:#fff;border-radius:20px;padding:24px;width:100%;max-height:96vh;overflow-y:auto;position:relative;">
         <button id="mis-stats-close" style="position:absolute;top:14px;right:14px;background:#f0f0f5;border:none;width:32px;height:32px;border-radius:50%;font-size:16px;cursor:pointer;color:#666;">${Icon('x')}</button>
         <h3 style="margin:0 0 16px;font-size:1.1rem;">${Icon('stats')} Mis estadísticas</h3>
         <div id="mis-stats-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;">
@@ -3009,7 +3009,7 @@ window.openEntregasLiveModal = async function() {
   modal.id = 'modal-entregas-live';
   modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.65);backdrop-filter:blur(4px);z-index:99999;display:flex;align-items:flex-end;justify-content:center;';
   modal.innerHTML = `
-    <div style="background:#fff;border-radius:20px 20px 0 0;width:100%;max-width:480px;max-height:88vh;overflow-y:auto;padding:0 0 32px;">
+    <div style="background:#fff;border-radius:20px 20px 0 0;width:100%;max-height:96vh;overflow-y:auto;padding:0 0 32px;">
       <div style="position:sticky;top:0;background:#fff;z-index:1;padding:16px 20px 12px;border-bottom:1px solid #f0f0f0;display:flex;align-items:center;justify-content:space-between;">
         <h2 style="margin:0;font-size:1rem;font-weight:800;">${Icon('box')} Entregas de tus transmisiones</h2>
         <button id="btn-close-entregas-live" style="background:none;border:none;font-size:22px;cursor:pointer;color:#888;line-height:1;">×</button>
