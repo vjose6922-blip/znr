@@ -2628,10 +2628,11 @@ function _renderMisStats(result, grid, ratingSlot, ventasSlot) {
           <div style="font-size:11px;color:#555;">Pedidos sin stock</div>
         </div>
       </div>
-      <p style="font-size:11px;color:#999;margin:14px 0 8px;text-align:center;">Ventas de los últimos 6 meses</p>
-      <div style="display:flex;align-items:flex-end;gap:6px;height:70px;">
+     <p style="font-size:11px;color:#999;margin:14px 0 8px;text-align:center;">Ventas de los últimos 6 meses</p>
+      <div style="display:flex;align-items:flex-end;gap:6px;height:92px;">
         ${hist.map(mes => `
           <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;justify-content:flex-end;height:100%;">
+            <span style="font-size:9px;font-weight:700;color:${mes.total > 0 ? '#7c3aed' : '#ccc'};white-space:nowrap;">${mes.total > 0 ? formatCurrency(mes.total) : ''}</span>
             <div title="${formatCurrency(mes.total)}" style="width:100%;max-width:28px;background:linear-gradient(180deg,#a78bfa,#7c3aed);border-radius:5px 5px 2px 2px;height:${Math.max(3, (mes.total / maxTotal) * 50)}px;"></div>
             <span style="font-size:10px;color:#999;">${mes.label}</span>
           </div>`).join('')}
