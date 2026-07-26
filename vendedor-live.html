@@ -466,7 +466,7 @@ let allProducts = [];
 let chatUnsub = null;
 let presenceUnsub = null;
 let lastViewers = [];
-let tipoSeleccionado = 'grabado'; // 'grabado' es el default/recomendado
+let tipoSeleccionado = 'vivo'; // única opción disponible: transmisión en vivo real
 let orientacionSeleccionada = 'horizontal';
 
 function esc(s) {
@@ -589,7 +589,7 @@ async function renderCreateForm() {
   detenerPlayerSincronizado();
   document.body.classList.remove('live-active');
   subtitle.textContent = 'Nueva transmisión';
-  tipoSeleccionado = 'grabado';
+  tipoSeleccionado = 'vivo';
   orientacionSeleccionada = 'horizontal';
 
   wrap.innerHTML = `
@@ -598,32 +598,20 @@ async function renderCreateForm() {
       <p class="hint">Muestra tus productos a tus compradores en tiempo real, con chat en vivo para que aparten lo que les guste.</p>
 
       <div class="field-group">
-        <label>¿Cómo vas a transmitir?</label>
-        <div class="tipo-options">
-          <div class="tipo-option selected" id="tipo-grabado-label">
-            <label class="tipo-option-header">
-              <input type="radio" name="tipo" value="grabado" checked>
-              <span class="tipo-text">
-                <strong><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" aria-hidden="true"><use href="#ic-video-camera"/></svg> Video grabado <span class="badge-recomendado">Recomendado</span></strong>
-              </span>
-            </label>
-            <details class="tipo-detalle">
-              <summary>¿Cómo funciona?</summary>
-              <p>Graba un video mostrando tus productos, súbelo a Facebook (puede ser una publicación de tu perfil o de tu Página) y pega el link. Z&R lo muestra a tus compradores en cuanto entran — no necesitas transmitir en tiempo real.</p>
-            </details>
-          </div>
-          <div class="tipo-option" id="tipo-vivo-label">
-            <label class="tipo-option-header">
-              <input type="radio" name="tipo" value="vivo">
-              <span class="tipo-text">
-                <strong><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" aria-hidden="true"><use href="#ic-signal"/></svg> Transmisión en vivo real</strong>
-              </span>
-            </label>
-            <details class="tipo-detalle">
-              <summary>¿Cómo funciona?</summary>
-              <p>Transmite en vivo desde la app de Facebook y pega aquí el link de la publicación en vivo.</p>
-            </details>
-          </div>
+        <label><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" aria-hidden="true"><use href="#ic-signal"/></svg> Cómo transmitir en vivo (una sola vez, tarda 1 minuto)</label>
+        <div class="tipo-detalle no-indent" style="margin-top:6px;">
+          <p style="margin:0 0 8px;">Sigue estos pasos <strong>antes</strong> de pegar tu link, o el video no se va a poder mostrar en Z&amp;R:</p>
+          <ul style="margin:0 0 10px;">
+            <li>Abre Facebook en el navegador de tu celular (Chrome) — no en la app de Facebook.</li>
+            <li>Toca los tres puntos ⋮ y activa <strong>"Solicitar sitio para computadora"</strong>.</li>
+            <li>Toca el enlace de abajo para ir directo a crear tu transmisión.</li>
+            <li>En "Configuración del stream", cambia la privacidad de <strong>"Solo yo"</strong> a <strong>"Público"</strong>.</li>
+            <li>Activa el interruptor <strong>"Insertar video en vivo"</strong> (aparece solo cuando ya es Público).</li>
+            <li>Transmite normal. Cuando quieras el link, toca los tres puntos de tu publicación en vivo y elige <strong>"Insertar"</strong> — copia ese link y pégalo aquí abajo.</li>
+          </ul>
+          <a href="https://web.facebook.com/live/producer" target="_blank" rel="noopener" style="display:inline-block; font-size:13px; font-weight:700; color:var(--color-accent-solid); text-decoration:none;">
+            ${Icon('signal')} Abrir Facebook Live Producer →
+          </a>
         </div>
       </div>
 
@@ -636,10 +624,10 @@ async function renderCreateForm() {
         <textarea id="f-desc" maxlength="200" placeholder="¿Qué vas a mostrar hoy?"></textarea>
       </div>
       <div class="field-group">
-        <label>Link de Facebook</label>
-        <input type="text" id="f-facebook" placeholder="https://facebook.com/.../videos/... o /watch/live/?v=...">
+        <label>Link de tu transmisión en vivo</label>
+        <input type="text" id="f-facebook" placeholder="https://www.facebook.com/.../videos/... o /watch/live/?v=...">
         <div class="error-msg" id="f-facebook-error" style="display:none;"></div>
-        <p class="hint" style="margin-top:6px;">El video o el live debe ser público — si tiene restricción de privacidad, tus compradores no podrán verlo.</p>
+        <p class="hint" style="margin-top:6px;">Debe ser el link de "Insertar" que copiaste tras activar Público + Insertar video en vivo (ver pasos arriba). Si no hiciste esos pasos, tus compradores van a ver "Video no disponible".</p>
       </div>
       <div class="field-group">
         <label>Orientación de tu video</label>
@@ -665,14 +653,6 @@ async function renderCreateForm() {
       <button class="btn-live primary" id="btn-crear-sesion">Crear transmisión</button>
       <div class="error-msg" id="f-general-error" style="display:none;"></div>
     </div>`;
-
-  document.querySelectorAll('input[name="tipo"]').forEach(radio => {
-    radio.addEventListener('change', () => {
-      tipoSeleccionado = radio.value;
-      document.getElementById('tipo-grabado-label').classList.toggle('selected', tipoSeleccionado === 'grabado');
-      document.getElementById('tipo-vivo-label').classList.toggle('selected', tipoSeleccionado === 'vivo');
-    });
-  });
 
   document.querySelectorAll('input[name="orientacion"]').forEach(radio => {
     radio.addEventListener('change', () => {
@@ -787,7 +767,6 @@ function renderScheduled() {
   document.body.classList.remove('live-active');
   subtitle.textContent = 'Lista para iniciar';
   const shareUrl = getComprobadorUrl(currentSesion.id);
-  const esGrabado = currentSesion.tipo !== 'vivo';
   wrap.innerHTML = `
     <div class="live-card">
       <span class="status-badge scheduled"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" aria-hidden="true"><use href="#ic-calendar"/></svg> PROGRAMADO</span>
@@ -800,9 +779,7 @@ function renderScheduled() {
         <button id="btn-copy">Copiar</button>
       </div>
 
-      <p class="hint">${esGrabado
-        ? 'Comparte el link con tus compradores y cuando estés lista toca "Iniciar" — desde ahí podrán ver tu video.'
-        : 'Cuando estés lista: abre Facebook, empieza tu transmisión en vivo, y regresa aquí a tocar "Iniciar".'}</p>
+      <p class="hint">Cuando estés lista: abre Facebook, empieza tu transmisión en vivo, y regresa aquí a tocar "Iniciar".</p>
 
       <button class="btn-live primary" id="btn-iniciar"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" aria-hidden="true"><use href="#ic-signal"/></svg> Iniciar transmisión</button>
       <div style="height:8px;"></div>
@@ -912,7 +889,6 @@ async function renderLiveFallback() {
 async function renderLiveFull() {
   document.body.classList.add('live-active');
   const shareUrl = getComprobadorUrl(currentSesion.id);
-  const esGrabado = currentSesion.tipo !== 'vivo';
   let misProductos = [];
   try {
     misProductos = String(currentSesion.productos_ids || '').split(';').filter(Boolean)
@@ -922,13 +898,10 @@ async function renderLiveFull() {
     misProductos = [];
   }
 
-  const descLinea = currentSesion.descripcion
-    ? currentSesion.descripcion
-    : (esGrabado ? 'Video de tus productos' : 'Transmisión en vivo');
+  const descLinea = currentSesion.descripcion || 'Transmisión en vivo';
 
   wrap.innerHTML = `
     <div class="live-top-fixed">
-      ${esGrabado ? `<div class="video-box" id="vendor-video-slot"></div>` : ''}
       <div class="live-info-row">
         <div class="live-info-text">
           <div class="li-title-line">
