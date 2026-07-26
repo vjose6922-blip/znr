@@ -527,19 +527,21 @@ const FB_APP_ID = '1587883199599777';
 // abre el link dentro de la propia ventana/contexto de la PWA en vez del
 // navegador real — y ahí no aparece el menú completo de Chrome (⋮), que es
 // justo donde está "Solicitar sitio para computadora". Para evitar eso,
-// forzamos la apertura vía un intent de Android dirigido explícitamente a
-// Chrome cuando detectamos que estamos en modo standalone + Android.
-function abrirEnNavegadorExterno(e, url) {
+// reescribimos el href del enlace a un intent de Android dirigido
+// explícitamente a Chrome ANTES de que el usuario toque el link (no al
+// hacer clic vía JS — algunos WebViews de Android no reconocen intent://
+// cuando se navega por script, solo cuando es el href real de un <a> que
+// el usuario toca directamente).
+function prepararLinkNavegadorExterno(anchorEl) {
+  if (!anchorEl) return;
   const esStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
   const esAndroid = /Android/i.test(navigator.userAgent);
   if (esStandalone && esAndroid) {
-    e.preventDefault();
-    const sinEsquema = url.replace(/^https?:\/\//, '');
-    window.location.href = `intent://${sinEsquema}#Intent;scheme=https;package=com.android.chrome;end;`;
-    return false;
+    const sinEsquema = anchorEl.href.replace(/^https?:\/\//, '');
+    anchorEl.href = `intent://${sinEsquema}#Intent;scheme=https;package=com.android.chrome;end;`;
+    anchorEl.removeAttribute('target');
   }
-  // iOS o navegador normal (no instalado como PWA): el target="_blank" de siempre funciona bien.
-  return true;
+  // iOS o navegador normal (no instalado como PWA): dejamos el href normal, funciona bien con target="_blank".
 }
 
 let fbSdkPromise = null;
@@ -673,9 +675,7 @@ async function renderCreateForm() {
     </div>`;
 
   const linkFbProducer = document.getElementById('link-fb-producer');
-  if (linkFbProducer) {
-    linkFbProducer.addEventListener('click', (e) => abrirEnNavegadorExterno(e, linkFbProducer.href));
-  }
+  prepararLinkNavegadorExterno(linkFbProducer);
 
   document.querySelectorAll('input[name="orientacion"]').forEach(radio => {
     radio.addEventListener('change', () => {
