@@ -523,27 +523,6 @@ function mostrarEspectadores() {
 // con YouTube.
 const FB_APP_ID = '1587883199599777';
 
-// Cuando ZNR corre como PWA instalada, un <a target="_blank"> normal a veces
-// abre el link dentro de la propia ventana/contexto de la PWA en vez del
-// navegador real — y ahí no aparece el menú completo de Chrome (⋮), que es
-// justo donde está "Solicitar sitio para computadora". Para evitar eso,
-// reescribimos el href del enlace a un intent de Android dirigido
-// explícitamente a Chrome ANTES de que el usuario toque el link (no al
-// hacer clic vía JS — algunos WebViews de Android no reconocen intent://
-// cuando se navega por script, solo cuando es el href real de un <a> que
-// el usuario toca directamente).
-function prepararLinkNavegadorExterno(anchorEl) {
-  if (!anchorEl) return;
-  const esStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
-  const esAndroid = /Android/i.test(navigator.userAgent);
-  if (esStandalone && esAndroid) {
-    const sinEsquema = anchorEl.href.replace(/^https?:\/\//, '');
-    anchorEl.href = `intent://${sinEsquema}#Intent;scheme=https;package=com.android.chrome;end;`;
-    anchorEl.removeAttribute('target');
-  }
-  // iOS o navegador normal (no instalado como PWA): dejamos el href normal, funciona bien con target="_blank".
-}
-
 let fbSdkPromise = null;
 function loadFacebookSDK() {
   if (fbSdkPromise) return fbSdkPromise;
@@ -623,8 +602,9 @@ async function renderCreateForm() {
         <div class="tipo-detalle no-indent" style="margin-top:6px;">
           <p style="margin:0 0 8px;">Sigue estos pasos <strong>antes</strong> de pegar tu link, o el video no se va a poder mostrar en Z&amp;R. <strong>Repítelos cada vez que vayas a transmitir</strong> — Facebook no guarda esta configuración de una transmisión a otra:</p>
           <ul style="margin:0 0 10px;">
-            <li>Toca el enlace de abajo — se va a abrir en tu navegador (Chrome), no aquí en Z&amp;R.</li>
-            <li>Si no se abrió el navegador solo, toca los tres puntos ⋮ y activa <strong>"Solicitar sitio para computadora"</strong>.</li>
+            <li>Toca el enlace de abajo.</li>
+            <li>Si se abre una vista simple (sin la barra de direcciones de Chrome), toca los <strong>tres puntos ⋮</strong> ahí mismo y elige <strong>"Abrir en Chrome"</strong> — eso te saca al navegador completo.</li>
+            <li>Ya en Chrome, toca los tres puntos ⋮ de nuevo y activa <strong>"Solicitar sitio para computadora"</strong>.</li>
             <li>En "Configuración del stream", cambia la privacidad de <strong>"Solo yo"</strong> a <strong>"Público"</strong>.</li>
             <li>Activa el interruptor <strong>"Insertar video en vivo"</strong> (aparece solo cuando ya es Público).</li>
             <li>Transmite normal. Cuando quieras el link, toca los tres puntos de tu publicación en vivo y elige <strong>"Insertar"</strong> — copia ese link y pégalo aquí abajo.</li>
@@ -674,8 +654,6 @@ async function renderCreateForm() {
       <div class="error-msg" id="f-general-error" style="display:none;"></div>
     </div>`;
 
-  const linkFbProducer = document.getElementById('link-fb-producer');
-  prepararLinkNavegadorExterno(linkFbProducer);
 
   document.querySelectorAll('input[name="orientacion"]').forEach(radio => {
     radio.addEventListener('change', () => {
