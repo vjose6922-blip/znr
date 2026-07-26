@@ -444,7 +444,6 @@ async function apiFetch(data, method = 'POST') {
   } else {
     res = await fetch(API_BASE, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body: params.toString()
     });
   }
