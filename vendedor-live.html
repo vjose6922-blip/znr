@@ -602,16 +602,17 @@ async function renderCreateForm() {
         <div class="tipo-detalle no-indent" style="margin-top:6px;">
           <p style="margin:0 0 8px;">Sigue estos pasos <strong>antes</strong> de pegar tu link, o el video no se va a poder mostrar en Z&amp;R. <strong>Repítelos cada vez que vayas a transmitir</strong> — Facebook no guarda esta configuración de una transmisión a otra:</p>
           <ul style="margin:0 0 10px;">
-            <li>Toca el enlace de abajo.</li>
-            <li>Si se abre una vista simple (sin la barra de direcciones de Chrome), toca los <strong>tres puntos ⋮</strong> ahí mismo y elige <strong>"Abrir en Chrome"</strong> — eso te saca al navegador completo.</li>
-            <li>Ya en Chrome, toca los tres puntos ⋮ de nuevo y activa <strong>"Solicitar sitio para computadora"</strong>.</li>
+            <li>Abre Chrome tú misma (el ícono de Chrome, no la app de Facebook).</li>
+            <li>Toca el botón de abajo para copiar el enlace, y pégalo en la barra de direcciones de Chrome.</li>
+            <li>Toca los tres puntos ⋮ y activa <strong>"Solicitar sitio para computadora"</strong>.</li>
             <li>En "Configuración del stream", cambia la privacidad de <strong>"Solo yo"</strong> a <strong>"Público"</strong>.</li>
             <li>Activa el interruptor <strong>"Insertar video en vivo"</strong> (aparece solo cuando ya es Público).</li>
             <li>Transmite normal. Cuando quieras el link, toca los tres puntos de tu publicación en vivo y elige <strong>"Insertar"</strong> — copia ese link y pégalo aquí abajo.</li>
           </ul>
-          <a href="https://web.facebook.com/live/producer" id="link-fb-producer" target="_blank" rel="noopener" style="display:inline-block; font-size:13px; font-weight:700; color:var(--color-accent-solid); text-decoration:none;">
-            ${Icon('signal')} Abrir Facebook Live Producer →
-          </a>
+          <div style="display:flex; align-items:center; gap:8px; background:rgba(0,0,0,.15); border-radius:8px; padding:8px 10px;">
+            <code id="fb-producer-url" style="flex:1; font-size:12px; overflow-x:auto; white-space:nowrap; color:var(--color-text-secondary,inherit);">https://web.facebook.com/live/producer</code>
+            <button type="button" id="btn-copiar-fb-producer" style="flex-shrink:0; font-size:12px; font-weight:700; border:none; border-radius:6px; padding:6px 10px; background:var(--color-accent-solid); color:#fff; cursor:pointer;">Copiar</button>
+          </div>
         </div>
       </div>
 
@@ -654,6 +655,19 @@ async function renderCreateForm() {
       <div class="error-msg" id="f-general-error" style="display:none;"></div>
     </div>`;
 
+  const btnCopiarFbProducer = document.getElementById('btn-copiar-fb-producer');
+  if (btnCopiarFbProducer) {
+    btnCopiarFbProducer.addEventListener('click', async () => {
+      const url = document.getElementById('fb-producer-url').textContent;
+      try {
+        await navigator.clipboard.writeText(url);
+        btnCopiarFbProducer.textContent = '¡Copiado!';
+        setTimeout(() => { btnCopiarFbProducer.textContent = 'Copiar'; }, 1500);
+      } catch (e) {
+        alert('No se pudo copiar automáticamente. Copia este enlace manualmente:\n' + url);
+      }
+    });
+  }
 
   document.querySelectorAll('input[name="orientacion"]').forEach(radio => {
     radio.addEventListener('change', () => {
