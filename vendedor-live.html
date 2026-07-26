@@ -523,6 +523,25 @@ function mostrarEspectadores() {
 // con YouTube.
 const FB_APP_ID = '1587883199599777';
 
+// Cuando ZNR corre como PWA instalada, un <a target="_blank"> normal a veces
+// abre el link dentro de la propia ventana/contexto de la PWA en vez del
+// navegador real — y ahí no aparece el menú completo de Chrome (⋮), que es
+// justo donde está "Solicitar sitio para computadora". Para evitar eso,
+// forzamos la apertura vía un intent de Android dirigido explícitamente a
+// Chrome cuando detectamos que estamos en modo standalone + Android.
+function abrirEnNavegadorExterno(e, url) {
+  const esStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
+  const esAndroid = /Android/i.test(navigator.userAgent);
+  if (esStandalone && esAndroid) {
+    e.preventDefault();
+    const sinEsquema = url.replace(/^https?:\/\//, '');
+    window.location.href = `intent://${sinEsquema}#Intent;scheme=https;package=com.android.chrome;end;`;
+    return false;
+  }
+  // iOS o navegador normal (no instalado como PWA): el target="_blank" de siempre funciona bien.
+  return true;
+}
+
 let fbSdkPromise = null;
 function loadFacebookSDK() {
   if (fbSdkPromise) return fbSdkPromise;
@@ -598,18 +617,17 @@ async function renderCreateForm() {
       <p class="hint">Muestra tus productos a tus compradores en tiempo real, con chat en vivo para que aparten lo que les guste.</p>
 
       <div class="field-group">
-        <label><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" aria-hidden="true"><use href="#ic-signal"/></svg> Cómo transmitir en vivo (una sola vez, tarda 1 minuto)</label>
+        <label><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" aria-hidden="true"><use href="#ic-signal"/></svg> Cómo transmitir en vivo</label>
         <div class="tipo-detalle no-indent" style="margin-top:6px;">
-          <p style="margin:0 0 8px;">Sigue estos pasos <strong>antes</strong> de pegar tu link, o el video no se va a poder mostrar en Z&amp;R:</p>
+          <p style="margin:0 0 8px;">Sigue estos pasos <strong>antes</strong> de pegar tu link, o el video no se va a poder mostrar en Z&amp;R. <strong>Repítelos cada vez que vayas a transmitir</strong> — Facebook no guarda esta configuración de una transmisión a otra:</p>
           <ul style="margin:0 0 10px;">
-            <li>Abre Facebook en el navegador de tu celular (Chrome) — no en la app de Facebook.</li>
-            <li>Toca los tres puntos ⋮ y activa <strong>"Solicitar sitio para computadora"</strong>.</li>
-            <li>Toca el enlace de abajo para ir directo a crear tu transmisión.</li>
+            <li>Toca el enlace de abajo — se va a abrir en tu navegador (Chrome), no aquí en Z&amp;R.</li>
+            <li>Si no se abrió el navegador solo, toca los tres puntos ⋮ y activa <strong>"Solicitar sitio para computadora"</strong>.</li>
             <li>En "Configuración del stream", cambia la privacidad de <strong>"Solo yo"</strong> a <strong>"Público"</strong>.</li>
             <li>Activa el interruptor <strong>"Insertar video en vivo"</strong> (aparece solo cuando ya es Público).</li>
             <li>Transmite normal. Cuando quieras el link, toca los tres puntos de tu publicación en vivo y elige <strong>"Insertar"</strong> — copia ese link y pégalo aquí abajo.</li>
           </ul>
-          <a href="https://web.facebook.com/live/producer" target="_blank" rel="noopener" style="display:inline-block; font-size:13px; font-weight:700; color:var(--color-accent-solid); text-decoration:none;">
+          <a href="https://web.facebook.com/live/producer" id="link-fb-producer" target="_blank" rel="noopener" style="display:inline-block; font-size:13px; font-weight:700; color:var(--color-accent-solid); text-decoration:none;">
             ${Icon('signal')} Abrir Facebook Live Producer →
           </a>
         </div>
@@ -653,6 +671,11 @@ async function renderCreateForm() {
       <button class="btn-live primary" id="btn-crear-sesion">Crear transmisión</button>
       <div class="error-msg" id="f-general-error" style="display:none;"></div>
     </div>`;
+
+  const linkFbProducer = document.getElementById('link-fb-producer');
+  if (linkFbProducer) {
+    linkFbProducer.addEventListener('click', (e) => abrirEnNavegadorExterno(e, linkFbProducer.href));
+  }
 
   document.querySelectorAll('input[name="orientacion"]').forEach(radio => {
     radio.addEventListener('change', () => {
