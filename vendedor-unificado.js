@@ -2573,7 +2573,7 @@ window.verMisEstadisticas = async function(forceRefresh) {
 
   try {
     const vRes = await apiCall({ action: 'obtenerEstadisticasVendedor', vendorToken: vendorSession.token });
-    if (vRes.ok) result.ventas = { conversion: vRes.conversion, historialMeses: vRes.historialMeses };
+    if (vRes.ok) result.ventas = { conversion: vRes.conversion, historialMeses: vRes.historialMeses, tiempoRespuestaMin: vRes.tiempoRespuestaMin };
   } catch (e) { /* silencioso */ }
 
   if (result.stats) {
