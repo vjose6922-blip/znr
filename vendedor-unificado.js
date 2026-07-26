@@ -2628,6 +2628,11 @@ function _renderMisStats(result, grid, ratingSlot, ventasSlot) {
           <div style="font-size:11px;color:#555;">Pedidos sin stock</div>
         </div>
       </div>
+      ${v.tiempoRespuestaMin !== null && v.tiempoRespuestaMin !== undefined ? `
+        <div style="margin-top:10px;background:#eff6ff;border-radius:14px;padding:12px;text-align:center;">
+          <div style="font-size:18px;font-weight:800;color:#2563eb;">${_formatTiempoRespuesta(v.tiempoRespuestaMin)}</div>
+          <div style="font-size:11px;color:#555;">Tiempo de respuesta promedio</div>
+        </div>` : ''}
      <p style="font-size:11px;color:#999;margin:14px 0 8px;text-align:center;">Ventas de los últimos 6 meses</p>
       <div style="display:flex;align-items:flex-end;gap:6px;height:92px;">
         ${hist.map(mes => `
@@ -2640,6 +2645,15 @@ function _renderMisStats(result, grid, ratingSlot, ventasSlot) {
   }
 }
 
+
+
+function _formatTiempoRespuesta(min) {
+  if (min < 60) return Math.round(min) + ' min';
+  if (min < 1440) return (min / 60).toFixed(1) + ' h';
+  return (min / 1440).toFixed(1) + ' días';
+}
+
+  
 
 
 async function loadPlusSolicitudVendedor(targetAreaId, forceRefresh) {
