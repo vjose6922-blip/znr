@@ -444,7 +444,7 @@ async function apiFetch(data, method = 'POST') {
   } else {
     res = await fetch(API_BASE, {
       method: 'POST',
-      body: params.toString()
+      body: params
     });
   }
   return JSON.parse(await res.text());
