@@ -2194,6 +2194,12 @@ function openSettingsModal(expandirPlan) {
   }
   if (changeBtn) changeBtn.style.display = esPlus ? 'flex' : 'none';
 
+  const coverBgEl = document.getElementById('settings-cover-bg');
+  if (coverBgEl && typeof applyCoverBackground === 'function') {
+    const savedIcons = typeof parseCoverIcons === 'function' ? parseCoverIcons(vendorSession.coverIcons) : [];
+    applyCoverBackground(coverBgEl, vendorSession.coverBg, savedIcons, vendorSession.coverIconColor);
+  }
+
   document.getElementById('settings-header-name').textContent = vendorSession.nombre || '';
   const planEl = document.getElementById('settings-header-plan');
   if (esPlus) {
@@ -2420,6 +2426,118 @@ async function guardarPerfil() {
     btn.textContent = 'Guardar cambios';
   }
 }
+
+// ────────────────────────────────────────────────────────────
+// Portada personalizable (color + patrón de iconos)
+// ────────────────────────────────────────────────────────────
+
+function _updateCoverPreview() {
+  const preview   = document.getElementById('cover-editor-preview');
+  const colorEl   = document.getElementById('cover-color-input');
+  const iconColEl = document.getElementById('cover-icon-color-input');
+  const grid      = document.getElementById('cover-icon-grid');
+  if (!preview || typeof applyCoverBackground !== 'function') return;
+
+  const ids = grid
+    ? Array.from(grid.querySelectorAll('input[data-cover-icon-checkbox]:checked')).map(cb => cb.value)
+    : [];
+  applyCoverBackground(preview, colorEl.value, ids, iconColEl.value);
+}
+
+function openCoverEditor() {
+  if (!vendorSession) return;
+  const overlay  = document.getElementById('cover-editor-overlay');
+  const colorEl  = document.getElementById('cover-color-input');
+  const iconColEl = document.getElementById('cover-icon-color-input');
+  const grid     = document.getElementById('cover-icon-grid');
+  const msg      = document.getElementById('cover-editor-msg');
+  if (!overlay) return;
+
+  colorEl.value   = vendorSession.coverBg || '#7c3aed';
+  iconColEl.value = vendorSession.coverIconColor || '#ffffff';
+  msg.textContent = '';
+
+  const savedIcons = typeof parseCoverIcons === 'function' ? parseCoverIcons(vendorSession.coverIcons) : [];
+
+  if (typeof renderCoverIconPicker === 'function') {
+    renderCoverIconPicker(grid, savedIcons, _updateCoverPreview);
+  }
+
+  if (!colorEl._wiredCover) {
+    colorEl._wiredCover = true;
+    colorEl.addEventListener('input', _updateCoverPreview);
+  }
+  if (!iconColEl._wiredCover) {
+    iconColEl._wiredCover = true;
+    iconColEl.addEventListener('input', _updateCoverPreview);
+  }
+
+  _updateCoverPreview();
+  overlay.style.display = 'flex';
+}
+
+function closeCoverEditor() {
+  const overlay = document.getElementById('cover-editor-overlay');
+  if (overlay) overlay.style.display = 'none';
+}
+
+async function guardarPortada() {
+  if (!vendorSession) return;
+  const btn = document.getElementById('btn-guardar-portada');
+  const msg = document.getElementById('cover-editor-msg');
+  const colorEl   = document.getElementById('cover-color-input');
+  const iconColEl = document.getElementById('cover-icon-color-input');
+  const grid      = document.getElementById('cover-icon-grid');
+
+  const coverBg = colorEl.value;
+  const coverIconColor = iconColEl.value;
+  const coverIcons = Array.from(grid.querySelectorAll('input[data-cover-icon-checkbox]:checked')).map(cb => cb.value);
+
+  btn.disabled = true; btn.textContent = 'Guardando...';
+  msg.textContent = '';
+
+  try {
+    const res = await apiCall({
+      action: 'actualizarPortadaVendedor',
+      vendorToken: vendorSession.token,
+      cover_bg: coverBg,
+      cover_icons: JSON.stringify(coverIcons),
+      cover_icon_color: coverIconColor
+    });
+
+    if (!res.ok) {
+      msg.style.color = '#dc2626';
+      msg.textContent = res.error || 'Error al guardar la portada.';
+      return;
+    }
+
+    vendorSession.coverBg = coverBg;
+    vendorSession.coverIcons = JSON.stringify(coverIcons);
+    vendorSession.coverIconColor = coverIconColor;
+    try { localStorage.setItem('vendor_session', JSON.stringify(vendorSession)); } catch(e) {}
+
+    const coverBgEl = document.getElementById('settings-cover-bg');
+    if (coverBgEl && typeof applyCoverBackground === 'function') {
+      applyCoverBackground(coverBgEl, coverBg, coverIcons, coverIconColor);
+    }
+
+    msg.style.color = '#16a34a';
+    msg.innerHTML = Icon('check') + ' Portada guardada';
+    setTimeout(closeCoverEditor, 700);
+
+  } catch(e) {
+    msg.style.color = '#dc2626';
+    msg.textContent = 'Error de red.';
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Guardar portada';
+  }
+}
+
+window.openCoverEditor  = openCoverEditor;
+window.closeCoverEditor = closeCoverEditor;
+window.guardarPortada   = guardarPortada;
+
 async function guardarPassword() {
 const btn  = document.getElementById('btn-guardar-pwd');
 const msg  = document.getElementById('settings-pwd-msg');

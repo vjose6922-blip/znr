@@ -461,6 +461,7 @@
  <script type="module" src="firestore-init.js"></script>
  <script src="icons.js" defer></script>
  <script src="common.js" defer></script>
+ <script src="cover-portada.js" defer></script>
  <script src="znr-devconsole.js" defer></script>
  <script src="notification-center.js" defer></script>
  <script src="error-monitor.js" defer></script>
@@ -554,19 +555,27 @@ document.addEventListener('DOMContentLoaded', () => {
 
     <div style="padding:0 20px;">
 
-      <!-- Avatar siempre visible -->
-      <div style="display:flex;align-items:center;gap:14px;padding:20px 0 16px;border-bottom:1px solid #f0f0f0;">
-        <div id="settings-avatar-wrap" style="position:relative;width:64px;height:64px;flex-shrink:0;">
-          <div id="settings-avatar-placeholder" style="width:64px;height:64px;border-radius:50%;background:#f3e8ff;display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:700;color:#7c3aed;border:2px solid #e9d5ff;"></div>
-          <img id="settings-avatar-photo" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" alt="" style="display:none;width:64px;height:64px;border-radius:50%;object-fit:cover;border:2px solid #7c3aed;">
-          <button id="settings-change-photo-btn" style="display:none;position:absolute;bottom:0;right:0;width:22px;height:22px;border-radius:50%;background:#7c3aed;border:2px solid #fff;cursor:pointer;padding:0;align-items:center;justify-content:center;" title="Cambiar foto" onclick="document.getElementById('settings-photo-input').click()">
-            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+      <!-- Portada + Avatar siempre visible -->
+      <div id="settings-cover-wrap" style="position:relative;margin:0 -20px;">
+        <div id="settings-cover-bg" style="height:110px;position:relative;background:#7c3aed;">
+          <button id="settings-cover-edit-btn" title="Editar portada" onclick="openCoverEditor()"
+            style="position:absolute;top:10px;right:14px;width:32px;height:32px;border-radius:50%;background:rgba(0,0,0,.38);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
           </button>
-          <input type="file" id="settings-photo-input" accept="image/*" style="display:none">
         </div>
-        <div>
-          <p id="settings-header-name" style="margin:0;font-weight:700;font-size:1rem;color:#111;"></p>
-          <p id="settings-header-plan" style="margin:2px 0 0;font-size:.75rem;"></p>
+        <div style="display:flex;align-items:flex-end;gap:14px;padding:0 20px 16px;margin-top:-30px;position:relative;">
+          <div id="settings-avatar-wrap" style="position:relative;width:64px;height:64px;flex-shrink:0;">
+            <div id="settings-avatar-placeholder" style="width:64px;height:64px;border-radius:50%;background:#f3e8ff;display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:700;color:#7c3aed;border:3px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.15);"></div>
+            <img id="settings-avatar-photo" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" alt="" style="display:none;width:64px;height:64px;border-radius:50%;object-fit:cover;border:3px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.15);">
+            <button id="settings-change-photo-btn" style="display:none;position:absolute;bottom:0;right:0;width:22px;height:22px;border-radius:50%;background:#7c3aed;border:2px solid #fff;cursor:pointer;padding:0;align-items:center;justify-content:center;" title="Cambiar foto" onclick="document.getElementById('settings-photo-input').click()">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            </button>
+            <input type="file" id="settings-photo-input" accept="image/*" style="display:none">
+          </div>
+          <div style="padding-bottom:2px;">
+            <p id="settings-header-name" style="margin:0;font-weight:700;font-size:1rem;color:#111;"></p>
+            <p id="settings-header-plan" style="margin:2px 0 0;font-size:.75rem;"></p>
+          </div>
         </div>
       </div>
 
@@ -766,6 +775,33 @@ document.addEventListener('DOMContentLoaded', () => {
       </div>
 
     </div>
+  </div>
+</div>
+
+<!-- ── Editor de portada (color + iconos) ── -->
+<div id="cover-editor-overlay" style="display:none;position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,.65);align-items:flex-end;justify-content:center;">
+  <div style="background:#fff;border-radius:20px 20px 0 0;width:100%;max-width:480px;max-height:88%;overflow-y:auto;padding:20px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+      <h3 style="margin:0;font-size:1rem;font-weight:700;color:#111;">Personalizar portada</h3>
+      <button onclick="closeCoverEditor()" style="background:none;border:none;font-size:20px;cursor:pointer;color:#888;line-height:1;"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" aria-hidden="true"><use href="#ic-x"/></svg></button>
+    </div>
+
+    <div id="cover-editor-preview" style="height:100px;border-radius:14px;margin-bottom:18px;background:#7c3aed;"></div>
+
+    <label style="font-size:.8rem;color:#555;display:block;margin-bottom:6px;">Color de fondo</label>
+    <input type="color" id="cover-color-input" value="#7c3aed" style="width:100%;height:40px;border:1px solid #ddd;border-radius:10px;margin-bottom:16px;padding:2px;cursor:pointer;">
+
+    <label style="font-size:.8rem;color:#555;display:block;margin-bottom:6px;">Color de los iconos</label>
+    <input type="color" id="cover-icon-color-input" value="#ffffff" style="width:100%;height:40px;border:1px solid #ddd;border-radius:10px;margin-bottom:16px;padding:2px;cursor:pointer;">
+
+    <label style="font-size:.8rem;color:#555;display:block;margin-bottom:6px;">Iconos <span style="color:#aaa;">(elige hasta 6)</span></label>
+    <div id="cover-icon-grid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:20px;"></div>
+
+    <button onclick="guardarPortada()" id="btn-guardar-portada"
+      style="width:100%;padding:11px;border-radius:10px;border:none;background:#7c3aed;color:#fff;font-size:.9rem;font-weight:700;cursor:pointer;">
+      Guardar portada
+    </button>
+    <p id="cover-editor-msg" style="text-align:center;font-size:.8rem;margin:8px 0 0;min-height:18px;"></p>
   </div>
 </div>
 
