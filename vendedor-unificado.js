@@ -507,7 +507,8 @@ if (liveBtn) liveBtn.style.display = (vendorSession && vendorSession.plan === 'p
 
 const verEntregasBtn = document.getElementById('btn-ver-entregas-panel');
 if (verEntregasBtn) verEntregasBtn.style.display = (vendorSession && vendorSession.plan === 'plus') ? 'flex' : 'none';
-
+renderChecklistVendedor();
+  
 const nameHeader = document.getElementById('vendor-name-header');
 if (nameHeader && vendorSession) {
 nameHeader.textContent = vendorSession.nombre;
@@ -1122,6 +1123,7 @@ function applyMyProducts(myProducts, container, total = null, currentPage = 1, t
   // Actualizar contador en la sesión
   if (vendorSession) {
     vendorSession.productosActuales = realTotal;
+    renderChecklistVendedor();
     localStorage.setItem('vendor_session', JSON.stringify(vendorSession));
   }
   if (typeof renderVendorPlanPanel === 'function') renderVendorPlanPanel();
@@ -2401,7 +2403,7 @@ async function guardarPerfil() {
     vendorSession.tiktok      = tiktok;
 
     try { localStorage.setItem('vendor_session', JSON.stringify(vendorSession)); } catch(e) {}
-
+    renderChecklistVendedor();
     const nameHeader = document.getElementById('vendor-name-header');
     if (nameHeader) nameHeader.textContent = nombre;
     updateVendorAvatar();
