@@ -3428,7 +3428,57 @@ function abrirModalCompartirTienda() {
 
 
 
+// ── Checklist de primeros pasos (vendedor nuevo) ────────────────────────────
+// Se calcula 100% de lo que ya trae vendorSession (login + refrescos ya
+// existentes) — no requiere ninguna llamada nueva a GAS. No incluye "sube tu
+// logo" a propósito: es exclusivo del plan Plus y todos los vendedores
+// inician en Free.
+function renderChecklistVendedor() {
+  const cont = document.getElementById('checklist-vendedor');
+  if (!cont || !vendorSession) return;
 
+  const uid = vendorSession.uid;
+  if (localStorage.getItem('zr_checklist_dismissed_' + uid) === 'true') {
+    cont.style.display = 'none';
+    return;
+  }
+
+  const pasos = [
+    { label: 'Escribe la descripción de tu negocio', hecho: !!(vendorSession.descripcion || '').trim() },
+    { label: 'Agrega tu WhatsApp de contacto', hecho: !!(vendorSession.whatsapp || '').trim() },
+    { label: 'Selecciona la categoría de tu negocio', hecho: !!(vendorSession.categoria || '').trim() },
+    { label: 'Agrega tu horario de disponibilidad', hecho: !!(vendorSession.horario || '').trim() },
+    { label: 'Publica tu primer producto', hecho: (vendorSession.productosActuales || 0) > 0 }
+  ];
+  const completados = pasos.filter(p => p.hecho).length;
+  const total = pasos.length;
+  const pct = Math.round((completados / total) * 100);
+
+  if (completados === total) {
+    cont.innerHTML = `
+      <div style="background:#ecfdf5;border:1px solid #a7f3d0;border-radius:14px;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:14px;">
+        <span style="font-size:.85rem;color:#065f46;font-weight:700;">🎉 ¡Perfil completo! Ya tienes todo listo para vender.</span>
+        <button onclick="localStorage.setItem('zr_checklist_dismissed_${uid}','true'); document.getElementById('checklist-vendedor').style.display='none';" style="background:none;border:none;font-size:16px;cursor:pointer;color:#065f46;">×</button>
+      </div>`;
+    return;
+  }
+
+  cont.style.display = 'block';
+  cont.innerHTML = `
+    <div style="background:#fff;border:1px solid #eee;border-radius:16px;padding:16px;margin-bottom:14px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+        <p style="margin:0;font-size:.85rem;font-weight:800;color:#333;">Primeros pasos (${completados}/${total})</p>
+        <button onclick="localStorage.setItem('zr_checklist_dismissed_${uid}','true'); document.getElementById('checklist-vendedor').style.display='none';" style="background:none;border:none;font-size:16px;cursor:pointer;color:#999;">×</button>
+      </div>
+      <div style="background:#f0f0f5;border-radius:20px;height:8px;overflow:hidden;margin-bottom:12px;">
+        <div style="background:linear-gradient(90deg,#7c3aed,#a78bfa);height:100%;width:${pct}%;transition:width .3s;"></div>
+      </div>
+      ${pasos.map(p => `
+        <div style="display:flex;align-items:center;gap:8px;padding:5px 0;font-size:.8rem;color:${p.hecho ? '#999' : '#333'};text-decoration:${p.hecho ? 'line-through' : 'none'};">
+          <span style="color:${p.hecho ? '#22c55e' : '#ccc'};font-weight:800;">${p.hecho ? '✓' : '○'}</span> ${p.label}
+        </div>`).join('')}
+    </div>`;
+}
 
 
 
