@@ -2751,6 +2751,10 @@ function _renderMisStats(result, grid, ratingSlot, ventasSlot) {
           <div style="font-size:11px;color:#555;">Pedidos sin stock</div>
         </div>
       </div>
+      ${(c.totalPedidos >= 5 && c.tasaConfirmacion < 50) ? `
+        <div style="margin-top:10px;background:#fef2f2;border:1px solid #fecaca;border-radius:14px;padding:12px;font-size:.78rem;color:#991b1b;">
+          💡 Estás confirmando menos de la mitad de tus pedidos (${c.sinStock} de ${c.totalPedidos} se fueron por falta de stock). Actualiza el inventario de tus productos más pedidos para no perder esas ventas.
+        </div>` : ''}
       ${v.tiempoRespuestaMin !== null && v.tiempoRespuestaMin !== undefined ? `
         <div style="margin-top:10px;background:#eff6ff;border-radius:14px;padding:12px;text-align:center;">
           <div style="font-size:18px;font-weight:800;color:#2563eb;">${_formatTiempoRespuesta(v.tiempoRespuestaMin)}</div>
