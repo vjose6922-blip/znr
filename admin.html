@@ -856,6 +856,10 @@
  <span class="amc-icon"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" aria-hidden="true"><use href="#ic-community"/></svg></span>
  <span class="amc-label">Modo Inspector (Comunidad)</span>
  </button>
+ <button type="button" class="admin-mini-card" onclick="openSugerenciasConfiableModal()">
+ <span class="amc-icon"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" aria-hidden="true"><use href="#ic-lock"/></svg></span>
+ <span class="amc-label">Sugerencias: Vendedor confiable</span>
+ </button> 
  <button type="button" class="admin-mini-card" onclick="openVendorStatsGlobal()">
  <span class="amc-icon"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" aria-hidden="true"><use href="#ic-stats"/></svg></span>
  <span class="amc-label">Estadísticas de Vendedores</span>
@@ -1764,6 +1768,83 @@ window.clearErrorLog = function() {
   window._emErrors = [];
   renderErrorLog();
 };
+
+
+
+
+
+
+
+ // ── Sugerencias: Vendedor confiable ────────────────────────────────────────
+async function openSugerenciasConfiableModal() {
+  const old = document.getElementById('modal-sugerencias-confiable');
+  if (old) old.remove();
+  const token = sessionStorage.getItem('admin_token') || '';
+  const api   = window.API_URL || '';
+  const esc   = s => String(s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+  const modal = document.createElement('div');
+  modal.id = 'modal-sugerencias-confiable';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:99999;display:flex;align-items:flex-end;justify-content:center;';
+  modal.innerHTML = `<div style="background:#1a1a2e;border-radius:20px 20px 0 0;width:100%;max-width:560px;max-height:88vh;overflow-y:auto;padding:0 0 32px;color:#fff;">
+    <div style="position:sticky;top:0;background:#1a1a2e;padding:18px 20px 14px;border-bottom:1px solid rgba(255,255,255,.08);display:flex;align-items:center;justify-content:space-between;gap:10px;z-index:2;">
+      <h2 style="margin:0;font-size:1rem;font-weight:800;">${Icon('lock')} Sugerencias: Vendedor confiable</h2>
+      <button id="btn-close-sugerencias-confiable" style="background:none;border:none;font-size:22px;cursor:pointer;color:#888;">×</button>
+    </div>
+    <div id="sc-body" style="padding:18px 20px;">Cargando…</div>
+  </div>`;
+  document.body.appendChild(modal);
+  document.getElementById('btn-close-sugerencias-confiable').onclick = () => modal.remove();
+  modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+
+  const bodyEl = document.getElementById('sc-body');
+
+  async function marcarConfiable(uid, btn) {
+    btn.disabled = true;
+    btn.textContent = 'Marcando…';
+    try {
+      const params = new URLSearchParams();
+      params.append('action', 'marcarVendedorConfiable');
+      params.append('token', token);
+      params.append('uid', uid);
+      params.append('confiable', 'true');
+      const res = await fetch(api, { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: params.toString() }).then(r => r.json());
+      if (!res.ok) throw new Error(res.error || 'Error del servidor');
+      const row = btn.closest('.sc-row');
+      if (row) row.remove();
+    } catch (e) {
+      btn.disabled = false;
+      btn.textContent = 'Reintentar';
+      alert('Error al marcar confiable: ' + e.message);
+    }
+  }
+
+  try {
+    if (!token) throw new Error('Sin sesión de admin');
+    const res = await fetch(api + '?' + new URLSearchParams({ action: 'obtenerSugerenciasConfiable', token })).then(r => r.json());
+    if (!res.ok) throw new Error(res.error || 'Error del servidor');
+
+    const sugerencias = res.sugerencias || [];
+    bodyEl.innerHTML = `
+      <p style="font-size:.78rem;color:#aaa;margin:0 0 16px;">Vendedores activos con al menos ${res.minVentasRequeridas} pedidos entregados, sin reportes pendientes de revisar, que todavía no están marcados como confiables.</p>
+      <div id="sc-list">
+        ${sugerencias.length ? sugerencias.map(s => `
+          <div class="sc-row" style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.06);gap:10px;">
+            <div>
+              <div style="font-size:.85rem;color:#eee;font-weight:600;">${esc(s.nombre)}</div>
+              <div style="font-size:.72rem;color:#888;">${s.ventasEntregadas} pedidos entregados</div>
+            </div>
+            <button class="sc-marcar-btn" data-uid="${esc(s.uid)}" style="padding:7px 14px;border:none;border-radius:20px;background:#2563eb;color:#fff;font-size:.75rem;font-weight:700;cursor:pointer;white-space:nowrap;">Marcar confiable</button>
+          </div>`).join('') : '<p style="color:#aaa;text-align:center;padding:20px 0;">No hay vendedores nuevos que sugerir por ahora.</p>'}
+      </div>`;
+
+    bodyEl.querySelectorAll('.sc-marcar-btn').forEach(btn => {
+      btn.addEventListener('click', () => marcarConfiable(btn.dataset.uid, btn));
+    });
+  } catch (e) {
+    bodyEl.innerHTML = '<p style="color:#ef4444;text-align:center;">Error al cargar sugerencias: ' + (e.message || '') + '</p>';
+  }
+}
 
 // ── Tiles de Crear Producto / Lista de Productos ───────────────────────────
 // Colapsados: tarjeta compacta (igual a las mini-cards de Notificaciones).
