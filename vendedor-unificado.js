@@ -3496,6 +3496,9 @@ function abrirModalCompartirTienda() {
         <button id="download-qr-btn" style="margin-top:8px;padding:6px 16px;border:none;border-radius:10px;background:#e0e7ff;color:#4c1d95;font-weight:600;cursor:pointer;font-size:.8rem;">⬇ Descargar QR</button>
       </div>
       <p style="font-size:.75rem;color:#888;margin:4px 0 0;">Escanea el QR o comparte el enlace para que otros vean tu perfil.</p>
+      <button id="share-text-copy-btn" style="width:100%;padding:9px;border:1px solid #ddd;border-radius:12px;background:#f9f9fb;color:#555;font-weight:600;cursor:pointer;font-size:.8rem;">
+        📘 Copiar texto para Facebook
+      </button>
     </div>
   `;
   document.body.appendChild(modal);
@@ -3550,6 +3553,13 @@ function abrirModalCompartirTienda() {
         document.execCommand('copy');
         showTemporaryMessage('Enlace copiado', 'success');
       });
+  });
+
+  document.getElementById('share-text-copy-btn')?.addEventListener('click', () => {
+    const texto = '🛍️ ¡' + (vendorSession.nombre || 'Mi tienda') + ' ya está en Z&R!\n\nRopa y accesorios directo de mi negocio, con entrega en Comunidad. Échale un vistazo a mi catálogo:\n' + shareUrl;
+    navigator.clipboard.writeText(texto)
+      .then(() => showTemporaryMessage('Texto copiado', 'success'))
+      .catch(() => showTemporaryMessage('No se pudo copiar', 'error'));
   });
 }
 
