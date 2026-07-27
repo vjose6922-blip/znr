@@ -1,6 +1,5 @@
 /* ============================================================
-   ZNR DevConsole (extendida + REPL)
-   Consola de depuración flotante con pestaña de comandos.
+   ZNR DevConsole (extendida + REPL con soporte CSP)
    ============================================================ */
 (function () {
   "use strict";
@@ -40,6 +39,15 @@
   // ---------- Estado REPL ----------
   var replCommands = [];            // cada entrada: { command, result, error? }
   var replHistoryIndex = -1;
+  // Detección de CSP que bloquea eval
+  var evalBlocked = false;
+  try {
+    (0, eval)("1+1");
+  } catch (e) {
+    if (e instanceof EvalError || e.name === "EvalError") {
+      evalBlocked = true;
+    }
+  }
 
   // ---------- Utilidades ----------
   function ts() {
@@ -320,6 +328,7 @@
       .znr-repl-cmd{color:#5dade2;}\
       .znr-repl-result{color:#e6e6e6;white-space:pre-wrap;word-break:break-all;padding-left:16px;}\
       .znr-repl-error{color:#ff6b6b;white-space:pre-wrap;word-break:break-all;padding-left:16px;}\
+      .znr-repl-warn{color:#f4d03f;background:rgba(244,208,63,.1);padding:6px;border-radius:4px;margin-bottom:6px;}\
       ";
     var styleEl = document.createElement("style");
     styleEl.id = "znr-dc-style";
@@ -828,10 +837,9 @@
       '</div>';
   }
 
-  // ---------- REPL (nuevo) ----------
+  // ---------- REPL (con soporte CSP) ----------
   function renderRepl() {
     var body = document.getElementById("znr-dc-body");
-    // Construir el HTML con input, toolbar y output
     var html = '<div id="znr-repl-container">' +
       '<div id="znr-repl-toolbar">' +
         '<button class="znr-btn-mini" id="znr-repl-run">▶ Ejecutar</button> ' +
@@ -840,9 +848,15 @@
       '<textarea id="znr-repl-input" rows="3" placeholder="Escribe código JavaScript (Ctrl+Enter para ejecutar)"></textarea>' +
       '<div id="znr-repl-output"></div>' +
       '</div>';
+
+    // Si eval está bloqueado por CSP, mostrar advertencia persistente
+    if (evalBlocked) {
+      html = html.replace('<div id="znr-repl-output">', 
+        '<div class="znr-repl-warn">⚠️ La política de seguridad (CSP) bloquea eval. El REPL no puede ejecutar código. Usa la consola nativa del navegador (F12) para depurar.</div><div id="znr-repl-output">');
+    }
+
     body.innerHTML = html;
 
-    // Mostrar historial de comandos
     var output = document.getElementById("znr-repl-output");
     if (replCommands.length === 0) {
       output.innerHTML = '<div class="znr-empty">No se han ejecutado comandos aún.</div>';
@@ -856,10 +870,17 @@
       output.scrollTop = output.scrollHeight;
     }
 
-    // Eventos del REPL
+    // Eventos
     var input = document.getElementById("znr-repl-input");
     var runBtn = document.getElementById("znr-repl-run");
     var clearBtn = document.getElementById("znr-repl-clear");
+
+    // Si eval está bloqueado, desactivamos el input y el botón
+    if (evalBlocked) {
+      if (input) { input.disabled = true; input.placeholder = "REPL deshabilitado por CSP"; }
+      if (runBtn) { runBtn.disabled = true; runBtn.style.opacity = "0.5"; }
+      return;
+    }
 
     function executeRepl() {
       var code = input.value.trim();
@@ -867,12 +888,8 @@
       var result;
       var error = false;
       try {
-        // Evaluar con eval en el ámbito global (usando Function para evitar acceso a variables locales)
-        // Usamos Function para que evalúe en el ámbito global y permita declaraciones.
-        result = (function() {
-          return eval(code);
-        })();
-        // Si el resultado es undefined, mostramos "undefined" explícitamente
+        // Usamos eval en el ámbito global
+        result = (0, eval)(code);
         if (result === undefined) {
           result = "undefined";
         } else {
@@ -885,21 +902,18 @@
       }
       replCommands.push({ command: code, result: result, error: error });
       replHistoryIndex = replCommands.length;
-      renderRepl(); // refresca la vista
-      // Enfocar input y mantener el contenido? mejor limpiar
+      renderRepl();
       input.value = "";
       input.focus();
     }
 
     runBtn.addEventListener("click", executeRepl);
 
-    // Ctrl+Enter para ejecutar
     input.addEventListener("keydown", function (e) {
       if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
         e.preventDefault();
         executeRepl();
       }
-      // Flechas para historial
       if (e.key === "ArrowUp" && !e.ctrlKey && !e.metaKey) {
         e.preventDefault();
         if (replCommands.length === 0) return;
@@ -907,7 +921,6 @@
         if (idx < 0) idx = 0;
         replHistoryIndex = idx;
         input.value = replCommands[idx].command;
-        // Mover cursor al final
         input.selectionStart = input.selectionEnd = input.value.length;
       }
       if (e.key === "ArrowDown" && !e.ctrlKey && !e.metaKey) {
@@ -951,5 +964,5 @@
     originalConsole.info("[ZNR DevConsole] Reporte exportado.");
   }
 
-  originalConsole.info("%c[ZNR DevConsole] Activo (extendida + REPL). Haz clic en el botón 🛠 (arriba a la derecha).", "color:#f39c12;font-weight:bold;");
+  originalConsole.info("%c[ZNR DevConsole] Activo (extendida + REPL con soporte CSP). Haz clic en el botón 🛠 (arriba a la derecha).", "color:#f39c12;font-weight:bold;");
 })();
