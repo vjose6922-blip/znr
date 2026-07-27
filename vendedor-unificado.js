@@ -3475,6 +3475,31 @@ function abrirModalCompartirTienda() {
   const baseDir = window.location.href.substring(0, window.location.href.lastIndexOf('/') + 1);
   const shareUrl = `${baseDir}perfil-vendedor.html?vendedor=${encodeURIComponent(vendorSession.uid)}`;
 
+  // --- Función interna para obtener la descripción del negocio ---
+  function obtenerDescripcionNegocio() {
+    // 1. Intentar con la categoría guardada en la sesión
+    if (vendorSession.categoria && vendorSession.categoria.trim() !== '') {
+      return `productos de ${vendorSession.categoria}`;
+    }
+
+    // 2. Si hay productos cargados, extraer categorías únicas
+    if (window._vendorProducts && window._vendorProducts.length > 0) {
+      const categorias = window._vendorProducts
+        .map(p => p.categoria)
+        .filter(c => c && c.trim() !== '');
+      if (categorias.length > 0) {
+        const unicas = [...new Set(categorias)];
+        if (unicas.length === 1) return `productos de ${unicas[0]}`;
+        if (unicas.length === 2) return `${unicas[0]} y ${unicas[1]}`;
+        if (unicas.length > 2) return `${unicas[0]}, ${unicas[1]} y más`;
+        return 'productos y servicios';
+      }
+    }
+
+    // 3. Fallback genérico
+    return 'productos y servicios';
+  }
+
   // Eliminar modal antiguo si existe
   const oldModal = document.getElementById('modal-compartir-tienda');
   if (oldModal) oldModal.remove();
@@ -3521,6 +3546,11 @@ function abrirModalCompartirTienda() {
   });
   qrCode.append(qrContainer);
 
+  // --- Construir el texto dinámico una sola vez ---
+  const nombreVendedor = vendorSession.nombre || 'Mi tienda';
+  const descripcion = obtenerDescripcionNegocio();
+  const textoPublicacion = `🛍️ ¡Descubre ${nombreVendedor} en Z&R! Tenemos ${descripcion} con entrega en Comunidad. Haz tu pedido y apoya el comercio local. 📲\n\n👉 Visita mi catálogo:\n${shareUrl}\n\n#ZR #TiendaLocal #Comunidad`;
+
   // --- Botón Copiar enlace (cierra modal) ---
   document.getElementById('share-copy-btn')?.addEventListener('click', () => {
     navigator.clipboard.writeText(shareUrl)
@@ -3531,35 +3561,37 @@ function abrirModalCompartirTienda() {
         document.execCommand('copy');
         showTemporaryMessage('Enlace copiado', 'success');
       });
-    modal.remove(); // Cierra el modal
+    modal.remove();
   });
 
   // --- Botón Descargar QR (cierra modal) ---
   document.getElementById('download-qr-btn')?.addEventListener('click', () => {
     qrCode.download({ name: "qr-mi-tienda", extension: "png" });
-    modal.remove(); // Cierra el modal
+    modal.remove();
   });
 
-  // --- Botón Copiar texto para Facebook (mejorado) (cierra modal) ---
+  // --- Botón Copiar publicación para Facebook (cierra modal) ---
   document.getElementById('share-text-copy-btn')?.addEventListener('click', () => {
-    const nombreVendedor = vendorSession.nombre || 'Mi tienda';
-    const texto = `👗 ¡Descubre ${nombreVendedor} en Z&R! 🛍️\n\nTenemos ropa y accesorios para todos los estilos, con entrega en Comunidad. Haz tu pedido y luce increíble. 📲\n\n👉 Visita mi catálogo:\n${shareUrl}\n\n#ZR #TiendaLocal #Ropa #Accesorios #Moda #Comunidad`;
-    navigator.clipboard.writeText(texto)
+    navigator.clipboard.writeText(textoPublicacion)
       .then(() => showTemporaryMessage('Texto copiado', 'success'))
       .catch(() => showTemporaryMessage('No se pudo copiar', 'error'));
-    modal.remove(); // Cierra el modal
+    modal.remove();
   });
 
-  // --- Botón Compartir en Facebook (directo) (cierra modal) ---
-  document.getElementById('share-facebook-btn')?.addEventListener('click', () => {
-    const url = encodeURIComponent(shareUrl);
-    const quote = encodeURIComponent(`👗 ¡Descubre ${vendorSession.nombre || 'Mi tienda'} en Z&R! Ropa y accesorios directo de mi negocio.`);
-    const fbUrl = `https://www.facebook.com/sharer/sharer.php?u=${url}&quote=${quote}`;
-    window.open(fbUrl, '_blank', 'width=600,height=400');
-    modal.remove(); // Cierra el modal
-  });
+// --- Botón Compartir en Facebook (directo, cierra modal) ---
+document.getElementById('share-facebook-btn')?.addEventListener('click', () => {
+  // 🔥 Copia el texto al portapapeles como plan B
+  navigator.clipboard.writeText(textoPublicacion)
+    .then(() => showTemporaryMessage('📋 Texto copiado. Pégalo en tu publicación si no aparece.', 'success'))
+    .catch(() => {}); // Silencioso si falla
+
+  const url = encodeURIComponent(shareUrl);
+  const quote = encodeURIComponent(`🛍️ ¡Descubre ${nombreVendedor} en Z&R! Tenemos ${descripcion}.`);
+  const fbUrl = `https://www.facebook.com/sharer/sharer.php?u=${url}&quote=${quote}`;
+  window.open(fbUrl, '_blank', 'width=600,height=400');
+  modal.remove();
+});
 }
-
 
 
 // ── Checklist de primeros pasos (vendedor nuevo) ────────────────────────────
