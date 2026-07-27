@@ -3488,62 +3488,40 @@ function abrirModalCompartirTienda() {
         <h3 style="margin:0;font-size:1.1rem;font-weight:800;">${Icon('share')} Compartir tienda</h3>
         <button onclick="this.closest('#modal-compartir-tienda').remove()" style="background:none;border:none;font-size:24px;cursor:pointer;color:#888;">×</button>
       </div>
-      <!-- Contenedor donde se dibujará el QR estilizado -->
+      <!-- Contenedor del QR -->
       <div id="qr-code-styling-container" style="display:flex;justify-content:center;margin:10px 0 18px;"></div>
       <div style="display:flex;gap:8px;margin-bottom:10px;">
         <input type="text" id="share-url-input" value="${shareUrl}" readonly style="flex:1;padding:8px 12px;border:1px solid #ddd;border-radius:10px;font-size:.85rem;background:#f5f5f8;outline:none;">
         <button id="share-copy-btn" style="padding:8px 16px;border:none;border-radius:10px;background:#7c3aed;color:#fff;font-weight:700;cursor:pointer;">Copiar</button>
-        <button id="download-qr-btn" style="margin-top:8px;padding:6px 16px;border:none;border-radius:10px;background:#e0e7ff;color:#4c1d95;font-weight:600;cursor:pointer;font-size:.8rem;">⬇ Descargar QR</button>
       </div>
-      <p style="font-size:.75rem;color:#888;margin:4px 0 0;">Escanea el QR o comparte el enlace para que otros vean tu perfil.</p>
-      <button id="share-text-copy-btn" style="width:100%;padding:9px;border:1px solid #ddd;border-radius:12px;background:#f9f9fb;color:#555;font-weight:600;cursor:pointer;font-size:.8rem;">
-        📘 Copiar texto para Facebook
+      <div style="display:flex;justify-content:center;gap:8px;margin-top:4px;">
+        <button id="download-qr-btn" style="padding:6px 16px;border:none;border-radius:10px;background:#e0e7ff;color:#4c1d95;font-weight:600;cursor:pointer;font-size:.8rem;">⬇ Descargar QR</button>
+        <button id="share-facebook-btn" style="padding:6px 16px;border:none;border-radius:10px;background:#1877f2;color:#fff;font-weight:600;cursor:pointer;font-size:.8rem;">📘 Compartir en Facebook</button>
+      </div>
+      <p style="font-size:.75rem;color:#888;margin:8px 0 4px;">Escanea el QR o comparte el enlace para que otros vean tu perfil.</p>
+      <button id="share-text-copy-btn" style="width:100%;padding:9px;border:1px solid #ddd;border-radius:12px;background:#f9f9fb;color:#555;font-weight:600;cursor:pointer;font-size:.8rem;margin-top:6px;">
+        📋 Copiar publicación para Facebook
       </button>
     </div>
   `;
   document.body.appendChild(modal);
   modal.addEventListener('click', (e) => { if (e.target === modal) modal.remove(); });
 
-  // --- Generar el QR con QRCodeStyling ---
+  // --- Generar QR ---
   const qrContainer = document.getElementById('qr-code-styling-container');
-  // Limpiar el contenedor por si el modal se reabre
   qrContainer.innerHTML = '';
-
-  // Instanciamos el QR con todas las opciones de estilo
   const qrCode = new QRCodeStyling({
-    width: 180,               // Tamaño en píxeles
+    width: 180,
     height: 180,
-    data: shareUrl,           // El enlace que se codificará
-    // image: 'https://tu-logotipo.com/logo.png', // <--- DESCOMENTA y pon tu logo si quieres
-    dotsOptions: {
-      color: "#7c3aed",       // Color de los módulos (puntos) - Usa el morado de tu botón
-      type: "rounded"         // Estilo: "square", "rounded" o "dots"
-    },
-    backgroundOptions: {
-      color: "#ffffff",       // Fondo blanco
-    },
-    cornersSquareOptions: {
-      color: "#5b21b6",       // Color de los cuadros de las esquinas (un poco más oscuro)
-      type: "dot"             // Estilo: "square", "dot" o "extra-rounded"
-    },
-    cornersDotOptions: {
-      color: "#7c3aed",       // Color de los puntitos internos de las esquinas
-      type: "dot"
-    }
+    data: shareUrl,
+    dotsOptions: { color: "#7c3aed", type: "rounded" },
+    backgroundOptions: { color: "#ffffff" },
+    cornersSquareOptions: { color: "#5b21b6", type: "dot" },
+    cornersDotOptions: { color: "#7c3aed", type: "dot" }
   });
-
-  // Dibujar el QR dentro del contenedor
   qrCode.append(qrContainer);
 
-    document.getElementById('download-qr-btn')?.addEventListener('click', () => {
-    // Descarga en formato PNG (también soporta 'jpeg' y 'svg')
-    qrCode.download({ name: "qr-mi-tienda", extension: "png" });
-  });
-
-  // Opcional: Guardar la instancia en una variable global si quieres permitir descargar el QR luego
-  // window.qrInstance = qrCode; 
-
-  // --- Lógica para copiar el enlace (sin cambios) ---
+  // --- Botón Copiar enlace (cierra modal) ---
   document.getElementById('share-copy-btn')?.addEventListener('click', () => {
     navigator.clipboard.writeText(shareUrl)
       .then(() => showTemporaryMessage('Enlace copiado', 'success'))
@@ -3553,13 +3531,32 @@ function abrirModalCompartirTienda() {
         document.execCommand('copy');
         showTemporaryMessage('Enlace copiado', 'success');
       });
+    modal.remove(); // Cierra el modal
   });
 
+  // --- Botón Descargar QR (cierra modal) ---
+  document.getElementById('download-qr-btn')?.addEventListener('click', () => {
+    qrCode.download({ name: "qr-mi-tienda", extension: "png" });
+    modal.remove(); // Cierra el modal
+  });
+
+  // --- Botón Copiar texto para Facebook (mejorado) (cierra modal) ---
   document.getElementById('share-text-copy-btn')?.addEventListener('click', () => {
-    const texto = '🛍️ ¡' + (vendorSession.nombre || 'Mi tienda') + ' ya está en Z&R!\n\nRopa y accesorios directo de mi negocio, con entrega en Comunidad. Échale un vistazo a mi catálogo:\n' + shareUrl;
+    const nombreVendedor = vendorSession.nombre || 'Mi tienda';
+    const texto = `👗 ¡Descubre ${nombreVendedor} en Z&R! 🛍️\n\nTenemos ropa y accesorios para todos los estilos, con entrega en Comunidad. Haz tu pedido y luce increíble. 📲\n\n👉 Visita mi catálogo:\n${shareUrl}\n\n#ZR #TiendaLocal #Ropa #Accesorios #Moda #Comunidad`;
     navigator.clipboard.writeText(texto)
       .then(() => showTemporaryMessage('Texto copiado', 'success'))
       .catch(() => showTemporaryMessage('No se pudo copiar', 'error'));
+    modal.remove(); // Cierra el modal
+  });
+
+  // --- Botón Compartir en Facebook (directo) (cierra modal) ---
+  document.getElementById('share-facebook-btn')?.addEventListener('click', () => {
+    const url = encodeURIComponent(shareUrl);
+    const quote = encodeURIComponent(`👗 ¡Descubre ${vendorSession.nombre || 'Mi tienda'} en Z&R! Ropa y accesorios directo de mi negocio.`);
+    const fbUrl = `https://www.facebook.com/sharer/sharer.php?u=${url}&quote=${quote}`;
+    window.open(fbUrl, '_blank', 'width=600,height=400');
+    modal.remove(); // Cierra el modal
   });
 }
 
