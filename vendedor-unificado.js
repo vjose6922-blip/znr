@@ -3446,12 +3446,27 @@ function renderChecklistVendedor() {
   }
 
   const pasos = [
-    { label: 'Escribe la descripción de tu negocio', hecho: !!(vendorSession.descripcion || '').trim() },
-    { label: 'Agrega tu WhatsApp de contacto', hecho: !!(vendorSession.whatsapp || '').trim() },
-    { label: 'Selecciona la categoría de tu negocio', hecho: !!(vendorSession.categoria || '').trim() },
-    { label: 'Agrega tu horario de disponibilidad', hecho: !!(vendorSession.horario || '').trim() },
-    { label: 'Publica tu primer producto', hecho: (vendorSession.productosActuales || 0) > 0 }
-  ];
+  {
+    label: 'Escribe la descripción de tu negocio',
+    hecho: String(vendorSession.descripcion ?? '').trim() !== ''
+  },
+  {
+    label: 'Agrega tu WhatsApp de contacto',
+    hecho: String(vendorSession.whatsapp ?? '').trim() !== ''
+  },
+  {
+    label: 'Selecciona la categoría de tu negocio',
+    hecho: String(vendorSession.categoria ?? '').trim() !== ''
+  },
+  {
+    label: 'Agrega tu horario de disponibilidad',
+    hecho: String(vendorSession.horario ?? '').trim() !== ''
+  },
+  {
+    label: 'Publica tu primer producto',
+    hecho: Number(vendorSession.productosActuales || 0) > 0
+  }
+];
   const completados = pasos.filter(p => p.hecho).length;
   const total = pasos.length;
   const pct = Math.round((completados / total) * 100);
