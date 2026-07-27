@@ -450,7 +450,10 @@ facebook: res.facebook || '',
 twitter: res.twitter || '',
 instagram: res.instagram || '',
 tiktok: res.tiktok || '',
-fechaRegistro: res.fechaRegistro || ''
+fechaRegistro: res.fechaRegistro || '',
+coverBg: res.coverBg || '',
+coverIcons: res.coverIcons || '',
+coverIconColor: res.coverIconColor || ''
 };
 localStorage.setItem('vendor_session', JSON.stringify(vendorSession));
 
