@@ -515,6 +515,10 @@ document.addEventListener('DOMContentLoaded', () => {
  <span class="nav-icon"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" aria-hidden="true"><use href="#ic-community"/></svg></span>
  <span>Comunidad</span>
  </button>
+ <button class="bottom-nav-item" id="nav-v-actividad">
+ <span class="nav-icon"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" aria-hidden="true"><use href="#ic-fire"/></svg></span>
+ <span>Actividad</span>
+ </button>
  <button class="bottom-nav-item active" id="nav-v-productos" data-vendor-page="products">
  <span class="nav-icon"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" aria-hidden="true"><use href="#ic-grid"/></svg></span>
  <span>Productos</span>
@@ -540,6 +544,7 @@ document.addEventListener('DOMContentLoaded', () => {
  document.getElementById('nav-comunidad')?.addEventListener('click', () => { window.location.href = 'comunidad.html'; });
 
  document.getElementById('nav-v-comunidad')?.addEventListener('click', () => { window.location.href = 'comunidad.html'; });
+ document.getElementById('nav-v-actividad')?.addEventListener('click', () => { window.location.href = 'feed-actividad.html'; });
  document.getElementById('nav-v-productos')?.addEventListener('click', () => { window.switchTab && window.switchTab('products'); });
  document.getElementById('nav-v-publicar')?.addEventListener('click', () => { window.switchTab && window.switchTab('form'); });
  document.getElementById('nav-v-ajustes')?.addEventListener('click', () => { window.openSettingsModal && window.openSettingsModal(); });
