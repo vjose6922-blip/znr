@@ -127,9 +127,11 @@
       }
     }
 
-    cargarFeed();
-    // Se siente "vivo": refresca sola cada minuto, sin que el usuario tenga que jalar/recargar.
-    setInterval(cargarFeed, 60000);
+    document.addEventListener('DOMContentLoaded', () => {
+      cargarFeed();
+      // Se siente "vivo": refresca sola cada minuto, sin que el usuario tenga que jalar/recargar.
+      setInterval(cargarFeed, 60000);
+    });
   </script>
 </body>
 </html>
