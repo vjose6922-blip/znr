@@ -282,9 +282,30 @@ function renderDynamicArea(sol) {
     return;
   }
 
-  if (sol.estado === 'pending' || sol.estado === 'approved' || sol.estado === 'plus_activo') {
-    const esRenovacion = sol.estado === 'plus_activo';
-    const importe = sol.importe || 49;
+  // Ya es Plus: calculamos si está por vencer (7 días o menos)
+  let diasRestantes = null;
+  let porVencer = false;
+  if (sol.estado === 'plus_activo') {
+    if (sol.vence) {
+      diasRestantes = Math.ceil((new Date(sol.vence) - new Date()) / 86400000);
+    }
+    porVencer = diasRestantes !== null && diasRestantes <= 7;
+
+    if (!porVencer) {
+      area.innerHTML = `
+        <div class="pp-status-card">
+          <p class="title">${Icon('check')} Ya eres Plan Plus</p>
+          <p>${diasRestantes !== null ? `Tu plan sigue activo por ${diasRestantes} día${diasRestantes === 1 ? '' : 's'} más.` : 'Tu plan está activo.'}</p>
+        </div>
+      `;
+      return;
+    }
+  }
+
+  // Pago pendiente (primera vez) o renovación (por vencer en 7 días o menos)
+  if (sol.estado === 'pending' || sol.estado === 'approved' || porVencer) {
+    const esRenovacion = porVencer;
+    const importe = sol.importe || 149;
     const dias = sol.dias || 30;
     document.getElementById('pp-price').innerHTML = `$${importe}<span> MXN / mes</span>`;
 
@@ -295,9 +316,9 @@ function renderDynamicArea(sol) {
     const waTexto = encodeURIComponent(`Hola, ya realicé mi pago del Plan Plus. Mi tienda: ${nombreTienda}. Teléfono: ${telVendedor}.`);
     const waConfirmUrl = waNum ? `https://wa.me/${waNum}?text=${waTexto}` : '#';
 
-    const titulo = esRenovacion ? `${Icon('check')} Renueva tu Plan Plus` : `${Icon('clock')} Solicitud enviada`;
+    const titulo = esRenovacion ? `${Icon('clock')} Tu Plan Plus vence pronto` : `${Icon('clock')} Solicitud enviada`;
     const texto  = esRenovacion
-      ? 'Tu plan está activo. Realiza el pago y el administrador extenderá tu vigencia.'
+      ? `Te quedan ${diasRestantes} día${diasRestantes === 1 ? '' : 's'}. Realiza el pago y avísanos por WhatsApp para extender tu vigencia.`
       : 'Realiza tu pago y avísanos por WhatsApp. En cuanto confirmemos tu pago, activaremos tu Plan Plus.';
 
     area.innerHTML = `
