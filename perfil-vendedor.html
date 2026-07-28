@@ -1129,27 +1129,7 @@
       const PROFILE_CACHE_PREFIX = 'zr_perfil_';
       const PROFILE_CACHE_TTL    = 30 * 60 * 1000; // 30 min, persiste entre visitas
 
-      function getProfileCache(uid) {
-        try {
-          const raw = localStorage.getItem(PROFILE_CACHE_PREFIX + uid);
-          if (!raw) return null;
-          const { data, timestamp } = JSON.parse(raw);
-          if (Date.now() - timestamp > PROFILE_CACHE_TTL) {
-            localStorage.removeItem(PROFILE_CACHE_PREFIX + uid);
-            return null;
-          }
-          return data;
-        } catch (e) { return null; }
-      }
-
-      function setProfileCache(uid, data) {
-        try {
-          localStorage.setItem(
-            PROFILE_CACHE_PREFIX + uid,
-            JSON.stringify({ data, timestamp: Date.now() })
-          );
-        } catch (e) {}
-      }
+     
 
       // ── Skeleton inmediato mientras carga ──
       function showProfileSkeleton(container, cardCount = 6) {
@@ -1244,13 +1224,8 @@
           return;
         }
         const container = document.getElementById('profile-container');
-        // 1. Si hay caché fresco (< 30 min), usarlo y no llamar a GAS/Firestore
-        const cached = getProfileCache(uid);
-        if (cached) {
-          renderProfile(cached);
-          return;
-        }
-        // 2. Sin caché: mostrar skeleton + fetch (con reintento automático)
+        // Sin caché local: GAS/Firestore ya sirven con caché activo
+        // del lado del servidor, invalidado al guardar cambios.
         if (container) showProfileSkeleton(container, 6);
         try {
           let data = null;
@@ -1273,7 +1248,6 @@
             data = await fetchProfileWithRetry(apiUrl, uid);
           }
 
-          setProfileCache(uid, data);
           renderProfile(data);
         } catch (err) {
           console.error('Error cargando perfil:', err);
@@ -1284,26 +1258,24 @@
 
       // Inicio
       document.addEventListener('DOMContentLoaded', function() {
-        const uid = getVendorUid();
-        if (uid) {
-          // Si hay caché, el loader apenas aparece; si no, skeleton lo cubre
-          const hasCached = !!getProfileCache(uid);
-          if (!hasCached) showLoader('Cargando perfil...');
-          fetchProfile(uid);
-        } else {
-          const container = document.getElementById('profile-container');
-          if (container) {
-            container.innerHTML = `
-              <div style="text-align:center;padding:60px 20px;color:var(--color-text-muted);">
-                <p style="font-size:20px;">${Icon('user', {size:20})}</p>
-                <p>No se encontró el vendedor.</p>
-                <a href="comunidad.html" class="back-link" style="margin-top:16px;">${Icon('arrow-left')} Volver a Comunidad</a>
-              </div>
-            `;
-          }
-          hideLoader();
-        }
-      });
+  const uid = getVendorUid();
+  if (uid) {
+    showLoader('Cargando perfil...');
+    fetchProfile(uid);
+  } else {
+    const container = document.getElementById('profile-container');
+    if (container) {
+      container.innerHTML = `
+        <div style="text-align:center;padding:60px 20px;color:var(--color-text-muted);">
+          <p style="font-size:20px;">${Icon('user', {size:20})}</p>
+          <p>No se encontró el vendedor.</p>
+          <a href="comunidad.html" class="back-link" style="margin-top:16px;">${Icon('arrow-left')} Volver a Comunidad</a>
+        </div>
+      `;
+    }
+    hideLoader();
+  }
+});
 
     })();
 
