@@ -282,16 +282,7 @@ function renderDynamicArea(sol) {
     return;
   }
 
-  if (sol.estado === 'pending') {
-    area.innerHTML = `
-      <div class="pp-status-card">
-        <p class="title">${Icon('clock')} Solicitud enviada</p>
-        <p>Tu solicitud está en espera de aprobación del administrador. Te avisaremos en cuanto esté lista para pagar.</p>
-      </div>`;
-    return;
-  }
-
-  if (sol.estado === 'approved' || sol.estado === 'plus_activo') {
+  if (sol.estado === 'pending' || sol.estado === 'approved' || sol.estado === 'plus_activo') {
     const esRenovacion = sol.estado === 'plus_activo';
     const importe = sol.importe || 49;
     const dias = sol.dias || 30;
@@ -304,10 +295,15 @@ function renderDynamicArea(sol) {
     const waTexto = encodeURIComponent(`Hola, ya realicé mi pago del Plan Plus. Mi tienda: ${nombreTienda}. Teléfono: ${telVendedor}.`);
     const waConfirmUrl = waNum ? `https://wa.me/${waNum}?text=${waTexto}` : '#';
 
+    const titulo = esRenovacion ? `${Icon('check')} Renueva tu Plan Plus` : `${Icon('clock')} Solicitud enviada`;
+    const texto  = esRenovacion
+      ? 'Tu plan está activo. Realiza el pago y el administrador extenderá tu vigencia.'
+      : 'Realiza tu pago y avísanos por WhatsApp. En cuanto confirmemos tu pago, activaremos tu Plan Plus.';
+
     area.innerHTML = `
       <div class="pp-status-card">
-        <p class="title">${Icon('check')} ${esRenovacion ? 'Renueva tu Plan Plus' : '¡Plan Plus aprobado!'}</p>
-        <p>${esRenovacion ? 'Tu plan está activo. Realiza el pago y el administrador extenderá tu vigencia.' : 'Realiza tu pago para activarlo. El administrador lo confirmará.'}</p>
+        <p class="title">${titulo}</p>
+        <p>${texto}</p>
       </div>
       <div class="pp-pay-card">
         <div class="bank-name">Transferencia bancaria</div>
