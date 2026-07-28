@@ -786,7 +786,7 @@ if (esPlus && diasRestantes != null && diasRestantes <= 7) {
   renovacionHTML = `
     <div style="margin-top:8px;background:#fff8e1;color:#92702a;font-size:12px;border-radius:10px;padding:8px 12px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
       <span>Tu plan Plus vence en ${diasRestantes} día${diasRestantes === 1 ? '' : 's'}. Renueva para no perder tu visibilidad.</span>
-      <button onclick="openSettingsModal(true)" style="padding:6px 14px;border:none;border-radius:20px;background:linear-gradient(135deg,#7c3aed,#a855f7);color:#fff;font-weight:700;font-size:12px;cursor:pointer;">
+      <button onclick="location.href='plan-plus.html'" style="padding:6px 14px;border:none;border-radius:20px;background:linear-gradient(135deg,#7c3aed,#a855f7);color:#fff;font-weight:700;font-size:12px;cursor:pointer;">
         Renovar
       </button>
     </div>
