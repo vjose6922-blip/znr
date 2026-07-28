@@ -507,6 +507,8 @@ if (section === 'beneficiarios' && typeof loadSolicitudesBeneficiario === 'funct
 
  loadSolicitudesPlus();
  if (typeof loadReportesLive === 'function') loadReportesLive();
+ if (typeof loadBeneficiarios === 'function') loadBeneficiarios();
+ if (typeof loadSolicitudesBeneficiario === 'function') loadSolicitudesBeneficiario();
 
  window.refreshAllAdminBadges = function() {
  window.refreshNotifPageKeepScroll && window.refreshNotifPageKeepScroll();
@@ -530,7 +532,7 @@ if (section === 'beneficiarios' && typeof loadSolicitudesBeneficiario === 'funct
  }
  });
 
- window._notifSectionCounts = { solicitudes: 0, vendors: 0, pending: 0, reportes: 0, reportes_live: 0 };
+ window._notifSectionCounts = { solicitudes: 0, vendors: 0, pending: 0, reportes: 0, reportes_live: 0, plus: 0, beneficiarios: 0 };
 
  function _rebuildHeaderBadge() {
  const total = Object.values(window._notifSectionCounts).reduce((a, b) => a + b, 0);
@@ -592,8 +594,8 @@ if (section === 'beneficiarios' && typeof loadSolicitudesBeneficiario === 'funct
  async function loadSolicitudesPlus() {
    const listEl = document.getElementById('admin-plus-list');
    if (!listEl) return;
-   const API = window.SCRIPT_URL || (window.AppConfig && window.AppConfig.scriptUrl);
-   const token = window._adminToken || sessionStorage.getItem('adminToken');
+   const API = window.API_URL || '';
+   const token = sessionStorage.getItem('admin_token') || '';
    if (!API || !token) return;
 
    const refreshBtn = document.getElementById('refresh-plus-btn');
@@ -657,8 +659,8 @@ if (section === 'beneficiarios' && typeof loadSolicitudesBeneficiario === 'funct
  async function confirmarRespuestaPlus(respuesta, btn) {
    const errEl = document.getElementById('plus-modal-error');
    errEl.style.display = 'none';
-   const API = window.SCRIPT_URL || (window.AppConfig && window.AppConfig.scriptUrl);
-   const token = window._adminToken || sessionStorage.getItem('adminToken');
+   const API = window.API_URL || '';
+   const token = sessionStorage.getItem('admin_token') || '';
    if (!API || !token) return;
 
    const body = {

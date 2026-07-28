@@ -744,10 +744,14 @@ window.loadBeneficiarios = async function(force) {
     const data  = await res.json();
     if (!data.ok) { list.innerHTML = `<p style="color:#ef4444;text-align:center;padding:16px;">Error: ${data.error}</p>`; return; }
     const bens  = data.beneficiarios || [];
-    const cnt   = document.getElementById('sc-beneficiarios');
-    const badge = document.getElementById('tab-badge-beneficiarios');
-    if (cnt)   cnt.textContent   = bens.length;
-    if (badge) badge.textContent = bens.length;
+    if (typeof window._updateNotifTabBadge === 'function') {
+      window._updateNotifTabBadge('beneficiarios', bens.length);
+    } else {
+      const cnt   = document.getElementById('sc-beneficiarios');
+      const badge = document.getElementById('tab-badge-beneficiarios');
+      if (cnt)   cnt.textContent   = bens.length;
+      if (badge) badge.textContent = bens.length;
+    }
     if (bens.length === 0) { list.innerHTML = '<p style="color:#aaa;text-align:center;padding:32px;">No hay solicitudes pendientes.</p>'; return; }
     const esc = s => String(s||'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
     list.innerHTML = bens.map(b => `
