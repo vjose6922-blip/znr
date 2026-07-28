@@ -83,7 +83,7 @@ onMessage(messaging, (payload) => {
   if (title && Notification.permission === "granted") {
     new Notification(title, { body, icon: "/znr/logo.svg" });
   }
-  window.dispatchEvent(new CustomEvent('ZNR:nueva-notificacion'));
+  window.dispatchEvent(new CustomEvent('znr:nueva-notificacion'));
 });
 
 // Se exponen para usarlas desde common.js / comunidad.js (scripts normales, no módulo)
