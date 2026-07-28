@@ -15,6 +15,23 @@ const _icWarn   = '<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13
 const NOTIF_CACHE_KEY = 'zr_notifications_v2';
 const NOTIF_CACHE_TTL = 30000;
 
+// Skeleton reusable para listas del panel admin (vendors, pending, reportes,
+// plus, beneficiarios, etc.) mientras esperan su primer fetch. Sustituye el
+// "Cargando..." de texto plano por tarjetas fantasma con shimmer, en el
+// mismo estilo visual de .vendor-row/.pending-product-row.
+window.znrSkeletonRows = function(count) {
+  count = count || 3;
+  var row = '<div class="zr-skel-card">' +
+    '<div class="zr-skel-avatar zr-skel-shimmer"></div>' +
+    '<div class="zr-skel-lines">' +
+      '<div class="zr-skel-line w70 zr-skel-shimmer"></div>' +
+      '<div class="zr-skel-line w40 zr-skel-shimmer"></div>' +
+    '</div>' +
+  '</div>';
+  return new Array(count).fill(row).join('');
+};
+
+
 const LIST = _icList;
 const CLOCK = _icClock;
 const CHECK = _icCheck;
@@ -737,7 +754,7 @@ window.invalidateNotificationsCache = invalidateNotificationsCache;
 window.loadBeneficiarios = async function(force) {
   const list = document.getElementById('admin-beneficiarios-list');
   if (!list) return;
-  list.innerHTML = '<p style="color:#aaa;text-align:center;padding:24px;">Cargando…</p>';
+  list.innerHTML = window.znrSkeletonRows(3);
   try {
     const token = sessionStorage.getItem('admin_token') || '';
     const res   = await fetch(API_URL + '?' + new URLSearchParams({ action:'obtenerBeneficiarios', estado:'pendiente', token }));
@@ -818,7 +835,7 @@ window.adminRechazarBeneficiario = async function(id, btn) {
 window.loadSolicitudesBeneficiario = async function(force) {
   const list = document.getElementById('admin-solicitudes-beneficiario-list');
   if (!list) return;
-  list.innerHTML = '<p style="color:#aaa;text-align:center;padding:16px;">Cargando…</p>';
+  list.innerHTML = window.znrSkeletonRows(3);
   try {
     const token = sessionStorage.getItem('admin_token') || '';
     const res   = await fetch(API_URL + '?' + new URLSearchParams({ action:'obtenerSolicitudesBeneficiario', token }));
@@ -934,7 +951,7 @@ window.adminRechazarSolicitudBeneficiario = async function(id, btn) {
 window.loadReportesLive = async function() {
   const list = document.getElementById('admin-reportes-live-list');
   if (!list) return;
-  list.innerHTML = '<p style="color:#aaa;text-align:center;padding:24px;">Cargando…</p>';
+  list.innerHTML = window.znrSkeletonRows(3);
   try {
     const token = sessionStorage.getItem('admin_token') || '';
     const res   = await fetch(API_URL + '?' + new URLSearchParams({ action:'obtenerReportesLive', token }));

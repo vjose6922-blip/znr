@@ -366,16 +366,40 @@ async function solicitar() {
   }
 }
 
+let _ppPollInterval = null;
+
 async function cargar(forceRefresh) {
   try {
     const res = await apiCall({ action: 'getPlusSolicitudVendedor', vendorToken: vendorSession.token });
-    renderDynamicArea(res.solicitud || null);
+    const sol = res.solicitud || null;
+    renderDynamicArea(sol);
     document.getElementById('pp-loading').style.display = 'none';
     document.getElementById('pp-content').style.display = 'block';
+    _ppManagePolling(sol);
   } catch (e) {
     document.getElementById('pp-loading').textContent = 'No se pudo cargar. Desliza para actualizar o vuelve a intentarlo.';
   }
 }
+
+// Mientras la solicitud sigue "pending" (esperando que el admin la revise),
+// se refresca sola cada 20s — así si apruebas/rechazas mientras el vendedor
+// sigue con esta página abierta, ve el cambio sin tener que recargar a mano.
+// En cuanto sale de 'pending' (approved/denied/plus_activo) se apaga sola.
+function _ppManagePolling(sol) {
+  const debeSeguirEsperando = !!(sol && sol.estado === 'pending');
+  if (debeSeguirEsperando && !_ppPollInterval) {
+    _ppPollInterval = setInterval(() => cargar(true), 20000);
+  } else if (!debeSeguirEsperando && _ppPollInterval) {
+    clearInterval(_ppPollInterval);
+    _ppPollInterval = null;
+  }
+}
+
+// Red de seguridad extra: si el vendedor cambia de pestaña/app y vuelve,
+// refresca de inmediato en vez de esperar al siguiente tick del intervalo.
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden && vendorSession) cargar(true);
+});
 
 document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('btn-volver').innerHTML = Icon('arrow-left');

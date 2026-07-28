@@ -91,7 +91,7 @@
   async function loadVendors() {
     const container = document.getElementById('admin-vendors-list');
     if (!container) return;
-    container.innerHTML = '<p style="color:#aaa;text-align:center">Cargando...</p>';
+    container.innerHTML = window.znrSkeletonRows(3);
     try {
       const data = await _gasGet({ action: 'vendedoresAdmin', token: _getToken() });
       if (!data.ok) throw new Error(data.error);
@@ -284,7 +284,7 @@
   async function loadPendingProducts() {
     const container = document.getElementById('admin-pending-list');
     if (!container) return;
-    container.innerHTML = '<p style="color:#aaa;text-align:center">Cargando...</p>';
+    container.innerHTML = window.znrSkeletonRows(3);
     try {
       const data = await _gasGet({ action: 'productosPendientes', token: _getToken() });
       if (!data.ok) throw new Error(data.error);
@@ -358,7 +358,7 @@
   async function loadReportes() {
     const container = document.getElementById('admin-reportes-list');
     if (!container) return;
-    container.innerHTML = '<p style="color:#aaa;text-align:center">Cargando reportes...</p>';
+    container.innerHTML = window.znrSkeletonRows(3);
     try {
       const data = await _gasGet({ action: 'obtenerReportes', token: _getToken() });
       if (!data.ok) throw new Error(data.error);
