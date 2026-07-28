@@ -2818,6 +2818,12 @@ return;
 }
 
 if (sol.estado === 'plus_activo') {
+  if (vendorSession.plan !== 'plus') {
+    vendorSession.plan = 'plus';
+    if (sol.vence) vendorSession.plan_vence = sol.vence;
+    vendorSession.limiteProductos = 200;
+    try { localStorage.setItem('vendor_session', JSON.stringify(vendorSession)); } catch(e) {}
+  }
   area.innerHTML = `<div style="background:#f0fdf4;border:1px solid #86efac;border-radius:12px;padding:12px 14px;">
     <p style="margin:0 0 8px;color:#16a34a;font-weight:700;font-size:13px;">${Icon('check')} Tu Plan Plus está activo</p>
     <button onclick="location.href='plan-plus.html'"
