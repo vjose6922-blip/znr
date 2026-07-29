@@ -29,33 +29,57 @@
   <link rel="apple-touch-icon" sizes="152x152" href="icons/icon-152x152.png">
 
   <style>
-    body { margin: 0; background: #f7f7fb; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+    body { margin: 0; background: #f4f3fa; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
     .fa-header {
-      position: sticky; top: 0; z-index: 10; background: #fff;
+      position: sticky; top: 0; z-index: 10;
+      background: linear-gradient(135deg,#7c3aed,#a78bfa);
       display: flex; align-items: center; gap: 10px;
-      padding: 14px 16px; border-bottom: 1px solid #eee;
+      padding: 16px 16px 14px;
     }
-    .fa-header h1 { font-size: 1.05rem; margin: 0; font-weight: 800; color: #1a1a2e; }
-    .fa-back { background: #f0f0f5; border: none; width: 34px; height: 34px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; color: #444; }
-    .fa-subtitle { padding: 12px 16px 4px; font-size: .78rem; color: #999; }
-    .fa-list { padding: 6px 16px 40px; display: flex; flex-direction: column; gap: 10px; }
+    .fa-header h1 { font-size: 1.08rem; margin: 0; font-weight: 800; color: #fff; }
+    .fa-back { background: rgba(255,255,255,.2); border: none; width: 34px; height: 34px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; color: #fff; flex-shrink: 0; }
+    .fa-subtitle { padding: 14px 16px 6px; font-size: .78rem; color: #8b85a3; font-weight: 600; }
+    .fa-list { padding: 6px 16px 40px; display: flex; flex-direction: column; gap: 12px; }
     .fa-card {
-      display: flex; align-items: center; gap: 12px;
-      background: #fff; border: 1px solid #eee; border-radius: 16px;
-      padding: 10px; animation: fa-fade-in .3s ease;
+      position: relative; overflow: hidden;
+      display: flex; align-items: center; gap: 14px;
+      background: #fff; border-radius: 18px;
+      padding: 12px 14px 12px 16px;
+      box-shadow: 0 2px 10px rgba(124,58,237,.07);
+      animation: fa-fade-in .35s ease backwards;
     }
-    .fa-card img { width: 52px; height: 52px; border-radius: 12px; object-fit: cover; background: #f0f0f5; flex-shrink: 0; }
+    .fa-card::before {
+      content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px;
+      background: linear-gradient(180deg,#7c3aed,#ff4f81);
+    }
+    .fa-card img { width: 64px; height: 64px; border-radius: 14px; object-fit: cover; background: #f0f0f5; flex-shrink: 0; }
     .fa-card-text { flex: 1; min-width: 0; }
-    .fa-card-text p { margin: 0; font-size: .84rem; color: #333; line-height: 1.35; }
-    .fa-card-text strong { color: #7c3aed; }
-    .fa-card-time { font-size: .7rem; color: #aaa; margin-top: 2px; display: block; }
-    .fa-empty, .fa-error { text-align: center; color: #999; padding: 50px 20px; font-size: .85rem; }
-    .fa-skeleton { background: #fff; border: 1px solid #eee; border-radius: 16px; padding: 10px; display: flex; gap: 12px; align-items: center; }
+    .fa-card-vendor { font-size: .92rem; font-weight: 800; color: #1a1a2e; margin: 0 0 2px; }
+    .fa-card-product { font-size: .82rem; color: #666; margin: 0; line-height: 1.3; }
+    .fa-card-footer { display: flex; align-items: center; gap: 8px; margin-top: 6px; }
+    .fa-card-time { font-size: .7rem; color: #aaa; }
+    .fa-badge-fresh {
+      display: inline-flex; align-items: center; gap: 3px;
+      font-size: .65rem; font-weight: 800; color: #fff;
+      background: linear-gradient(135deg,#ff4f81,#ff7a4f);
+      padding: 3px 8px; border-radius: 20px;
+      animation: fa-pulse 1.8s ease infinite;
+    }
+    .fa-badge-stock {
+      display: inline-flex; align-items: center;
+      font-size: .65rem; font-weight: 800; color: #b45309;
+      background: #fef3c7; padding: 3px 8px; border-radius: 20px;
+    }
+    .fa-badge-stock-out { color: #991b1b; background: #fee2e2; }
+    
+    .fa-empty, .fa-error { text-align: center; color: #999; padding: 60px 24px; font-size: .85rem; }
+    .fa-skeleton { position: relative; overflow: hidden; background: #fff; border-radius: 18px; padding: 12px 14px; display: flex; gap: 14px; align-items: center; box-shadow: 0 2px 10px rgba(124,58,237,.05); }
     .fa-skeleton .sk-img, .fa-skeleton .sk-line { background: linear-gradient(90deg,#eee 25%,#f5f5f5 37%,#eee 63%); background-size: 400% 100%; animation: sk-shimmer 1.4s ease infinite; border-radius: 10px; }
-    .fa-skeleton .sk-img { width: 52px; height: 52px; flex-shrink: 0; }
+    .fa-skeleton .sk-img { width: 64px; height: 64px; flex-shrink: 0; }
     .fa-skeleton .sk-line { height: 12px; width: 70%; }
     @keyframes sk-shimmer { 0% { background-position: 100% 50%; } 100% { background-position: 0 50%; } }
-    @keyframes fa-fade-in { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes fa-fade-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes fa-pulse { 0%, 100% { opacity: 1; } 50% { opacity: .6; } }
   </style>
 </head>
 <body>
@@ -100,18 +124,28 @@
     function renderFeed(items) {
       const list = document.getElementById('fa-list');
       if (!items.length) {
-        list.innerHTML = '<div class="fa-empty">Todavía no hay ventas recientes que mostrar.</div>';
+        list.innerHTML = '<div class="fa-empty">🕊️ Todavía no hay ventas recientes que mostrar.</div>';
         return;
       }
-      list.innerHTML = items.map(it => `
-        <div class="fa-card">
-          <img src="${it.imagen ? esc(it.imagen) : 'https://placehold.co/100x100?text=%F0%9F%9B%8D%EF%B8%8F'}" alt="" loading="lazy" onerror="this.src='https://placehold.co/100x100?text=%F0%9F%9B%8D%EF%B8%8F'">
+      const ahora = Date.now();
+      list.innerHTML = items.map((it, i) => {
+        const minutos = Math.floor((ahora - new Date(it.fecha).getTime()) / 60000);
+        const esReciente = minutos < 10;
+        return `
+        <div class="fa-card" style="animation-delay:${Math.min(i, 8) * 0.05}s">
+          <img src="${it.imagen ? esc(it.imagen) : 'https://placehold.co/120x120?text=%F0%9F%9B%8D%EF%B8%8F'}" alt="" loading="lazy" onerror="this.src='https://placehold.co/120x120?text=%F0%9F%9B%8D%EF%B8%8F'">
           <div class="fa-card-text">
-            <p><strong>${esc(it.vendedor || 'Un vendedor')}</strong> vendió ${esc(it.producto || 'un producto')}</p>
-            <span class="fa-card-time">${tiempoRelativo(it.fecha)}</span>
+            <p class="fa-card-vendor">${esc(it.vendedor || 'Un vendedor')}</p>
+            <p class="fa-card-product">vendió ${esc(it.producto || 'un producto')}</p>
+            <div class="fa-card-footer">
+              <span class="fa-card-time">${tiempoRelativo(it.fecha)}</span>
+              ${esReciente ? '<span class="fa-badge-fresh">🔥 Recién vendido</span>' : ''}
+              ${it.stockRestante === 0 ? '<span class="fa-badge-stock fa-badge-stock-out">Se agotó</span>' : ''}
+              ${it.stockRestante !== null && it.stockRestante > 0 && it.stockRestante <= 5 ? `<span class="fa-badge-stock">¡Solo quedan ${it.stockRestante}!</span>` : ''}
+            </div>
           </div>
-        </div>
-      `).join('');
+        </div>`;
+      }).join('');
     }
 
     async function cargarFeed() {
