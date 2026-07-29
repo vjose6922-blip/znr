@@ -1127,7 +1127,25 @@
       // localStorage + 30 min sin revalidar: mientras el caché esté
       // fresco, la página no toca el backend para nada.
       const PROFILE_CACHE_PREFIX = 'zr_perfil_';
-      const PROFILE_CACHE_TTL    = 30 * 60 * 1000; // 30 min, persiste entre visitas
+      const PROFILE_CACHE_TTL    = 5 * 60 * 1000; // 5 min — corto a propósito: es caché por navegador individual, no se entera cuando el vendedor edita su perfil, así que se mantiene bajo para no mostrar info vieja por mucho tiempo a otros visitantes.
+
+      function getProfileCache(uid) {
+        try {
+          const raw = localStorage.getItem(PROFILE_CACHE_PREFIX + uid);
+          if (!raw) return null;
+          const { data, ts } = JSON.parse(raw);
+          if (Date.now() - ts > PROFILE_CACHE_TTL) return null;
+          return data;
+        } catch (e) {
+          return null;
+        }
+      }
+
+      function setProfileCache(uid, data) {
+        try {
+          localStorage.setItem(PROFILE_CACHE_PREFIX + uid, JSON.stringify({ data, ts: Date.now() }));
+        } catch (e) { /* localStorage lleno o deshabilitado: se ignora, no es crítico */ }
+      }
 
      
 
@@ -1224,8 +1242,16 @@
           return;
         }
         const container = document.getElementById('profile-container');
-        // Sin caché local: GAS/Firestore ya sirven con caché activo
-        // del lado del servidor, invalidado al guardar cambios.
+
+        // Caché local corto (5 min): evita repetir la carga si vuelves a
+        // entrar al mismo perfil casi de inmediato. Complementa (no
+        // reemplaza) al caché de 30 min del lado de GAS para productos.
+        const cached = getProfileCache(uid);
+        if (cached) {
+          renderProfile(cached);
+          return;
+        }
+
         if (container) showProfileSkeleton(container, 6);
         try {
           let data = null;
@@ -1248,6 +1274,7 @@
             data = await fetchProfileWithRetry(apiUrl, uid);
           }
 
+          setProfileCache(uid, data);
           renderProfile(data);
         } catch (err) {
           console.error('Error cargando perfil:', err);
