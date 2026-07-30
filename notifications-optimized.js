@@ -484,7 +484,7 @@ lazyImageObserver.observe(img);
 }
 let _notifOptPushWired = false;
 function startAutoRefresh() {
-if (autoRefreshInterval) clearInterval(autoRefreshInterval);
+if (autoRefreshInterval) autoRefreshInterval.stop();
 
 // 🔧 Push (crearNotification → enviarPushA('admin', ...)) ya dispara
 // znr-nueva-notificacion en cuanto entra un pedido nuevo. El poll fijo
@@ -506,15 +506,15 @@ refreshInBackground();
 }
 });
 
-autoRefreshInterval = setInterval(() => {
+autoRefreshInterval = intervalConJitter(() => {
 if (!document.hidden) {
 refreshInBackground();
 }
-}, 300000); // 🔧 red de seguridad: 5 min (antes 30s)
+}, 300000, 30000); // 🔧 red de seguridad: 5 min ±0-30s
 }
 function stopAutoRefresh() {
 if (autoRefreshInterval) {
-clearInterval(autoRefreshInterval);
+if (autoRefreshInterval) autoRefreshInterval.stop();
 autoRefreshInterval = null;
 }
 }
