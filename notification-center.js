@@ -500,7 +500,7 @@
     injectStyles();
     wireBellButtons();
     refreshBadgeOnly();
-    setInterval(refreshBadgeOnly, POLL_MS);
+    intervalConJitter(refreshBadgeOnly, POLL_MS, 60000); // ±0-60s
   }
 
   if (document.readyState === 'loading') {
