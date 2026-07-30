@@ -881,7 +881,7 @@ return;
 }
 
 _pagoEnCurso = true;
-const mpBtn = document.getElementById('mp-pay-btn'); // ajusta este id al real del botón, si es distinto
+const mpBtn = document.getElementById('mp-checkout-btn');
 if (mpBtn) { mpBtn.disabled = true; mpBtn.style.opacity = '.6'; }
 
 showLoader("Preparando pago...");
