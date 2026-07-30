@@ -703,7 +703,7 @@ async function checkNotifications() {
  
 let _adminNotifPushWired = false;
 function startNotificationMonitoring() {
-  if (notificationInterval) clearInterval(notificationInterval);
+  if (notificationInterval) notificationInterval.stop();
   checkNotifications();
 
   // 🔧 Push ya cubre esto en tiempo real (enviarPushA('admin', ...) dispara
@@ -723,11 +723,11 @@ function startNotificationMonitoring() {
     });
   }
 
-  notificationInterval = setInterval(checkNotifications, 180000); // 🔧 red de seguridad: 3 min
+  notificationInterval = intervalConJitter(checkNotifications, 180000, 20000); // 🔧 red de seguridad: 3 min ±0-20s
 }
 function stopNotificationMonitoring() {
   if (notificationInterval) {
-    clearInterval(notificationInterval);
+    if (notificationInterval) notificationInterval.stop();
     notificationInterval = null;
   }
 }
