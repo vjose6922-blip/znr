@@ -3477,6 +3477,67 @@ if ('serviceWorker' in navigator) {
     }
 }
 
+
+
+
+
+
+
+
+
+// ── Intervalo con jitter (evita picos de ejecuciones simultáneas en GAS) ──
+// Como setInterval, pero con una pizca de aleatoriedad en cada disparo.
+// Sirve para las peticiones que se repiten SOLAS cada cierto tiempo igual
+// para todos los usuarios (campanita, refrescos en segundo plano) — si
+// muchos navegadores abren la app casi al mismo momento (ej. tras una
+// notificación push masiva), sus polls periódicos quedarían alineados y
+// golpearían GAS todos juntos cada N minutos exactos. Con jitter, cada
+// navegador dispara en un momento ligeramente distinto, distribuyendo la
+// carga en vez de agruparla.
+//
+// NO tiene sentido usar esto en clics/acciones del usuario (comprar,
+// confirmar, etc.) — esas ya ocurren en momentos distintos de forma
+// natural, porque cada persona hace clic cuando quiere.
+//
+// Uso: en vez de   setInterval(fn, 600000)
+//      usa         intervalConJitter(fn, 600000, 60000)   // ±0-60s de más
+// Devuelve un objeto con .stop() en vez de un id — usa eso en vez de
+// clearInterval().
+function intervalConJitter(fn, baseMs, jitterMs) {
+  var activo = true;
+  var timeoutId = null;
+
+  function tick() {
+    if (!activo) return;
+    fn();
+    if (!activo) return;
+    timeoutId = setTimeout(tick, baseMs + Math.random() * jitterMs);
+  }
+
+  timeoutId = setTimeout(tick, baseMs + Math.random() * jitterMs);
+
+  return {
+    stop: function () {
+      activo = false;
+      if (timeoutId) clearTimeout(timeoutId);
+    }
+  };
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
 function getModalImageUrl(url) {
   if (!url) return "https://placehold.co/900x900/3b1f5f/white?text=Z%26R";
   if (!url.startsWith('http') && !url.startsWith('data:image')) {
