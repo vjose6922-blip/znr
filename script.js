@@ -862,7 +862,13 @@ if (typeof window.highlightSharedElement === "function") window.highlightSharedE
 else el.scrollIntoView({ behavior: "smooth", block: "center" });
 }, 400);
 }
+
+  
+let _pagoEnCurso = false; // evita doble compra si tocan el botón dos veces o la red tarda
+
 async function pagarConMercadoPago() {
+if (_pagoEnCurso) return; // ya hay un pago en proceso, ignora el toque extra
+
 const items = Object.values(localCart).map(item => ({
 id: item.id,
 title: item.name,
@@ -873,13 +879,18 @@ if (items.length === 0) {
 alert("No hay productos en el carrito");
 return;
 }
+
+_pagoEnCurso = true;
+const mpBtn = document.getElementById('mp-pay-btn'); // ajusta este id al real del botón, si es distinto
+if (mpBtn) { mpBtn.disabled = true; mpBtn.style.opacity = '.6'; }
+
 showLoader("Preparando pago...");
 try {
 const params = new URLSearchParams({ action: "createPreference", items: JSON.stringify(items) });
 const response = await fetch(`${API_URL}?${params.toString()}`, { method: "GET" });
 const data = await response.json();
 if (data.ok && data.initPoint) {
-window.location.href = data.initPoint;
+window.location.href = data.initPoint; // sale de la página, no hace falta re-habilitar nada
 } else {
 throw new Error(data.error || "Error desconocido");
 }
@@ -887,8 +898,13 @@ throw new Error(data.error || "Error desconocido");
 console.error("Error:", error);
 alert(" Error: " + error.message);
 hideLoader();
+_pagoEnCurso = false; // solo se re-habilita si falló, para que puedan reintentar
+if (mpBtn) { mpBtn.disabled = false; mpBtn.style.opacity = '1'; }
 }
 }
+
+
+  
 function verificarEstadoPago() {
 const urlParams = new URLSearchParams(window.location.search);
 const paymentStatus = urlParams.get("payment");
