@@ -576,7 +576,7 @@ if (!window._vsnPollingStarted) {
   });
    // 🔧 Ya escuchamos push (znr:nueva-notificacion) y visibilitychange arriba,
    // así que este interval pasa a ser solo red de seguridad (antes 180s).
-   setInterval(loadVendorSaleNotifications, 600000);
+   intervalConJitter(loadVendorSaleNotifications, 600000, 60000); // ±0-60s
 }
 }
 
