@@ -2171,6 +2171,11 @@ function openSettingsModal(expandirPlan) {
   const ttInput  = document.getElementById('settings-tiktok');
   if (ttInput)  ttInput.value  = vendorSession.tiktok    || '';
 
+  const puntoEntregaInput = document.getElementById('settings-punto-entrega');
+  if (puntoEntregaInput) puntoEntregaInput.value = vendorSession.puntoEntrega || '';
+  const montoMinInput = document.getElementById('settings-monto-minimo-envio');
+  if (montoMinInput) montoMinInput.value = (vendorSession.montoMinimoEnvio === null || vendorSession.montoMinimoEnvio === undefined) ? '' : vendorSession.montoMinimoEnvio;
+
   document.getElementById('settings-pwd-old').value     = '';
   document.getElementById('settings-pwd-new').value     = '';
   document.getElementById('settings-pwd-confirm').value = '';
@@ -2418,7 +2423,8 @@ async function guardarPerfil() {
     vendorSession.twitter     = twitter;
     vendorSession.instagram   = instagram;
     vendorSession.tiktok      = tiktok;
-
+    vendorSession.puntoEntrega     = puntoEntrega;
+    vendorSession.montoMinimoEnvio = montoMinimoEnvio === '' ? null : Number(montoMinimoEnvio);
     try { localStorage.setItem('vendor_session', JSON.stringify(vendorSession)); } catch(e) {}
     renderChecklistVendedor();
     const nameHeader = document.getElementById('vendor-name-header');
