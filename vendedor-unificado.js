@@ -581,20 +581,24 @@ if (!window._vsnPollingStarted) {
 }
 
 async function loadVendorSaleNotifications() {
-if (!vendorSession || !vendorSession.uid) return;
-try {
-let data = null;
-if (window.znrFirestore && window.znrFirestore.getVentasComunidadVendedor) {
-  data = await window.znrFirestore.getVentasComunidadVendedor(vendorSession.uid, vendorSession.token);
-}
-if (!data || !data.ok) {
-  data = await apiCall({ action: 'listarNotificacionesVentaComunidad', vendorToken: vendorSession.token });
-}
-if (!data || !data.ok) return;
-renderVendorSaleNotifications(data.notificaciones || []);
-} catch (e) {
-console.error('No se pudieron cargar las notificaciones de venta:', e);
-}
+  if (!vendorSession || !vendorSession.token) {
+    console.warn('No se pueden cargar notificaciones: sesión o token faltante');
+    return;
+  }
+
+  try {
+    let data = null;
+    if (window.znrFirestore && window.znrFirestore.getVentasComunidadVendedor) {
+      data = await window.znrFirestore.getVentasComunidadVendedor(vendorSession.uid, vendorSession.token);
+    }
+    if (!data || !data.ok) {
+      data = await apiCall({ action: 'listarNotificacionesVentaComunidad', vendorToken: vendorSession.token });
+    }
+    if (!data || !data.ok) return;
+    renderVendorSaleNotifications(data.notificaciones || []);
+  } catch (e) {
+    console.error('No se pudieron cargar las notificaciones de venta:', e);
+  }
 }
 
 function renderVendorSaleNotifications(list) {
