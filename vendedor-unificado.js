@@ -2371,9 +2371,15 @@ async function guardarPerfil() {
   const twitter   = document.getElementById('settings-twitter').value.trim();
   const instagram = document.getElementById('settings-instagram').value.trim();
   const tiktok    = document.getElementById('settings-tiktok').value.trim();
+  const puntoEntrega     = document.getElementById('settings-punto-entrega').value.trim();
+  const montoMinimoEnvio = document.getElementById('settings-monto-minimo-envio').value.trim();
 
   if (!nombre || nombre.length < 2) {
     msg.style.color = '#dc2626'; msg.textContent = 'El nombre debe tener al menos 2 caracteres.';
+    return;
+  }
+  if (!puntoEntrega) {
+    msg.style.color = '#dc2626'; msg.textContent = 'El punto de entrega es obligatorio.';
     return;
   }
 
@@ -2392,7 +2398,9 @@ async function guardarPerfil() {
       facebook,
       twitter,
       instagram,
-      tiktok
+      tiktok,
+      puntoEntrega,
+      montoMinimoEnvio
     });
 
     if (!res.ok) {
