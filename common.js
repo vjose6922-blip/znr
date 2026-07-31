@@ -1,4 +1,3 @@
-
 const CACHE_KEY = 'zr_products_cache';
 const CACHE_EXPIRY = 5 * 60 * 1000;
 const RECENT_PRODUCTS_KEY = 'zr_recent_products';
@@ -2087,6 +2086,47 @@ showTemporaryMessage(" Error al enviar la solicitud Z&R", "error");
 hideLoader();
 }
 }
+// Punto de entrega / monto mínimo de envío del vendedor, para decidir en
+// el checkout de Comunidad si el pedido califica para domicilio o si se
+// le muestra al comprador dónde recoger. Firestore primero (mismo patrón
+// que perfil-vendedor.html), con fallback a GAS si Firestore no responde.
+// Cache en memoria de sesión: evita repetir la consulta si el comprador
+// pasa por el checkout de este vendedor más de una vez (ej. "Volver al
+// carrito" y reintentar).
+const _entregaVendedorCache = new Map();
+async function _obtenerEntregaVendedor(vendorUid) {
+if (!vendorUid) return { puntoEntrega: '', montoMinimoEnvio: null };
+if (_entregaVendedorCache.has(vendorUid)) return _entregaVendedorCache.get(vendorUid);
+const _normalizar = (v) => ({
+puntoEntrega: (v && v.puntoEntrega) || '',
+montoMinimoEnvio: (!v || v.montoMinimoEnvio === '' || v.montoMinimoEnvio === undefined || v.montoMinimoEnvio === null)
+? null : Number(v.montoMinimoEnvio)
+});
+try {
+if (window.znrFirestore && window.znrFirestore.getPerfilVendedor) {
+const r = await window.znrFirestore.getPerfilVendedor(vendorUid);
+if (r && r.ok && r.vendedor) {
+const resultado = _normalizar(r.vendedor);
+_entregaVendedorCache.set(vendorUid, resultado);
+return resultado;
+}
+}
+} catch (e) { console.warn('Firestore perfil_vendedor falló, se usará GAS:', e); }
+try {
+if (window.API_URL) {
+const res = await fetch(`${window.API_URL}?action=obtenerPerfilVendedor&uid=${encodeURIComponent(vendorUid)}`);
+const data = await res.json();
+if (data && data.ok && data.vendedor) {
+const resultado = _normalizar(data.vendedor);
+_entregaVendedorCache.set(vendorUid, resultado);
+return resultado;
+}
+}
+} catch (e) { console.warn('No se pudo obtener el punto de entrega del vendedor (GAS):', e); }
+const vacio = { puntoEntrega: '', montoMinimoEnvio: null };
+_entregaVendedorCache.set(vendorUid, vacio);
+return vacio;
+}
 async function _checkoutComunidad(comunidadItems) {
 let clientPhone = localStorage.getItem("client_phone") || "";
 if (!clientPhone) {
@@ -2134,6 +2174,34 @@ const remaining  = vendors.length - 1;
 const { tel, nombre, logo, plan, vendorUid, items } = firstVendor;
 const subtotal = items.reduce((s, i) => s + i.price * i.quantity, 0);
 
+// Dirección obligatoria: si el comprador no la tiene guardada todavía,
+// se le pide aquí (igual que ya pasa en el checkout de Z&R propio).
+let clientAddress = localStorage.getItem("client_address") || "";
+let clientSchedule = localStorage.getItem("client_schedule") || "";
+if (!clientAddress) {
+const addrData = await _collectAddressAndSchedule();
+if (!addrData) {
+showTemporaryMessage(" Necesitamos tu dirección para coordinar tu pedido", "error");
+return;
+}
+clientAddress = addrData.address;
+clientSchedule = addrData.schedule;
+localStorage.setItem("client_address", clientAddress);
+localStorage.setItem("client_schedule", clientSchedule);
+if (addrData.note !== undefined) localStorage.setItem("client_note", addrData.note);
+updateSavedPhoneDisplay();
+}
+
+// ¿Este vendedor entrega a domicilio con lo que llevas para él en el
+// carrito, o el pedido se queda por debajo de su mínimo de envío? Si es
+// lo segundo, se le muestra al comprador el punto de entrega del
+// vendedor en vez de su propia dirección (y esa es la que se le manda
+// al vendedor).
+const entregaVendedor = await _obtenerEntregaVendedor(vendorUid);
+const montoMinimo = entregaVendedor.montoMinimoEnvio;
+const calificaEnvio = montoMinimo !== null && subtotal >= montoMinimo;
+const direccionEntrega = calificaEnvio ? clientAddress : (entregaVendedor.puntoEntrega || clientAddress);
+
 const donationGroups = new Map();
 items.forEach(item => {
 if (item._donacion && item._beneficiario && item._beneficiario.id) {
@@ -2150,14 +2218,17 @@ let msg = "* PEDIDO DESDE Z&R COMUNIDAD*\n";
 msg += "\n";
 msg += ` *Cliente:* +52 ${clientPhone}\n`;
 msg += ` *Fecha:* ${new Date().toLocaleString()}\n`;
-const _cAddr2  = localStorage.getItem("client_address")  || "";
-const _cSchedule2 = localStorage.getItem("client_schedule") || "";
-const _cNote2  = localStorage.getItem("client_note")  || "";
-const _cLat2  = localStorage.getItem("client_gps_lat");
-const _cLng2  = localStorage.getItem("client_gps_lng");
-if (_cAddr2)  msg += ` *Dirección:* ${_cAddr2}\n`;
+if (calificaEnvio) {
+msg += ` *Dirección de entrega:* ${direccionEntrega}\n`;
+const _cLat2 = localStorage.getItem("client_gps_lat");
+const _cLng2 = localStorage.getItem("client_gps_lng");
 if (_cLat2 && _cLng2) msg += ` *Ubicación:* https://www.google.com/maps?q=${_cLat2},${_cLng2}\n`;
-if (_cSchedule2)  msg += ` *Horario:* ${_cSchedule2}\n`;
+if (clientSchedule) msg += ` *Horario:* ${clientSchedule}\n`;
+} else {
+msg += ` *Punto de recolección del vendedor:* ${direccionEntrega}\n`;
+if (montoMinimo) msg += ` _(Tu pedido no alcanza el mínimo de $${montoMinimo.toLocaleString()} MXN de este vendedor para envío a domicilio)_\n`;
+}
+const _cNote2 = localStorage.getItem("client_note") || "";
 if (_cNote2)  msg += ` *Instrucciones:* ${_cNote2}\n`;
 msg += "\n";
 msg += "*\uD83D\uDCE6 PRODUCTOS SOLICITADOS:*\n\n";
@@ -2196,7 +2267,10 @@ talla: i.Talla || '', precio: i.price || 0, imagen: i.Imagen1 || ''
 }));
 const didOpen = await _showVendorCheckoutModal({
 nombre, logo, plan, subtotal, items, waUrl, remaining, donationList,
-vendorUid, requestId, notifItems, clientPhone: localStorage.getItem("client_phone") || ""
+vendorUid, requestId, notifItems, clientPhone: localStorage.getItem("client_phone") || "",
+direccionEntrega, calificaEnvio, montoMinimo,
+clientAddressParaVendedor: direccionEntrega,
+clientScheduleParaVendedor: calificaEnvio ? clientSchedule : ''
 });
 if (didOpen) {
 items.forEach(i => delete localCart[i.id]);
@@ -2213,7 +2287,7 @@ await _checkoutComunidad(nextItems);
 }
 }
 }
-function _showVendorCheckoutModal({ nombre, logo, plan, subtotal, items, waUrl, remaining, donationList = [], vendorUid, requestId, notifItems, clientPhone }) {
+function _showVendorCheckoutModal({ nombre, logo, plan, subtotal, items, waUrl, remaining, donationList = [], vendorUid, requestId, notifItems, clientPhone, direccionEntrega = '', calificaEnvio = false, montoMinimo = null, clientAddressParaVendedor = '', clientScheduleParaVendedor = '' }) {
 if (!document.getElementById('zr-listo-btn-style')) {
 const zrListoSt = document.createElement('style');
 zrListoSt.id = 'zr-listo-btn-style';
@@ -2245,6 +2319,16 @@ const remainingNote = remaining > 0
 ? `<p style="margin:14px 0 0;padding:10px 14px;background:rgba(249,115,22,.1);border-radius:10px;font-size:12px;color:#f97316;text-align:center;line-height:1.5">Tienes artículos de <strong>${remaining}</strong> vendedor${remaining > 1 ? 'es' : ''} más en tu carrito.<br>Después de contactar a este, regresa para continuar.
 </p>`
 : '';
+const entregaHtml = direccionEntrega ? `
+<div style="background:rgba(255,255,255,.04);border-radius:14px;padding:12px 14px;margin-bottom:8px;display:flex;gap:10px;align-items:flex-start">
+<span style="font-size:16px;line-height:1;flex-shrink:0;margin-top:1px">${calificaEnvio ? '🚚' : '📍'}</span>
+<div>
+<div style="font-size:12px;font-weight:700;color:var(--color-text-primary,#fff);margin-bottom:2px">${calificaEnvio ? 'Entrega a domicilio' : 'Punto de recolección'}</div>
+<div style="font-size:12.5px;color:#aaa;line-height:1.4">${escapeHtml(direccionEntrega)}</div>
+${!calificaEnvio && montoMinimo ? `<div style="font-size:11px;color:#f97316;margin-top:4px">Tu pedido no alcanza el mínimo de ${formatCurrency(montoMinimo)} de este vendedor para envío a domicilio.</div>` : ''}
+</div>
+</div>
+` : '';
 const hasDonations = donationList.length > 0;
 const allDonated = hasDonations && items.every(i => i._donacion);
 const donationHtml = hasDonations ? `
@@ -2292,6 +2376,7 @@ ${itemsHtml}
 <span style="font-size:18px;font-weight:800;color:#ff4f81">${formatCurrency(subtotal)}</span>
 </div>
 </div>
+${entregaHtml}
 ${donationHtml}
 <p style="font-size:12px;color:#888;text-align:center;margin:8px 0 0;line-height:1.5">${allDonated
 ? 'El vendedor solo coordinará contigo la entrega; el pago va directo al beneficiario.'
@@ -2367,6 +2452,8 @@ action: "crearNotificacionVentaComunidad",
 vendor_uid: vendorUid,
 requestId: requestId,
 clientPhone: clientPhone || "",
+clientAddress: clientAddressParaVendedor || "",
+clientSchedule: clientScheduleParaVendedor || "",
 items: notifItems,
 vendorNombre: nombre || "",
 waUrl: waUrl || ""
