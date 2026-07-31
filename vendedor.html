@@ -619,6 +619,19 @@ document.addEventListener('DOMContentLoaded', () => {
             style="width:100%;box-sizing:border-box;padding:9px 12px;border-radius:10px;border:1px solid #ddd;font-size:.85rem;margin-bottom:4px;outline:none;">
           <p style="margin:0 0 12px;font-size:.73rem;color:#aaa;">Se mostrará en tu perfil público solo si lo llenas.</p>
 
+          <label style="font-size:.8rem;color:#c2410c;display:block;margin-bottom:4px;font-weight:700;">📍 Punto de entrega <span style="color:#ef4444;">*obligatorio</span></label>
+          <input id="settings-punto-entrega" type="text" maxlength="200" placeholder="Ej. Plaza Comercial X, local 5, entrada por calle Y"
+            style="width:100%;box-sizing:border-box;padding:9px 12px;border-radius:10px;border:1px solid #fed7aa;background:#fff7ed;font-size:.85rem;margin-bottom:4px;outline:none;">
+          <p style="margin:0 0 12px;font-size:.73rem;color:#aaa;">Dónde recogen tu producto los compradores que no califiquen para entrega a domicilio (o siempre, si no ofreces entrega a domicilio). Necesario para poder publicar productos.</p>
+
+          <label style="font-size:.8rem;color:#555;display:block;margin-bottom:4px;">Monto mínimo para entrega a domicilio <span style="color:#aaa;">(opcional)</span></label>
+          <div style="display:flex;align-items:center;border:1px solid #ddd;border-radius:10px;overflow:hidden;margin-bottom:4px;">
+            <span style="padding:9px 10px;background:#f9f9f9;color:#555;font-size:.85rem;border-right:1px solid #ddd;">$</span>
+            <input id="settings-monto-minimo-envio" type="number" min="0" step="1" placeholder="Ej. 500"
+              style="flex:1;padding:9px 12px;border:none;font-size:.85rem;outline:none;">
+          </div>
+          <p style="margin:0 0 16px;font-size:.73rem;color:#aaa;">Si un pedido alcanza este monto, se le pedirá su dirección para entrega a domicilio. Si lo dejas vacío, tus compradores siempre recogen en tu punto de entrega.</p>
+         
           <label style="font-size:.8rem;color:#555;display:block;margin-bottom:4px;">Facebook</label>
           <input id="settings-facebook" type="url" placeholder="https://facebook.com/tu-pagina"
             style="width:100%;box-sizing:border-box;padding:9px 12px;border-radius:10px;border:1px solid #ddd;font-size:.85rem;margin-bottom:10px;outline:none;">
