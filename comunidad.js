@@ -1526,7 +1526,7 @@ window.openBeneficiarioRegister = function(modoEdicion, idBeneficiario, datosAct
   modal.innerHTML = `
     <div style="background:var(--color-surface,#fff);border-radius:20px 20px 0 0;width:100%; height:90%;overflow-y:auto;padding:24px 20px 36px;">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
-        <h2 style="margin:0;font-size:1rem;font-weight:800;">${modoEdicion ? 'Editar tu fundación' : 'Registrate tu Fundacion'}</h2>
+        <h2 style="margin:0;font-size:1rem;font-weight:800;">${modoEdicion ? 'Editar tu fundación' : 'Registra tu Fundacion'}</h2>
         <button id="btn-close-ben-reg" style="background:none;border:none;font-size:22px;cursor:pointer;line-height:1;">×</button>
       </div>
       <p style="font-size:.8rem;color:#888;margin:0 0 14px;">${modoEdicion ? 'Estos cambios se enviarán como solicitud. El administrador comparará tu información actual con la nueva antes de aplicarla.' : 'Completa tu información. El administrador revisará tu solicitud y te contactará por WhatsApp.'}</p>
