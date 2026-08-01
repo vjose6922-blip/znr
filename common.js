@@ -1,4 +1,3 @@
-
 const CACHE_KEY = 'zr_products_cache';
 const CACHE_EXPIRY = 5 * 60 * 1000;
 const RECENT_PRODUCTS_KEY = 'zr_recent_products';
@@ -2346,19 +2345,6 @@ ${!calificaEnvio && montoMinimo ? `<div style="font-size:11px;color:#f97316;marg
 </div>
 </div>
 ` : '';
-const PICKUP_HORAS = ['9:00 AM','10:00 AM','11:00 AM','12:00 PM','1:00 PM','2:00 PM','3:00 PM','4:00 PM','5:00 PM','6:00 PM','7:00 PM','8:00 PM'];
-const avisoHtml = (!calificaEnvio && direccionEntrega && vendorTel) ? `
-<div style="background:rgba(96,165,250,.08);border:1px solid rgba(96,165,250,.25);border-radius:14px;padding:12px 14px;margin-bottom:8px">
-<div style="font-size:12px;font-weight:700;color:#60a5fa;margin-bottom:8px">🕒 Avisa a qué hora pasas por tu pedido</div>
-<div style="display:flex;gap:8px;">
-<select id="pickup-hora-select" style="flex:1;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.15);color:#fff;border-radius:10px;padding:9px 10px;font-size:12.5px;font-family:inherit;">
-${PICKUP_HORAS.map(h => `<option value="${h}">${h}</option>`).join('')}
-</select>
-<button id="btn-avisar-llegada" type="button" style="flex-shrink:0;background:#60a5fa;color:#0a1a3a;border:none;border-radius:10px;padding:0 14px;font-size:12.5px;font-weight:700;cursor:pointer;white-space:nowrap;">💬 Avisar</button>
-</div>
-<p style="margin:6px 0 0;font-size:10.5px;color:#93c5fd;line-height:1.4">Se abre WhatsApp con el vendedor. Si no está disponible a esa hora, pueden reagendar directo desde el chat.</p>
-</div>
-` : '';
 const hasDonations = donationList.length > 0;
 const allDonated = hasDonations && items.every(i => i._donacion);
 const donationHtml = hasDonations ? `
@@ -2407,7 +2393,6 @@ ${itemsHtml}
 </div>
 </div>
 ${entregaHtml}
-${avisoHtml}
 ${donationHtml}
 <p style="font-size:12px;color:#888;text-align:center;margin:8px 0 0;line-height:1.5">${allDonated
 ? 'El vendedor solo coordinará contigo la entrega; el pago va directo al beneficiario.'
@@ -2443,17 +2428,6 @@ ${remaining > 0
 </div>
 `;
 document.body.appendChild(modal);
-const avisarBtn = modal.querySelector('#btn-avisar-llegada');
-if (avisarBtn) {
-avisarBtn.addEventListener('click', () => {
-const horaSel = modal.querySelector('#pickup-hora-select');
-const hora = horaSel ? horaSel.value : '';
-const textoAviso = `Hola, buen día 👋 Pasaré a recoger mi pedido a las ${hora}.`;
-const destTelAviso = vendorTel ? `52${vendorTel}` : '';
-if (!destTelAviso) return;
-window.open(`https://wa.me/${destTelAviso}?text=${encodeURIComponent(textoAviso)}`, '_blank');
-});
-}
 modal.querySelectorAll('.vcm-copy-cuenta').forEach(btn => {
 btn.addEventListener('click', () => {
 const cuenta = btn.dataset.cuenta || '';
@@ -3689,6 +3663,4 @@ function getModalImageUrl(url) {
 window.getModalImageUrl = getModalImageUrl;
 window.intervalConJitter = intervalConJitter;
 
-
-  
 })();
