@@ -1547,20 +1547,36 @@ window.openBeneficiarioRegister = function(modoEdicion, idBeneficiario, datosAct
       <input id="ben-telefono" type="tel" value="${escv(d.telefono)}" placeholder="8671234567" maxlength="10" style="width:100%;box-sizing:border-box;padding:10px 12px;border:1.5px solid #e0e0e0;border-radius:10px;margin-bottom:16px;font-size:.88rem;">
       <label style="font-size:.78rem;font-weight:700;color:#888;display:block;margin-bottom:3px;">Fotos (opcional, máx. 3 — puedes elegir varias a la vez)</label>
       <div style="display:flex;gap:8px;margin-bottom:16px;" id="ben-img-previews">
+       
+        
+        
         <label style="flex:1;aspect-ratio:1;border:1.5px dashed #e0e0e0;border-radius:10px;display:flex;align-items:center;justify-content:center;cursor:pointer;overflow:hidden;background:#fafafa;" id="ben-img-label-1">
           <span id="ben-img-placeholder-1" style="font-size:1.4rem;display:${d.imagen1 ? 'none' : ''};">${Icon('camera',{size:22})}</span>
-          <img id="ben-img-preview-1" src="${escv(d.imagen1||'')}" style="display:${d.imagen1?'block':'none'};width:100%;height:100%;object-fit:cover;">
+          <img id="ben-img-preview-1"
+     ${d.imagen1 ? `src="${escv(d.imagen1)}"` : ""}
+     style="display:${d.imagen1 ? 'block' : 'none'};width:100%;height:100%;object-fit:cover;">
           <input type="file" id="ben-img-1" accept="image/*" multiple style="display:none;">
         </label>
+       
+        
         <label style="flex:1;aspect-ratio:1;border:1.5px dashed #e0e0e0;border-radius:10px;display:flex;align-items:center;justify-content:center;cursor:pointer;overflow:hidden;background:#fafafa;" id="ben-img-label-2">
           <span id="ben-img-placeholder-2" style="font-size:1.4rem;display:${d.imagen2 ? 'none' : ''};">${Icon('camera',{size:22})}</span>
-          <img id="ben-img-preview-2" src="${escv(d.imagen2||'')}" style="display:${d.imagen2?'block':'none'};width:100%;height:100%;object-fit:cover;">
+          <img id="ben-img-preview-2"
+     ${d.imagen2 ? `src="${escv(d.imagen2)}"` : ""}
+     style="display:${d.imagen1 ? 'block' : 'none'};width:100%;height:100%;object-fit:cover;">
           <input type="file" id="ben-img-2" accept="image/*" multiple style="display:none;">
         </label>
+        
+        
         <label style="flex:1;aspect-ratio:1;border:1.5px dashed #e0e0e0;border-radius:10px;display:flex;align-items:center;justify-content:center;cursor:pointer;overflow:hidden;background:#fafafa;" id="ben-img-label-3">
           <span id="ben-img-placeholder-3" style="font-size:1.4rem;display:${d.imagen3 ? 'none' : ''};">${Icon('camera',{size:22})}</span>
-          <img id="ben-img-preview-3" src="${escv(d.imagen3||'')}" style="display:${d.imagen3?'block':'none'};width:100%;height:100%;object-fit:cover;">
+          <img id="ben-img-preview-3"
+     ${d.imagen3 ? `src="${escv(d.imagen3)}"` : ""}
+     style="display:${d.imagen1 ? 'block' : 'none'};width:100%;height:100%;object-fit:cover;">
           <input type="file" id="ben-img-3" accept="image/*" multiple style="display:none;">
+       
+        
+        
         </label>
       </div>
       <button id="btn-submit-ben" data-modo="${modoEdicion ? 'editar' : 'nuevo'}" data-id="${escv(idBeneficiario||'')}" style="width:100%;padding:13px;border:none;border-radius:12px;background:linear-gradient(135deg,#f97316,#ef4444);color:#fff;font-weight:800;font-size:.92rem;cursor:pointer;">${modoEdicion ? 'Enviar cambios' : 'Enviar solicitud'}</button>
