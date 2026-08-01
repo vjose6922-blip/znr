@@ -220,13 +220,60 @@
   opacity:0;
 }
 .nc-item.expanded .nc-msg-collapsed{
-  max-height:200px;
+  max-height:320px;
   opacity:1;
 }
 .nc-item-msg{
   font-size:12.5px;
   color:var(--color-text-secondary,#bbb);
   margin:6px 0 6px;
+  line-height:1.4;
+}
+
+.nc-pickup-aviso{
+  margin-top:8px;
+  padding:10px 12px;
+  border-radius:12px;
+  background:rgba(96,165,250,.08);
+  border:1px solid rgba(96,165,250,.25);
+}
+.nc-pickup-aviso-label{
+  font-size:11.5px;
+  font-weight:700;
+  color:#60a5fa;
+  margin:0 0 8px;
+}
+.nc-pickup-aviso-row{
+  display:flex;
+  gap:8px;
+}
+.nc-pickup-select{
+  flex:1;
+  min-width:0;
+  background:rgba(255,255,255,.06);
+  border:1px solid rgba(255,255,255,.15);
+  color:#fff;
+  border-radius:10px;
+  padding:8px 9px;
+  font-size:12px;
+  font-family:inherit;
+}
+.nc-pickup-btn{
+  flex-shrink:0;
+  background:#60a5fa;
+  color:#0a1a3a;
+  border:none;
+  border-radius:10px;
+  padding:0 13px;
+  font-size:12px;
+  font-weight:700;
+  cursor:pointer;
+  white-space:nowrap;
+}
+.nc-pickup-aviso-note{
+  margin:6px 0 0;
+  font-size:10.5px;
+  color:#93c5fd;
   line-height:1.4;
 }
 
@@ -353,6 +400,8 @@
       </div>`).join('');
   }
 
+const PICKUP_HORAS = ['9:00 AM','10:00 AM','11:00 AM','12:00 PM','1:00 PM','2:00 PM','3:00 PM','4:00 PM','5:00 PM','6:00 PM','7:00 PM','8:00 PM'];
+
   function renderList() {
     const listEl = document.getElementById('nc-list');
     if (!listEl) return;
@@ -368,6 +417,22 @@
       const waBtn = meta.whatsappUrl
         ? `<a class="nc-wa-btn" href="${meta.whatsappUrl}" target="_blank" rel="noopener" onclick="event.stopPropagation()">${Icon('whatsapp')} Escribir por WhatsApp</a>`
         : '';
+      // Pedido de Comunidad para RECOGER (no calificó para domicilio): se
+      // le pregunta al comprador la hora a la que va a pasar, ya justo
+      // aquí en la notificación — antes de esto no tiene caso preguntar,
+      // porque depende de cuándo respondió el vendedor.
+      const pickupAvisoHtml = (n.tipo === 'confirmacion_vendedor' && meta.calificaEnvio === false && meta.vendedorTel)
+        ? `<div class="nc-pickup-aviso" onclick="event.stopPropagation()">
+             <p class="nc-pickup-aviso-label">🕒 Avisa a qué hora pasas por tu pedido</p>
+             <div class="nc-pickup-aviso-row">
+               <select class="nc-pickup-select" data-tel="${meta.vendedorTel}" data-nombre="${(meta.vendedorNombre || '').replace(/"/g, '&quot;')}">
+                 ${PICKUP_HORAS.map(h => `<option value="${h}">${h}</option>`).join('')}
+               </select>
+               <button type="button" class="nc-pickup-btn">💬 Avisar</button>
+             </div>
+             <p class="nc-pickup-aviso-note">Se abre WhatsApp con el vendedor. Si no está disponible a esa hora, pueden reagendar directo desde el chat.</p>
+           </div>`
+        : '';
       return `
         <div class="nc-item ${n.leida ? '' : 'unread'}" data-id="${n.id}" data-url="${n.url || ''}">
           <div class="nc-icon">${info.icono}</div>
@@ -380,10 +445,23 @@
             <div class="nc-msg-collapsed">
               <p class="nc-item-msg">${n.mensaje || ''}</p>
               ${waBtn}
+              ${pickupAvisoHtml}
             </div>
           </div>
         </div>`;
     }).join('');
+
+    listEl.querySelectorAll('.nc-pickup-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const select = btn.previousElementSibling;
+        const hora = select ? select.value : '';
+        const tel = select ? select.dataset.tel : '';
+        if (!tel) return;
+        const texto = `Hola, buen día 👋 Pasaré a recoger mi pedido a las ${hora}.`;
+        window.open(`https://wa.me/52${tel}?text=${encodeURIComponent(texto)}`, '_blank');
+      });
+    });
 
     listEl.querySelectorAll('.nc-item').forEach(el => {
       el.addEventListener('click', async function(e) {
