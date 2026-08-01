@@ -620,9 +620,16 @@ document.addEventListener('DOMContentLoaded', () => {
           <p style="margin:0 0 12px;font-size:.73rem;color:#aaa;">Se mostrará en tu perfil público solo si lo llenas.</p>
 
           <label style="font-size:.8rem;color:#c2410c;display:block;margin-bottom:4px;font-weight:700;">📍 Punto de entrega <span style="color:#ef4444;">*obligatorio</span></label>
-          <input id="settings-punto-entrega" type="text" maxlength="200" placeholder="Ej. Plaza Comercial X, local 5, entrada por calle Y"
-            style="width:100%;box-sizing:border-box;padding:9px 12px;border-radius:10px;border:1px solid #fed7aa;background:#fff7ed;font-size:.85rem;margin-bottom:4px;outline:none;">
-          <p style="margin:0 0 12px;font-size:.73rem;color:#aaa;">Dónde recogen tu producto los compradores que no califiquen para entrega a domicilio (o siempre, si no ofreces entrega a domicilio). Necesario para poder publicar productos.</p>
+          <div style="display:flex;gap:6px;margin-bottom:4px;">
+            <input id="settings-punto-entrega" type="text" maxlength="200" placeholder="Ej. Plaza Comercial X, local 5, entrada por calle Y"
+              oninput="_onEditarPuntoEntregaManual()"
+              style="flex:1;min-width:0;box-sizing:border-box;padding:9px 12px;border-radius:10px;border:1px solid #fed7aa;background:#fff7ed;font-size:.85rem;outline:none;">
+            <button type="button" id="btn-gps-punto-entrega" onclick="usarUbicacionPuntoEntrega()" style="flex-shrink:0;padding:0 12px;border-radius:10px;border:1px solid #fed7aa;background:#fff;color:#c2410c;font-size:.78rem;font-weight:700;cursor:pointer;white-space:nowrap;">📍 Usar mi ubicación</button>
+          </div>
+          <input type="hidden" id="settings-punto-entrega-lat">
+          <input type="hidden" id="settings-punto-entrega-lng">
+          <p id="punto-entrega-maps-preview" style="margin:0 0 4px;font-size:.73rem;"></p>
+          <p style="margin:0 0 12px;font-size:.73rem;color:#aaa;">Dónde recogen tu producto los compradores que no califiquen para entrega a domicilio (o siempre, si no ofreces entrega a domicilio). Necesario para poder publicar productos. Usa el botón de ubicación para que el punto de entrega salga como link de Maps en las notificaciones a tus compradores; si editas el texto a mano después, vuelve a presionarlo para que el link no quede desactualizado.</p>
 
           <label style="font-size:.8rem;color:#555;display:block;margin-bottom:4px;">Monto mínimo para entrega a domicilio <span style="color:#aaa;">(opcional)</span></label>
           <div style="display:flex;align-items:center;border:1px solid #ddd;border-radius:10px;overflow:hidden;margin-bottom:4px;">

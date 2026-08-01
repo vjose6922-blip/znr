@@ -1,3 +1,4 @@
+
 const CACHE_KEY = 'zr_products_cache';
 const CACHE_EXPIRY = 5 * 60 * 1000;
 const RECENT_PRODUCTS_KEY = 'zr_recent_products';
@@ -320,9 +321,9 @@ function formatCurrency(value) {
 const num = Number(value) || 0;
 return `$${num.toLocaleString("es-MX", { minimumFractionDigits: 0 })}`;
 }
-function hasFreeShipping(price) {
-const numericPrice = Number(price) || 0;
-return numericPrice >= 300;
+function hasFreeShipping(total) {
+const numericTotal = Number(total) || 0;
+return numericTotal >= 300;
 }
 
 function _refreshDeliveryBlock() {
@@ -345,12 +346,16 @@ addrContainer.style.display = 'none';
 if (addBtn) addBtn.style.display = '';
 }
 }
-const items = Object.values(localCart || {});
+const items = Object.values(localCart || {}).filter(i => !i._comunidad);
 const total = items.reduce((s, i) => s + (i.price * i.quantity), 0);
-const hasShipping = items.some(i => hasFreeShipping(i.price));
+const hasShipping = hasFreeShipping(total);
 if (statusEl) {
 if (items.length === 0) {
+// Sin productos propios de Z&R en el carrito (solo de vendedores de
+// Comunidad, que tienen su propia lógica de envío/recolección) — no
+// aplica este aviso.
 statusEl.innerHTML = '';
+if (subtitleEl) subtitleEl.textContent = '';
 } else if (hasShipping) {
 statusEl.innerHTML = `<div class="cart-shipping-ok">Tu pedido califica para envío a domicilio</div>`;
 if (subtitleEl) subtitleEl.textContent = 'Añade tu dirección para la entrega';
@@ -1998,7 +2003,8 @@ if (typeof window.solicitarPermisoNotificacionesSiFalta === 'function') {
 }
 let clientAddress  = localStorage.getItem("client_address")  || "";
 let clientSchedule = localStorage.getItem("client_schedule") || "";
-const hasShipping  = znrItems.some(i => hasFreeShipping(i.price));
+const total = znrItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+const hasShipping  = hasFreeShipping(total);
 if (!clientAddress) {
 const addrData = await _collectAddressAndSchedule();
 if (addrData) {
@@ -2012,7 +2018,6 @@ updateSavedPhoneDisplay();
 }
 showLoader("Enviando solicitud...");
 const requestId = generateRequestId();
-const total = znrItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
 let adminMessage = "* NUEVA SOLICITUD DE COMPRA*\n";
 adminMessage += "\n";
 adminMessage += ` *Cliente:* +52 ${clientPhone}\n`;
@@ -2040,7 +2045,6 @@ adminMessage += `  Talla: ${safeTalla}\n`;
 adminMessage += `  Cantidad: ${item.quantity}\n`;
 adminMessage += `  Precio: $${item.price.toLocaleString()} c/u\n`;
 adminMessage += `  Subtotal: $${(item.price * item.quantity).toLocaleString()}\n`;
-if (hasFreeShipping(item.price)) adminMessage += `  Envío disponible\n`;
 adminMessage += `\n`;
 if (index < znrItems.length - 1) adminMessage += `\n`;
 });
@@ -2095,12 +2099,16 @@ hideLoader();
 // carrito" y reintentar).
 const _entregaVendedorCache = new Map();
 async function _obtenerEntregaVendedor(vendorUid) {
-if (!vendorUid) return { puntoEntrega: '', montoMinimoEnvio: null };
+if (!vendorUid) return { puntoEntrega: '', montoMinimoEnvio: null, puntoEntregaLat: null, puntoEntregaLng: null };
 if (_entregaVendedorCache.has(vendorUid)) return _entregaVendedorCache.get(vendorUid);
 const _normalizar = (v) => ({
 puntoEntrega: (v && v.puntoEntrega) || '',
 montoMinimoEnvio: (!v || v.montoMinimoEnvio === '' || v.montoMinimoEnvio === undefined || v.montoMinimoEnvio === null)
-? null : Number(v.montoMinimoEnvio)
+? null : Number(v.montoMinimoEnvio),
+puntoEntregaLat: (!v || v.puntoEntregaLat === '' || v.puntoEntregaLat === undefined || v.puntoEntregaLat === null)
+? null : Number(v.puntoEntregaLat),
+puntoEntregaLng: (!v || v.puntoEntregaLng === '' || v.puntoEntregaLng === undefined || v.puntoEntregaLng === null)
+? null : Number(v.puntoEntregaLng)
 });
 try {
 if (window.znrFirestore && window.znrFirestore.getPerfilVendedor) {
@@ -2123,7 +2131,7 @@ return resultado;
 }
 }
 } catch (e) { console.warn('No se pudo obtener el punto de entrega del vendedor (GAS):', e); }
-const vacio = { puntoEntrega: '', montoMinimoEnvio: null };
+const vacio = { puntoEntrega: '', montoMinimoEnvio: null, puntoEntregaLat: null, puntoEntregaLng: null };
 _entregaVendedorCache.set(vendorUid, vacio);
 return vacio;
 }
@@ -2201,6 +2209,12 @@ const entregaVendedor = await _obtenerEntregaVendedor(vendorUid);
 const montoMinimo = entregaVendedor.montoMinimoEnvio;
 const calificaEnvio = montoMinimo !== null && subtotal >= montoMinimo;
 const direccionEntrega = calificaEnvio ? clientAddress : (entregaVendedor.puntoEntrega || clientAddress);
+const direccionEntregaLat = calificaEnvio
+? (parseFloat(localStorage.getItem('client_gps_lat')) || null)
+: entregaVendedor.puntoEntregaLat;
+const direccionEntregaLng = calificaEnvio
+? (parseFloat(localStorage.getItem('client_gps_lng')) || null)
+: entregaVendedor.puntoEntregaLng;
 
 const donationGroups = new Map();
 items.forEach(item => {
@@ -2226,6 +2240,7 @@ if (_cLat2 && _cLng2) msg += ` *Ubicación:* https://www.google.com/maps?q=${_cL
 if (clientSchedule) msg += ` *Horario:* ${clientSchedule}\n`;
 } else {
 msg += ` *Punto de recolección del vendedor:* ${direccionEntrega}\n`;
+if (direccionEntregaLat && direccionEntregaLng) msg += ` *Ubicación:* https://www.google.com/maps?q=${direccionEntregaLat},${direccionEntregaLng}\n`;
 if (montoMinimo) msg += ` _(Tu pedido no alcanza el mínimo de $${montoMinimo.toLocaleString()} MXN de este vendedor para envío a domicilio)_\n`;
 }
 const _cNote2 = localStorage.getItem("client_note") || "";
@@ -2268,9 +2283,11 @@ talla: i.Talla || '', precio: i.price || 0, imagen: i.Imagen1 || ''
 const didOpen = await _showVendorCheckoutModal({
 nombre, logo, plan, subtotal, items, waUrl, remaining, donationList,
 vendorUid, requestId, notifItems, clientPhone: localStorage.getItem("client_phone") || "",
-direccionEntrega, calificaEnvio, montoMinimo,
+direccionEntrega, calificaEnvio, montoMinimo, vendorTel: tel,
 clientAddressParaVendedor: direccionEntrega,
-clientScheduleParaVendedor: calificaEnvio ? clientSchedule : ''
+clientScheduleParaVendedor: calificaEnvio ? clientSchedule : '',
+clientLatParaVendedor: direccionEntregaLat,
+clientLngParaVendedor: direccionEntregaLng
 });
 if (didOpen) {
 items.forEach(i => delete localCart[i.id]);
@@ -2287,7 +2304,7 @@ await _checkoutComunidad(nextItems);
 }
 }
 }
-function _showVendorCheckoutModal({ nombre, logo, plan, subtotal, items, waUrl, remaining, donationList = [], vendorUid, requestId, notifItems, clientPhone, direccionEntrega = '', calificaEnvio = false, montoMinimo = null, clientAddressParaVendedor = '', clientScheduleParaVendedor = '' }) {
+function _showVendorCheckoutModal({ nombre, logo, plan, subtotal, items, waUrl, remaining, donationList = [], vendorUid, requestId, notifItems, clientPhone, direccionEntrega = '', calificaEnvio = false, montoMinimo = null, vendorTel = '', clientAddressParaVendedor = '', clientScheduleParaVendedor = '', clientLatParaVendedor = null, clientLngParaVendedor = null }) {
 if (!document.getElementById('zr-listo-btn-style')) {
 const zrListoSt = document.createElement('style');
 zrListoSt.id = 'zr-listo-btn-style';
@@ -2327,6 +2344,19 @@ const entregaHtml = direccionEntrega ? `
 <div style="font-size:12.5px;color:#aaa;line-height:1.4">${escapeHtml(direccionEntrega)}</div>
 ${!calificaEnvio && montoMinimo ? `<div style="font-size:11px;color:#f97316;margin-top:4px">Tu pedido no alcanza el mínimo de ${formatCurrency(montoMinimo)} de este vendedor para envío a domicilio.</div>` : ''}
 </div>
+</div>
+` : '';
+const PICKUP_HORAS = ['9:00 AM','10:00 AM','11:00 AM','12:00 PM','1:00 PM','2:00 PM','3:00 PM','4:00 PM','5:00 PM','6:00 PM','7:00 PM','8:00 PM'];
+const avisoHtml = (!calificaEnvio && direccionEntrega && vendorTel) ? `
+<div style="background:rgba(96,165,250,.08);border:1px solid rgba(96,165,250,.25);border-radius:14px;padding:12px 14px;margin-bottom:8px">
+<div style="font-size:12px;font-weight:700;color:#60a5fa;margin-bottom:8px">🕒 Avisa a qué hora pasas por tu pedido</div>
+<div style="display:flex;gap:8px;">
+<select id="pickup-hora-select" style="flex:1;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.15);color:#fff;border-radius:10px;padding:9px 10px;font-size:12.5px;font-family:inherit;">
+${PICKUP_HORAS.map(h => `<option value="${h}">${h}</option>`).join('')}
+</select>
+<button id="btn-avisar-llegada" type="button" style="flex-shrink:0;background:#60a5fa;color:#0a1a3a;border:none;border-radius:10px;padding:0 14px;font-size:12.5px;font-weight:700;cursor:pointer;white-space:nowrap;">💬 Avisar</button>
+</div>
+<p style="margin:6px 0 0;font-size:10.5px;color:#93c5fd;line-height:1.4">Se abre WhatsApp con el vendedor. Si no está disponible a esa hora, pueden reagendar directo desde el chat.</p>
 </div>
 ` : '';
 const hasDonations = donationList.length > 0;
@@ -2377,6 +2407,7 @@ ${itemsHtml}
 </div>
 </div>
 ${entregaHtml}
+${avisoHtml}
 ${donationHtml}
 <p style="font-size:12px;color:#888;text-align:center;margin:8px 0 0;line-height:1.5">${allDonated
 ? 'El vendedor solo coordinará contigo la entrega; el pago va directo al beneficiario.'
@@ -2412,6 +2443,17 @@ ${remaining > 0
 </div>
 `;
 document.body.appendChild(modal);
+const avisarBtn = modal.querySelector('#btn-avisar-llegada');
+if (avisarBtn) {
+avisarBtn.addEventListener('click', () => {
+const horaSel = modal.querySelector('#pickup-hora-select');
+const hora = horaSel ? horaSel.value : '';
+const textoAviso = `Hola, buen día 👋 Pasaré a recoger mi pedido a las ${hora}.`;
+const destTelAviso = vendorTel ? `52${vendorTel}` : '';
+if (!destTelAviso) return;
+window.open(`https://wa.me/${destTelAviso}?text=${encodeURIComponent(textoAviso)}`, '_blank');
+});
+}
 modal.querySelectorAll('.vcm-copy-cuenta').forEach(btn => {
 btn.addEventListener('click', () => {
 const cuenta = btn.dataset.cuenta || '';
@@ -2454,6 +2496,8 @@ requestId: requestId,
 clientPhone: clientPhone || "",
 clientAddress: clientAddressParaVendedor || "",
 clientSchedule: clientScheduleParaVendedor || "",
+clientLat: (clientLatParaVendedor !== null && clientLatParaVendedor !== undefined) ? clientLatParaVendedor : "",
+clientLng: (clientLngParaVendedor !== null && clientLngParaVendedor !== undefined) ? clientLngParaVendedor : "",
 items: notifItems,
 vendorNombre: nombre || "",
 waUrl: waUrl || ""
@@ -3644,7 +3688,4 @@ function getModalImageUrl(url) {
 }
 window.getModalImageUrl = getModalImageUrl;
 
-window.intervalConJitter = intervalConJitter;
-
-  
 })();

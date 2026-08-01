@@ -581,24 +581,20 @@ if (!window._vsnPollingStarted) {
 }
 
 async function loadVendorSaleNotifications() {
-  if (!vendorSession || !vendorSession.token) {
-    console.warn('No se pueden cargar notificaciones: sesión o token faltante');
-    return;
-  }
-
-  try {
-    let data = null;
-    if (window.znrFirestore && window.znrFirestore.getVentasComunidadVendedor) {
-      data = await window.znrFirestore.getVentasComunidadVendedor(vendorSession.uid, vendorSession.token);
-    }
-    if (!data || !data.ok) {
-      data = await apiCall({ action: 'listarNotificacionesVentaComunidad', vendorToken: vendorSession.token });
-    }
-    if (!data || !data.ok) return;
-    renderVendorSaleNotifications(data.notificaciones || []);
-  } catch (e) {
-    console.error('No se pudieron cargar las notificaciones de venta:', e);
-  }
+if (!vendorSession || !vendorSession.uid) return;
+try {
+let data = null;
+if (window.znrFirestore && window.znrFirestore.getVentasComunidadVendedor) {
+  data = await window.znrFirestore.getVentasComunidadVendedor(vendorSession.uid, vendorSession.token);
+}
+if (!data || !data.ok) {
+  data = await apiCall({ action: 'listarNotificacionesVentaComunidad', vendorToken: vendorSession.token });
+}
+if (!data || !data.ok) return;
+renderVendorSaleNotifications(data.notificaciones || []);
+} catch (e) {
+console.error('No se pudieron cargar las notificaciones de venta:', e);
+}
 }
 
 function renderVendorSaleNotifications(list) {
@@ -2153,6 +2149,77 @@ function updateVendorAvatar() {
   }
 }
 
+// Punto de entrega con ubicación real: mismo patrón GPS + Nominatim que ya
+// usa el comprador para su dirección (common.js/_collectAddressAndSchedule),
+// adaptado a los campos de Ajustes del vendedor.
+function _actualizarPreviewMapsPuntoEntrega() {
+  const lat = document.getElementById('settings-punto-entrega-lat')?.value;
+  const lng = document.getElementById('settings-punto-entrega-lng')?.value;
+  const preview = document.getElementById('punto-entrega-maps-preview');
+  if (!preview) return;
+  if (lat && lng) {
+    preview.innerHTML = `<a href="https://www.google.com/maps?q=${lat},${lng}" target="_blank" rel="noopener" style="color:#c2410c;font-weight:600;text-decoration:none;">📍 Ver ubicación marcada en Google Maps</a>`;
+  } else {
+    preview.innerHTML = '';
+  }
+}
+
+// Si el vendedor edita el texto a mano después de haber marcado su
+// ubicación, esas coordenadas ya no describen lo que escribió — se
+// limpian para no mandar un link de Maps desactualizado a los compradores.
+function _onEditarPuntoEntregaManual() {
+  const latInput = document.getElementById('settings-punto-entrega-lat');
+  const lngInput = document.getElementById('settings-punto-entrega-lng');
+  if (latInput) latInput.value = '';
+  if (lngInput) lngInput.value = '';
+  _actualizarPreviewMapsPuntoEntrega();
+}
+
+function usarUbicacionPuntoEntrega() {
+  const btn = document.getElementById('btn-gps-punto-entrega');
+  const input = document.getElementById('settings-punto-entrega');
+  if (!btn || !input) return;
+  if (!navigator.geolocation) {
+    btn.textContent = '📍 Sin GPS';
+    return;
+  }
+  const original = btn.textContent;
+  btn.textContent = '📍 Obteniendo…';
+  btn.disabled = true;
+  navigator.geolocation.getCurrentPosition(
+    async (pos) => {
+      const { latitude: lat, longitude: lng } = pos.coords;
+      let addr = `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+      try {
+        const res = await fetch(
+          `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&accept-language=es`,
+          { headers: { 'Accept-Language': 'es' } }
+        );
+        if (res.ok) {
+          const data = await res.json();
+          if (data.display_name) addr = data.display_name;
+        }
+      } catch (e) {}
+      input.value = addr;
+      document.getElementById('settings-punto-entrega-lat').value = lat;
+      document.getElementById('settings-punto-entrega-lng').value = lng;
+      _actualizarPreviewMapsPuntoEntrega();
+      btn.textContent = '✅ Ubicación marcada';
+      btn.disabled = false;
+      setTimeout(() => { btn.textContent = original; }, 2500);
+      input.focus();
+    },
+    () => {
+      btn.textContent = '📍 Sin permiso';
+      btn.disabled = false;
+      setTimeout(() => { btn.textContent = original; }, 2500);
+    },
+    { enableHighAccuracy: true, timeout: 10000 }
+  );
+}
+window.usarUbicacionPuntoEntrega = usarUbicacionPuntoEntrega;
+window._onEditarPuntoEntregaManual = _onEditarPuntoEntregaManual;
+
 function openSettingsModal(expandirPlan) {
   if (!vendorSession) return;
   const modal = document.getElementById('settings-modal');
@@ -2177,6 +2244,11 @@ function openSettingsModal(expandirPlan) {
 
   const puntoEntregaInput = document.getElementById('settings-punto-entrega');
   if (puntoEntregaInput) puntoEntregaInput.value = vendorSession.puntoEntrega || '';
+  const puntoLatInput = document.getElementById('settings-punto-entrega-lat');
+  const puntoLngInput = document.getElementById('settings-punto-entrega-lng');
+  if (puntoLatInput) puntoLatInput.value = (vendorSession.puntoEntregaLat === null || vendorSession.puntoEntregaLat === undefined) ? '' : vendorSession.puntoEntregaLat;
+  if (puntoLngInput) puntoLngInput.value = (vendorSession.puntoEntregaLng === null || vendorSession.puntoEntregaLng === undefined) ? '' : vendorSession.puntoEntregaLng;
+  _actualizarPreviewMapsPuntoEntrega();
   const montoMinInput = document.getElementById('settings-monto-minimo-envio');
   if (montoMinInput) montoMinInput.value = (vendorSession.montoMinimoEnvio === null || vendorSession.montoMinimoEnvio === undefined) ? '' : vendorSession.montoMinimoEnvio;
 
@@ -2382,6 +2454,8 @@ async function guardarPerfil() {
   const tiktok    = document.getElementById('settings-tiktok').value.trim();
   const puntoEntrega     = document.getElementById('settings-punto-entrega').value.trim();
   const montoMinimoEnvio = document.getElementById('settings-monto-minimo-envio').value.trim();
+  const puntoEntregaLat  = document.getElementById('settings-punto-entrega-lat')?.value.trim() || '';
+  const puntoEntregaLng  = document.getElementById('settings-punto-entrega-lng')?.value.trim() || '';
 
   if (!nombre || nombre.length < 2) {
     msg.style.color = '#dc2626'; msg.textContent = 'El nombre debe tener al menos 2 caracteres.';
@@ -2409,7 +2483,9 @@ async function guardarPerfil() {
       instagram,
       tiktok,
       puntoEntrega,
-      montoMinimoEnvio
+      montoMinimoEnvio,
+      puntoEntregaLat,
+      puntoEntregaLng
     });
 
     if (!res.ok) {
@@ -2429,6 +2505,8 @@ async function guardarPerfil() {
     vendorSession.tiktok      = tiktok;
     vendorSession.puntoEntrega     = puntoEntrega;
     vendorSession.montoMinimoEnvio = montoMinimoEnvio === '' ? null : Number(montoMinimoEnvio);
+    vendorSession.puntoEntregaLat  = puntoEntregaLat === '' ? null : Number(puntoEntregaLat);
+    vendorSession.puntoEntregaLng  = puntoEntregaLng === '' ? null : Number(puntoEntregaLng);
     try { localStorage.setItem('vendor_session', JSON.stringify(vendorSession)); } catch(e) {}
     renderChecklistVendedor();
     const nameHeader = document.getElementById('vendor-name-header');
