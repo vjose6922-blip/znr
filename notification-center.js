@@ -293,6 +293,23 @@
 }
 .nc-wa-btn:hover{background:#25d36633}
 
+.nc-maps-btn{
+  display:inline-flex;
+  align-items:center;
+  gap:5px;
+  margin-top:8px;
+  margin-left:6px;
+  padding:6px 12px;
+  border-radius:20px;
+  background:#60a5fa22;
+  color:#60a5fa;
+  font-size:11.5px;
+  font-weight:700;
+  border:1px solid #60a5fa55;
+  text-decoration:none;
+}
+.nc-maps-btn:hover{background:#60a5fa33}
+
 /* ── Skeletons ── */
 .nc-skel-item{
   display:flex;
@@ -417,6 +434,9 @@ const PICKUP_HORAS = ['9:00 AM','10:00 AM','11:00 AM','12:00 PM','1:00 PM','2:00
       const waBtn = meta.whatsappUrl
         ? `<a class="nc-wa-btn" href="${meta.whatsappUrl}" target="_blank" rel="noopener" onclick="event.stopPropagation()">${Icon('whatsapp')} Escribir por WhatsApp</a>`
         : '';
+      const mapsBtn = meta.mapsUrl
+        ? `<a class="nc-maps-btn" href="${meta.mapsUrl}" target="_blank" rel="noopener" onclick="event.stopPropagation()">${Icon('map-pin')} Ver ubicación en Maps</a>`
+        : '';
       // Pedido de Comunidad para RECOGER (no calificó para domicilio): se
       // le pregunta al comprador la hora a la que va a pasar, ya justo
       // aquí en la notificación — antes de esto no tiene caso preguntar,
@@ -445,6 +465,7 @@ const PICKUP_HORAS = ['9:00 AM','10:00 AM','11:00 AM','12:00 PM','1:00 PM','2:00
             <div class="nc-msg-collapsed">
               <p class="nc-item-msg">${n.mensaje || ''}</p>
               ${waBtn}
+              ${mapsBtn}
               ${pickupAvisoHtml}
             </div>
           </div>
