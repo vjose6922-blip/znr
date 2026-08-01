@@ -109,8 +109,33 @@
   });
 
   window.addEventListener("error", function (e) {
-    addConsoleEntry("error", [(e.message || "Error") + (e.filename ? " @ " + e.filename + ":" + e.lineno : "")]);
-  });
+
+  // Error de carga de un recurso (img, script, css, etc.)
+  if (e.target && e.target !== window) {
+
+    var url =
+      e.target.currentSrc ||
+      e.target.src ||
+      e.target.href ||
+      "";
+
+    var tag = e.target.tagName || "RESOURCE";
+
+    addConsoleEntry("error", [
+      tag + " resourceLoadError",
+      "No se pudo cargar <" + tag.toLowerCase() + ">: " + url
+    ]);
+
+    return;
+  }
+
+  // Error normal de JavaScript
+  addConsoleEntry("error", [
+    (e.message || "Error") +
+    (e.filename ? " @ " + e.filename + ":" + e.lineno : "")
+  ]);
+
+}, true);
   window.addEventListener("unhandledrejection", function (e) {
     addConsoleEntry("error", ["Promise rechazada sin manejar:", e.reason]);
   });
