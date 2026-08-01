@@ -240,7 +240,7 @@
 
  <header class="app-header">
  <div class="header-left">
- <a class="logo-touch-area" href="outfit.html" aria-label="Volver">
+ <a class="logo-touch-area" href="" aria-label="Volver">
  <span class="logo-mark">Z&R</span>
  </a>
  <div class="header-text">
@@ -309,7 +309,7 @@
 <nav class="bottom-nav">
  <button class="bottom-nav-item" data-page="outfit" id="nav-outfit">
  <span class="nav-icon"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" aria-hidden="true"><use href="#ic-outfit"/></svg></span>
- <span>Inicio</span>
+ <span>Outfit</span>
  </button>
 
  <button class="bottom-nav-item" data-page="catalogo" id="nav-catalogo">
@@ -1083,19 +1083,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
 
 
-<script>
-(function () {
-  var metas = document.querySelectorAll('meta[http-equiv="Content-Security-Policy"], meta[http-equiv="content-security-policy"]');
-  var texto = '🔍 CSP meta tags encontrados: ' + metas.length + '\n\n';
-  metas.forEach(function (m, i) {
-    texto += 'CSP #' + i + ':\n' + m.getAttribute('content') + '\n\n';
-  });
-  alert(texto);
-  document.addEventListener('securitypolicyviolation', function (e) {
-    console.error('🚨 CSP violation -> directiva: ' + e.violatedDirective + ' | bloqueado: ' + e.blockedURI + ' | policy: ' + e.originalPolicy);
-  });
-})();
-</script>
 
 
 
