@@ -430,7 +430,16 @@ const PICKUP_HORAS = ['9:00 AM','10:00 AM','11:00 AM','12:00 PM','1:00 PM','2:00
     listEl.innerHTML = items.map(n => {
       const info = TIPO_INFO[n.tipo] || { icono: Icon('bell') };
       let meta = {};
-      try { meta = n.meta ? JSON.parse(n.meta) : {}; } catch (_) {}
+      if (n.meta) {
+        if (typeof n.meta === 'string') {
+          try { meta = JSON.parse(n.meta); } catch (_) { meta = {}; }
+        } else if (typeof n.meta === 'object') {
+          // Firestore devuelve meta ya como objeto (mapa), no como texto —
+          // JSON.parse() sobre un objeto truena silenciosamente y dejaba
+          // meta vacío, rompiendo los botones de WhatsApp/Maps/recolección.
+          meta = n.meta;
+        }
+      }
       const waBtn = meta.whatsappUrl
         ? `<a class="nc-wa-btn" href="${meta.whatsappUrl}" target="_blank" rel="noopener" onclick="event.stopPropagation()">${Icon('whatsapp')} Escribir por WhatsApp</a>`
         : '';
