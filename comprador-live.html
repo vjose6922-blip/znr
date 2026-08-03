@@ -161,6 +161,27 @@
   .gps-status { margin: 0 0 12px; font-size: 12px; min-height: 15px; color: var(--color-text-soft); }
   .gps-status.ok { color: #4ade80; }
   .gps-status.error { color: #f87171; }
+  .horario-dias-row { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+  .horario-dia-btn {
+    padding: 6px 10px; border-radius: var(--radius-pill);
+    border: 1.5px solid var(--color-border-subtle); background: transparent;
+    color: var(--color-text-soft); font-size: 12px; font-weight: 600;
+    cursor: pointer; transition: all .15s;
+  }
+  .horario-dia-btn.activo {
+    border-color: var(--color-accent-solid);
+    background: var(--color-accent-soft); color: var(--color-accent-solid);
+  }
+  .horario-horas-row {
+    display: grid; grid-template-columns: 1fr auto 1fr; align-items: center;
+    gap: 8px; margin-bottom: 10px;
+  }
+  .horario-horas-row span { color: var(--color-text-soft); font-size: 13px; }
+  .horario-horas-row select {
+    width: 100%; box-sizing: border-box; padding: 11px 10px; border-radius: var(--radius-md);
+    border: 1px solid var(--color-border-subtle); background: var(--color-surface-2);
+    color: var(--color-text-primary); font-size: 13px; font-family: inherit; cursor: pointer;
+  }
   .loading-spinner {
     width: 28px; height: 28px; border-radius: 50%;
     border: 3px solid var(--color-border-subtle); border-top-color: var(--color-accent-solid);
@@ -490,6 +511,55 @@ function getIdentity() {
   } catch (e) { return null; }
 }
 
+// ── Picker de horario (días + rango de hora), mismo patrón que usa
+// el carrito en common.js/_collectAddressAndSchedule, para no dejar
+// que el comprador escriba el horario a mano. ──
+const HORARIO_DIAS = ['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'];
+const HORARIO_HORAS = ['7:00 AM','8:00 AM','9:00 AM','10:00 AM','11:00 AM','12:00 PM',
+  '1:00 PM','2:00 PM','3:00 PM','4:00 PM','5:00 PM','6:00 PM','7:00 PM','8:00 PM','9:00 PM'];
+
+// Intenta reconstruir días/horas de un valor guardado previamente
+// (incluye lo que quedó guardado de la versión anterior de texto libre;
+// si no calza con el formato nuevo, simplemente arranca vacío).
+function parsearHorarioGuardado(texto) {
+  const dias = HORARIO_DIAS.filter(d => (texto || '').includes(d));
+  const horas = (texto || '').match(/\d{1,2}:\d{2}\s?(AM|PM)/gi) || [];
+  const norm = h => HORARIO_HORAS.find(x => x.replace(/\s+/g,'') === h.replace(/\s+/g,'').toUpperCase()) || '';
+  return { dias, desde: horas[0] ? norm(horas[0]) : '', hasta: horas[1] ? norm(horas[1]) : '' };
+}
+
+function componerHorario() {
+  const dias = [...document.querySelectorAll('#idn-horario-dias .horario-dia-btn.activo')].map(b => b.dataset.dia);
+  const desde = document.getElementById('idn-horario-desde').value;
+  const hasta = document.getElementById('idn-horario-hasta').value;
+  let texto = dias.join(', ');
+  if (desde && hasta) texto += (texto ? ' · ' : '') + `${desde} – ${hasta}`;
+  else if (desde) texto += (texto ? ' · ' : '') + `desde ${desde}`;
+  else if (hasta) texto += (texto ? ' · ' : '') + `hasta ${hasta}`;
+  document.getElementById('idn-horario').value = texto;
+  return texto;
+}
+
+function renderHorarioPicker(valorGuardado) {
+  const { dias, desde, hasta } = parsearHorarioGuardado(valorGuardado);
+  const cont = document.getElementById('idn-horario-dias');
+  cont.innerHTML = HORARIO_DIAS.map(d =>
+    `<button type="button" class="horario-dia-btn${dias.includes(d) ? ' activo' : ''}" data-dia="${d}">${d}</button>`
+  ).join('');
+  cont.querySelectorAll('.horario-dia-btn').forEach(btn => {
+    btn.addEventListener('click', () => { btn.classList.toggle('activo'); componerHorario(); });
+  });
+  const opts = sel => '<option value="">--</option>' + HORARIO_HORAS.map(h =>
+    `<option value="${h}"${sel === h ? ' selected' : ''}>${h}</option>`).join('');
+  const selDesde = document.getElementById('idn-horario-desde');
+  const selHasta = document.getElementById('idn-horario-hasta');
+  selDesde.innerHTML = opts(desde);
+  selHasta.innerHTML = opts(hasta);
+  selDesde.addEventListener('change', componerHorario);
+  selHasta.addEventListener('change', componerHorario);
+  componerHorario();
+}
+
 function askIdentity(onDone) {
   const prev = identity || {};
   let gpsCoords = (typeof prev.lat === 'number' && typeof prev.lng === 'number')
@@ -509,11 +579,18 @@ function askIdentity(onDone) {
       <textarea id="idn-dir" placeholder="Calle, número, colonia, referencias… (o usa tu ubicación abajo)" maxlength="200">${esc(prev.direccion || '')}</textarea>
       <button type="button" class="btn-gps" id="idn-gps-btn"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" aria-hidden="true"><use href="#ic-map-pin"/></svg> Usar mi ubicación actual</button>
       <p class="gps-status ${gpsCoords ? 'ok' : ''}" id="idn-gps-status">${gpsCoords ? Icon('check') + ' Ya tenemos tu ubicación guardada.' : ''}</p>
-      <label for="idn-horario">Horario para entrega</label>
-      <input type="text" id="idn-horario" placeholder="Ej. Tardes después de 5pm, fines de semana…" maxlength="80" value="${esc(prev.horario || '')}">
+      <label>Horario para entrega</label>
+      <div class="horario-dias-row" id="idn-horario-dias"></div>
+      <div class="horario-horas-row">
+        <select id="idn-horario-desde"></select>
+        <span>a</span>
+        <select id="idn-horario-hasta"></select>
+      </div>
+      <input type="hidden" id="idn-horario" value="${esc(prev.horario || '')}">
       <button id="idn-btn">Entrar al chat</button>
     </div>`;
   document.body.appendChild(overlay);
+  renderHorarioPicker(prev.horario || '');
 
   document.getElementById('idn-gps-btn').addEventListener('click', () => {
     const statusEl = document.getElementById('idn-gps-status');
@@ -524,10 +601,24 @@ function askIdentity(onDone) {
     }
     statusEl.className = 'gps-status';
     statusEl.textContent = 'Obteniendo tu ubicación…';
-    navigator.geolocation.getCurrentPosition((pos) => {
+    navigator.geolocation.getCurrentPosition(async (pos) => {
       gpsCoords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
       statusEl.className = 'gps-status ok';
-      statusEl.innerHTML = Icon('check') + ' Ubicación capturada. El vendedor podrá verla en el mapa.';
+      statusEl.innerHTML = Icon('check') + ' Ubicación capturada. Buscando tu dirección…';
+      // Igual que en el carrito: convertimos las coordenadas a una
+      // dirección legible (calle, colonia…) en vez de dejar solo
+      // números — el vendedor necesita poder leerla, no solo verla en un mapa.
+      try {
+        const res = await fetch(
+          `https://nominatim.openstreetmap.org/reverse?lat=${gpsCoords.lat}&lon=${gpsCoords.lng}&format=json&accept-language=es`,
+          { headers: { 'Accept-Language': 'es' } }
+        );
+        if (res.ok) {
+          const data = await res.json();
+          if (data.display_name) document.getElementById('idn-dir').value = data.display_name;
+        }
+      } catch (e) { /* si falla, dejamos lo que el usuario haya escrito */ }
+      statusEl.innerHTML = Icon('check') + ' Ubicación y dirección capturadas.';
     }, (err) => {
       gpsCoords = null;
       statusEl.className = 'gps-status error';

@@ -2180,6 +2180,69 @@ function _onEditarPuntoEntregaManual() {
   _actualizarPreviewMapsPuntoEntrega();
 }
 
+// Horario de disponibilidad con botones de día + selects de hora, mismo
+// patrón que ya usa el carrito (common.js/_collectAddressAndSchedule),
+// para que el vendedor no tenga que escribirlo a mano. El valor sigue
+// guardándose como el mismo texto de siempre (ej. "Lun, Mié · 9:00 AM –
+// 6:00 PM") en el input oculto #settings-horario, así que el backend y
+// todo lo que ya muestra vendorSession.horario no necesitan cambios.
+const HORARIO_DIAS_VENDEDOR = ['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'];
+const HORARIO_HORAS_VENDEDOR = ['7:00 AM','8:00 AM','9:00 AM','10:00 AM','11:00 AM','12:00 PM',
+  '1:00 PM','2:00 PM','3:00 PM','4:00 PM','5:00 PM','6:00 PM','7:00 PM','8:00 PM','9:00 PM'];
+
+// Reconstruye días/horas de lo que ya estuviera guardado (incluye texto
+// libre de la versión anterior); si no calza con el formato nuevo, arranca vacío.
+function _parsearHorarioVendedor(texto) {
+  const dias = HORARIO_DIAS_VENDEDOR.filter(d => (texto || '').includes(d));
+  const horas = (texto || '').match(/\d{1,2}:\d{2}\s?(AM|PM)/gi) || [];
+  const norm = h => HORARIO_HORAS_VENDEDOR.find(x => x.replace(/\s+/g,'') === h.replace(/\s+/g,'').toUpperCase()) || '';
+  return { dias, desde: horas[0] ? norm(horas[0]) : '', hasta: horas[1] ? norm(horas[1]) : '' };
+}
+
+function _componerHorarioVendedor() {
+  const dias = [...document.querySelectorAll('#settings-horario-dias ._h-dia-activo')].map(b => b.dataset.dia);
+  const desde = document.getElementById('settings-horario-desde')?.value || '';
+  const hasta = document.getElementById('settings-horario-hasta')?.value || '';
+  let texto = dias.join(', ');
+  if (desde && hasta) texto += (texto ? ' · ' : '') + `${desde} – ${hasta}`;
+  else if (desde) texto += (texto ? ' · ' : '') + `desde ${desde}`;
+  else if (hasta) texto += (texto ? ' · ' : '') + `hasta ${hasta}`;
+  const hidden = document.getElementById('settings-horario');
+  if (hidden) hidden.value = texto;
+  return texto;
+}
+
+function _renderHorarioPickerVendedor(valorGuardado) {
+  const cont = document.getElementById('settings-horario-dias');
+  const selDesde = document.getElementById('settings-horario-desde');
+  const selHasta = document.getElementById('settings-horario-hasta');
+  if (!cont || !selDesde || !selHasta) return;
+  const { dias, desde, hasta } = _parsearHorarioVendedor(valorGuardado);
+  cont.innerHTML = HORARIO_DIAS_VENDEDOR.map(d => {
+    const activo = dias.includes(d);
+    return `<button type="button" class="_h-dia-btn${activo ? ' _h-dia-activo' : ''}" data-dia="${d}"
+      style="padding:6px 10px;border-radius:20px;border:1.5px solid ${activo ? '#c2410c' : '#ddd'};
+      background:${activo ? '#fff7ed' : '#fff'};color:${activo ? '#c2410c' : '#777'};
+      font-size:.78rem;font-weight:600;cursor:pointer;">${d}</button>`;
+  }).join('');
+  cont.querySelectorAll('._h-dia-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const activo = btn.classList.toggle('_h-dia-activo');
+      btn.style.border = `1.5px solid ${activo ? '#c2410c' : '#ddd'}`;
+      btn.style.background = activo ? '#fff7ed' : '#fff';
+      btn.style.color = activo ? '#c2410c' : '#777';
+      _componerHorarioVendedor();
+    });
+  });
+  const opts = sel => '<option value="">--</option>' + HORARIO_HORAS_VENDEDOR.map(h =>
+    `<option value="${h}"${sel === h ? ' selected' : ''}>${h}</option>`).join('');
+  selDesde.innerHTML = opts(desde);
+  selHasta.innerHTML = opts(hasta);
+  selDesde.onchange = _componerHorarioVendedor;
+  selHasta.onchange = _componerHorarioVendedor;
+  _componerHorarioVendedor();
+}
+
 function usarUbicacionPuntoEntrega() {
   const btn = document.getElementById('btn-gps-punto-entrega');
   const input = document.getElementById('settings-punto-entrega');
@@ -2233,8 +2296,7 @@ function openSettingsModal(expandirPlan) {
   document.getElementById('settings-nombre').value      = vendorSession.nombre || '';
   document.getElementById('settings-descripcion').value = vendorSession.descripcion || '';
   document.getElementById('settings-whatsapp').value    = vendorSession.whatsapp || '';
-  const horarioInput = document.getElementById('settings-horario');
-  if (horarioInput) horarioInput.value = vendorSession.horario || '';
+  _renderHorarioPickerVendedor(vendorSession.horario || '');
   const catSel = document.getElementById('settings-categoria');
   if (catSel) catSel.value = vendorSession.categoria || '';
 
