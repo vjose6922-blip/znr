@@ -1,4 +1,3 @@
-
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
 import { getMessaging, getToken, onMessage } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-messaging.js";
 
@@ -17,25 +16,31 @@ const VAPID_KEY = "BBnC4VSj0bWV72W9zZeXQUvDSybe8ccZTMhSjtu13gABzbzE1WqwVQ8kCxkcr
 const app = initializeApp(firebaseConfig);
 const messaging = getMessaging(app);
 
+// URL real de la Cloud Function (Cloud Run), desplegada 2026-08.
+const CLOUD_FN_REGISTRAR_TOKEN_URL =
+  "https://registrar-token-fcm-1038143238323.us-central1.run.app";
+
 /**
- * Manda el token al backend (Apps Script) para guardarlo asociado
- * a un vendedor o cliente.
+ * Manda el token a la Cloud Function que lo guarda en Firestore
+ * (fcm_tokens/{ownerType_ownerId}/tokens/{tokenHash}), de forma
+ * idempotente. Antes iba a Apps Script (acción "guardarTokenFCM");
+ * eso queda retirado como fuente de escritura para este dato.
  */
 async function registrarTokenFCM(ownerType, ownerId, token) {
-  const API_URL = window.API_URL;
-  if (!API_URL || !ownerType || !ownerId || !token) return false;
+  if (!ownerType || !ownerId || !token) return false;
   try {
-    await fetch(API_URL, {
+    const res = await fetch(CLOUD_FN_REGISTRAR_TOKEN_URL, {
       method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        action: "guardarTokenFCM",
         ownerType,
         ownerId,
         token,
         userAgent: navigator.userAgent
       })
     });
-    return true;
+    const data = await res.json();
+    return !!data.ok;
   } catch (err) {
     console.error("No se pudo guardar el token FCM:", err);
     return false;
