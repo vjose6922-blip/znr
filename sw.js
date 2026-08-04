@@ -1,4 +1,4 @@
-const CACHE_NAME    = 'zr-cache-v38';
+const CACHE_NAME    = 'zr-cache-v39';
 const DYNAMIC_CACHE = 'zr-dynamic-v14';
 const OFFLINE_URL   = '/znr/offline.html';
 
@@ -44,12 +44,12 @@ self.addEventListener('install', event => {
       await Promise.allSettled(
         STATIC_ASSETS.map(async asset => {
           try {
-            const response = await fetch(asset);
+            const response = await fetch(asset, { cache: 'reload' });
             if (response.ok) await cache.put(asset, response);
           } catch {}
         })
       );
-      const offlineRes = await fetch(OFFLINE_URL).catch(() => null);
+      const offlineRes = await fetch(OFFLINE_URL, { cache: 'reload' }).catch(() => null);
       if (offlineRes?.ok) await cache.put(OFFLINE_URL, offlineRes);
       await self.skipWaiting();
     })()
