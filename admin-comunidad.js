@@ -69,7 +69,7 @@
   }
   function _gasGet(params) {
     const url = _resolverApiUrlComunidad(params && params.action) + '?' + new URLSearchParams(params).toString();
-    return fetch(url).then(r => r.json());
+    return fetch(url, { cache: 'no-store' }).then(r => r.json());
   }
   function _gasPost(params) {
     const url = _resolverApiUrlComunidad(params && params.action);
