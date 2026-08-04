@@ -1,8 +1,16 @@
-(function() {
+﻿(function() {
 const COMUNIDAD_CACHE_KEY = 'zr_comunidad_data';
 const COMUNIDAD_CACHE_TTL_SESSION = 5 * 60 * 1000;
 const COMUNIDAD_CACHE_TTL_LOCAL   = 30 * 60 * 1000;
 const renderPage = renderProducts;
+
+// ── Router de migración GAS → Cloud Run (solo para deleteComunidad,
+// que es la única acción de este archivo que ya migró) ────────────
+const CATALOGO_API_URL_INSPECTOR =
+  "https://catalogo-api-1038143238323.us-central1.run.app"; // TODO: pegar la URL real tras el deploy
+function _resolverApiUrlInspector(action) {
+  return action === 'deleteComunidad' ? CATALOGO_API_URL_INSPECTOR : window.API_URL;
+}
 
 function setComunidadCache(products) {
   const payload = JSON.stringify({ data: products, timestamp: Date.now(), version: '1.1' });
@@ -768,7 +776,7 @@ action: 'deleteComunidad',
 id: String(productId),
 token: token
 });
-const res = await fetch(window.API_URL, {
+const res = await fetch(_resolverApiUrlInspector('deleteComunidad'), {
 method: 'POST',
 headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
 body: params.toString()

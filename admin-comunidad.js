@@ -1,4 +1,4 @@
-(function () {
+﻿(function () {
 
   
   const STYLES = `
@@ -49,14 +49,20 @@
   // vendedor-unificado.js / admin.js) ──────────────────────────────
   const VENDEDORES_API_URL_COMUNIDAD =
     "https://vendedores-api-1038143238323.us-central1.run.app";
-  const ACCIONES_MIGRADAS_COMUNIDAD = new Set([
-    "aprobarVendedor",
-    "rechazarVendedor",
-    "vendedoresAdmin",
-    "resetPasswordVendedor",
-  ]);
+  const CATALOGO_API_URL_COMUNIDAD =
+    "https://catalogo-api-1038143238323.us-central1.run.app"; // TODO: pegar la URL real tras el deploy
+  const MAPA_ACCIONES_MIGRADAS_COMUNIDAD = {
+    aprobarVendedor: VENDEDORES_API_URL_COMUNIDAD,
+    rechazarVendedor: VENDEDORES_API_URL_COMUNIDAD,
+    vendedoresAdmin: VENDEDORES_API_URL_COMUNIDAD,
+    resetPasswordVendedor: VENDEDORES_API_URL_COMUNIDAD,
+    productosPendientes: CATALOGO_API_URL_COMUNIDAD,
+    aprobarProductoComunidad: CATALOGO_API_URL_COMUNIDAD,
+    rechazarProductoComunidad: CATALOGO_API_URL_COMUNIDAD,
+    deleteComunidad: CATALOGO_API_URL_COMUNIDAD,
+  };
   function _resolverApiUrlComunidad(action) {
-    return ACCIONES_MIGRADAS_COMUNIDAD.has(action) ? VENDEDORES_API_URL_COMUNIDAD : API_URL;
+    return MAPA_ACCIONES_MIGRADAS_COMUNIDAD[action] || API_URL;
   }
   function _escapeHtml(str) {
     if (typeof escapeHtml === 'function') return escapeHtml(str);

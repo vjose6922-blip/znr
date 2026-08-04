@@ -1,4 +1,4 @@
-(function() {
+﻿(function() {
 'use strict';
 
 // ──────────────────────────────────────────────
@@ -14,20 +14,23 @@ Object.defineProperty(window, 'vendorSession', {
 const API_BASE = window.API_URL || ""
 
 // ── Router de migración GAS → Cloud Run ──────────────────────────
-// Acciones que ya viven en la nueva Cloud Function `vendedoresApi`.
-// Todo lo que no esté en esta lista sigue yendo a GAS (window.API_URL)
-// como siempre. Cuando migremos más piezas, solo hay que sumar el
-// nombre de la acción acá.
+// Mapa acción → URL de la Cloud Function que la reemplaza. Todo lo
+// que no esté acá sigue yendo a GAS (window.API_URL) como siempre.
 const VENDEDORES_API_URL =
-  "https://vendedores-api-1038143238323.us-central1.run.app"; // TODO: pegar la URL real tras el deploy
-const ACCIONES_MIGRADAS = new Set([
-  "registrarVendedor",
-  "loginVendedor",
-  "cambiarPasswordVendedor",
-  "solicitarResetPasswordVendedor",
-]);
+  "https://vendedores-api-1038143238323.us-central1.run.app";
+const CATALOGO_API_URL =
+  "https://catalogo-api-1038143238323.us-central1.run.app"; // TODO: pegar la URL real tras el deploy
+const MAPA_ACCIONES_MIGRADAS = {
+  registrarVendedor: VENDEDORES_API_URL,
+  loginVendedor: VENDEDORES_API_URL,
+  cambiarPasswordVendedor: VENDEDORES_API_URL,
+  solicitarResetPasswordVendedor: VENDEDORES_API_URL,
+  createComunidad: CATALOGO_API_URL,
+  updateComunidad: CATALOGO_API_URL,
+  deleteComunidad: CATALOGO_API_URL,
+};
 function resolverApiUrl(action) {
-  return ACCIONES_MIGRADAS.has(action) ? VENDEDORES_API_URL : API_BASE;
+  return MAPA_ACCIONES_MIGRADAS[action] || API_BASE;
 }
 
 const DAILY_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
