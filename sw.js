@@ -1,4 +1,4 @@
-const CACHE_NAME    = 'zr-cache-v41';
+const CACHE_NAME    = 'zr-cache-v42';
 const DYNAMIC_CACHE = 'zr-dynamic-v14';
 const OFFLINE_URL   = '/znr/offline.html';
 
@@ -40,6 +40,7 @@ const API_DOMAINS      = [
   'openweathermap.org',
   'registrar-token-fcm-1038143238323.us-central1.run.app',
   'vendedores-api-1038143238323.us-central1.run.app',
+  'catalogo-api-1038143238323.us-central1.run.app',
 ];
 const IMAGE_CDN_HOSTS  = ['lh3.googleusercontent.com', 'googleusercontent.com'];
 
@@ -138,7 +139,9 @@ async function networkFirst(request) {
                          'updateComunidad','deleteComunidad','aprobarVendedor',
                          'rechazarVendedor','aprobarProductoComunidad','rechazarProductoComunidad',
                          'verificarAdmin','vendedoresAdmin','productosPendientes',
-                         'obtenerReportes','confirmGroupPurchase','cancelGroupPurchase'];
+                         'obtenerReportes','confirmGroupPurchase','cancelGroupPurchase',
+                         'registrarVendedor','cambiarPasswordVendedor',
+                         'solicitarResetPasswordVendedor','resetPasswordVendedor'];
       if (!action || !sensitive.includes(action)) {
         const cache = await caches.open(DYNAMIC_CACHE);
         cache.put(request, net.clone());
