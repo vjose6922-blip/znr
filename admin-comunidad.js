@@ -53,6 +53,7 @@
     "aprobarVendedor",
     "rechazarVendedor",
     "vendedoresAdmin",
+    "resetPasswordVendedor",
   ]);
   function _resolverApiUrlComunidad(action) {
     return ACCIONES_MIGRADAS_COMUNIDAD.has(action) ? VENDEDORES_API_URL_COMUNIDAD : API_URL;
