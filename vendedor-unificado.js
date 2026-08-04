@@ -13,6 +13,22 @@ Object.defineProperty(window, 'vendorSession', {
 
 const API_BASE = window.API_URL || ""
 
+// ── Router de migración GAS → Cloud Run ──────────────────────────
+// Acciones que ya viven en la nueva Cloud Function `vendedoresApi`.
+// Todo lo que no esté en esta lista sigue yendo a GAS (window.API_URL)
+// como siempre. Cuando migremos más piezas, solo hay que sumar el
+// nombre de la acción acá.
+const VENDEDORES_API_URL =
+  "https://vendedores-api-1038143238323.us-central1.run.app/"; // TODO: pegar la URL real tras el deploy
+const ACCIONES_MIGRADAS = new Set([
+  "registrarVendedor",
+  "loginVendedor",
+  "cambiarPasswordVendedor",
+]);
+function resolverApiUrl(action) {
+  return ACCIONES_MIGRADAS.has(action) ? VENDEDORES_API_URL : API_BASE;
+}
+
 const DAILY_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 const _DAILY_CACHE_MISS = Symbol('miss');
 function _getDailyCache(key) {
@@ -33,7 +49,7 @@ return sessionStorage.getItem('admin_token') || '';
 }
 
 window.apiFetch = async function(data, method = 'POST') {
-  const API_BASE = window.API_URL;
+  const API_BASE = resolverApiUrl(data && data.action);
   if (!API_BASE) throw new Error('API_URL no está disponible');
 
   const TIMEOUT_MS = 15000;
@@ -2983,7 +2999,7 @@ if (btn) { btn.disabled = false; btn.innerHTML = Icon('star') + ' Solicitar plan
 }
 
 async function apiCall(data) {
-  const API_BASE = window.API_URL;
+  const API_BASE = resolverApiUrl(data && data.action);
   if (!API_BASE) throw new Error('API_URL no está disponible');
 
   const params = new URLSearchParams();

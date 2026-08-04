@@ -13,6 +13,19 @@ console.log(" Función original deleteProduct guardada");
 }
 }, 100);
 const ADMIN_API_URL = window.API_URL || "";
+
+// ── Router de migración GAS → Cloud Run (mismo criterio que en
+// vendedor-unificado.js) ──────────────────────────────────────────
+const VENDEDORES_API_URL_ADMIN =
+  "https://vendedores-api-1038143238323.us-central1.run.app/"; // TODO: pegar la URL real tras el deploy
+const ACCIONES_MIGRADAS_ADMIN = new Set([
+  "aprobarVendedor",
+  "rechazarVendedor",
+  "vendedoresAdmin",
+]);
+function resolverApiUrlAdmin(action) {
+  return ACCIONES_MIGRADAS_ADMIN.has(action) ? VENDEDORES_API_URL_ADMIN : ADMIN_API_URL;
+}
 let adminSession = null;
 let adminProducts = [];
 let adminCurrentPage = 1;
@@ -897,14 +910,14 @@ return sessionStorage.getItem('admin_token')
 }
 
 async function gasGet(params) {
-const url = getApi();
+const url = resolverApiUrlAdmin(params && params.action);
 const qs = new URLSearchParams(params).toString();
 const res = await fetch(url + "?" + qs);
 return res.json();
 }
 
 async function gasPost(params) {
-const url = getApi();
+const url = resolverApiUrlAdmin(params && params.action);
 const res = await fetch(url, {
 method: "POST",
 headers: { "Content-Type": "application/x-www-form-urlencoded" },
