@@ -45,6 +45,18 @@
 </style>`;
 
   
+  // ── Router de migración GAS → Cloud Run (mismo criterio que en
+  // vendedor-unificado.js / admin.js) ──────────────────────────────
+  const VENDEDORES_API_URL_COMUNIDAD =
+    "https://vendedores-api-1038143238323.us-central1.run.app";
+  const ACCIONES_MIGRADAS_COMUNIDAD = new Set([
+    "aprobarVendedor",
+    "rechazarVendedor",
+    "vendedoresAdmin",
+  ]);
+  function _resolverApiUrlComunidad(action) {
+    return ACCIONES_MIGRADAS_COMUNIDAD.has(action) ? VENDEDORES_API_URL_COMUNIDAD : API_URL;
+  }
   function _escapeHtml(str) {
     if (typeof escapeHtml === 'function') return escapeHtml(str);
     if (!str) return '';
@@ -56,13 +68,12 @@
     return sessionStorage.getItem('admin_token') || '';
   }
   function _gasGet(params) {
-    if (typeof gasGet === 'function') return gasGet(params);
-    const url = API_URL + '?' + new URLSearchParams(params).toString();
+    const url = _resolverApiUrlComunidad(params && params.action) + '?' + new URLSearchParams(params).toString();
     return fetch(url).then(r => r.json());
   }
   function _gasPost(params) {
-    if (typeof gasPost === 'function') return gasPost(params);
-    return fetch(API_URL, {
+    const url = _resolverApiUrlComunidad(params && params.action);
+    return fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body: new URLSearchParams(params).toString()
