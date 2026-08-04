@@ -1,4 +1,4 @@
-const CACHE_NAME    = 'zr-cache-v39';
+const CACHE_NAME    = 'zr-cache-v40';
 const DYNAMIC_CACHE = 'zr-dynamic-v14';
 const OFFLINE_URL   = '/znr/offline.html';
 
@@ -34,7 +34,13 @@ const STATIC_ASSETS = [
 ];
 
 const IMAGE_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.svg'];
-const API_DOMAINS      = ['script.google.com', 'wttr.in', 'openweathermap.org'];
+const API_DOMAINS      = [
+  'script.google.com',
+  'wttr.in',
+  'openweathermap.org',
+  'registrar-token-fcm-1038143238323.us-central1.run.app',
+  'vendedores-api-1038143238323.us-central1.run.app',
+];
 const IMAGE_CDN_HOSTS  = ['lh3.googleusercontent.com', 'googleusercontent.com'];
 
 self.addEventListener('install', event => {
