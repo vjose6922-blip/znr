@@ -19,7 +19,7 @@ const API_BASE = window.API_URL || ""
 // como siempre. Cuando migremos más piezas, solo hay que sumar el
 // nombre de la acción acá.
 const VENDEDORES_API_URL =
-  "https://REEMPLAZAR-CON-LA-URL-REAL.us-central1.run.app"; // TODO: pegar la URL real tras el deploy
+  "https://vendedores-api-1038143238323.us-central1.run.app"; // TODO: pegar la URL real tras el deploy
 const ACCIONES_MIGRADAS = new Set([
   "registrarVendedor",
   "loginVendedor",
