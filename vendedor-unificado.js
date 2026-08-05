@@ -1,4 +1,4 @@
-﻿(function() {
+(function() {
 'use strict';
 
 // ──────────────────────────────────────────────
@@ -19,7 +19,7 @@ const API_BASE = window.API_URL || ""
 const VENDEDORES_API_URL =
   "https://vendedores-api-1038143238323.us-central1.run.app";
 const CATALOGO_API_URL =
-  "https://catalogo-api-1038143238323.us-central1.run.app"; // TODO: pegar la URL real tras el deploy
+  "https://REEMPLAZAR-CON-LA-URL-REAL.us-central1.run.app"; // TODO: pegar la URL real tras el deploy
 const MAPA_ACCIONES_MIGRADAS = {
   registrarVendedor: VENDEDORES_API_URL,
   loginVendedor: VENDEDORES_API_URL,
@@ -28,6 +28,7 @@ const MAPA_ACCIONES_MIGRADAS = {
   createComunidad: CATALOGO_API_URL,
   updateComunidad: CATALOGO_API_URL,
   deleteComunidad: CATALOGO_API_URL,
+  misProductosComunidad: CATALOGO_API_URL,
 };
 function resolverApiUrl(action) {
   return MAPA_ACCIONES_MIGRADAS[action] || API_BASE;
@@ -298,9 +299,7 @@ window.invalidateVendorProductsCache = function(uid) {
 };
 window.fetchAndCacheVendorPage = async function(uid, page, limit, status) {
   const data = await apiFetch({
-    action: 'listarComunidad',
-    vendedor_uid: uid,
-    admin: 'true',
+    action: 'misProductosComunidad',
     limit: limit,
     page: page,
     estado: status !== 'todos' ? status : undefined,
@@ -1248,9 +1247,7 @@ window.loadMyProducts = async function loadMyProducts(force = false, page = 1) {
 // tanto vendedor.html como el modal de donaciones pasan por aquí.
 window.fetchAndCacheVendorPage = async function(uid, page, limit, status) {
   const data = await apiFetch({
-    action: 'listarComunidad',
-    vendedor_uid: uid,
-    admin: 'true',
+    action: 'misProductosComunidad',
     limit: limit,
     page: page,
     estado: status !== 'todos' ? status : undefined,
@@ -1259,7 +1256,6 @@ window.fetchAndCacheVendorPage = async function(uid, page, limit, status) {
 
   if (!data.ok) throw new Error(data.error || 'Error al cargar productos');
 
-  // Filtrar por uid por si acaso
   const myProducts = (data.products || []).filter(p => p.vendedor_uid === uid);
   const total = data.total || myProducts.length;
   const totalPages = data.totalPages || Math.ceil(total / limit) || 1;
@@ -2781,9 +2777,8 @@ window.verMisEstadisticas = async function(forceRefresh) {
   const result = { stats: null, rating: null };
 
   try {
-    const url = `${window.API_URL}?${new URLSearchParams({
-      action: 'listarComunidad',
-      vendedor_uid: vendorSession.uid,
+    const url = `${CATALOGO_API_URL}?${new URLSearchParams({
+      action: 'misProductosComunidad',
       vendorToken: vendorSession.token,
       limit: '200', page: '1'
     })}`;
