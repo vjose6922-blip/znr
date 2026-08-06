@@ -18,7 +18,7 @@ const messaging = getMessaging(app);
 
 // URL real de la Cloud Function (Cloud Run), desplegada 2026-08.
 const CLOUD_FN_REGISTRAR_TOKEN_URL =
-  "https://registrar-token-fcm-1038143238323.us-central1.run.app https://auth-api-1038143238323.us-central1.run.app";
+  "https://registrar-token-fcm-1038143238323.us-central1.run.app https://ventas-api-1038143238323.us-central1.run.app https://auth-api-1038143238323.us-central1.run.app";
 
 /**
  * Manda el token a la Cloud Function que lo guarda en Firestore
