@@ -17,14 +17,18 @@ const ADMIN_API_URL = window.API_URL || "";
 // ── Router de migración GAS → Cloud Run (mismo criterio que en
 // vendedor-unificado.js) ──────────────────────────────────────────
 const VENDEDORES_API_URL_ADMIN =
-  "https://vendedores-api-1038143238323.us-central1.run.app/"; // TODO: pegar la URL real tras el deploy
-const ACCIONES_MIGRADAS_ADMIN = new Set([
-  "aprobarVendedor",
-  "rechazarVendedor",
-  "vendedoresAdmin",
-]);
+  "https://auth-api-1038143238323.us-central1.run.app"; // TODO: pegar la URL real tras el deploy
+const AUTH_API_URL_ADMIN =
+  "https://REEMPLAZAR-CON-LA-URL-REAL.us-central1.run.app"; // TODO: pegar la URL real tras el deploy
+const MAPA_ACCIONES_MIGRADAS_ADMIN = {
+  aprobarVendedor: VENDEDORES_API_URL_ADMIN,
+  rechazarVendedor: VENDEDORES_API_URL_ADMIN,
+  vendedoresAdmin: VENDEDORES_API_URL_ADMIN,
+  login: AUTH_API_URL_ADMIN,
+  verificarAdmin: AUTH_API_URL_ADMIN,
+};
 function resolverApiUrlAdmin(action) {
-  return ACCIONES_MIGRADAS_ADMIN.has(action) ? VENDEDORES_API_URL_ADMIN : ADMIN_API_URL;
+  return MAPA_ACCIONES_MIGRADAS_ADMIN[action] || ADMIN_API_URL;
 }
 let adminSession = null;
 let adminProducts = [];
@@ -35,7 +39,7 @@ let lastNotifCount = 0;
 let notificationInterval = null;
 async function apiRequest(method, body) {
 try {
-const url = window.API_URL || ADMIN_API_URL;
+const url = resolverApiUrlAdmin((body && body.action) || "");
 if (!url) throw new Error("API_URL no disponible");
 const savedToken = sessionStorage.getItem("admin_token") || "";
 let res;
@@ -848,7 +852,7 @@ adminSession = null;
 if (hasSession === "true" && savedToken && document.getElementById("admin-panel-view")) {
 (async () => {
 try {
-const apiUrl = window.API_URL;
+const apiUrl = resolverApiUrlAdmin("verificarAdmin");
 if (!apiUrl) { _forceAdminLogout(); return; }
 
 const res = await fetch(apiUrl + "?" + new URLSearchParams({ action: "verificarAdmin", token: savedToken }).toString());

@@ -35,6 +35,9 @@ const auth = getAuth(app);
 
 window.znrFirestore = window.znrFirestore || {};
 
+// Cloud Function que reemplaza a GAS para custom tokens de Firebase Auth.
+const AUTH_API_URL = "https://auth-api-1038143238323.us-central1.run.app"; // TODO: pegar la URL real tras el deploy
+
 /**
  * Pide un Firebase Custom Token a GAS e inicia sesión en Firebase Auth
  * con él. Debe llamarse ANTES de leer colecciones protegidas por
@@ -52,9 +55,9 @@ window.znrFirestore.signIn = async function (ownerType, ownerRef) {
     if (ownerType === 'vendedor') params.append('vendorToken', ownerRef);
     else params.append('telefono', ownerRef);
 
-    const res = await fetch(window.API_URL, {
+    const res = await fetch(AUTH_API_URL, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, // mismo patrón que window.apiFetch
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body: params.toString()
     });
     const data = await res.json();

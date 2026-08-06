@@ -19,7 +19,9 @@ const API_BASE = window.API_URL || ""
 const VENDEDORES_API_URL =
   "https://vendedores-api-1038143238323.us-central1.run.app";
 const CATALOGO_API_URL =
-  "https://REEMPLAZAR-CON-LA-URL-REAL.us-central1.run.app"; // TODO: pegar la URL real tras el deploy
+  "https://catalogo-api-1038143238323.us-central1.run.app";
+const AUTH_API_URL =
+  "https://auth-api-1038143238323.us-central1.run.app"; // TODO: pegar la URL real tras el deploy
 const MAPA_ACCIONES_MIGRADAS = {
   registrarVendedor: VENDEDORES_API_URL,
   loginVendedor: VENDEDORES_API_URL,
@@ -416,7 +418,7 @@ const esAdmin = /^\d{6}$/.test(firstField);
 
 if (esAdmin) {
 try {
-const api = window.API_URL;
+const api = AUTH_API_URL;
 if (!api) throw new Error();
 const formData = new URLSearchParams();
 formData.append('action', 'login');
