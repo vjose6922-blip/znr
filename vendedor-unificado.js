@@ -1,4 +1,4 @@
-(function() {
+﻿(function() {
 'use strict';
 
 // ──────────────────────────────────────────────
@@ -22,6 +22,8 @@ const CATALOGO_API_URL =
   "https://catalogo-api-1038143238323.us-central1.run.app";
 const AUTH_API_URL =
   "https://auth-api-1038143238323.us-central1.run.app"; // TODO: pegar la URL real tras el deploy
+const VENTAS_API_URL =
+  "https://ventas-api-1038143238323.us-central1.run.app"; // TODO: pegar la URL real tras el deploy
 const MAPA_ACCIONES_MIGRADAS = {
   registrarVendedor: VENDEDORES_API_URL,
   loginVendedor: VENDEDORES_API_URL,
@@ -31,6 +33,7 @@ const MAPA_ACCIONES_MIGRADAS = {
   updateComunidad: CATALOGO_API_URL,
   deleteComunidad: CATALOGO_API_URL,
   misProductosComunidad: CATALOGO_API_URL,
+  resolverNotificacionVentaComunidad: VENTAS_API_URL,
 };
 function resolverApiUrl(action) {
   return MAPA_ACCIONES_MIGRADAS[action] || API_BASE;

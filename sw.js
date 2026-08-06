@@ -1,4 +1,4 @@
-const CACHE_NAME    = 'zr-cache-v44';
+const CACHE_NAME    = 'zr-cache-v45';
 const DYNAMIC_CACHE = 'zr-dynamic-v14';
 const OFFLINE_URL   = '/znr/offline.html';
 
@@ -42,6 +42,7 @@ const API_DOMAINS      = [
   'vendedores-api-1038143238323.us-central1.run.app',
   'catalogo-api-1038143238323.us-central1.run.app',
   'auth-api-1038143238323.us-central1.run.app',
+  'ventas-api-1038143238323.us-central1.run.app',
 ];
 const IMAGE_CDN_HOSTS  = ['lh3.googleusercontent.com', 'googleusercontent.com'];
 
@@ -143,7 +144,8 @@ async function networkFirst(request) {
                          'obtenerReportes','confirmGroupPurchase','cancelGroupPurchase',
                          'registrarVendedor','cambiarPasswordVendedor',
                          'solicitarResetPasswordVendedor','resetPasswordVendedor',
-                         'misProductosComunidad','obtenerFirebaseToken'];
+                         'misProductosComunidad','obtenerFirebaseToken',
+                         'crearNotificacionVentaComunidad','resolverNotificacionVentaComunidad'];
       if (!action || !sensitive.includes(action)) {
         const cache = await caches.open(DYNAMIC_CACHE);
         cache.put(request, net.clone());
