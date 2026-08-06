@@ -17,9 +17,9 @@ const ADMIN_API_URL = window.API_URL || "";
 // ── Router de migración GAS → Cloud Run (mismo criterio que en
 // vendedor-unificado.js) ──────────────────────────────────────────
 const VENDEDORES_API_URL_ADMIN =
-  "https://auth-api-1038143238323.us-central1.run.app"; // TODO: pegar la URL real tras el deploy
+  "https://vendedores-api-1038143238323.us-central1.run.app"; // TODO: pegar la URL real tras el deploy
 const AUTH_API_URL_ADMIN =
-  "https://REEMPLAZAR-CON-LA-URL-REAL.us-central1.run.app"; // TODO: pegar la URL real tras el deploy
+  "https://auth-api-1038143238323.us-central1.run.app"; // TODO: pegar la URL real tras el deploy
 const MAPA_ACCIONES_MIGRADAS_ADMIN = {
   aprobarVendedor: VENDEDORES_API_URL_ADMIN,
   rechazarVendedor: VENDEDORES_API_URL_ADMIN,
