@@ -4,13 +4,31 @@
  <meta charset="UTF-8" />
 <meta http-equiv="Content-Security-Policy" content="
  default-src 'self';
- script-src 'self' 'unsafe-inline' https://www.gstatic.com https://cdnjs.cloudflare.com;
- style-src 'self' 'unsafe-inline';
- img-src 'self' data: blob: https://lh3.googleusercontent.com https://drive.google.com https://placehold.co https://via.placeholder.com;
- connect-src 'self' https://script.google.com https://catalogo-api-1038143238323.us-central1.run.app https://script.googleusercontent.com https://wttr.in https://www.gstatic.com https://firebaseinstallations.googleapis.com https://fcmregistrations.googleapis.com https://registrar-token-fcm-1038143238323.us-central1.run.app https://ventas-api-1038143238323.us-central1.run.app https://auth-api-1038143238323.us-central1.run.app https://vendedores-api-1038143238323.us-central1.run.app https://firebase.googleapis.com https://znr-live-default-rtdb.firebaseio.com https://nominatim.openstreetmap.org;
- font-src 'self';
+ script-src 'self' 'unsafe-inline' https://www.gstatic.com https://cdnjs.cloudflare.com https://*.googleapis.com;
+ style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://*.googleapis.com;
+ img-src 'self' data: blob: https://lh3.googleusercontent.com https://drive.google.com https://placehold.co https://via.placeholder.com https://*.googleusercontent.com;
+ connect-src 'self' 
+   https://script.google.com 
+   https://script.googleusercontent.com 
+   https://catalogo-api-1038143238323.us-central1.run.app 
+   https://wttr.in 
+   https://www.gstatic.com 
+   https://firebaseinstallations.googleapis.com 
+   https://fcmregistrations.googleapis.com 
+   https://registrar-token-fcm-1038143238323.us-central1.run.app 
+   https://ventas-api-1038143238323.us-central1.run.app 
+   https://auth-api-1038143238323.us-central1.run.app 
+   https://vendedores-api-1038143238323.us-central1.run.app 
+   https://firebase.googleapis.com 
+   https://firestore.googleapis.com 
+   https://identitytoolkit.googleapis.com 
+   https://securetoken.googleapis.com 
+   https://znr-live-default-rtdb.firebaseio.com 
+   https://nominatim.openstreetmap.org
+   https://*.firebaseio.com
+   https://*.googleapis.com;
+ font-src 'self' https://www.gstatic.com https://cdnjs.cloudflare.com;
  frame-src 'none';
- frame-ancestors 'none';
  object-src 'none';
  base-uri 'self';
  worker-src 'self' blob:;
