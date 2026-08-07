@@ -21,9 +21,9 @@ const VENDEDORES_API_URL =
 const CATALOGO_API_URL =
   "https://catalogo-api-1038143238323.us-central1.run.app";
 const AUTH_API_URL =
-  "https://REEMPLAZAR-CON-LA-URL-REAL.us-central1.run.app"; // TODO: pegar la URL real tras el deploy
+  "https://auth-api-1038143238323.us-central1.run.app"; // TODO: pegar la URL real tras el deploy
 const VENTAS_API_URL =
-  "https://REEMPLAZAR-CON-LA-URL-REAL.us-central1.run.app"; // TODO: pegar la URL real tras el deploy
+  "https://ventas-api-1038143238323.us-central1.run.app"; // TODO: pegar la URL real tras el deploy
 const MAPA_ACCIONES_MIGRADAS = {
   registrarVendedor: VENDEDORES_API_URL,
   loginVendedor: VENDEDORES_API_URL,
