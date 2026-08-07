@@ -21,9 +21,9 @@ const VENDEDORES_API_URL =
 const CATALOGO_API_URL =
   "https://catalogo-api-1038143238323.us-central1.run.app";
 const AUTH_API_URL =
-  "https://auth-api-1038143238323.us-central1.run.app"; // TODO: pegar la URL real tras el deploy
+  "https://REEMPLAZAR-CON-LA-URL-REAL.us-central1.run.app"; // TODO: pegar la URL real tras el deploy
 const VENTAS_API_URL =
-  "https://ventas-api-1038143238323.us-central1.run.app"; // TODO: pegar la URL real tras el deploy
+  "https://REEMPLAZAR-CON-LA-URL-REAL.us-central1.run.app"; // TODO: pegar la URL real tras el deploy
 const MAPA_ACCIONES_MIGRADAS = {
   registrarVendedor: VENDEDORES_API_URL,
   loginVendedor: VENDEDORES_API_URL,
@@ -33,6 +33,7 @@ const MAPA_ACCIONES_MIGRADAS = {
   actualizarPortadaVendedor: VENDEDORES_API_URL,
   actualizarLogoVendedor: VENDEDORES_API_URL,
   marcarVendedorConfiable: VENDEDORES_API_URL,
+  vendedoresAdmin: VENDEDORES_API_URL,
   createComunidad: CATALOGO_API_URL,
   updateComunidad: CATALOGO_API_URL,
   deleteComunidad: CATALOGO_API_URL,
