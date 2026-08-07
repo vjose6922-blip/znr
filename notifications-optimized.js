@@ -1014,7 +1014,8 @@ window.adminSuspenderVendedorDesdeReporte = async function(vendedorUid, reporteI
   const runFn = async () => {
   try {
     const token = sessionStorage.getItem('admin_token') || '';
-    const res   = await fetch(API_URL, { method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body: new URLSearchParams({ action:'suspenderVendedor', uid: vendedorUid, token }).toString() });
+    const VENDEDORES_API_URL_NOTIF = "https://vendedores-api-1038143238323.us-central1.run.app";
+    const res   = await fetch(VENDEDORES_API_URL_NOTIF, { method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body: new URLSearchParams({ action:'suspenderVendedor', uid: vendedorUid, token }).toString() });
     const data  = await res.json();
     if (!data.ok) { alert('Error: ' + data.error); return; }
     await window.adminMarcarReporteLiveRevisado(reporteId);

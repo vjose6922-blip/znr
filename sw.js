@@ -1,4 +1,4 @@
-const CACHE_NAME    = 'zr-cache-v45';
+const CACHE_NAME    = 'zr-cache-v46';
 const DYNAMIC_CACHE = 'zr-dynamic-v14';
 const OFFLINE_URL   = '/znr/offline.html';
 
@@ -145,7 +145,10 @@ async function networkFirst(request) {
                          'registrarVendedor','cambiarPasswordVendedor',
                          'solicitarResetPasswordVendedor','resetPasswordVendedor',
                          'misProductosComunidad','obtenerFirebaseToken',
-                         'crearNotificacionVentaComunidad','resolverNotificacionVentaComunidad'];
+                         'crearNotificacionVentaComunidad','resolverNotificacionVentaComunidad',
+                         'actualizarPerfilVendedor','actualizarPortadaVendedor',
+                         'actualizarLogoVendedor','marcarVendedorConfiable',
+                         'marcarVendedorPlan','suspenderVendedor'];
       if (!action || !sensitive.includes(action)) {
         const cache = await caches.open(DYNAMIC_CACHE);
         cache.put(request, net.clone());
