@@ -1798,7 +1798,7 @@ async function openSugerenciasConfiableModal() {
   const old = document.getElementById('modal-sugerencias-confiable');
   if (old) old.remove();
   const token = sessionStorage.getItem('admin_token') || '';
-  const api   = window.API_URL || '';
+  const api   = "https://vendedores-api-1038143238323.us-central1.run.app";
   const esc   = s => String(s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
   const modal = document.createElement('div');
