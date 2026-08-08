@@ -70,8 +70,8 @@ function _similitudCoseno(a, b) {
  * IDs indicados. Devuelve solo los aprobados que encuentre.
  */
 async function _obtenerProductosPorIds(ids) {
-  if (!window.API_URL) return [];
-  const url = window.API_URL + '?' + new URLSearchParams({
+  const CATALOGO_API_URL_AI = "https://catalogo-api-1038143238323.us-central1.run.app";
+  const url = CATALOGO_API_URL_AI + '?' + new URLSearchParams({
     action: 'obtenerProductosPorIds',
     ids: JSON.stringify(ids),
   });

@@ -698,7 +698,7 @@ productId: productId,
 confiable: nuevoValor,
 token:     token
 });
-const res  = await fetch(API_URL, {
+const res  = await fetch("https://catalogo-api-1038143238323.us-central1.run.app", {
 method:  'POST',
 headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
 body:    params.toString()

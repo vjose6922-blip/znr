@@ -9,9 +9,11 @@ const renderPage = renderProducts;
 const CATALOGO_API_URL_INSPECTOR =
   "https://catalogo-api-1038143238323.us-central1.run.app";
 const AUTH_API_URL_INSPECTOR =
-  "https://auth-api-1038143238323.us-central1.run.app"; // TODO: pegar la URL real tras el deploy
+  "https://REEMPLAZAR-CON-LA-URL-REAL.us-central1.run.app"; // TODO: pegar la URL real tras el deploy
 function _resolverApiUrlInspector(action) {
-  if (action === 'deleteComunidad') return CATALOGO_API_URL_INSPECTOR;
+  if (['deleteComunidad', 'reportarProducto', 'calificarProducto'].includes(action)) {
+    return CATALOGO_API_URL_INSPECTOR;
+  }
   if (action === 'verificarAdmin') return AUTH_API_URL_INSPECTOR;
   return window.API_URL;
 }
@@ -889,7 +891,7 @@ motivo: motivo,
 telefonoUsuario: telefonoUsuario,
 fecha: new Date().toISOString()
 });
-const res = await fetch(window.API_URL, {
+const res = await fetch(_resolverApiUrlInspector('reportarProducto'), {
 method: 'POST',
 headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
 body: params.toString()
@@ -1473,7 +1475,7 @@ function mostrarModalCalificar(item, phone) {
         comentario: comentario,
         requestId: item.requestId || ''
       });
-      const res = await fetch(window.API_URL, {
+      const res = await fetch(_resolverApiUrlInspector('calificarProducto'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: params.toString()
