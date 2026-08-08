@@ -1,4 +1,4 @@
-﻿(function () {
+(function () {
 
   
   const STYLES = `
@@ -50,7 +50,7 @@
   const VENDEDORES_API_URL_COMUNIDAD =
     "https://vendedores-api-1038143238323.us-central1.run.app";
   const CATALOGO_API_URL_COMUNIDAD =
-    "https://catalogo-api-1038143238323.us-central1.run.app"; // TODO: pegar la URL real tras el deploy
+    "https://REEMPLAZAR-CON-LA-URL-REAL.us-central1.run.app"; // TODO: pegar la URL real tras el deploy
   const MAPA_ACCIONES_MIGRADAS_COMUNIDAD = {
     aprobarVendedor: VENDEDORES_API_URL_COMUNIDAD,
     rechazarVendedor: VENDEDORES_API_URL_COMUNIDAD,
@@ -61,6 +61,8 @@
     rechazarProductoComunidad: CATALOGO_API_URL_COMUNIDAD,
     deleteComunidad: CATALOGO_API_URL_COMUNIDAD,
     obtenerReportes: CATALOGO_API_URL_COMUNIDAD,
+    marcarReporteRevisado: CATALOGO_API_URL_COMUNIDAD,
+    marcarProductoConfiable: CATALOGO_API_URL_COMUNIDAD,
   };
   function _resolverApiUrlComunidad(action) {
     return MAPA_ACCIONES_MIGRADAS_COMUNIDAD[action] || API_URL;
