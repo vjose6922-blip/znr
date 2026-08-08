@@ -50,7 +50,7 @@
   const VENDEDORES_API_URL_COMUNIDAD =
     "https://vendedores-api-1038143238323.us-central1.run.app";
   const CATALOGO_API_URL_COMUNIDAD =
-    "https://REEMPLAZAR-CON-LA-URL-REAL.us-central1.run.app"; // TODO: pegar la URL real tras el deploy
+    "https://catalogo-api-1038143238323.us-central1.run.app"; // TODO: pegar la URL real tras el deploy
   const MAPA_ACCIONES_MIGRADAS_COMUNIDAD = {
     aprobarVendedor: VENDEDORES_API_URL_COMUNIDAD,
     rechazarVendedor: VENDEDORES_API_URL_COMUNIDAD,
