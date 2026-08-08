@@ -60,6 +60,7 @@
     aprobarProductoComunidad: CATALOGO_API_URL_COMUNIDAD,
     rechazarProductoComunidad: CATALOGO_API_URL_COMUNIDAD,
     deleteComunidad: CATALOGO_API_URL_COMUNIDAD,
+    obtenerReportes: CATALOGO_API_URL_COMUNIDAD,
   };
   function _resolverApiUrlComunidad(action) {
     return MAPA_ACCIONES_MIGRADAS_COMUNIDAD[action] || API_URL;
