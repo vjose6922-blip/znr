@@ -49,6 +49,13 @@
     return window.API_URL;
   }
 
+  // marcarNotificacionLeida/marcarTodasNotificacionesLeidas ya migraron a
+  // vendedores-api. fetchFeed (misNotificacionesVendedor/Cliente) NO se
+  // tocó a propósito: es solo el respaldo de cuando falla la lectura
+  // directa de Firestore (window.znrFirestore.getNotificacionesCentro),
+  // que ya es el camino real que se usa casi siempre.
+  const VENDEDORES_API_URL_NOTIF = "https://vendedores-api-1038143238323.us-central1.run.app";
+
   async function fetchFeed(action, extraParams) {
     const params = new URLSearchParams({ action, pageSize: '30', ...extraParams });
     try {
@@ -98,7 +105,11 @@
   }
 
   function postAction(body) {
-    return fetch(apiUrl(), { method: 'POST', body: JSON.stringify(body) }).catch(() => {});
+    return fetch(VENDEDORES_API_URL_NOTIF, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    }).then(r => r.json()).catch(() => {});
   }
 
   async function marcarLeida(notif) {
