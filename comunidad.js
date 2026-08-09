@@ -9,12 +9,15 @@ const renderPage = renderProducts;
 const CATALOGO_API_URL_INSPECTOR =
   "https://catalogo-api-1038143238323.us-central1.run.app";
 const AUTH_API_URL_INSPECTOR =
-  "https://REEMPLAZAR-CON-LA-URL-REAL.us-central1.run.app"; // TODO: pegar la URL real tras el deploy
+  "https://auth-api-1038143238323.us-central1.run.app"; // TODO: pegar la URL real tras el deploy
+const VENTAS_API_URL_INSPECTOR =
+  "https://ventas-api-1038143238323.us-central1.run.app"; // TODO: pegar la URL real tras el deploy
 function _resolverApiUrlInspector(action) {
   if (['deleteComunidad', 'reportarProducto', 'calificarProducto'].includes(action)) {
     return CATALOGO_API_URL_INSPECTOR;
   }
   if (action === 'verificarAdmin') return AUTH_API_URL_INSPECTOR;
+  if (action === 'obtenerCalificacionesPendientes') return VENTAS_API_URL_INSPECTOR;
   return window.API_URL;
 }
 
@@ -1400,7 +1403,7 @@ async function checkPendingRatings() {
 
     // 🆕 cache:'no-store' + timestamp para evitar que quede una respuesta vieja cacheada
     const res = await fetch(
-      window.API_URL + '?' + new URLSearchParams({ action: 'obtenerCalificacionesPendientes', clientPhone: phone, _t: Date.now() }),
+      _resolverApiUrlInspector('obtenerCalificacionesPendientes') + '?' + new URLSearchParams({ action: 'obtenerCalificacionesPendientes', clientPhone: phone, _t: Date.now() }),
       { cache: 'no-store' }
     );
     const data = await res.json();
