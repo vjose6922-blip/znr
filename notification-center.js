@@ -83,27 +83,23 @@
   }
 
   async function fetchNotificaciones() {
-    const identity = getIdentity();
-    if (!identity || !apiUrl()) return { ok: true, notificaciones: [] };
+  const identity = getIdentity();
+  if (!identity || !apiUrl()) return { ok: true, notificaciones: [] };
 
-    const requests = [];
-    if (identity.type === 'vendedor') {
-      requests.push(fetchFeedVendedor(identity));
-      if (identity.telefono) {
-        requests.push(fetchFeedCliente(identity.telefono));
-      }
-    } else {
-      requests.push(fetchFeedCliente(identity.id));
-    }
-
-    const results = await Promise.all(requests);
-    const notificaciones = results
-      .filter(r => r && r.ok && Array.isArray(r.notificaciones))
-      .flatMap(r => r.notificaciones);
-    notificaciones.sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
-    return { ok: true, notificaciones };
+  const results = [];
+  if (identity.type === 'vendedor') {
+    results.push(await fetchFeedVendedor(identity));
+    if (identity.telefono) results.push(await fetchFeedCliente(identity.telefono));
+  } else {
+    results.push(await fetchFeedCliente(identity.id));
   }
 
+  const notificaciones = results
+    .filter(r => r && r.ok && Array.isArray(r.notificaciones))
+    .flatMap(r => r.notificaciones);
+  notificaciones.sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
+  return { ok: true, notificaciones };
+}
   function postAction(body) {
     return fetch(VENDEDORES_API_URL_NOTIF, {
       method: 'POST',
