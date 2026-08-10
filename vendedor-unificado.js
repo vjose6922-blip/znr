@@ -39,6 +39,8 @@ const MAPA_ACCIONES_MIGRADAS = {
   deleteComunidad: CATALOGO_API_URL,
   misProductosComunidad: CATALOGO_API_URL,
   resolverNotificacionVentaComunidad: VENTAS_API_URL,
+  solicitarPlanPlus: VENDEDORES_API_URL,
+  getPlusSolicitudVendedor: VENDEDORES_API_URL,
 };
 function resolverApiUrl(action) {
   return MAPA_ACCIONES_MIGRADAS[action] || API_BASE;

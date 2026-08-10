@@ -10,7 +10,7 @@
  script-src 'self' 'unsafe-inline' https://www.gstatic.com https://apis.google.com;
  style-src 'self' 'unsafe-inline';
  img-src 'self' data: blob: https://lh3.googleusercontent.com https://drive.google.com https://placehold.co https://via.placeholder.com;
- connect-src 'self' https://script.google.com https://script.googleusercontent.com;
+ connect-src 'self' https://script.google.com https://script.googleusercontent.com https://vendedores-api-1038143238323.us-central1.run.app;
  font-src 'self';
  frame-ancestors 'none';
  object-src 'none';
@@ -236,7 +236,9 @@
 
 <script>
 async function apiCall(data) {
-  const API_BASE = window.API_URL;
+  const VENDEDORES_API_URL_PLUS = "https://vendedores-api-1038143238323.us-central1.run.app";
+  const ACCIONES_MIGRADAS_PLUS = new Set(['solicitarPlanPlus', 'getPlusSolicitudVendedor']);
+  const API_BASE = ACCIONES_MIGRADAS_PLUS.has(data && data.action) ? VENDEDORES_API_URL_PLUS : window.API_URL;
   if (!API_BASE) throw new Error('API_URL no está disponible');
   const params = new URLSearchParams();
   Object.entries(data || {}).forEach(([k, v]) => {
