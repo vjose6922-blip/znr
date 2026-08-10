@@ -1,7 +1,7 @@
 (function () {
   'use strict';
   
-  // URLs de tus APIs
+  // URLs de tus APIs00000000
   const GAS_API_URL = 'https://script.google.com/macros/s/AKfycbzNshrt3zldBNiyoB8x36ktCEO02H0cKxebiTuK7UAbsgd5R9biaCW7W4ihm1aVOJG7ww/exec';
   const CATALOGO_API_URL = 'https://catalogo-api-1038143238323.us-central1.run.app';
   const VENDEDORES_API_URL = 'https://vendedores-api-1038143238323.us-central1.run.app';
