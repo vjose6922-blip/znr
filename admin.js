@@ -14,10 +14,8 @@ console.log(" Función original deleteProduct guardada");
 }, 100);
 const ADMIN_API_URL = window.API_URL || "";
 
-// ── Router de migración GAS → Cloud Run (mismo criterio que en
-// vendedor-unificado.js) ──────────────────────────────────────────
 const VENDEDORES_API_URL_ADMIN =
-  "https://vendedores-api-1038143238323.us-central1.run.app"; // TODO: pegar la URL real tras el deploy
+  "https://vendedores-api-1038143238323.us-central1.run.app"; // TODO: pegar la URL real tras el deploy00000000
 const AUTH_API_URL_ADMIN =
   "https://auth-api-1038143238323.us-central1.run.app"; // TODO: pegar la URL real tras el deploy
 const MAPA_ACCIONES_MIGRADAS_ADMIN = {
