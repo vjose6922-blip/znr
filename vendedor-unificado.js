@@ -3263,7 +3263,7 @@ window.renderGestionarLista = function(lista, productos, page, totalPages, total
                     <div style="font-size:.72rem;color:#888;">$${Number(p.precio||0).toLocaleString()} · Stock: ${p.stock||0}</div>
                     ${donado ? '<div style="font-size:.7rem;color:#f97316;margin-top:1px;">' + Icon('heart-fill') + ' Donando</div>' : '<div style="font-size:.7rem;color:#bbb;margin-top:1px;">Sin asignar</div>'}
                   </div>
-                  <button onclick="document.getElementById('modal-gestionar-donaciones').remove();openDonarProductosModal(${p.id})"
+                  <button onclick="document.getElementById('modal-gestionar-donaciones').remove();openDonarProductosModal('${esc(p.id)}')"
                     style="flex-shrink:0;width:36px;height:36px;border-radius:50%;border:none;
                     background:${donado ? 'linear-gradient(135deg,#f97316,#ef4444)' : '#f5f5f8'};
                     color:${donado ? '#fff' : '#aaa'};font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;">
