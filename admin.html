@@ -1063,6 +1063,7 @@ async function openDonacionesStatsModal() {
   if (old) old.remove();
   const token = sessionStorage.getItem('admin_token') || '';
   const api   = window.API_URL || '';
+  const beneficiariosApi = "https://beneficiarios-api-1038143238323.us-central1.run.app"; // TODO: pegar la URL real tras el deploy
 
   const modal = document.createElement('div');
   modal.id = 'modal-donaciones-stats';
@@ -1083,7 +1084,7 @@ async function openDonacionesStatsModal() {
     const [vRes, prodRes, benRes, donRes] = await Promise.all([
       fetch(api + '?' + new URLSearchParams({ action:'vendedoresAdmin', token })).then(r=>r.json()).catch(()=>({})),
       fetch(api + '?' + new URLSearchParams({ action:'listarComunidad', admin:'true' })).then(r=>r.json()).catch(()=>({})),
-      fetch(api + '?' + new URLSearchParams({ action:'obtenerBeneficiarios', token })).then(r=>r.json()).catch(()=>({})),
+      fetch(beneficiariosApi + '?' + new URLSearchParams({ action:'obtenerBeneficiarios', token })).then(r=>r.json()).catch(()=>({})),
       fetch(api + '?' + new URLSearchParams({ action:'obtenerDonaciones', token })).then(r=>r.json()).catch(()=>({})),
     ]);
     const vendors    = vRes.vendors || [];

@@ -969,11 +969,12 @@ _handleModalBuyClick(p);
 }
 }
 
+const BENEFICIARIOS_API_URL_RESOLVE = "https://beneficiarios-api-1038143238323.us-central1.run.app"; // TODO: pegar la URL real tras el deploy
 window.resolveBeneficiario = async function(beneficiarioId) {
 const beneficiario = { id: beneficiarioId || '', nombre: '', cuenta_bancaria: '' };
-if (!beneficiarioId || !window.API_URL) return beneficiario;
+if (!beneficiarioId) return beneficiario;
 try {
-const res  = await fetch(window.API_URL + '?' + new URLSearchParams({ action: 'obtenerBeneficiario', id: beneficiarioId }));
+const res  = await fetch(BENEFICIARIOS_API_URL_RESOLVE + '?' + new URLSearchParams({ action: 'obtenerBeneficiario', id: beneficiarioId }));
 const data = await res.json();
 if (data.ok && data.beneficiario) {
 beneficiario.nombre = data.beneficiario.nombre || '';

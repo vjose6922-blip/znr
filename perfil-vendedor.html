@@ -1076,7 +1076,7 @@
             let beneficiario = null;
             if (esDonado && benId) {
               try {
-                const benRes = await fetch(`${window.API_URL}?action=obtenerBeneficiario&id=${encodeURIComponent(benId)}`).then(r => r.json());
+                const benRes = await fetch(`https://beneficiarios-api-1038143238323.us-central1.run.app?action=obtenerBeneficiario&id=${encodeURIComponent(benId)}`).then(r => r.json());
                 if (benRes.ok && benRes.beneficiario) {
                   beneficiario = { id: benId, nombre: benRes.beneficiario.nombre || '', cuenta_bancaria: benRes.beneficiario.cuenta_bancaria || '' };
                 }

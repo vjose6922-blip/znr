@@ -12,12 +12,17 @@ const AUTH_API_URL_INSPECTOR =
   "https://auth-api-1038143238323.us-central1.run.app"; // TODO: pegar la URL real tras el deploy
 const VENTAS_API_URL_INSPECTOR =
   "https://ventas-api-1038143238323.us-central1.run.app"; // TODO: pegar la URL real tras el deploy
+const BENEFICIARIOS_API_URL_INSPECTOR =
+  "https://beneficiarios-api-1038143238323.us-central1.run.app"; // TODO: pegar la URL real tras el deploy
 function _resolverApiUrlInspector(action) {
   if (['deleteComunidad', 'reportarProducto', 'calificarProducto'].includes(action)) {
     return CATALOGO_API_URL_INSPECTOR;
   }
   if (action === 'verificarAdmin') return AUTH_API_URL_INSPECTOR;
   if (action === 'obtenerCalificacionesPendientes') return VENTAS_API_URL_INSPECTOR;
+  if (['registrarBeneficiario', 'solicitarEdicionBeneficiario', 'obtenerBeneficiario'].includes(action)) {
+    return BENEFICIARIOS_API_URL_INSPECTOR;
+  }
   return window.API_URL;
 }
 
@@ -1759,7 +1764,7 @@ window.openBeneficiarioRegister = function(modoEdicion, idBeneficiario, datosAct
         vendorToken: vendor.token
       };
       if (modo === 'editar') payload.id_beneficiario = idBen;
-      const res = await fetch(window.API_URL, {
+      const res = await fetch(_resolverApiUrlInspector(payload.action), {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: new URLSearchParams(payload).toString()
@@ -1807,7 +1812,7 @@ window.openBeneficiarioModal = async function(beneficiarioId) {
   document.getElementById('btn-close-ben-det').onclick = () => modal.remove();
   modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
   try {
-    const res  = await fetch(window.API_URL + '?' + new URLSearchParams({ action:'obtenerBeneficiario', id: beneficiarioId }));
+    const res  = await fetch(_resolverApiUrlInspector('obtenerBeneficiario') + '?' + new URLSearchParams({ action:'obtenerBeneficiario', id: beneficiarioId }));
     const data = await res.json();
     const body = document.getElementById('ben-det-body');
     if (!data.ok || !data.beneficiario) { body.innerHTML = '<p style="color:#ef4444;text-align:center;">No se pudo cargar.</p>'; return; }

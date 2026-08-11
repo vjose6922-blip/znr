@@ -24,6 +24,8 @@ const AUTH_API_URL =
   "https://auth-api-1038143238323.us-central1.run.app"; // TODO: pegar la URL real tras el deploy
 const VENTAS_API_URL =
   "https://ventas-api-1038143238323.us-central1.run.app"; // TODO: pegar la URL real tras el deploy
+const BENEFICIARIOS_API_URL =
+  "https://beneficiarios-api-1038143238323.us-central1.run.app"; // TODO: pegar la URL real tras el deploy
 const MAPA_ACCIONES_MIGRADAS = {
   registrarVendedor: VENDEDORES_API_URL,
   loginVendedor: VENDEDORES_API_URL,
@@ -41,6 +43,10 @@ const MAPA_ACCIONES_MIGRADAS = {
   resolverNotificacionVentaComunidad: VENTAS_API_URL,
   solicitarPlanPlus: VENDEDORES_API_URL,
   getPlusSolicitudVendedor: VENDEDORES_API_URL,
+  asignarDonacion: BENEFICIARIOS_API_URL,
+  desasignarDonacion: BENEFICIARIOS_API_URL,
+  solicitarEdicionBeneficiario: BENEFICIARIOS_API_URL,
+  solicitarEliminacionBeneficiario: BENEFICIARIOS_API_URL,
 };
 function resolverApiUrl(action) {
   return MAPA_ACCIONES_MIGRADAS[action] || API_BASE;
@@ -3542,7 +3548,7 @@ function abrirEditarFundacionVendedor(miBen) {
         }
       }
       btn.textContent = 'Enviando cambios…';
-      const res = await fetch(window.API_URL, {
+      const res = await fetch(resolverApiUrl('solicitarEdicionBeneficiario'), {
         method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: new URLSearchParams({
           action: 'solicitarEdicionBeneficiario',
@@ -3580,7 +3586,7 @@ async function solicitarEliminarFundacionVendedor(miBen) {
     msgEl.style.color = ok ? '#166534' : '#991b1b';
   };
   try {
-    const res = await fetch(window.API_URL, {
+    const res = await fetch(resolverApiUrl('solicitarEliminacionBeneficiario'), {
       method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body: new URLSearchParams({ action:'solicitarEliminacionBeneficiario', id_beneficiario: miBen.id, vendorToken: vendorSession.token }).toString()
     });
