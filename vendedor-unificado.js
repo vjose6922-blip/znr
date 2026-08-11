@@ -3131,7 +3131,8 @@ if (prod.imagen1) {
   try {
     window.debugPanel.log('DEBUG 2', 'Antes de llamar apiFetch()');
 
-const benData = await window.apiFetch({ action:'obtenerBeneficiariosAprobados' }, 'GET');
+let benData = window.znrFirestore ? await window.znrFirestore.getBeneficiariosAprobados() : { ok:false };
+    if (!benData.ok) benData = await window.apiFetch({ action:'obtenerBeneficiariosAprobados' }, 'GET');
     window.debugPanel.log('DEBUG 3 - respuesta apiFetch', JSON.stringify(benData, null, 2));
 
     if (!benData.ok) {
@@ -3374,8 +3375,11 @@ window.openEntregasLiveModal = async function() {
 // beneficiario, el cruce puede fallar — en ese caso solo se ve el aviso genérico.)
 async function buscarMiPerfilBeneficiario() {
   try {
-    const res = await fetch(window.API_URL + '?' + new URLSearchParams({ action: 'obtenerBeneficiariosAprobados' }));
-    const data = await res.json();
+    let data = window.znrFirestore ? await window.znrFirestore.getBeneficiariosAprobados() : { ok:false };
+    if (!data.ok) {
+      const res = await fetch(window.API_URL + '?' + new URLSearchParams({ action: 'obtenerBeneficiariosAprobados' }));
+      data = await res.json();
+    }
     if (!data.ok) return null;
     const miTel = String(vendorSession.telefono || '').replace(/\D/g, '');
     if (!miTel) return null;
