@@ -16,9 +16,9 @@ const VAPID_KEY = "BBnC4VSj0bWV72W9zZeXQUvDSybe8ccZTMhSjtu13gABzbzE1WqwVQ8kCxkcr
 const app = initializeApp(firebaseConfig);
 const messaging = getMessaging(app);
 
-// URL real de la Cloud Function (Cloud Run), desplegada 2026-08.
+// ✅ CORREGIDO - Una sola URL para registrar tokens FCM
 const CLOUD_FN_REGISTRAR_TOKEN_URL =
-  "https://registrar-token-fcm-1038143238323.us-central1.run.app https://ventas-api-1038143238323.us-central1.run.app https://auth-api-1038143238323.us-central1.run.app";
+  "https://registrar-token-fcm-1038143238323.us-central1.run.app";
 
 /**
  * Manda el token a la Cloud Function que lo guarda en Firestore
@@ -46,7 +46,6 @@ async function registrarTokenFCM(ownerType, ownerId, token) {
     return false;
   }
 }
-
 
 async function solicitarPermisoNotificacionesSiFalta(ownerType, ownerId) {
   try {
