@@ -495,6 +495,10 @@ coverIconColor: res.coverIconColor || ''
 };
 localStorage.setItem('vendor_session', JSON.stringify(vendorSession));
 
+if (typeof window.solicitarPermisoNotificacionesSiFalta === 'function') {
+  window.solicitarPermisoNotificacionesSiFalta('vendedor', vendorSession.uid);
+}
+
 // 🆕 El teléfono con el que acaba de iniciar sesión como vendedor pasa a
 // ser también el que se usa para comprar (carrito/checkout), sin importar
 // si ya tenía otro guardado o si es la primera vez.
