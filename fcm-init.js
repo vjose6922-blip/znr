@@ -16,9 +16,11 @@ const VAPID_KEY = "BBnC4VSj0bWV72W9zZeXQUvDSybe8ccZTMhSjtu13gABzbzE1WqwVQ8kCxkcr
 const app = initializeApp(firebaseConfig);
 const messaging = getMessaging(app);
 
-// ✅ CORREGIDO - Una sola URL para registrar tokens FCM
+// URL real de la Cloud Function (Cloud Run), desplegada 2026-08.
 const CLOUD_FN_REGISTRAR_TOKEN_URL =
   "https://registrar-token-fcm-1038143238323.us-central1.run.app";
+const CLOUD_FN_ELIMINAR_TOKEN_URL =
+  "https://eliminar-token-fcm-1038143238323.us-central1.run.app"; // TODO: pegar la URL real tras el deploy
 
 /**
  * Manda el token a la Cloud Function que lo guarda en Firestore
@@ -46,6 +48,38 @@ async function registrarTokenFCM(ownerType, ownerId, token) {
     return false;
   }
 }
+
+/**
+ * Se llama al cerrar sesión. Recupera el token FCM actual de este
+ * dispositivo (Firebase lo tiene cacheado localmente, no vuelve a
+ * pedir permiso) y le dice a la Cloud Function que borre ESE
+ * documento nada más — así no se desconecta el push de otros
+ * dispositivos donde la sesión siga abierta.
+ */
+async function eliminarTokenFCM(ownerType, ownerId) {
+  if (!ownerType || !ownerId) return false;
+  try {
+    if (Notification.permission !== "granted") return false;
+    const registration = await navigator.serviceWorker.getRegistration("/znr/firebase-messaging-sw.js");
+    const token = await getToken(messaging, {
+      vapidKey: VAPID_KEY,
+      serviceWorkerRegistration: registration
+    });
+    if (!token) return false;
+
+    const res = await fetch(CLOUD_FN_ELIMINAR_TOKEN_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ownerType, ownerId, token })
+    });
+    const data = await res.json();
+    return !!data.ok;
+  } catch (err) {
+    console.error("No se pudo eliminar el token FCM:", err);
+    return false;
+  }
+}
+
 
 async function solicitarPermisoNotificacionesSiFalta(ownerType, ownerId) {
   try {
@@ -93,3 +127,4 @@ onMessage(messaging, (payload) => {
 // Se exponen para usarlas desde common.js / comunidad.js (scripts normales, no módulo)
 window.solicitarPermisoNotificacionesSiFalta = solicitarPermisoNotificacionesSiFalta;
 window.registrarTokenFCM = registrarTokenFCM;
+window.eliminarTokenFCM = eliminarTokenFCM;

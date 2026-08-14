@@ -516,6 +516,10 @@ onCancel: () => resolve(false)
 });
 });
 if (confirmDelete) {
+const oldPhone = localStorage.getItem("client_phone");
+if (oldPhone && typeof window.eliminarTokenFCM === 'function') {
+  window.eliminarTokenFCM('cliente', oldPhone.replace(/\D/g, '')).catch(() => {});
+}
 localStorage.removeItem("client_phone");
 updateSavedPhoneDisplay();
 }

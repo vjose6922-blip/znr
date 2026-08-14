@@ -515,6 +515,9 @@ hideLoader();
 }
 
 function vendorLogout() {
+if (vendorSession && vendorSession.uid && typeof window.eliminarTokenFCM === 'function') {
+  window.eliminarTokenFCM('vendedor', vendorSession.uid).catch(() => {});
+}
 localStorage.removeItem('vendor_session');
 sessionStorage.removeItem('admin_session');
 sessionStorage.removeItem('admin_token');

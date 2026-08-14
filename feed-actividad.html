@@ -99,6 +99,7 @@
   </div>
 
   <script src="api-config.js" defer></script>
+  <script type="module" src="firestore-init.js"></script>
   <script>
     document.getElementById('fa-back-btn').addEventListener('click', () => {
       if (document.referrer && document.referrer.includes(location.host)) history.back();
@@ -150,9 +151,12 @@
 
     async function cargarFeed() {
       try {
-        if (!window.API_URL) throw new Error('API_URL no está disponible');
-        const res = await fetch(window.API_URL + '?' + new URLSearchParams({ action: 'obtenerFeedActividad' }));
-        const data = await res.json();
+        let data = window.znrFirestore ? await window.znrFirestore.getFeedActividad() : { ok: false };
+        if (!data.ok) {
+          if (!window.API_URL) throw new Error('API_URL no está disponible');
+          const res = await fetch(window.API_URL + '?' + new URLSearchParams({ action: 'obtenerFeedActividad' }));
+          data = await res.json();
+        }
         if (!data.ok) throw new Error(data.error || 'Error del servidor');
         renderFeed(data.items || []);
       } catch (err) {

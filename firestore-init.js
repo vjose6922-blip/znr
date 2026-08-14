@@ -232,3 +232,25 @@ window.znrFirestore.getDonacionesRecibidas = async function (vendorUid) {
     return { ok: false, error: String(err) };
   }
 };
+
+window.znrFirestore.getFeedActividad = async function () {
+  try {
+    const q = query(collection(db, 'feed_actividad'), orderBy('fecha', 'desc'), limit(50));
+    const snap = await getDocs(q);
+    const items = snap.docs.map(d => {
+      const data = d.data();
+      const fecha = data.fecha && data.fecha.toDate ? data.fecha.toDate() : new Date(data.fecha);
+      return {
+        vendedor: data.vendedor || '',
+        producto: data.producto || '',
+        imagen: data.imagen || '',
+        fecha: fecha.toISOString(),
+        stockRestante: data.stockRestante === undefined ? null : data.stockRestante,
+      };
+    });
+    return { ok: true, items };
+  } catch (err) {
+    console.warn('Firestore feed_actividad falló, se usará GAS como respaldo:', err);
+    return { ok: false, error: String(err) };
+  }
+};
