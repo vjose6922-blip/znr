@@ -671,8 +671,30 @@ function clearImageUploads() {
 async function checkNotifications() {
   try {
     const token = sessionStorage.getItem('admin_token') || '';
-    const res = await fetch(`${ADMIN_API_URL}?action=contarBadgesAdmin&token=${encodeURIComponent(token)}`);
-    const data = await res.json();
+    const VENDEDORES_API_BADGES = "https://vendedores-api-1038143238323.us-central1.run.app";
+    const CATALOGO_API_BADGES = "https://catalogo-api-1038143238323.us-central1.run.app";
+    const BENEFICIARIOS_API_BADGES = "https://beneficiarios-api-1038143238323.us-central1.run.app";
+
+    const [gasRes, vendRes, pendRes, repRes, benRes, plusRes] = await Promise.all([
+      fetch(`${ADMIN_API_URL}?action=contarBadgesAdmin&token=${encodeURIComponent(token)}`).then(r => r.json()).catch(() => ({ ok: false })),
+      fetch(`${VENDEDORES_API_BADGES}?${new URLSearchParams({ action: 'vendedoresAdmin', token })}`).then(r => r.json()).catch(() => ({ ok: false })),
+      fetch(`${CATALOGO_API_BADGES}?${new URLSearchParams({ action: 'productosPendientes', token })}`).then(r => r.json()).catch(() => ({ ok: false })),
+      fetch(`${CATALOGO_API_BADGES}?${new URLSearchParams({ action: 'obtenerReportes', token })}`).then(r => r.json()).catch(() => ({ ok: false })),
+      fetch(`${BENEFICIARIOS_API_BADGES}?${new URLSearchParams({ action: 'obtenerBeneficiarios', estado: 'pendiente', token })}`).then(r => r.json()).catch(() => ({ ok: false })),
+      fetch(`${VENDEDORES_API_BADGES}?${new URLSearchParams({ action: 'solicitudesPlus', token })}`).then(r => r.json()).catch(() => ({ ok: false })),
+    ]);
+
+    const vendors = vendRes.ok ? (vendRes.vendors || []) : [];
+    const data = {
+      ok: true,
+      solicitudes: gasRes.ok ? gasRes.solicitudes : 0,
+      vendors: vendors.filter(v => v.estado === 'pendiente' || v.resetSolicitado).length,
+      pending: pendRes.ok ? (pendRes.products || []).length : 0,
+      reportes: repRes.ok ? (repRes.reportes || []).length : 0,
+      plus: plusRes.ok ? (plusRes.solicitudes || []).length : 0,
+      beneficiarios: benRes.ok ? (benRes.beneficiarios || []).length : 0,
+    };
+    data.total = data.solicitudes + data.vendors + data.pending + data.reportes + data.plus + data.beneficiarios;
     if (!data.ok) return;
  
     const count = data.solicitudes;

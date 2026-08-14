@@ -47,6 +47,7 @@ const MAPA_ACCIONES_MIGRADAS = {
   desasignarDonacion: BENEFICIARIOS_API_URL,
   solicitarEdicionBeneficiario: BENEFICIARIOS_API_URL,
   solicitarEliminacionBeneficiario: BENEFICIARIOS_API_URL,
+  obtenerEstadisticasVendedor: "https://ventas-api-1038143238323.us-central1.run.app",
 };
 function resolverApiUrl(action) {
   return MAPA_ACCIONES_MIGRADAS[action] || API_BASE;
