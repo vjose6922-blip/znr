@@ -85,16 +85,16 @@ async function solicitarPermisoNotificacionesSiFalta(ownerType, ownerId) {
   try {
     if (!("Notification" in window) || !("serviceWorker" in navigator)) return null;
 
-    // Ya se decidió "denied" antes → JS no puede volver a preguntar, respetamos eso
     if (Notification.permission === "denied") return null;
 
-    // Nunca se ha preguntado → aquí sale el diálogo nativo del navegador
+    // 1. Si es "default", pedimos permiso (esto muestra el diálogo nativo)
     if (Notification.permission === "default") {
       const permiso = await Notification.requestPermission();
       if (permiso !== "granted") return null;
     }
 
-    // permission === "granted" (recién otorgado o ya lo tenía de antes)
+    // 2. ✅ Ahora sí, permiso es "granted" (recién otorgado o YA LO TENÍA)
+    //    Obtenemos el token y REGISTRAMOS al dueño actual SIEMPRE.
     const registration = await navigator.serviceWorker.register("/znr/firebase-messaging-sw.js");
     const token = await getToken(messaging, {
       vapidKey: VAPID_KEY,
@@ -103,7 +103,7 @@ async function solicitarPermisoNotificacionesSiFalta(ownerType, ownerId) {
     if (!token) return null;
 
     if (ownerType && ownerId) {
-      await registrarTokenFCM(ownerType, ownerId, token);
+      await registrarTokenFCM(ownerType, ownerId, token); // 🔥 Esto ahora se ejecuta siempre
     }
 
     return token;
@@ -113,7 +113,6 @@ async function solicitarPermisoNotificacionesSiFalta(ownerType, ownerId) {
     return null;
   }
 }
-
 // Notificaciones recibidas MIENTRAS la app está abierta en primer plano
 onMessage(messaging, (payload) => {
   console.log("🔔 Push recibido en primer plano:", payload);
