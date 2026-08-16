@@ -26,6 +26,8 @@ const VENTAS_API_URL =
   "https://ventas-api-1038143238323.us-central1.run.app"; // TODO: pegar la URL real tras el deploy
 const BENEFICIARIOS_API_URL =
   "https://beneficiarios-api-1038143238323.us-central1.run.app"; // TODO: pegar la URL real tras el deploy
+const LIVE_API_URL =
+  "https://live-api-1038143238323.us-central1.run.app"; // TODO: pegar la URL real tras el deploy
 const MAPA_ACCIONES_MIGRADAS = {
   registrarVendedor: VENDEDORES_API_URL,
   loginVendedor: VENDEDORES_API_URL,
@@ -48,6 +50,7 @@ const MAPA_ACCIONES_MIGRADAS = {
   solicitarEdicionBeneficiario: BENEFICIARIOS_API_URL,
   solicitarEliminacionBeneficiario: BENEFICIARIOS_API_URL,
   obtenerEstadisticasVendedor: "https://ventas-api-1038143238323.us-central1.run.app",
+  obtenerMisEntregasLive: LIVE_API_URL,
 };
 function resolverApiUrl(action) {
   return MAPA_ACCIONES_MIGRADAS[action] || API_BASE;

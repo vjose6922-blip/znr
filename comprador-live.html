@@ -227,7 +227,7 @@ auth.onAuthStateChanged((user) => {
 });
 
 async function apiFetch(data, method = 'GET') {
-  const API_BASE = window.API_URL;
+  const API_BASE = "https://live-api-1038143238323.us-central1.run.app"; // TODO: pegar la URL real tras el deploy
   const params = new URLSearchParams();
   Object.entries(data || {}).forEach(([k, v]) => {
     if (v !== undefined && v !== null) params.append(k, v);
@@ -565,27 +565,27 @@ function askIdentity(onDone) {
   });
 }
 
-// Escribe el teléfono/dirección/horario/GPS UNA sola vez a
-// contactos/{liveId}/{uid} — nunca dentro de cada mensaje de chat.
-// Las reglas de RTDB marcan este nodo como no-legible desde ningún
-// cliente (ni siquiera el propio comprador lo relee); solo el
-// backend, con credenciales de servidor, puede leerlo — y solo lo
-// hace el vendedor dueño del live, al cerrar la transmisión.
+// Manda el teléfono/dirección/horario/GPS UNA sola vez a
+// registrarContactoLive — nunca dentro de cada mensaje de chat.
+// Solo el vendedor dueño del live puede leerlo (vía Cloud Function,
+// con su vendorToken), al cerrar la transmisión.
 async function guardarContacto(idn) {
   await authReady;
   if (!liveId || !authUid) return;
   const payload = {
+    action: 'registrarContactoLive',
+    liveId,
+    viewerUid: authUid,
     telefono: idn.telefono || '',
     direccion: idn.direccion || '',
-    horario: idn.horario || '',
-    ts: Date.now()
+    horario: idn.horario || ''
   };
   if (typeof idn.lat === 'number' && typeof idn.lng === 'number') {
     payload.lat = idn.lat;
     payload.lng = idn.lng;
   }
-  set(ref(db, `contactos/${liveId}/${authUid}`), payload).catch(err => {
-    console.error('guardarContacto falló (revisa las reglas de Firebase):', err);
+  apiFetch(payload, 'POST').catch(err => {
+    console.error('guardarContacto falló:', err);
   });
 }
 

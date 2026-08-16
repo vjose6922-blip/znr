@@ -433,7 +433,7 @@ async function certificarVendedorEnLive(liveId) {
 
 // ── apiFetch mínimo, igual al de vendedor-unificado.js ──
 async function apiFetch(data, method = 'POST') {
-  const API_BASE = window.API_URL;
+  const API_BASE = "https://live-api-1038143238323.us-central1.run.app"; // TODO: pegar la URL real tras el deploy
   const params = new URLSearchParams();
   Object.entries(data || {}).forEach(([k, v]) => {
     if (v !== undefined && v !== null) params.append(k, v);

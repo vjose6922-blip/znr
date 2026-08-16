@@ -4,6 +4,7 @@ const _icClock  = '<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13
 const _icMoney  = '<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 11.219 12.768 11 12 11c-.768 0-1.536-.219-2.121-.659a2.25 2.25 0 010-3.182c.585-.44 1.353-.659 2.121-.659.768 0 1.536.219 2.121.659M12 6v1m0 12v-1"/></svg>';
 const _icTrash  = '<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" aria-hidden="true"><use href="#ic-trash"/></svg>';
 const BENEFICIARIOS_API_URL_NOTIF = "https://beneficiarios-api-1038143238323.us-central1.run.app"; // TODO: pegar la URL real tras el deploy
+const LIVE_API_URL_NOTIF = "https://live-api-1038143238323.us-central1.run.app"; // TODO: pegar la URL real tras el deploy
 const _icStar   = '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="#f0a500" viewBox="0 0 24 24"><path d="M11.48 3.499a.562.562 0 011.04 0l2.125 5.111a.563.563 0 00.475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 00-.182.557l1.285 5.385a.562.562 0 01-.84.61l-4.725-2.885a.563.563 0 00-.586 0L6.982 20.54a.562.562 0 01-.84-.61l1.285-5.386a.562.562 0 00-.182-.557l-4.204-3.602a.563.563 0 01.321-.988l5.518-.442a.563.563 0 00.475-.345L11.48 3.5z"/></svg>';
 const _icStarO  = '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M11.48 3.499a.562.562 0 011.04 0l2.125 5.111a.563.563 0 00.475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 00-.182.557l1.285 5.385a.562.562 0 01-.84.61l-4.725-2.885a.563.563 0 00-.586 0L6.982 20.54a.562.562 0 01-.84-.61l1.285-5.386a.562.562 0 00-.182-.557l-4.204-3.602a.563.563 0 01.321-.988l5.518-.442a.563.563 0 00.475-.345L11.48 3.5z"/></svg>';
 const _icCal    = '<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5"/></svg>';
@@ -955,7 +956,7 @@ window.loadReportesLive = async function() {
   list.innerHTML = window.znrSkeletonRows(3);
   try {
     const token = sessionStorage.getItem('admin_token') || '';
-    const res   = await fetch(API_URL + '?' + new URLSearchParams({ action:'obtenerReportesLive', token }));
+    const res   = await fetch(LIVE_API_URL_NOTIF + '?' + new URLSearchParams({ action:'obtenerReportesLive', token }));
     const data  = await res.json();
     if (!data.ok) { list.innerHTML = `<p style="color:#ef4444;text-align:center;padding:16px;">Error: ${data.error}</p>`; return; }
     const reportes = data.reportes || [];
@@ -999,7 +1000,7 @@ window.adminMarcarReporteLiveRevisado = async function(reporteId, btn) {
   const runFn = async () => {
   try {
     const token = sessionStorage.getItem('admin_token') || '';
-    const res   = await fetch(API_URL, { method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body: new URLSearchParams({ action:'marcarReporteLiveRevisado', reporteId, token }).toString() });
+    const res   = await fetch(LIVE_API_URL_NOTIF, { method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body: new URLSearchParams({ action:'marcarReporteLiveRevisado', reporteId, token }).toString() });
     const data  = await res.json();
     if (!data.ok) { alert('Error: ' + data.error); return; }
     loadReportesLive();

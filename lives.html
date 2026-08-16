@@ -131,7 +131,7 @@ function withTimeout(promise, ms) {
   'use strict';
 
   async function apiFetch(data) {
-    const API_BASE = window.API_URL;
+    const API_BASE = "https://live-api-1038143238323.us-central1.run.app"; // TODO: pegar la URL real tras el deploy
     const params = new URLSearchParams();
     Object.entries(data || {}).forEach(([k, v]) => {
       if (v !== undefined && v !== null) params.append(k, v);
