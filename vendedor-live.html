@@ -9,7 +9,7 @@
  img-src 'self' data: blob: https://lh3.googleusercontent.com https://drive.google.com https://placehold.co https://via.placeholder.com https://*.fbcdn.net;
  connect-src 'self' https://script.google.com https://catalogo-api-1038143238323.us-central1.run.app https://script.googleusercontent.com https://ventas-api-1038143238323.us-central1.run.app https://wttr.in https://www.gstatic.com https://apis.google.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firebaseinstallations.googleapis.com https://fcmregistrations.googleapis.com  https://registrar-token-fcm-1038143238323.us-central1.run.app https://ventas-api-1038143238323.us-central1.run.app https://auth-api-1038143238323.us-central1.run.app https://vendedores-api-1038143238323.us-central1.run.app https://live-api-1038143238323.us-central1.run.app https://firebase.googleapis.com https://znr-live-default-rtdb.firebaseio.com wss://znr-live-default-rtdb.firebaseio.com https://*.firebaseio.com wss://*.firebaseio.com https://nominatim.openstreetmap.org https://graph.facebook.com;
  font-src 'self';
- frame-src https://www.facebook.com https://staticxx.facebook.com https://apis.google.com https://*.firebaseio.com;
+ frame-src https://www.facebook.com https://staticxx.facebook.com https://apis.google.com https://*.firebaseio.com https://www.youtube.com;
  frame-ancestors 'none';
  object-src 'none';
  base-uri 'self';
@@ -544,9 +544,23 @@ function loadFacebookSDK() {
   return fbSdkPromise;
 }
 
+// TODO: quitar el soporte de YouTube y volver a exigir solo Facebook
+// cuando FB ya no le pida seguidores al vendedor de prueba (agregado
+// temporalmente para poder probar lives sin depender de esa
+// restricción de FB).
+function _youtubeVideoId(url) {
+  const m = String(url || '').match(/(?:youtube\.com\/(?:watch\?v=|live\/|embed\/)|youtu\.be\/)([a-zA-Z0-9_-]{6,})/);
+  return m ? m[1] : null;
+}
+
 async function renderFacebookVideo(containerId, facebookUrl) {
   const container = document.getElementById(containerId);
   if (!container || !facebookUrl) return;
+  const ytId = _youtubeVideoId(facebookUrl);
+  if (ytId) {
+    container.innerHTML = `<iframe width="100%" height="100%" style="aspect-ratio:16/9;border:0;" src="https://www.youtube.com/embed/${ytId}?autoplay=1" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>`;
+    return;
+  }
   container.innerHTML = `<div class="fb-video" data-href="${esc(facebookUrl)}" data-width="auto" data-show-text="false" data-autoplay="true" data-allowfullscreen="true"></div>`;
   const FB = await loadFacebookSDK();
   FB.XFBML.parse(container);
@@ -739,9 +753,10 @@ async function crearSesion() {
   genError.style.display = 'none';
 
   if (!titulo) { genError.textContent = 'Ponle un título a tu transmisión.'; genError.style.display = 'block'; return; }
-  if (!facebook) { fbError.textContent = 'Pega el link de tu video o live de Facebook.'; fbError.style.display = 'block'; return; }
-  if (!/facebook\.com|fb\.watch/i.test(facebook)) {
-    fbError.textContent = 'Ese link no parece ser de Facebook. Revisa que lo hayas copiado bien.';
+  if (!facebook) { fbError.textContent = 'Pega el link de tu video o live de Facebook (o YouTube, temporalmente).'; fbError.style.display = 'block'; return; }
+  // TODO: quitar YouTube y volver a exigir solo Facebook cuando ya no haga falta para pruebas
+  if (!/facebook\.com|fb\.watch|youtube\.com|youtu\.be/i.test(facebook)) {
+    fbError.textContent = 'Ese link no parece ser de Facebook ni de YouTube. Revisa que lo hayas copiado bien.';
     fbError.style.display = 'block';
     return;
   }
