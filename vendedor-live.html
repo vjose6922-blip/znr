@@ -3,42 +3,18 @@
 <head>
 <meta charset="UTF-8">
 <meta http-equiv="Content-Security-Policy" content="
-  default-src 'self';
-  script-src 'self' 'unsafe-inline' https://www.gstatic.com https://apis.google.com https://connect.facebook.net https://*.firebaseio.com;
-  style-src 'self' 'unsafe-inline';
-  img-src 'self' data: blob: https://lh3.googleusercontent.com https://drive.google.com https://placehold.co https://via.placeholder.com https://*.fbcdn.net;
-  connect-src 'self'
-    https://script.google.com
-    https://script.googleusercontent.com
-    https://catalogo-api-1038143238323.us-central1.run.app
-    https://ventas-api-1038143238323.us-central1.run.app
-    https://auth-api-1038143238323.us-central1.run.app
-    https://vendedores-api-1038143238323.us-central1.run.app
-    https://live-api-1038143238323.us-central1.run.app
-    https://registrar-token-fcm-1038143238323.us-central1.run.app
-    https://wttr.in
-    https://www.gstatic.com
-    https://apis.google.com
-    https://identitytoolkit.googleapis.com
-    https://securetoken.googleapis.com
-    https://firebaseinstallations.googleapis.com
-    https://fcmregistrations.googleapis.com
-    https://firebase.googleapis.com
-    https://znr-live-default-rtdb.firebaseio.com
-    wss://znr-live-default-rtdb.firebaseio.com
-    https://*.firebaseio.com
-    wss://*.firebaseio.com
-    https://nominatim.openstreetmap.org
-    https://graph.facebook.com
-    https://www.googleapis.com
-    https://www.google.com;
-  font-src 'self';
-  frame-src https://www.facebook.com https://staticxx.facebook.com https://apis.google.com https://*.firebaseio.com https://www.youtube.com;
-  frame-ancestors 'none';
-  object-src 'none';
-  base-uri 'self';
-  worker-src 'self' blob:;
-  child-src 'self' blob:;
+ default-src 'self';
+ script-src 'self' 'unsafe-inline' https://www.gstatic.com https://apis.google.com https://connect.facebook.net https://*.firebaseio.com;
+ style-src 'self' 'unsafe-inline';
+ img-src 'self' data: blob: https://lh3.googleusercontent.com https://drive.google.com https://placehold.co https://via.placeholder.com https://*.fbcdn.net;
+ connect-src 'self' https://script.google.com https://catalogo-api-1038143238323.us-central1.run.app https://script.googleusercontent.com https://ventas-api-1038143238323.us-central1.run.app https://wttr.in https://www.gstatic.com https://apis.google.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firebaseinstallations.googleapis.com https://fcmregistrations.googleapis.com  https://registrar-token-fcm-1038143238323.us-central1.run.app https://ventas-api-1038143238323.us-central1.run.app https://auth-api-1038143238323.us-central1.run.app https://vendedores-api-1038143238323.us-central1.run.app https://live-api-1038143238323.us-central1.run.app https://firebase.googleapis.com https://znr-live-default-rtdb.firebaseio.com wss://znr-live-default-rtdb.firebaseio.com https://*.firebaseio.com wss://*.firebaseio.com https://nominatim.openstreetmap.org https://graph.facebook.com;
+ font-src 'self';
+ frame-src https://www.facebook.com https://staticxx.facebook.com https://apis.google.com https://*.firebaseio.com https://www.youtube.com;
+ frame-ancestors 'none';
+ object-src 'none';
+ base-uri 'self';
+ worker-src 'self' blob:;
+ child-src 'self' blob:;
 ">
  <script src="error-bootstrap.js"></script>
 <script src="error-monitor.js"></script>
@@ -456,8 +432,10 @@ async function certificarVendedorEnLive(liveId) {
 }
 
 // ── apiFetch mínimo, igual al de vendedor-unificado.js ──
+const CATALOGO_API_URL_VLIVE = "https://catalogo-api-1038143238323.us-central1.run.app";
+const LIVE_API_URL_VLIVE = "https://live-api-1038143238323.us-central1.run.app"; // TODO: pegar la URL real tras el deploy
 async function apiFetch(data, method = 'POST') {
-  const API_BASE = "https://live-api-1038143238323.us-central1.run.app"; // TODO: pegar la URL real tras el deploy
+  const API_BASE = (data && data.action === 'misProductosComunidad') ? CATALOGO_API_URL_VLIVE : LIVE_API_URL_VLIVE;
   const params = new URLSearchParams();
   Object.entries(data || {}).forEach(([k, v]) => {
     if (v !== undefined && v !== null) params.append(k, v);
@@ -722,10 +700,8 @@ async function renderCreateForm() {
 async function fetchAllProducts() {
   try {
     const resp = await apiFetch({
-      action: 'listarComunidad',
-      vendedor_uid: vendorSession.uid,
+      action: 'misProductosComunidad',
       vendorToken: vendorSession.token,
-      admin: 'true',
       limit: 50
     }, 'GET');
     if (resp.ok && resp.products) allProducts = resp.products;
