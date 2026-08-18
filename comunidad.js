@@ -1370,19 +1370,14 @@ if (!data || !data.ok) {
   const slot = document.getElementById('live-banner-slot');
   if (!slot) return;
 
+  // Función que espera a que getLivesActivos esté disponible (hasta 5 intentos)
   async function fetchLives() {
-    const db = window.firebase?.firestore?.();
-    if (!db) throw new Error('Firestore no disponible');
-
-    const querySnapshot = await db.collection('lives')
-      .where('estado', '==', 'en_vivo')
-      .get();
-
-    const lives = [];
-    querySnapshot.forEach(doc => {
-      lives.push({ id: doc.id, ...doc.data() });
-    });
-    return lives;
+    if (typeof window.znrFirestore?.getLivesActivos !== 'function') {
+      throw new Error('getLivesActivos no disponible aún');
+    }
+    const result = await window.znrFirestore.getLivesActivos();
+    if (!result.ok) throw new Error(result.error || 'Error al obtener lives');
+    return result.lives;
   }
 
   let lives = [];
@@ -1422,6 +1417,7 @@ if (!data || !data.ok) {
     <style>@keyframes znr-live-pulse { 0%,100%{opacity:1;} 50%{opacity:.3;} }</style>
   `;
   }
+
     
 
 // ── Sistema de calificaciones: revisa si el comprador tiene compras
