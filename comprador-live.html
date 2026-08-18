@@ -660,7 +660,7 @@ function renderLive() {
   registrarPresencia();
   setupContadorEspectadores();
 
-  document.getElementById('chat-send').addEventListener('click', enviarMensaje);
+  document.getElementById('chat-send').addEventListener('click', () => enviarMensaje());
   document.getElementById('chat-input').addEventListener('keydown', (e) => { if (e.key === 'Enter') enviarMensaje(); });
 
   renderFacebookVideo('video-slot', sesion.facebook_link);
