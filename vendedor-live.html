@@ -783,7 +783,7 @@ async function crearSesion() {
       return;
     }
 
-    await cargarSesionActual();
+    await ();
   } catch (err) {
     genError.textContent = 'Error de conexión. Intenta de nuevo.';
     genError.style.display = 'block';
@@ -1268,9 +1268,11 @@ async function cargarSesionActual() {
         return;
       }
     }
+    if (!resp.ok) console.error('obtenerMisSesionesLive falló:', resp.error);
     renderCreateForm();
   } catch (err) {
-    renderCreateForm();
+    console.error('cargarSesionActual falló:', err);
+    wrap.innerHTML = `<div class="live-card center-text"><p class="error-msg">Error cargando tu sesión: ${esc(err.message || err)}</p><button class="btn-live ghost" onclick="location.reload()">Reintentar</button></div>`;
   }
 }
 
