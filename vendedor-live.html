@@ -783,7 +783,7 @@ async function crearSesion() {
       return;
     }
 
-    await ();
+await cargarSesionActual();
   } catch (err) {
     genError.textContent = 'Error de conexión. Intenta de nuevo.';
     genError.style.display = 'block';
