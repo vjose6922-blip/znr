@@ -1258,8 +1258,10 @@ async function cargarSesionActual() {
   wrap.innerHTML = '<div class="loading-spinner"></div>';
   try {
     const resp = await apiFetch({ action: 'obtenerMisSesionesLive', vendorToken: vendorSession.token }, 'GET');
+    console.log('📋 obtenerMisSesionesLive respuesta:', resp);
     if (resp.ok && resp.sesiones && resp.sesiones.length) {
       const activa = resp.sesiones.find(s => s.estado === 'programado' || s.estado === 'en_vivo');
+      console.log('📋 sesión activa encontrada:', activa);
       if (activa) {
         currentSesion = activa;
         if (!allProducts.length) await fetchAllProducts();
@@ -1268,11 +1270,11 @@ async function cargarSesionActual() {
         return;
       }
     }
-    if (!resp.ok) console.error('obtenerMisSesionesLive falló:', resp.error);
+    if (!resp.ok) console.error('❌ obtenerMisSesionesLive falló:', resp.error);
     renderCreateForm();
   } catch (err) {
-    console.error('cargarSesionActual falló:', err);
-    wrap.innerHTML = `<div class="live-card center-text"><p class="error-msg">Error cargando tu sesión: ${esc(err.message || err)}</p><button class="btn-live ghost" onclick="location.reload()">Reintentar</button></div>`;
+    console.error('❌ cargarSesionActual excepción:', err);
+    renderCreateForm();
   }
 }
 
