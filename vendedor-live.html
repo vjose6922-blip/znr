@@ -1258,7 +1258,13 @@ async function cargarSesionActual() {
   wrap.innerHTML = '<div class="loading-spinner"></div>';
   try {
     const resp = await apiFetch({ action: 'obtenerMisSesionesLive', vendorToken: vendorSession.token }, 'GET');
-    if (resp.ok && resp.sesiones && resp.sesiones.length) {
+    if (!resp.ok) {
+      renderCreateForm();
+      const genError = document.getElementById('f-general-error');
+      if (genError) { genError.textContent = 'No se pudo cargar tu sesión: ' + (resp.error || 'error desconocido'); genError.style.display = 'block'; }
+      return;
+    }
+    if (resp.sesiones && resp.sesiones.length) {
       const activa = resp.sesiones.find(s => s.estado === 'programado' || s.estado === 'en_vivo');
       if (activa) {
         currentSesion = activa;
@@ -1271,6 +1277,8 @@ async function cargarSesionActual() {
     renderCreateForm();
   } catch (err) {
     renderCreateForm();
+    const genError = document.getElementById('f-general-error');
+    if (genError) { genError.textContent = 'No se pudo cargar tu sesión: ' + err.message; genError.style.display = 'block'; }
   }
 }
 
