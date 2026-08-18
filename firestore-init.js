@@ -254,3 +254,4 @@ window.znrFirestore.getFeedActividad = async function () {
     return { ok: false, error: String(err) };
   }
 };
+window.firebase = firebase;
