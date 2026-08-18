@@ -288,6 +288,4 @@ window.znrFirestore.getLivesActivos = async function () {
   }
 };
 
-// Exponer la instancia de Firebase para scripts legacy (como comunidad.js)
-// que necesiten acceder a firebase.firestore() directamente.
-window.firebase = firebase;
+
