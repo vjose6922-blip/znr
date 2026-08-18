@@ -1369,12 +1369,29 @@ async function checkLiveBanner() {
   const slot = document.getElementById('live-banner-slot');
   if (!slot) return;
   try {
-    const res = await fetch(window.API_URL + '?' + new URLSearchParams({ action: 'obtenerLivesActivos' }));
-    const data = await res.json();
-    if (!data.ok || !data.lives || data.lives.length === 0) { slot.innerHTML = ''; return; }
+    const db = window.firebase?.firestore?.();
+    if (!db) {
+      console.warn('Firestore no disponible');
+      slot.innerHTML = '';
+      return;
+    }
 
-    const n = data.lives.length;
-    const nombres = data.lives.slice(0, 2).map(l => l.vendedor_nombre).join(', ');
+    const querySnapshot = await db.collection('lives')
+      .where('estado', '==', 'en_vivo')
+      .get();
+
+    const lives = [];
+    querySnapshot.forEach(doc => {
+      lives.push({ id: doc.id, ...doc.data() });
+    });
+
+    if (lives.length === 0) {
+      slot.innerHTML = '';
+      return;
+    }
+
+    const n = lives.length;
+    const nombres = lives.slice(0, 2).map(l => l.vendedor_nombre || 'Vendedor').join(', ');
     slot.innerHTML = `
       <a href="lives.html" style="text-decoration:none; display:block; margin:0 0 4px;
         background:linear-gradient(135deg, rgba(239,68,68,.16), rgba(244,114,182,.10));
@@ -1390,6 +1407,7 @@ async function checkLiveBanner() {
       <style>@keyframes znr-live-pulse { 0%,100%{opacity:1;} 50%{opacity:.3;} }</style>
     `;
   } catch (err) {
+    console.error('Error en checkLiveBanner (Firestore):', err);
     slot.innerHTML = '';
   }
 }
