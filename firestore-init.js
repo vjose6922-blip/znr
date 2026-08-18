@@ -1,3 +1,4 @@
+
 /**
  * firestore-init.js
  * ------------------------------------------------------------------
@@ -17,7 +18,17 @@
 
 import { initializeApp, getApps, getApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
 import { getAuth, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
-import { getFirestore, collection, getDocs, doc, getDoc, query, orderBy, limit } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-lite.js";
+import { 
+  getFirestore, 
+  collection, 
+  getDocs, 
+  doc, 
+  getDoc, 
+  query, 
+  orderBy, 
+  limit,
+  where 
+} from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-lite.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyAaOe_lxLdQtTFCtw2BDR8KZRSafEMkkes",
@@ -233,6 +244,11 @@ window.znrFirestore.getDonacionesRecibidas = async function (vendorUid) {
   }
 };
 
+/**
+ * Devuelve { ok: true, items: [...] } con el feed de actividad
+ * (últimos 50, más recientes primero), igual que el endpoint GAS
+ * obtenerFeedActividad.
+ */
 window.znrFirestore.getFeedActividad = async function () {
   try {
     const q = query(collection(db, 'feed_actividad'), orderBy('fecha', 'desc'), limit(50));
@@ -254,4 +270,24 @@ window.znrFirestore.getFeedActividad = async function () {
     return { ok: false, error: String(err) };
   }
 };
+
+/**
+ * 🔥 NUEVA FUNCIÓN: Devuelve { ok: true, lives: [...] } con todos los
+ * lives activos (estado === 'en_vivo'). Esta función reemplaza la
+ * llamada a GAS action=obtenerLivesActivos.
+ */
+window.znrFirestore.getLivesActivos = async function () {
+  try {
+    const q = query(collection(db, 'lives'), where('estado', '==', 'en_vivo'));
+    const snap = await getDocs(q);
+    const lives = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    return { ok: true, lives };
+  } catch (err) {
+    console.warn('Firestore lives falló:', err);
+    return { ok: false, error: String(err) };
+  }
+};
+
+// Exponer la instancia de Firebase para scripts legacy (como comunidad.js)
+// que necesiten acceder a firebase.firestore() directamente.
 window.firebase = firebase;
