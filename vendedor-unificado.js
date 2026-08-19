@@ -1738,6 +1738,18 @@ if (stored) {
 try {
 vendorSession = JSON.parse(stored);
 showPanel();
+// Valida la sesión contra el servidor — si el token ya no es
+// válido (p. ej. porque iniciaste sesión en otro dispositivo y se
+// generó uno nuevo), esto detecta la sesión muerta y limpia el
+// token FCM viejo en vez de dejarlo huérfano para siempre.
+apiCall({ action: 'misProductosComunidad', vendorToken: vendorSession.token, limit: 1 }).then(resp => {
+  if (!resp.ok) {
+    if (typeof window.eliminarTokenFCM === 'function') {
+      window.eliminarTokenFCM('vendedor', vendorSession.uid).catch(() => {});
+    }
+    vendorLogout();
+  }
+}).catch(() => {});
 } catch (_) {
 localStorage.removeItem('vendor_session');
 }
