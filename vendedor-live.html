@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -1186,12 +1187,18 @@ function renderEnded(entregaUrl) {
 function marcarVendido(liveId, key, msg) {
   if (msg.vendido) {
     if (confirm(`¿Quitar el marcado de vendido a "${msg.text}" de ${msg.author}?`)) {
-      update(ref(db, `chats/${liveId}/messages/${key}`), { vendido: false });
+      update(ref(db, `chats/${liveId}/messages/${key}`), { vendido: false }).catch(err => {
+        console.error('marcarVendido (quitar) falló:', err);
+        alert('No se pudo quitar el marcado de vendido: ' + err.message);
+      });
     }
     return;
   }
   if (confirm(`¿Marcar "${msg.text}" de ${msg.author} como vendido?`)) {
-    update(ref(db, `chats/${liveId}/messages/${key}`), { vendido: true });
+    update(ref(db, `chats/${liveId}/messages/${key}`), { vendido: true }).catch(err => {
+      console.error('marcarVendido falló:', err);
+      alert('No se pudo marcar como vendido: ' + err.message);
+    });
   }
 }
 
