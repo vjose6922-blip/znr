@@ -11,7 +11,7 @@
  img-src 'self' data: blob: https://lh3.googleusercontent.com https://drive.google.com https://placehold.co https://via.placeholder.com;
  connect-src 'self' https://script.google.com https://script.googleusercontent.com https://wttr.in https://www.gstatic.com https://firebaseinstallations.googleapis.com https://fcmregistrations.googleapis.com https://registrar-token-fcm-1038143238323.us-central1.run.app https://ventas-api-1038143238323.us-central1.run.app https://auth-api-1038143238323.us-central1.run.app https://live-api-1038143238323.us-central1.run.app https://firebase.googleapis.com https://znr-live-default-rtdb.firebaseio.com https://nominatim.openstreetmap.org;
  font-src 'self';
- frame-src 'none';
+ frame-src https://www.google.com;
  frame-ancestors 'none';
  object-src 'none';
  base-uri 'self';
@@ -189,6 +189,20 @@
     return null;
   }
 
+  // Truco del embed gratuito de Google Maps (sin API key): agregando
+  // output=embed a una URL normal de Maps, se puede meter en un
+  // iframe. Solo funciona con coordenadas (lat/lng) o con una
+  // dirección de texto — mismo criterio que mapsUrl().
+  function mapsEmbedUrl(g) {
+    if (typeof g.lat === 'number' && typeof g.lng === 'number') {
+      return `https://www.google.com/maps?q=${g.lat},${g.lng}&z=16&output=embed`;
+    }
+    if (g.direccion) {
+      return `https://www.google.com/maps?q=${encodeURIComponent(g.direccion)}&output=embed`;
+    }
+    return null;
+  }
+
   function renderResumen() {
     const total = entrega.grupos.length;
     const entregados = entrega.grupos.filter(g => g.estado === 'entregado').length;
@@ -204,6 +218,7 @@
   function renderGrupo(g) {
   const estado = g.estado === 'entregado' ? 'entregado' : 'pendiente';
   const url = mapsUrl(g);
+  const embedUrl = mapsEmbedUrl(g);
   return `
     <div class="entrega-card ${estado === 'entregado' ? 'is-entregado' : ''}" data-key="${esc(g.compradorKey)}">
       <div class="top-row">
@@ -224,7 +239,8 @@
         ${(g.items || []).map(it => `<div class="item-row"><span>${esc(it.nombre)}</span><span>$${Number(it.precio || 0).toLocaleString()}</span></div>`).join('')}
         <div class="total-row"><span>Total</span><span>$${Number(g.total || 0).toLocaleString()}</span></div>
       </div>
-      ${url ? `<a class="btn-maps" href="${esc(url)}" target="_blank" rel="noopener"  >${Icon('map-pin')} Ver ubicación en Maps</a>` : ''}
+      ${embedUrl ? `<iframe src="${esc(embedUrl)}" style="width:100%; aspect-ratio:16/9; border:0; border-radius:12px; margin:10px 0;" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>` : ''}
+      ${url ? `<a class="btn-maps" href="${esc(url)}" target="_blank" rel="noopener"  >${Icon('map-pin')} Abrir en la app de Maps</a>` : ''}
       <div class="estado-actions">
         <button class="btn-entregado ${estado === 'entregado' ? 'active' : ''}" data-action="entregado">${Icon('check')} Entregado</button>
         <button class="btn-pendiente ${estado === 'pendiente' ? 'active' : ''}" data-action="pendiente">${Icon('clock')} Pendiente</button>
