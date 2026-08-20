@@ -94,6 +94,13 @@
   .btn-avisar { background: rgba(59,130,246,.15); color: #60a5fa; }
   .btn-avisar:disabled { opacity: .6; }
 
+  .btn-tracking {
+    border: none; border-radius: var(--radius-md); cursor: pointer;
+    background: rgba(168,85,247,.15); color: #c084fc;
+    padding: 10px; font-size: 12.5px; font-weight: 700;
+  }
+  .btn-tracking.active { background: #c084fc; color: #2a0a3a; }
+
   .center-card { max-width: 480px; margin: 60px auto; padding: 0 20px; text-align: center; }
   .center-card .icon { font-size: 44px; margin-bottom: 12px; }
   .center-card h2 { color: var(--color-text-primary); margin: 0 0 8px; }
@@ -241,6 +248,11 @@
       </div>
       ${embedUrl ? `<iframe src="${esc(embedUrl)}" style="width:100%; aspect-ratio:16/9; border:0; border-radius:12px; margin:10px 0;" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>` : ''}
       ${url ? `<a class="btn-maps" href="${esc(url)}" target="_blank" rel="noopener"  >${Icon('map-pin')} Abrir en la app de Maps</a>` : ''}
+      ${estado === 'pendiente' ? `
+      <div class="tracking-row" style="display:flex; gap:8px; margin-top:8px;">
+        <button class="btn-tracking" data-action="compartir-ubicacion" style="flex:1;">${Icon('map-pin')} Compartir mi ubicación</button>
+        <button class="btn-tracking" data-action="enviar-link" style="flex:1;">${Icon('whatsapp')} Mandar link al cliente</button>
+      </div>` : ''}
       <div class="estado-actions">
         <button class="btn-entregado ${estado === 'entregado' ? 'active' : ''}" data-action="entregado">${Icon('check')} Entregado</button>
         <button class="btn-pendiente ${estado === 'pendiente' ? 'active' : ''}" data-action="pendiente">${Icon('clock')} Pendiente</button>
@@ -268,7 +280,67 @@
           btn.addEventListener('click', () => toggleEstado(key, btn.dataset.action));
         }
       });
+      const btnCompartir = card.querySelector('[data-action="compartir-ubicacion"]');
+      if (btnCompartir) btnCompartir.addEventListener('click', () => toggleCompartirUbicacion(key, btnCompartir));
+      const btnLink = card.querySelector('[data-action="enviar-link"]');
+      if (btnLink) btnLink.addEventListener('click', () => enviarLinkSeguimiento(key));
     });
+  }
+
+  const watchers = {}; // compradorKey -> watchPosition id, mientras se comparte ubicación
+
+  function enviarLinkSeguimiento(key) {
+    const trackUrl = `${location.origin}/znr/seguimiento-entrega.html?live=${encodeURIComponent(liveId)}&key=${encodeURIComponent(key)}`;
+    const g = entrega.grupos.find(x => x.compradorKey === key);
+    const tel = g && g.compradorTelefono ? String(g.compradorTelefono).replace(/\D/g, '') : '';
+    const texto = `¡Tu pedido va en camino! Sigue la ubicación del repartidor aquí: ${trackUrl}`;
+    if (tel) {
+      window.open(`https://wa.me/${tel}?text=${encodeURIComponent(texto)}`, '_blank', 'noopener');
+    } else if (navigator.share) {
+      navigator.share({ text: texto, url: trackUrl }).catch(() => {});
+    } else {
+      navigator.clipboard?.writeText(trackUrl);
+      alert('Link copiado — este comprador no tiene teléfono registrado, mándaselo tú manualmente.');
+    }
+  }
+
+  function toggleCompartirUbicacion(key, btn) {
+    if (watchers[key]) {
+      navigator.geolocation.clearWatch(watchers[key]);
+      delete watchers[key];
+      btn.innerHTML = Icon('map-pin') + ' Compartir mi ubicación';
+      btn.classList.remove('active');
+      return;
+    }
+    if (!('geolocation' in navigator)) {
+      alert('Tu navegador no soporta geolocalización.');
+      return;
+    }
+    btn.innerHTML = Icon('clock') + ' Compartiendo…';
+    btn.classList.add('active');
+
+    let ultimoEnvio = 0;
+    watchers[key] = navigator.geolocation.watchPosition(
+      (pos) => {
+        const ahora = Date.now();
+        if (ahora - ultimoEnvio < 10000) return; // manda como máximo cada 10s
+        ultimoEnvio = ahora;
+        apiFetch({
+          action: 'actualizarUbicacionRepartidor',
+          liveId, compradorKey: key,
+          lat: pos.coords.latitude, lng: pos.coords.longitude
+        }, 'POST').catch(() => {});
+      },
+      (err) => {
+        console.error('Geolocalización falló:', err);
+        alert('No se pudo obtener tu ubicación. Revisa que le diste permiso de ubicación a la página.');
+        navigator.geolocation.clearWatch(watchers[key]);
+        delete watchers[key];
+        btn.innerHTML = Icon('map-pin') + ' Compartir mi ubicación';
+        btn.classList.remove('active');
+      },
+      { enableHighAccuracy: true, maximumAge: 5000 }
+    );
   }
 
   async function avisarLlegada(key, btn) {

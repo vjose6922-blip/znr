@@ -1,0 +1,179 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta http-equiv="Content-Security-Policy" content="
+ default-src 'self';
+ script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net;
+ style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net;
+ img-src 'self' data: blob: https://*.tile.openstreetmap.org https://cdn.jsdelivr.net;
+ connect-src 'self' https://live-api-1038143238323.us-central1.run.app https://*.tile.openstreetmap.org;
+ font-src 'self';
+ frame-src 'none';
+ frame-ancestors 'none';
+ object-src 'none';
+ base-uri 'self';
+ worker-src 'self' blob:;
+ child-src 'self' blob:;
+">
+ <script src="error-bootstrap.js"></script>
+
+<title>Seguimiento de tu pedido — Z&R</title>
+<meta name="theme-color" content="#1e2128">
+<link rel="preload" href="styles.css" as="style">
+<link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css">
+<script src="icons.js" defer></script>
+<style>
+  body { margin: 0; }
+  .track-wrap { max-width: 640px; margin: 0 auto; padding: 16px; padding-bottom: 40px; }
+
+  .track-header { text-align: center; margin-bottom: 14px; }
+  .track-header h1 { font-size: 17px; margin: 0 0 4px; color: var(--color-text-primary); }
+  .track-header p { font-size: 13px; color: var(--color-text-soft); margin: 0; }
+
+  .estado-banner {
+    text-align: center; padding: 10px; border-radius: var(--radius-md);
+    font-size: 13px; font-weight: 700; margin-bottom: 14px;
+  }
+  .estado-banner.entregado { background: rgba(74,222,128,.15); color: #4ade80; }
+  .estado-banner.en-camino { background: rgba(59,130,246,.15); color: #60a5fa; }
+  .estado-banner.esperando { background: rgba(251,191,36,.15); color: #fbbf24; }
+
+  #map {
+    width: 100%; aspect-ratio: 4/5; max-height: 70vh; border-radius: var(--radius-lg);
+    border: 1px solid var(--color-border-subtle); background: var(--color-surface-2);
+  }
+
+  .track-note {
+    font-size: 12px; color: var(--color-text-soft); text-align: center;
+    margin-top: 12px; line-height: 1.5;
+  }
+
+  .track-error {
+    text-align: center; padding: 40px 20px; color: var(--color-text-soft);
+  }
+</style>
+</head>
+<body>
+
+<div class="track-wrap">
+  <div class="track-header">
+    <h1 id="th-titulo">Seguimiento de tu pedido</h1>
+    <p id="th-sub"></p>
+  </div>
+  <div id="banner"></div>
+  <div id="map"></div>
+  <p class="track-note">El mapa se actualiza solo cada pocos segundos mientras tengas esta página abierta — no hace falta que la recargues.</p>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+const API_BASE = "https://live-api-1038143238323.us-central1.run.app"; // TODO: pegar la URL real tras el deploy
+
+const params = new URLSearchParams(location.search);
+const liveId = params.get('live');
+const compradorKey = params.get('key');
+
+const wrap = document.querySelector('.track-wrap');
+const bannerEl = document.getElementById('banner');
+const tituloEl = document.getElementById('th-titulo');
+const subEl = document.getElementById('th-sub');
+
+let map = null;
+let destinoMarker = null;
+let repartidorMarker = null;
+let pollTimer = null;
+
+async function apiFetch(action, extra) {
+  const p = new URLSearchParams({ action, liveId, compradorKey, ...extra });
+  const res = await fetch(`${API_BASE}?${p.toString()}`);
+  return res.json();
+}
+
+function renderError(msg) {
+  if (pollTimer) clearInterval(pollTimer);
+  wrap.innerHTML = `<div class="track-error">${msg}</div>`;
+}
+
+function initMap(lat, lng) {
+  map = L.map('map', { zoomControl: true }).setView([lat, lng], 15);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '&copy; OpenStreetMap',
+    maxZoom: 19
+  }).addTo(map);
+}
+
+function actualizarMapa(entrega) {
+  const puntos = [];
+
+  if (typeof entrega.lat === 'number' && typeof entrega.lng === 'number') {
+    if (!map) initMap(entrega.lat, entrega.lng);
+    if (!destinoMarker) {
+      destinoMarker = L.marker([entrega.lat, entrega.lng], {
+        title: 'Tu dirección'
+      }).addTo(map).bindPopup('Tu dirección');
+    }
+    puntos.push([entrega.lat, entrega.lng]);
+  }
+
+  if (typeof entrega.repartidorLat === 'number' && typeof entrega.repartidorLng === 'number') {
+    if (!map) initMap(entrega.repartidorLat, entrega.repartidorLng);
+    const pos = [entrega.repartidorLat, entrega.repartidorLng];
+    if (!repartidorMarker) {
+      const icon = L.divIcon({
+        className: '', html: '<div style="width:16px;height:16px;border-radius:50%;background:#c084fc;border:3px solid #fff;box-shadow:0 0 0 2px #c084fc;"></div>',
+        iconSize: [16, 16], iconAnchor: [8, 8]
+      });
+      repartidorMarker = L.marker(pos, { icon, title: 'Repartidor' }).addTo(map).bindPopup('Repartidor');
+    } else {
+      repartidorMarker.setLatLng(pos);
+    }
+    puntos.push(pos);
+  }
+
+  if (map && puntos.length === 2) {
+    map.fitBounds(puntos, { padding: [40, 40] });
+  } else if (map && !map._znrCentradoInicial && puntos.length === 1) {
+    map._znrCentradoInicial = true;
+  }
+}
+
+function actualizarBanner(entrega) {
+  if (entrega.estado === 'entregado') {
+    bannerEl.innerHTML = `<div class="estado-banner entregado">✅ ¡Tu pedido ya fue entregado!</div>`;
+    if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
+    return;
+  }
+  if (typeof entrega.repartidorLat === 'number') {
+    bannerEl.innerHTML = `<div class="estado-banner en-camino">🛵 El repartidor va en camino</div>`;
+  } else {
+    bannerEl.innerHTML = `<div class="estado-banner esperando">⏳ Esperando a que el repartidor comparta su ubicación…</div>`;
+  }
+}
+
+async function cargar() {
+  try {
+    const resp = await apiFetch('obtenerEntregaPorClave');
+    if (!resp.ok) { renderError('No se encontró esta entrega. Puede que el link haya caducado.'); return; }
+    const e = resp.entrega;
+    tituloEl.textContent = 'Seguimiento de tu pedido';
+    subEl.textContent = e.vendedorNombre ? `De ${e.vendedorNombre}` : '';
+    actualizarBanner(e);
+    actualizarMapa(e);
+  } catch (err) {
+    console.error('Error cargando seguimiento:', err);
+  }
+}
+
+if (!liveId || !compradorKey) {
+  renderError('Este link no es válido.');
+} else {
+  cargar();
+  pollTimer = setInterval(cargar, 8000);
+}
+</script>
+</body>
+</html>
