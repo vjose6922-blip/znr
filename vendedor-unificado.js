@@ -1742,7 +1742,7 @@ showPanel();
 // válido (p. ej. porque iniciaste sesión en otro dispositivo y se
 // generó uno nuevo), esto detecta la sesión muerta y limpia el
 // token FCM viejo en vez de dejarlo huérfano para siempre.
-apiCall({ action: 'misProductosComunidad', vendorToken: vendorSession.token, limit: 1 }).then(resp => {
+apiFetch({ action: 'misProductosComunidad', vendorToken: vendorSession.token, limit: 1 }, 'GET').then(resp => {
   if (!resp.ok) {
     if (typeof window.eliminarTokenFCM === 'function') {
       window.eliminarTokenFCM('vendedor', vendorSession.uid).catch(() => {});
