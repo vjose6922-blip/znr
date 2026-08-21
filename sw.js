@@ -1,5 +1,5 @@
-const CACHE_NAME    = 'zr-cache-v62';
-const DYNAMIC_CACHE = 'zr-dynamic-v14';
+const CACHE_NAME    = 'zr-cache-v63';
+const DYNAMIC_CACHE = 'zr-dynamic-v15';
 const OFFLINE_URL   = '/znr/offline.html';
 
 const STATIC_ASSETS = [
@@ -43,6 +43,7 @@ const API_DOMAINS      = [
   'catalogo-api-1038143238323.us-central1.run.app',
   'auth-api-1038143238323.us-central1.run.app',
   'ventas-api-1038143238323.us-central1.run.app',
+  'live-api-1038143238323.us-central1.run.app',
 ];
 const IMAGE_CDN_HOSTS  = ['lh3.googleusercontent.com', 'googleusercontent.com'];
 
@@ -84,7 +85,7 @@ self.addEventListener('activate', event => {
 function getCacheStrategy(request) {
   const url = new URL(request.url);
   if (request.method === 'POST') return 'NETWORK_ONLY';
-  // Imágenes de productos en Google CDN → CACHE_FIamente)000000000
+  // Imágenes de productos en Google CDN → CACHE_FIRST
   if (IMAGE_CDN_HOSTS.some(h => url.hostname.includes(h))) return 'CACHE_FIRST';
   if (IMAGE_EXTENSIONS.some(ext => url.pathname.toLowerCase().endsWith(ext))) return 'CACHE_FIRST';
   if (url.hostname.includes('wttr.in') || url.hostname.includes('openweathermap.org')) return 'NETWORK_ONLY';
@@ -153,7 +154,9 @@ async function networkFirst(request) {
                          'calificarProducto','marcarNotificacionLeida',
                          'marcarTodasNotificacionesLeidas',
                          'solicitarPlanPlus','responderSolicitudPlus','getPlusSolicitudVendedor',
-                         'solicitudesPlus','obtenerResumenPlanPlus'];
+                         'solicitudesPlus','obtenerResumenPlanPlus',
+                         'obtenerMisSesionesLive','obtenerSesionLivePorId','obtenerLivesActivos',
+                         'obtenerEntregasLive','obtenerMisEntregasLive','obtenerEntregaPorClave'];
       if (!action || !sensitive.includes(action)) {
         const cache = await caches.open(DYNAMIC_CACHE);
         cache.put(request, net.clone());
@@ -187,7 +190,7 @@ async function staleWhileRevalidate(request) {
 self.addEventListener('push', event => {
   const payload = event.data ? event.data.json() : {};
   // FCM entrega el título/cuerpo anidados en "notification",
-  // no en el nivel superior del payload.0000
+  // no en el nivel superior del payload.
   const notif = payload.notification || {};
   const title = notif.title || 'Z&R';
   const body  = notif.body  || '¡Novedades en Z&R!';
@@ -201,7 +204,7 @@ self.addEventListener('push', event => {
       data:    { url: url },
       actions: [{ action: 'open', title: 'Ver ahora' }, { action: 'close', title: 'Cerrar' }]
     });
-    // 🔧 Antes lo hacía firebase-messaging-sw.js (un SW aparte, peleando por
+    // Antes lo hacía firebase-messaging-sw.js (un SW aparte, peleando por
     // el mismo scope que este). Ahora que ese registro se quitó, este es el
     // único push handler, así que avisamos aquí mismo a las pestañas
     // abiertas para que refresquen badges/listas (notification-center.js,
