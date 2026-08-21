@@ -283,13 +283,15 @@
 
   const ESTADOS_CONOCIDOS = ['pendiente', 'preparando', 'en-ruta', 'cerca', 'entregado'];
 
-  const ESTADO_LABEL = {
+  function ESTADO_LABEL(estado) {
+  return {
     pendiente: [Icon('clock'), 'PENDIENTE'],
     preparando: [Icon('box'), 'PREPARANDO'],
     'en-ruta': [Icon('map-pin'), 'EN RUTA'],
     cerca: [Icon('map-pin'), 'CERCA'],
     entregado: [Icon('check'), 'ENTREGADO'],
-  };
+  }[estado];
+}
 
   function renderGrupo(g, idx) {
   const estado = ESTADOS_CONOCIDOS.includes(g.estado) ? g.estado : 'pendiente';
@@ -297,7 +299,7 @@
   const embedUrl = mapsEmbedUrl(g);
   const compartiendo = !!watchers[g.compradorKey];
   const puedeEditar = estado !== 'entregado';
-  const [ico, label] = ESTADO_LABEL[estado];
+  const [ico, label] = ESTADO_LABEL(estado);
   return `
     <div class="entrega-card ${estado === 'entregado' ? 'is-entregado' : ''}" data-key="${esc(g.compradorKey)}" draggable="${estado === 'entregado' ? 'false' : 'true'}">
       <div class="top-row">
