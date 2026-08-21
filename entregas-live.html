@@ -6,10 +6,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta http-equiv="Content-Security-Policy" content="
  default-src 'self';
- script-src 'self' 'unsafe-inline' https://www.gstatic.com;
- style-src 'self' 'unsafe-inline';
- img-src 'self' data: blob: https://lh3.googleusercontent.com https://drive.google.com https://placehold.co https://via.placeholder.com;
- connect-src 'self' https://script.google.com https://script.googleusercontent.com https://wttr.in https://www.gstatic.com https://firebaseinstallations.googleapis.com https://fcmregistrations.googleapis.com https://registrar-token-fcm-1038143238323.us-central1.run.app https://ventas-api-1038143238323.us-central1.run.app https://auth-api-1038143238323.us-central1.run.app https://live-api-1038143238323.us-central1.run.app https://firebase.googleapis.com https://znr-live-default-rtdb.firebaseio.com https://nominatim.openstreetmap.org;
+ script-src 'self' 'unsafe-inline' https://www.gstatic.com https://cdn.jsdelivr.net;
+ style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net;
+ img-src 'self' data: blob: https://lh3.googleusercontent.com https://drive.google.com https://placehold.co https://via.placeholder.com https://*.tile.openstreetmap.org https://cdn.jsdelivr.net;
+ connect-src 'self' https://script.google.com https://script.googleusercontent.com https://wttr.in https://www.gstatic.com https://firebaseinstallations.googleapis.com https://fcmregistrations.googleapis.com https://registrar-token-fcm-1038143238323.us-central1.run.app https://ventas-api-1038143238323.us-central1.run.app https://auth-api-1038143238323.us-central1.run.app https://live-api-1038143238323.us-central1.run.app https://firebase.googleapis.com https://znr-live-default-rtdb.firebaseio.com https://nominatim.openstreetmap.org https://*.tile.openstreetmap.org;
  font-src 'self';
  frame-src https://www.google.com;
  frame-ancestors 'none';
@@ -24,14 +24,16 @@
 <meta name="theme-color" content="#1e2128">
 <link rel="preload" href="styles.css" as="style">
 <link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css">
 <script src="api-config.js"></script>
 <script src="icons.js" defer></script>
+<script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js" defer></script>
 <style>
   .entregas-wrap { max-width: 640px; margin: 0 auto; padding: 16px; padding-bottom: 80px; }
 
-  .resumen-bar { display: flex; gap: 10px; margin-bottom: 16px; }
+  .resumen-bar { display: flex; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; }
   .resumen-chip {
-    flex: 1; text-align: center; padding: 10px 8px;
+    flex: 1; min-width: 70px; text-align: center; padding: 10px 8px;
     border-radius: var(--radius-md); background: var(--color-surface);
     border: 1px solid var(--color-border-subtle);
   }
@@ -39,6 +41,16 @@
   .resumen-chip .lbl { font-size: 11px; color: var(--color-text-soft); text-transform: uppercase; letter-spacing: .04em; }
   .resumen-chip.ok .num { color: #4ade80; }
   .resumen-chip.pend .num { color: #fbbf24; }
+  .resumen-chip.ruta .num { color: #60a5fa; }
+
+  .ruta-actions { display: flex; gap: 8px; margin-bottom: 14px; }
+  .btn-ruta-accion {
+    flex: 1; border: none; border-radius: var(--radius-md); cursor: pointer;
+    background: var(--color-surface-2); color: var(--color-text-primary);
+    border: 1px solid var(--color-border-subtle);
+    padding: 10px 6px; font-size: 12px; font-weight: 700;
+    display: flex; align-items: center; justify-content: center; gap: 6px;
+  }
 
   .btn-refrescar {
     display: block; width: 100%; text-align: center; margin-bottom: 14px;
@@ -63,6 +75,9 @@
     padding: 4px 10px; border-radius: var(--radius-pill); white-space: nowrap;
   }
   .estado-pill.pendiente { background: rgba(251,191,36,.15); color: #fbbf24; }
+  .estado-pill.preparando { background: rgba(251,146,60,.15); color: #fb923c; }
+  .estado-pill.en-ruta { background: rgba(96,165,250,.15); color: #60a5fa; }
+  .estado-pill.cerca { background: rgba(192,132,252,.15); color: #c084fc; }
   .estado-pill.entregado { background: rgba(74,222,128,.15); color: #4ade80; }
 
   .entrega-detail { font-size: 13px; color: var(--color-text-soft); margin: 2px 0; line-height: 1.4; }
@@ -100,6 +115,44 @@
     padding: 10px; font-size: 12.5px; font-weight: 700;
   }
   .btn-tracking.active { background: #c084fc; color: #2a0a3a; }
+
+  .drag-handle {
+    cursor: grab; color: var(--color-text-soft); padding: 4px 8px;
+    touch-action: none; user-select: none; font-size: 16px; line-height: 1;
+  }
+  .entrega-card.dragging { opacity: .4; }
+  .entrega-card[draggable="true"] .top-row { align-items: center; }
+  .orden-num {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 22px; height: 22px; border-radius: 50%; background: var(--color-surface-2);
+    color: var(--color-text-soft); font-size: 11px; font-weight: 700; flex-shrink: 0;
+  }
+
+  .route-modal-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,.6); z-index: 200;
+    display: flex; align-items: flex-end; justify-content: center;
+  }
+  .route-modal {
+    background: var(--color-surface); width: 100%; max-width: 640px;
+    border-radius: 18px 18px 0 0; max-height: 92vh; display: flex; flex-direction: column;
+    overflow: hidden;
+  }
+  .route-modal-header {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 14px 16px; border-bottom: 1px solid var(--color-border-subtle);
+  }
+  .route-modal-header h3 { margin: 0; font-size: 15px; color: var(--color-text-primary); }
+  .route-modal-close { background: none; border: none; color: var(--color-text-soft); font-size: 20px; cursor: pointer; }
+  #route-map { width: 100%; height: 45vh; }
+  .route-list { overflow-y: auto; padding: 10px 16px 20px; }
+  .route-list-item { display: flex; gap: 10px; align-items: flex-start; padding: 8px 0; border-bottom: 1px solid var(--color-border-subtle); }
+  .route-list-item:last-child { border-bottom: none; }
+  .route-list-item .rli-num {
+    width: 22px; height: 22px; border-radius: 50%; background: var(--color-accent-solid, #ec4899);
+    color: #fff; font-size: 11px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 1px;
+  }
+  .route-list-item .rli-nombre { font-size: 13.5px; color: var(--color-text-primary); font-weight: 600; }
+  .route-list-item .rli-dir { font-size: 12px; color: var(--color-text-soft); }
 
   .center-card { max-width: 480px; margin: 60px auto; padding: 0 20px; text-align: center; }
   .center-card .icon { font-size: 44px; margin-bottom: 12px; }
@@ -213,32 +266,55 @@
   function renderResumen() {
     const total = entrega.grupos.length;
     const entregados = entrega.grupos.filter(g => g.estado === 'entregado').length;
+    const enRuta = entrega.grupos.filter(g => g.estado === 'en-ruta' || g.estado === 'cerca').length;
+    const pendientes = total - entregados - enRuta;
     return `
       <button class="btn-refrescar" id="btn-refrescar"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" aria-hidden="true"><use href="#ic-refresh"/></svg> Actualizar</button>
       <div class="resumen-bar">
         <div class="resumen-chip"><span class="num">${total}</span><span class="lbl">Total</span></div>
+        <div class="resumen-chip ruta"><span class="num">${enRuta}</span><span class="lbl">En ruta</span></div>
         <div class="resumen-chip ok"><span class="num">${entregados}</span><span class="lbl">Entregados</span></div>
-        <div class="resumen-chip pend"><span class="num">${total - entregados}</span><span class="lbl">Pendientes</span></div>
+        <div class="resumen-chip pend"><span class="num">${pendientes}</span><span class="lbl">Pendientes</span></div>
+      </div>
+      <div class="ruta-actions">
+        <button class="btn-ruta-accion" id="btn-ver-ruta">${Icon('map-pin')} Ver ruta completa</button>
+        <button class="btn-ruta-accion" id="btn-optimizar-ruta">${Icon('refresh')} Reordenar (más eficiente)</button>
       </div>`;
   }
 
-  function renderGrupo(g) {
-  const estado = g.estado === 'entregado' ? 'entregado' : 'pendiente';
+  const ESTADOS_CONOCIDOS = ['pendiente', 'preparando', 'en-ruta', 'cerca', 'entregado'];
+
+  const ESTADO_LABEL = {
+    pendiente: [Icon('clock'), 'PENDIENTE'],
+    preparando: [Icon('box'), 'PREPARANDO'],
+    'en-ruta': [Icon('map-pin'), 'EN RUTA'],
+    cerca: [Icon('map-pin'), 'CERCA'],
+    entregado: [Icon('check'), 'ENTREGADO'],
+  };
+
+  function renderGrupo(g, idx) {
+  const estado = ESTADOS_CONOCIDOS.includes(g.estado) ? g.estado : 'pendiente';
   const url = mapsUrl(g);
   const embedUrl = mapsEmbedUrl(g);
+  const compartiendo = !!watchers[g.compradorKey];
+  const puedeEditar = estado !== 'entregado';
+  const [ico, label] = ESTADO_LABEL[estado];
   return `
-    <div class="entrega-card ${estado === 'entregado' ? 'is-entregado' : ''}" data-key="${esc(g.compradorKey)}">
+    <div class="entrega-card ${estado === 'entregado' ? 'is-entregado' : ''}" data-key="${esc(g.compradorKey)}" draggable="${estado === 'entregado' ? 'false' : 'true'}">
       <div class="top-row">
-        <div>
-          <h2>${esc(g.compradorNombre)}</h2>
-          ${g.compradorTelefono ? `
-            <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
-              <a class="tel-link" href="tel:${String(g.compradorTelefono)}">${Icon('phone-call')} ${esc(String(g.compradorTelefono))}</a>
-              <a class="tel-link" href="https://wa.me/${encodeURIComponent(String(g.compradorTelefono).replace(/[\s()-]/g, ''))}" target="_blank" rel="noopener">${Icon('whatsapp')} WhatsApp</a>
-            </div>
-          ` : ''}
+        <div style="display:flex; align-items:center; gap:8px;">
+          ${estado !== 'entregado' ? `<span class="drag-handle" title="Arrastra para reordenar">⠿</span>` : `<span class="orden-num">${idx + 1}</span>`}
+          <div>
+            <h2>${esc(g.compradorNombre)}</h2>
+            ${g.compradorTelefono ? `
+              <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+                <a class="tel-link" href="tel:${String(g.compradorTelefono)}">${Icon('phone-call')} ${esc(String(g.compradorTelefono))}</a>
+                <a class="tel-link" href="https://wa.me/${encodeURIComponent(String(g.compradorTelefono).replace(/[\s()-]/g, ''))}" target="_blank" rel="noopener">${Icon('whatsapp')} WhatsApp</a>
+              </div>
+            ` : ''}
+          </div>
         </div>
-        <span class="estado-pill ${estado}">${estado === 'entregado' ? Icon('check') + ' ENTREGADO' : Icon('clock') + ' PENDIENTE'}</span>
+        <span class="estado-pill ${estado}">${ico} ${label}</span>
       </div>
       ${g.compradorDireccion ? `<p class="entrega-detail"><b>Dirección:</b> ${esc(g.compradorDireccion)}</p>` : ''}
       ${g.compradorHorario ? `<p class="entrega-detail"><b>Horario:</b> ${esc(g.compradorHorario)}</p>` : ''}
@@ -248,49 +324,194 @@
       </div>
       ${embedUrl ? `<iframe src="${esc(embedUrl)}" style="width:100%; aspect-ratio:16/9; border:0; border-radius:12px; margin:10px 0;" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>` : ''}
       ${url ? `<a class="btn-maps" href="${esc(url)}" target="_blank" rel="noopener"  >${Icon('map-pin')} Abrir en la app de Maps</a>` : ''}
-      ${estado === 'pendiente' ? `
+      ${puedeEditar ? `
+      <div style="display:flex; gap:8px; margin-top:8px;">
+        <select class="btn-tracking" data-action="set-estado-manual" style="flex:1; ${estado === 'en-ruta' || estado === 'cerca' ? 'display:none;' : ''}">
+          <option value="pendiente" ${estado === 'pendiente' ? 'selected' : ''}>⏳ Pendiente</option>
+          <option value="preparando" ${estado === 'preparando' ? 'selected' : ''}>📦 Preparando</option>
+        </select>
+      </div>
       <div class="tracking-row" style="display:flex; gap:8px; margin-top:8px;">
-        <button class="btn-tracking" data-action="compartir-ubicacion" style="flex:1;">${Icon('map-pin')} Compartir mi ubicación</button>
-        <button class="btn-tracking" data-action="enviar-link" style="flex:1;">${Icon('whatsapp')} Mandar link al cliente</button>
+        <button class="btn-tracking ${compartiendo ? 'active' : ''}" data-action="toggle-ruta" style="flex:1;">${compartiendo ? Icon('clock') + ' Detener ruta' : Icon('map-pin') + ' Iniciar ruta / compartir ubicación'}</button>
       </div>` : ''}
       <div class="estado-actions">
-        <button class="btn-entregado ${estado === 'entregado' ? 'active' : ''}" data-action="entregado">${Icon('check')} Entregado</button>
-        <button class="btn-pendiente ${estado === 'pendiente' ? 'active' : ''}" data-action="pendiente">${Icon('clock')} Pendiente</button>
+        <button class="btn-entregado ${estado === 'entregado' ? 'active' : ''}" data-action="entregado" ${estado === 'entregado' ? 'disabled' : ''}>${Icon('check')} Entregado</button>
         <button class="btn-avisar" data-action="avisar">${Icon('map-pin')} Avisar llegada</button>
       </div>
     </div>`;
 }
+
+  function gruposOrdenados() {
+    return entrega.grupos.slice().sort((a, b) => (a.orden ?? 999) - (b.orden ?? 999));
+  }
 
   function render() {
     headerTitle.textContent = entrega.liveTitulo ? `Entregas — ${entrega.liveTitulo}` : 'Entregas';
     headerSubtitle.textContent = entrega.vendedorNombre ? `De ${entrega.vendedorNombre}` : 'Coordinación de entregas';
 
     wrap.innerHTML = renderResumen() +
-      entrega.grupos.map(g => renderGrupo(g)).join('') +
+      gruposOrdenados().map((g, i) => renderGrupo(g, i)).join('') +
       `<p class="local-note">Lo que marques aquí lo va a ver el vendedor desde su panel.</p>`;
 
     document.getElementById('btn-refrescar').addEventListener('click', cargar);
+    document.getElementById('btn-ver-ruta').addEventListener('click', abrirMapaRuta);
+    document.getElementById('btn-optimizar-ruta').addEventListener('click', optimizarRuta);
 
     wrap.querySelectorAll('.entrega-card').forEach(card => {
       const key = card.dataset.key;
       card.querySelectorAll('.estado-actions button').forEach(btn => {
         if (btn.dataset.action === 'avisar') {
           btn.addEventListener('click', () => avisarLlegada(key, btn));
-        } else {
-          btn.addEventListener('click', () => toggleEstado(key, btn.dataset.action));
+        } else if (btn.dataset.action === 'entregado') {
+          btn.addEventListener('click', () => toggleEstado(key, 'entregado'));
         }
       });
-      const btnCompartir = card.querySelector('[data-action="compartir-ubicacion"]');
-      if (btnCompartir) btnCompartir.addEventListener('click', () => toggleCompartirUbicacion(key, btnCompartir));
-      const btnLink = card.querySelector('[data-action="enviar-link"]');
-      if (btnLink) btnLink.addEventListener('click', () => enviarLinkSeguimiento(key));
+      const select = card.querySelector('[data-action="set-estado-manual"]');
+      if (select) select.addEventListener('change', () => toggleEstado(key, select.value));
+      const btnRuta = card.querySelector('[data-action="toggle-ruta"]');
+      if (btnRuta) btnRuta.addEventListener('click', () => toggleRuta(key, btnRuta));
+
+      if (card.getAttribute('draggable') === 'true') {
+        card.addEventListener('dragstart', () => { card.classList.add('dragging'); dragKey = key; });
+        card.addEventListener('dragend', () => { card.classList.remove('dragging'); dragKey = null; persistirOrden(); });
+      }
     });
+
+    wrap.addEventListener('dragover', onDragOver);
+  }
+
+  let dragKey = null;
+  function onDragOver(e) {
+    e.preventDefault();
+    const dragging = wrap.querySelector('.entrega-card.dragging');
+    if (!dragging) return;
+    const siblings = [...wrap.querySelectorAll('.entrega-card:not(.dragging)')];
+    const after = siblings.find(sib => {
+      const box = sib.getBoundingClientRect();
+      return e.clientY < box.top + box.height / 2;
+    });
+    if (after) wrap.insertBefore(dragging, after);
+    else wrap.appendChild(dragging);
+  }
+
+  async function persistirOrden() {
+    const keys = [...wrap.querySelectorAll('.entrega-card')].map(c => c.dataset.key);
+    keys.forEach((key, i) => {
+      const g = entrega.grupos.find(x => String(x.compradorKey) === String(key));
+      if (g) g.orden = i;
+    });
+    try {
+      await apiFetch({
+        action: 'guardarOrdenEntregas', liveId,
+        ordenes: JSON.stringify(keys.map((key, i) => ({ compradorKey: key, orden: i })))
+      }, 'POST');
+    } catch (err) {
+      console.error('No se pudo guardar el nuevo orden:', err);
+    }
+  }
+
+  // --- Distancia (haversine, mismo criterio que el backend) ---
+  function distanciaMetros(lat1, lng1, lat2, lng2) {
+    const R = 6371000;
+    const toRad = d => d * Math.PI / 180;
+    const dLat = toRad(lat2 - lat1), dLng = toRad(lng2 - lng1);
+    const a = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2;
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  }
+
+  // --- TSP: vecino más cercano, punto de partida = ubicación actual del repartidor ---
+  function ordenarPorVecinoMasCercano(pendientes, origenLat, origenLng) {
+    const conCoords = pendientes.filter(g => typeof g.lat === 'number' && typeof g.lng === 'number');
+    const sinCoords = pendientes.filter(g => !(typeof g.lat === 'number' && typeof g.lng === 'number'));
+    const restantes = conCoords.slice();
+    const ruta = [];
+    let curLat = origenLat, curLng = origenLng;
+    if (curLat == null && restantes.length) {
+      const primero = restantes.shift();
+      ruta.push(primero);
+      curLat = primero.lat; curLng = primero.lng;
+    }
+    while (restantes.length) {
+      let idxMasCercano = 0, distMinima = Infinity;
+      restantes.forEach((g, i) => {
+        const d = distanciaMetros(curLat, curLng, g.lat, g.lng);
+        if (d < distMinima) { distMinima = d; idxMasCercano = i; }
+      });
+      const siguiente = restantes.splice(idxMasCercano, 1)[0];
+      ruta.push(siguiente);
+      curLat = siguiente.lat; curLng = siguiente.lng;
+    }
+    return [...ruta, ...sinCoords];
+  }
+
+  function optimizarRuta() {
+    const btn = document.getElementById('btn-optimizar-ruta');
+    const pendientes = entrega.grupos.filter(g => g.estado !== 'entregado');
+    const entregados = entrega.grupos.filter(g => g.estado === 'entregado');
+    if (pendientes.length < 2) { alert('No hay suficientes entregas pendientes para reordenar.'); return; }
+
+    const aplicar = (lat, lng) => {
+      const ordenados = ordenarPorVecinoMasCercano(pendientes, lat, lng);
+      [...ordenados, ...entregados].forEach((g, i) => { g.orden = i; });
+      render();
+      persistirOrden();
+    };
+
+    if (!('geolocation' in navigator)) { aplicar(null, null); return; }
+    btn.innerHTML = Icon('clock') + ' Calculando…';
+    navigator.geolocation.getCurrentPosition(
+      pos => aplicar(pos.coords.latitude, pos.coords.longitude),
+      () => aplicar(null, null),
+      { enableHighAccuracy: true, timeout: 5000 }
+    );
+  }
+
+  // --- Modal de ruta completa (Leaflet) ---
+  function abrirMapaRuta() {
+    const puntos = gruposOrdenados().filter(g => g.estado !== 'entregado' && typeof g.lat === 'number' && typeof g.lng === 'number');
+    const overlay = document.createElement('div');
+    overlay.className = 'route-modal-overlay';
+    overlay.innerHTML = `
+      <div class="route-modal">
+        <div class="route-modal-header">
+          <h3>${Icon('map-pin')} Ruta completa (${puntos.length} paradas)</h3>
+          <button class="route-modal-close" id="route-modal-close">&times;</button>
+        </div>
+        <div id="route-map"></div>
+        <div class="route-list">
+          ${puntos.length ? puntos.map((g, i) => `
+            <div class="route-list-item">
+              <span class="rli-num">${i + 1}</span>
+              <div><div class="rli-nombre">${esc(g.compradorNombre)}</div><div class="rli-dir">${esc(g.compradorDireccion || 'Sin dirección')}</div></div>
+            </div>`).join('') : '<p style="color:var(--color-text-soft); text-align:center; padding:20px;">Ninguna entrega pendiente tiene ubicación guardada todavía.</p>'}
+        </div>
+      </div>`;
+    document.body.appendChild(overlay);
+    document.getElementById('route-modal-close').addEventListener('click', () => overlay.remove());
+    overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+
+    if (puntos.length && typeof L !== 'undefined') {
+      setTimeout(() => {
+        const map = L.map('route-map');
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; OpenStreetMap', maxZoom: 19 }).addTo(map);
+        const latlngs = puntos.map(g => [g.lat, g.lng]);
+        latlngs.forEach((ll, i) => {
+          L.marker(ll).addTo(map).bindPopup(`${i + 1}. ${puntos[i].compradorNombre}`);
+        });
+        L.polyline(latlngs, { color: '#ec4899', weight: 3, dashArray: '6 6' }).addTo(map);
+        map.fitBounds(latlngs, { padding: [30, 30] });
+      }, 50);
+    }
   }
 
   const watchers = {}; // compradorKey -> watchPosition id, mientras se comparte ubicación
 
+  function linkSeguimiento(key) {
+    return `${location.origin}/znr/seguimiento-entrega.html?live=${encodeURIComponent(liveId)}&key=${encodeURIComponent(key)}`;
+  }
+
   function enviarLinkSeguimiento(key) {
-    const trackUrl = `${location.origin}/znr/seguimiento-entrega.html?live=${encodeURIComponent(liveId)}&key=${encodeURIComponent(key)}`;
+    const trackUrl = linkSeguimiento(key);
     const g = entrega.grupos.find(x => x.compradorKey === key);
     const tel = g && g.compradorTelefono ? String(g.compradorTelefono).replace(/\D/g, '') : '';
     const texto = `¡Tu pedido va en camino! Sigue la ubicación del repartidor aquí: ${trackUrl}`;
@@ -298,46 +519,49 @@
       window.open(`https://wa.me/${tel}?text=${encodeURIComponent(texto)}`, '_blank', 'noopener');
     } else if (navigator.share) {
       navigator.share({ text: texto, url: trackUrl }).catch(() => {});
-    } else {
-      navigator.clipboard?.writeText(trackUrl);
-      alert('Link copiado — este comprador no tiene teléfono registrado, mándaselo tú manualmente.');
     }
   }
 
-  function toggleCompartirUbicacion(key, btn) {
+  // Botón unificado "Iniciar ruta / compartir ubicación": pone el
+  // pedido en en-ruta, avisa al cliente (push + WhatsApp con el link
+  // de seguimiento) y empieza a mandar la ubicación del repartidor
+  // cada 5s. Volver a darle click detiene todo y regresa a pendiente
+  // (si no se marcó como entregado mientras tanto).
+  async function toggleRuta(key, btn) {
     if (watchers[key]) {
       navigator.geolocation.clearWatch(watchers[key]);
       delete watchers[key];
-      btn.innerHTML = Icon('map-pin') + ' Compartir mi ubicación';
-      btn.classList.remove('active');
+      await toggleEstado(key, 'pendiente');
       return;
     }
     if (!('geolocation' in navigator)) {
       alert('Tu navegador no soporta geolocalización.');
       return;
     }
-    btn.innerHTML = Icon('clock') + ' Compartiendo…';
-    btn.classList.add('active');
+    await toggleEstado(key, 'en-ruta');
+    enviarLinkSeguimiento(key);
 
     let ultimoEnvio = 0;
     watchers[key] = navigator.geolocation.watchPosition(
       (pos) => {
         const ahora = Date.now();
-        if (ahora - ultimoEnvio < 10000) return; // manda como máximo cada 10s
+        if (ahora - ultimoEnvio < 5000) return; // manda como máximo cada 5s
         ultimoEnvio = ahora;
         apiFetch({
           action: 'actualizarUbicacionRepartidor',
           liveId, compradorKey: key,
           lat: pos.coords.latitude, lng: pos.coords.longitude
-        }, 'POST').catch(() => {});
+        }, 'POST').then(resp => {
+          if (resp.ok && resp.estado && resp.estado !== entrega.grupos.find(g => g.compradorKey === key)?.estado) {
+            const g = entrega.grupos.find(x => x.compradorKey === key);
+            if (g) { g.estado = resp.estado; render(); }
+          }
+        }).catch(() => {});
       },
       (err) => {
         console.error('Geolocalización falló:', err);
         alert('No se pudo obtener tu ubicación. Revisa que le diste permiso de ubicación a la página.');
-        navigator.geolocation.clearWatch(watchers[key]);
-        delete watchers[key];
-        btn.innerHTML = Icon('map-pin') + ' Compartir mi ubicación';
-        btn.classList.remove('active');
+        if (watchers[key]) { navigator.geolocation.clearWatch(watchers[key]); delete watchers[key]; }
       },
       { enableHighAccuracy: true, maximumAge: 5000 }
     );
