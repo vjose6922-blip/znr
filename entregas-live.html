@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -11,7 +10,7 @@
  img-src 'self' data: blob: https://lh3.googleusercontent.com https://drive.google.com https://placehold.co https://via.placeholder.com https://*.tile.openstreetmap.org https://cdn.jsdelivr.net;
  connect-src 'self' https://script.google.com https://script.googleusercontent.com https://wttr.in https://www.gstatic.com https://firebaseinstallations.googleapis.com https://fcmregistrations.googleapis.com https://registrar-token-fcm-1038143238323.us-central1.run.app https://ventas-api-1038143238323.us-central1.run.app https://auth-api-1038143238323.us-central1.run.app https://live-api-1038143238323.us-central1.run.app https://firebase.googleapis.com https://znr-live-default-rtdb.firebaseio.com https://nominatim.openstreetmap.org https://*.tile.openstreetmap.org;
  font-src 'self';
- frame-src https://www.google.com;
+ frame-src 'none';
  frame-ancestors 'none';
  object-src 'none';
  base-uri 'self';
@@ -31,14 +30,14 @@
 <style>
   .entregas-wrap { max-width: 640px; margin: 0 auto; padding: 16px; padding-bottom: 80px; }
 
-  .resumen-bar { display: flex; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; }
+  .resumen-bar { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 12px; }
   .resumen-chip {
-    flex: 1; min-width: 70px; text-align: center; padding: 10px 8px;
+    text-align: center; padding: 8px 4px;
     border-radius: var(--radius-md); background: var(--color-surface);
     border: 1px solid var(--color-border-subtle);
   }
-  .resumen-chip .num { font-size: 18px; font-weight: 800; color: var(--color-text-primary); display: block; }
-  .resumen-chip .lbl { font-size: 11px; color: var(--color-text-soft); text-transform: uppercase; letter-spacing: .04em; }
+  .resumen-chip .num { font-size: 16px; font-weight: 800; color: var(--color-text-primary); display: block; }
+  .resumen-chip .lbl { font-size: 9.5px; color: var(--color-text-soft); text-transform: uppercase; letter-spacing: .03em; }
   .resumen-chip.ok .num { color: #4ade80; }
   .resumen-chip.pend .num { color: #fbbf24; }
   .resumen-chip.ruta .num { color: #60a5fa; }
@@ -61,18 +60,27 @@
 
   .entrega-card {
     background: var(--color-surface); border: 1px solid var(--color-border-subtle);
-    border-radius: var(--radius-lg); padding: 16px; margin-bottom: 14px;
+    border-radius: var(--radius-lg); margin-bottom: 10px; overflow: hidden;
     transition: opacity .2s ease;
   }
   .entrega-card.is-entregado { opacity: .55; }
 
-  .entrega-card .top-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; margin-bottom: 8px; }
-  .entrega-card h2 { margin: 0 0 2px; font-size: 16px; color: var(--color-text-primary); }
+  .card-header {
+    display: flex; align-items: center; gap: 10px; padding: 12px 14px; cursor: pointer;
+  }
+  .card-header .ch-info { flex: 1; min-width: 0; }
+  .card-header h2 { margin: 0; font-size: 14.5px; color: var(--color-text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .card-header .ch-total { font-size: 12px; color: var(--color-text-soft); }
+  .card-header .chevron { color: var(--color-text-soft); transition: transform .2s ease; flex-shrink: 0; }
+  .entrega-card.expanded .chevron { transform: rotate(180deg); }
+
+  .card-body { padding: 0 14px 14px; }
+
   .entrega-card .tel-link { font-size: 13px; color: var(--color-accent); text-decoration: none; }
 
   .estado-pill {
-    font-size: 10px; font-weight: 700; letter-spacing: .03em;
-    padding: 4px 10px; border-radius: var(--radius-pill); white-space: nowrap;
+    font-size: 9.5px; font-weight: 700; letter-spacing: .02em;
+    padding: 4px 9px; border-radius: var(--radius-pill); white-space: nowrap; flex-shrink: 0;
   }
   .estado-pill.pendiente { background: rgba(251,191,36,.15); color: #fbbf24; }
   .estado-pill.preparando { background: rgba(251,146,60,.15); color: #fb923c; }
@@ -117,15 +125,23 @@
   .btn-tracking.active { background: #c084fc; color: #2a0a3a; }
 
   .drag-handle {
-    cursor: grab; color: var(--color-text-soft); padding: 4px 8px;
-    touch-action: none; user-select: none; font-size: 16px; line-height: 1;
+    cursor: grab; color: var(--color-text-soft); padding: 4px 6px;
+    touch-action: none; user-select: none; font-size: 16px; line-height: 1; flex-shrink: 0;
   }
   .entrega-card.dragging { opacity: .4; }
-  .entrega-card[draggable="true"] .top-row { align-items: center; }
   .orden-num {
     display: inline-flex; align-items: center; justify-content: center;
-    width: 22px; height: 22px; border-radius: 50%; background: var(--color-surface-2);
-    color: var(--color-text-soft); font-size: 11px; font-weight: 700; flex-shrink: 0;
+    width: 20px; height: 20px; border-radius: 50%; background: var(--color-surface-2);
+    color: var(--color-text-soft); font-size: 10.5px; font-weight: 700; flex-shrink: 0;
+  }
+
+  .live-mini-map {
+    width: 100%; height: 160px; border-radius: 12px; margin: 10px 0;
+    background: var(--color-surface-2);
+  }
+  .live-mini-map-label {
+    font-size: 11px; color: #c084fc; font-weight: 700; margin: 10px 0 4px;
+    display: flex; align-items: center; gap: 5px;
   }
 
   .route-modal-overlay {
@@ -248,20 +264,6 @@
     return null;
   }
 
-  // Truco del embed gratuito de Google Maps (sin API key): agregando
-  // output=embed a una URL normal de Maps, se puede meter en un
-  // iframe. Solo funciona con coordenadas (lat/lng) o con una
-  // dirección de texto — mismo criterio que mapsUrl().
-  function mapsEmbedUrl(g) {
-    if (typeof g.lat === 'number' && typeof g.lng === 'number') {
-      return `https://www.google.com/maps?q=${g.lat},${g.lng}&z=16&output=embed`;
-    }
-    if (g.direccion) {
-      return `https://www.google.com/maps?q=${encodeURIComponent(g.direccion)}&output=embed`;
-    }
-    return null;
-  }
-
   function renderResumen() {
     const total = entrega.grupos.length;
     const entregados = entrega.grupos.filter(g => g.estado === 'entregado').length;
@@ -296,48 +298,53 @@
   function renderGrupo(g, idx) {
   const estado = ESTADOS_CONOCIDOS.includes(g.estado) ? g.estado : 'pendiente';
   const url = mapsUrl(g);
-  const embedUrl = mapsEmbedUrl(g);
   const compartiendo = !!watchers[g.compradorKey];
   const puedeEditar = estado !== 'entregado';
+  const enCamino = estado === 'en-ruta' || estado === 'cerca';
   const [ico, label] = ESTADO_LABEL(estado);
+  const abierta = expandedKeys.has(g.compradorKey);
   return `
-    <div class="entrega-card ${estado === 'entregado' ? 'is-entregado' : ''}" data-key="${esc(g.compradorKey)}" draggable="${estado === 'entregado' ? 'false' : 'true'}">
-      <div class="top-row">
-        <div style="display:flex; align-items:center; gap:8px;">
-          ${estado !== 'entregado' ? `<span class="drag-handle" title="Arrastra para reordenar">⠿</span>` : `<span class="orden-num">${idx + 1}</span>`}
-          <div>
-            <h2>${esc(g.compradorNombre)}</h2>
-            ${g.compradorTelefono ? `
-              <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
-                <a class="tel-link" href="tel:${String(g.compradorTelefono)}">${Icon('phone-call')} ${esc(String(g.compradorTelefono))}</a>
-                <a class="tel-link" href="https://wa.me/${encodeURIComponent(String(g.compradorTelefono).replace(/[\s()-]/g, ''))}" target="_blank" rel="noopener">${Icon('whatsapp')} WhatsApp</a>
-              </div>
-            ` : ''}
-          </div>
+    <div class="entrega-card ${estado === 'entregado' ? 'is-entregado' : ''} ${abierta ? 'expanded' : ''}" data-key="${esc(g.compradorKey)}" draggable="${estado === 'entregado' ? 'false' : 'true'}">
+      <div class="card-header" data-action="toggle-card">
+        ${estado !== 'entregado' ? `<span class="drag-handle" title="Arrastra para reordenar">⠿</span>` : `<span class="orden-num">${idx + 1}</span>`}
+        <div class="ch-info">
+          <h2>${esc(g.compradorNombre)}</h2>
+          <span class="ch-total">$${Number(g.total || 0).toLocaleString()}</span>
         </div>
         <span class="estado-pill ${estado}">${ico} ${label}</span>
+        <span class="chevron">${Icon('arrow-up-down', { size: 14 })}</span>
       </div>
-      ${g.compradorDireccion ? `<p class="entrega-detail"><b>Dirección:</b> ${esc(g.compradorDireccion)}</p>` : ''}
-      ${g.compradorHorario ? `<p class="entrega-detail"><b>Horario:</b> ${esc(g.compradorHorario)}</p>` : ''}
-      <div class="items-list">
-        ${(g.items || []).map(it => `<div class="item-row"><span>${esc(it.nombre)}</span><span>$${Number(it.precio || 0).toLocaleString()}</span></div>`).join('')}
-        <div class="total-row"><span>Total</span><span>$${Number(g.total || 0).toLocaleString()}</span></div>
-      </div>
-      ${embedUrl ? `<iframe src="${esc(embedUrl)}" style="width:100%; aspect-ratio:16/9; border:0; border-radius:12px; margin:10px 0;" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>` : ''}
-      ${url ? `<a class="btn-maps" href="${esc(url)}" target="_blank" rel="noopener"  >${Icon('map-pin')} Abrir en la app de Maps</a>` : ''}
-      ${puedeEditar ? `
-      <div style="display:flex; gap:8px; margin-top:8px;">
-        <select class="btn-tracking" data-action="set-estado-manual" style="flex:1; ${estado === 'en-ruta' || estado === 'cerca' ? 'display:none;' : ''}">
-          <option value="pendiente" ${estado === 'pendiente' ? 'selected' : ''}>⏳ Pendiente</option>
-          <option value="preparando" ${estado === 'preparando' ? 'selected' : ''}>📦 Preparando</option>
-        </select>
-      </div>
-      <div class="tracking-row" style="display:flex; gap:8px; margin-top:8px;">
-        <button class="btn-tracking ${compartiendo ? 'active' : ''}" data-action="toggle-ruta" style="flex:1;">${compartiendo ? Icon('clock') + ' Detener ruta' : Icon('map-pin') + ' Iniciar ruta / compartir ubicación'}</button>
-      </div>` : ''}
-      <div class="estado-actions">
-        <button class="btn-entregado ${estado === 'entregado' ? 'active' : ''}" data-action="entregado" ${estado === 'entregado' ? 'disabled' : ''}>${Icon('check')} Entregado</button>
-        <button class="btn-avisar" data-action="avisar">${Icon('map-pin')} Avisar llegada</button>
+      <div class="card-body" style="${abierta ? '' : 'display:none;'}">
+        ${g.compradorTelefono ? `
+          <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:8px;">
+            <a class="tel-link" href="tel:${String(g.compradorTelefono)}">${Icon('phone-call')} ${esc(String(g.compradorTelefono))}</a>
+            <a class="tel-link" href="https://wa.me/${encodeURIComponent(String(g.compradorTelefono).replace(/[\s()-]/g, ''))}" target="_blank" rel="noopener">${Icon('whatsapp')} WhatsApp</a>
+          </div>
+        ` : ''}
+        ${g.compradorDireccion ? `<p class="entrega-detail"><b>Dirección:</b> ${esc(g.compradorDireccion)}</p>` : ''}
+        ${g.compradorHorario ? `<p class="entrega-detail"><b>Horario:</b> ${esc(g.compradorHorario)}</p>` : ''}
+        <div class="items-list">
+          ${(g.items || []).map(it => `<div class="item-row"><span>${esc(it.nombre)}</span><span>$${Number(it.precio || 0).toLocaleString()}</span></div>`).join('')}
+          <div class="total-row"><span>Total</span><span>$${Number(g.total || 0).toLocaleString()}</span></div>
+        </div>
+        ${url ? `<a class="btn-maps" href="${esc(url)}" target="_blank" rel="noopener">${Icon('map-pin')} Abrir en la app de Maps</a>` : ''}
+        ${enCamino ? `
+        <div class="live-mini-map-label">${Icon('map-pin')} Tu ruta en vivo hacia el destino</div>
+        <div class="live-mini-map" id="mini-map-${esc(g.compradorKey)}"></div>` : ''}
+        ${puedeEditar ? `
+        <div style="display:flex; gap:8px; margin-top:8px;">
+          <select class="btn-tracking" data-action="set-estado-manual" style="flex:1; ${enCamino ? 'display:none;' : ''}">
+            <option value="pendiente" ${estado === 'pendiente' ? 'selected' : ''}>⏳ Pendiente</option>
+            <option value="preparando" ${estado === 'preparando' ? 'selected' : ''}>📦 Preparando</option>
+          </select>
+        </div>
+        <div class="tracking-row" style="display:flex; gap:8px; margin-top:8px;">
+          <button class="btn-tracking ${compartiendo ? 'active' : ''}" data-action="toggle-ruta" style="flex:1;">${compartiendo ? Icon('clock') + ' Detener ruta' : Icon('map-pin') + ' Iniciar ruta / compartir ubicación'}</button>
+        </div>` : ''}
+        <div class="estado-actions">
+          <button class="btn-entregado ${estado === 'entregado' ? 'active' : ''}" data-action="entregado" ${estado === 'entregado' ? 'disabled' : ''}>${Icon('check')} Entregado</button>
+          <button class="btn-avisar" data-action="avisar">${Icon('map-pin')} Avisar llegada</button>
+        </div>
       </div>
     </div>`;
 }
@@ -346,10 +353,49 @@
     return entrega.grupos.slice().sort((a, b) => (a.orden ?? 999) - (b.orden ?? 999));
   }
 
+  const expandedKeys = new Set();
+  const liveMaps = {}; // compradorKey -> {map, repMarker, line}
+  const posActual = {}; // compradorKey -> {lat,lng} última posición conocida del repartidor
+
+  function limpiarMiniMapas() {
+    Object.values(liveMaps).forEach(lm => { try { lm.map.remove(); } catch (_) {} });
+    for (const k in liveMaps) delete liveMaps[k];
+  }
+
+  function actualizarMiniMapa(key) {
+    const g = entrega.grupos.find(x => x.compradorKey === key);
+    const pos = posActual[key];
+    if (!g || !pos || typeof g.lat !== 'number' || typeof g.lng !== 'number') return;
+    const container = document.getElementById(`mini-map-${key}`);
+    if (!container || typeof L === 'undefined') return;
+
+    let lm = liveMaps[key];
+    const destino = [g.lat, g.lng];
+    const repartidor = [pos.lat, pos.lng];
+    if (!lm) {
+      const map = L.map(container, { zoomControl: false, attributionControl: false, dragging: true, scrollWheelZoom: false });
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(map);
+      L.marker(destino).addTo(map).bindPopup('Destino');
+      const repIcon = L.divIcon({
+        className: '', html: '<div style="width:14px;height:14px;border-radius:50%;background:#c084fc;border:2px solid #fff;box-shadow:0 0 0 2px #c084fc;"></div>',
+        iconSize: [14, 14], iconAnchor: [7, 7]
+      });
+      const repMarker = L.marker(repartidor, { icon: repIcon }).addTo(map).bindPopup('Tú');
+      const line = L.polyline([repartidor, destino], { color: '#c084fc', weight: 3, dashArray: '6 6' }).addTo(map);
+      map.fitBounds([repartidor, destino], { padding: [24, 24] });
+      liveMaps[key] = { map, repMarker, line };
+    } else {
+      lm.repMarker.setLatLng(repartidor);
+      lm.line.setLatLngs([repartidor, destino]);
+      lm.map.fitBounds([repartidor, destino], { padding: [24, 24] });
+    }
+  }
+
   function render() {
     headerTitle.textContent = entrega.liveTitulo ? `Entregas — ${entrega.liveTitulo}` : 'Entregas';
     headerSubtitle.textContent = entrega.vendedorNombre ? `De ${entrega.vendedorNombre}` : 'Coordinación de entregas';
 
+    limpiarMiniMapas();
     wrap.innerHTML = renderResumen() +
       gruposOrdenados().map((g, i) => renderGrupo(g, i)).join('') +
       `<p class="local-note">Lo que marques aquí lo va a ver el vendedor desde su panel.</p>`;
@@ -360,6 +406,11 @@
 
     wrap.querySelectorAll('.entrega-card').forEach(card => {
       const key = card.dataset.key;
+      card.querySelector('[data-action="toggle-card"]').addEventListener('click', () => {
+        if (expandedKeys.has(key)) expandedKeys.delete(key);
+        else expandedKeys.add(key);
+        render();
+      });
       card.querySelectorAll('.estado-actions button').forEach(btn => {
         if (btn.dataset.action === 'avisar') {
           btn.addEventListener('click', () => avisarLlegada(key, btn));
@@ -373,9 +424,14 @@
       if (btnRuta) btnRuta.addEventListener('click', () => toggleRuta(key, btnRuta));
 
       if (card.getAttribute('draggable') === 'true') {
-        card.addEventListener('dragstart', () => { card.classList.add('dragging'); dragKey = key; });
+        card.addEventListener('dragstart', (e) => {
+          if (e.target.closest('.card-body')) { e.preventDefault(); return; }
+          card.classList.add('dragging'); dragKey = key;
+        });
         card.addEventListener('dragend', () => { card.classList.remove('dragging'); dragKey = null; persistirOrden(); });
       }
+
+      if (posActual[key]) actualizarMiniMapa(key);
     });
 
     wrap.addEventListener('dragover', onDragOver);
@@ -526,12 +582,16 @@
   // Botón unificado "Iniciar ruta / compartir ubicación": pone el
   // pedido en en-ruta, avisa al cliente (push + WhatsApp con el link
   // de seguimiento) y empieza a mandar la ubicación del repartidor
-  // cada 5s. Volver a darle click detiene todo y regresa a pendiente
-  // (si no se marcó como entregado mientras tanto).
+  // cada 5s (además de dibujarla al toque en el mini-mapa local, sin
+  // esperar esos 5s — eso es aparte, nada más para no saturar el
+  // servidor). Volver a darle click detiene todo y regresa a
+  // pendiente (si no se marcó como entregado mientras tanto).
   async function toggleRuta(key, btn) {
     if (watchers[key]) {
       navigator.geolocation.clearWatch(watchers[key]);
       delete watchers[key];
+      delete posActual[key];
+      if (liveMaps[key]) { try { liveMaps[key].map.remove(); } catch (_) {} delete liveMaps[key]; }
       await toggleEstado(key, 'pendiente');
       return;
     }
@@ -539,14 +599,18 @@
       alert('Tu navegador no soporta geolocalización.');
       return;
     }
+    expandedKeys.add(key); // para que vea su mini-mapa de inmediato
     await toggleEstado(key, 'en-ruta');
     enviarLinkSeguimiento(key);
 
     let ultimoEnvio = 0;
     watchers[key] = navigator.geolocation.watchPosition(
       (pos) => {
+        posActual[key] = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+        actualizarMiniMapa(key); // se dibuja al toque, no espera el throttle de red
+
         const ahora = Date.now();
-        if (ahora - ultimoEnvio < 5000) return; // manda como máximo cada 5s
+        if (ahora - ultimoEnvio < 5000) return; // manda al servidor como máximo cada 5s
         ultimoEnvio = ahora;
         apiFetch({
           action: 'actualizarUbicacionRepartidor',
