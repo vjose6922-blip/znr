@@ -516,18 +516,17 @@ function askIdentity(onDone) {
   overlay.innerHTML = `
     <div class="identity-sheet">
       <h2>Únete al chat</h2>
-      <p>Para comentar y apartar productos, dinos quién eres y dónde entregarte. El vendedor usará esto para contactarte y coordinar la entrega.</p>
+      <p>Para comentar y apartar productos necesitamos tu ubicación, para poder llegar a entregarte. Dinos también quién eres y en qué horario.</p>
       <label for="idn-nombre">Tu nombre</label>
       <input type="text" id="idn-nombre" placeholder="Nombre y apellido" maxlength="40" value="${esc(prev.nombre || '')}">
       <label for="idn-tel">Tu teléfono</label>
       <input type="tel" id="idn-tel" placeholder="10 dígitos" maxlength="10" value="${esc(prev.telefono || '')}">
-      <label for="idn-dir">Dirección de entrega</label>
-      <textarea id="idn-dir" placeholder="Calle, número, colonia, referencias…" maxlength="200">${esc(prev.direccion || '')}</textarea>
-      <button type="button" class="btn-gps" id="idn-gps-btn"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" aria-hidden="true"><use href="#ic-map-pin"/></svg> Agregar mi ubicación GPS (opcional)</button>
-      <p style="font-size:11.5px; color:var(--color-text-soft, #9aa1ac); margin:-4px 0 8px;">Ojo: el GPS ubica dónde estás ahorita, no reemplaza la dirección — escríbela aunque compartas tu ubicación.</p>
-      <p class="gps-status ${gpsCoords ? 'ok' : ''}" id="idn-gps-status">${gpsCoords ? Icon('check') + ' Ya tenemos tu ubicación guardada.' : ''}</p>
+      <button type="button" class="btn-gps" id="idn-gps-btn"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" aria-hidden="true"><use href="#ic-map-pin"/></svg> ${gpsCoords ? 'Actualizar mi ubicación' : 'Obtener mi ubicación (obligatorio)'}</button>
+      <p class="gps-status ${gpsCoords ? 'ok' : ''}" id="idn-gps-status">${gpsCoords ? Icon('check') + ' Ya tenemos tu ubicación guardada.' : 'Necesitamos tu ubicación GPS para poder entregarte — toca el botón y acepta el permiso.'}</p>
       <label for="idn-horario">Horario para entrega</label>
       <input type="text" id="idn-horario" placeholder="Ej. Tardes después de 5pm, fines de semana…" maxlength="80" value="${esc(prev.horario || '')}">
+      <label for="idn-dir">Entregar en otra ubicación (opcional)</label>
+      <textarea id="idn-dir" placeholder="Solo si quieres dejar instrucciones o pedir que se entregue en un lugar distinto a tu ubicación GPS…" maxlength="200">${esc(prev.nota || '')}</textarea>
       <button id="idn-btn">Entrar al chat</button>
     </div>`;
   document.body.appendChild(overlay);
@@ -536,7 +535,7 @@ function askIdentity(onDone) {
     const statusEl = document.getElementById('idn-gps-status');
     if (!navigator.geolocation) {
       statusEl.className = 'gps-status error';
-      statusEl.textContent = 'Tu navegador no soporta ubicación por GPS. Escribe tu dirección arriba.';
+      statusEl.textContent = 'Tu navegador no soporta ubicación por GPS. No podemos continuar sin ella — intenta desde otro navegador o dispositivo.';
       return;
     }
     statusEl.className = 'gps-status';
@@ -548,31 +547,31 @@ function askIdentity(onDone) {
     }, (err) => {
       gpsCoords = null;
       statusEl.className = 'gps-status error';
-      statusEl.textContent = 'No se pudo obtener tu ubicación (revisa los permisos). Escribe tu dirección arriba.';
+      statusEl.textContent = 'No se pudo obtener tu ubicación. Revisa que tu navegador tenga permiso de ubicación activado para este sitio y vuelve a intentar — es necesaria para poder entregarte.';
     }, { enableHighAccuracy: true, timeout: 10000 });
   });
 
   document.getElementById('idn-btn').addEventListener('click', () => {
     const nombre = document.getElementById('idn-nombre').value.trim();
     const tel = document.getElementById('idn-tel').value.replace(/\D/g, '');
-    const direccion = document.getElementById('idn-dir').value.trim();
     const horario = document.getElementById('idn-horario').value.trim();
+    const nota = document.getElementById('idn-dir').value.trim();
     if (!nombre || tel.length !== 10) {
       alert('Escribe tu nombre y un teléfono válido de 10 dígitos.');
-      return;
-    }
-    if (!direccion) {
-      alert('Escribe tu dirección de entrega. El GPS es opcional, no la reemplaza.');
       return;
     }
     if (!horario) {
       alert('Dinos en qué horario podemos entregarte.');
       return;
     }
+    if (!gpsCoords) {
+      alert('Necesitamos tu ubicación para continuar — toca "Obtener mi ubicación" y acepta el permiso de tu navegador.');
+      return;
+    }
     identity = {
-      nombre, telefono: tel, direccion, horario,
-      lat: gpsCoords ? gpsCoords.lat : null,
-      lng: gpsCoords ? gpsCoords.lng : null
+      nombre, telefono: tel, horario, nota,
+      lat: gpsCoords.lat,
+      lng: gpsCoords.lng
     };
     localStorage.setItem('znr_chat_identity', JSON.stringify(identity));
     guardarContacto(identity);
@@ -594,7 +593,7 @@ async function guardarContacto(idn) {
     liveId,
     viewerUid: authUid,
     telefono: idn.telefono || '',
-    direccion: idn.direccion || '',
+    nota: idn.nota || '',
     horario: idn.horario || ''
   };
   if (typeof idn.lat === 'number' && typeof idn.lng === 'number') {
@@ -777,7 +776,7 @@ async function init() {
     renderLive();
     startPolling();
 
-    if (!identity || (!identity.direccion && !(typeof identity.lat === 'number' && typeof identity.lng === 'number')) || !identity.horario) {
+    if (!identity || typeof identity.lat !== 'number' || typeof identity.lng !== 'number' || !identity.horario) {
       askIdentity(() => {});
     }
   } catch (err) {

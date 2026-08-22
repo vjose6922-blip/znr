@@ -323,6 +323,7 @@
         ` : ''}
         ${g.compradorDireccion ? `<p class="entrega-detail"><b>Dirección:</b> ${esc(g.compradorDireccion)}</p>` : ''}
         ${g.compradorHorario ? `<p class="entrega-detail"><b>Horario:</b> ${esc(g.compradorHorario)}</p>` : ''}
+        ${g.compradorNota ? `<p class="entrega-detail"><b>📝 Entregar en otra ubicación:</b> ${esc(g.compradorNota)}</p>` : ''}
         <div class="items-list">
           ${(g.items || []).map(it => `<div class="item-row"><span>${esc(it.nombre)}</span><span>$${Number(it.precio || 0).toLocaleString()}</span></div>`).join('')}
           <div class="total-row"><span>Total</span><span>$${Number(g.total || 0).toLocaleString()}</span></div>
