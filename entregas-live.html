@@ -135,15 +135,6 @@
     color: var(--color-text-soft); font-size: 10.5px; font-weight: 700; flex-shrink: 0;
   }
 
-  .live-mini-map {
-    width: 100%; height: 160px; border-radius: 12px; margin: 10px 0;
-    background: var(--color-surface-2);
-  }
-  .live-mini-map-label {
-    font-size: 11px; color: #c084fc; font-weight: 700; margin: 10px 0 4px;
-    display: flex; align-items: center; gap: 5px;
-  }
-
   .route-modal-overlay {
     position: fixed; inset: 0; background: rgba(0,0,0,.6); z-index: 200;
     display: flex; align-items: flex-end; justify-content: center;
@@ -161,8 +152,8 @@
   .route-note { margin: 0; padding: 8px 16px; font-size: 12px; color: #fbbf24; background: rgba(251,191,36,.1); }
   .route-note-info { color: var(--color-text-soft); background: transparent; padding-top: 0; }
   .route-modal-close { background: none; border: none; color: var(--color-text-soft); font-size: 20px; cursor: pointer; }
-  #route-map { width: 100%; height: 45vh; }
-  .route-list { overflow-y: auto; padding: 10px 16px 20px; }
+  #route-map { width: 100%; height: 55vh; }
+  .route-list { overflow-y: auto; padding: 10px 16px 20px; max-height: 30vh; }
   .route-list-item { display: flex; gap: 10px; align-items: flex-start; padding: 8px 0; border-bottom: 1px solid var(--color-border-subtle); }
   .route-list-item:last-child { border-bottom: none; }
   .route-list-item .rli-num {
@@ -171,6 +162,9 @@
   }
   .route-list-item .rli-nombre { font-size: 13.5px; color: var(--color-text-primary); font-weight: 600; }
   .route-list-item .rli-dir { font-size: 12px; color: var(--color-text-soft); }
+  .route-list-item .rli-estado { font-size: 10px; color: var(--color-text-soft); margin-top: 2px; }
+  .route-list-item .rli-estado.entregado { color: #4ade80; }
+  .route-list-item .rli-estado.en-ruta { color: #60a5fa; }
 
   .center-card { max-width: 480px; margin: 60px auto; padding: 0 20px; text-align: center; }
   .center-card .icon { font-size: 44px; margin-bottom: 12px; }
@@ -188,6 +182,21 @@
     font-size: 11px; color: var(--color-text-soft); text-align: center;
     margin: 18px 0 4px; line-height: 1.5;
   }
+
+  .repartidor-pos-indicator {
+    background: rgba(192,132,252,.2); border: 1px solid #c084fc;
+    border-radius: var(--radius-md); padding: 4px 10px; font-size: 11px;
+    color: #c084fc; display: inline-flex; align-items: center; gap: 6px;
+    margin-bottom: 8px;
+  }
+  .repartidor-pos-indicator .dot {
+    width: 8px; height: 8px; border-radius: 50%; background: #c084fc;
+    animation: pulse-dot 1.5s infinite;
+  }
+  @keyframes pulse-dot {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: .5; transform: scale(0.8); }
+  }
 </style>
 </head>
 <body>
@@ -203,18 +212,14 @@
 
 <main class="entregas-wrap" id="entregas-wrap"><div class="loading-spinner"></div></main>
 
-
-
 <script src="znr-devconsole.js"></script>
 
-
- 
 <script>
 (function() {
   'use strict';
 
   async function apiFetch(data, method = 'GET') {
-    const API_BASE = "https://live-api-1038143238323.us-central1.run.app"; // TODO: pegar la URL real tras el deploy
+    const API_BASE = "https://live-api-1038143238323.us-central1.run.app";
     const params = new URLSearchParams();
     Object.entries(data || {}).forEach(([k, v]) => {
       if (v !== undefined && v !== null) params.append(k, v);
@@ -238,6 +243,12 @@
     return d.innerHTML;
   }
 
+  function Icon(name, opts = {}) {
+    const size = opts.size || 16;
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><use href="#ic-${name}"/></svg>`;
+    return svg;
+  }
+
   const wrap = document.getElementById('entregas-wrap');
   const headerTitle = document.getElementById('header-title');
   const headerSubtitle = document.getElementById('header-subtitle');
@@ -245,6 +256,10 @@
   const liveId = params.get('id');
 
   let entrega = null;
+  let repartidorPos = null; // {lat, lng} última posición conocida
+  let watchId = null;
+  let routeModalInstance = null;
+  let routeUpdateInterval = null;
 
   function renderInvalido(msg) {
     headerSubtitle.textContent = 'Enlace inválido';
@@ -254,17 +269,15 @@
         <h2>No pudimos cargar esta entrega</h2>
         <p>${esc(msg || 'Pide al vendedor que te comparta el link de nuevo.')}</p>
       </div>`;
-}
+  }
 
   function mapsUrl(g) {
-    // Navegación real turn-by-turn (respeta calles de sentido contrario,
-    // tráfico en vivo, etc.) — no la línea recta/OSRM del mapa en pantalla,
-    // que es solo referencia visual del recorrido, nunca para guiar al manejar.
+    // CORREGIDO: usa las coordenadas reales del destino
     if (typeof g.lat === 'number' && typeof g.lng === 'number') {
       return `https://www.google.com/maps/dir/?api=1&destination=${g.lat},${g.lng}&travelmode=driving`;
     }
-    if (g.direccion) {
-      return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(g.direccion)}&travelmode=driving`;
+    if (g.compradorDireccion) {
+      return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(g.compradorDireccion)}&travelmode=driving`;
     }
     return null;
   }
@@ -274,7 +287,11 @@
     const entregados = entrega.grupos.filter(g => g.estado === 'entregado').length;
     const enRuta = entrega.grupos.filter(g => g.estado === 'en-ruta' || g.estado === 'cerca').length;
     const pendientes = total - entregados - enRuta;
+    const posHtml = repartidorPos 
+      ? `<span class="repartidor-pos-indicator"><span class="dot"></span> Ubicación activa</span>`
+      : '';
     return `
+      ${posHtml}
       <button class="btn-refrescar" id="btn-refrescar"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" aria-hidden="true"><use href="#ic-refresh"/></svg> Actualizar</button>
       <div class="resumen-bar">
         <div class="resumen-chip"><span class="num">${total}</span><span class="lbl">Total</span></div>
@@ -289,136 +306,76 @@
   }
 
   const ESTADOS_CONOCIDOS = ['pendiente', 'preparando', 'en-ruta', 'cerca', 'entregado'];
-
-  function ESTADO_LABEL(estado) {
-  return {
-    pendiente: [Icon('clock'), 'PENDIENTE'],
-    preparando: [Icon('box'), 'PREPARANDO'],
-    'en-ruta': [Icon('map-pin'), 'EN RUTA'],
-    cerca: [Icon('map-pin'), 'CERCA'],
-    entregado: [Icon('check'), 'ENTREGADO'],
-  }[estado];
-}
+  const ESTADO_ICONS = {
+    pendiente: 'clock',
+    preparando: 'box',
+    'en-ruta': 'map-pin',
+    cerca: 'map-pin',
+    entregado: 'check'
+  };
 
   function renderGrupo(g, idx) {
-  const estado = ESTADOS_CONOCIDOS.includes(g.estado) ? g.estado : 'pendiente';
-  const url = mapsUrl(g);
-  const compartiendo = !!watchers[g.compradorKey];
-  const puedeEditar = estado !== 'entregado';
-  const enCamino = estado === 'en-ruta' || estado === 'cerca';
-  const [ico, label] = ESTADO_LABEL(estado);
-  const abierta = expandedKeys.has(g.compradorKey);
-  return `
-    <div class="entrega-card ${estado === 'entregado' ? 'is-entregado' : ''} ${abierta ? 'expanded' : ''}" data-key="${esc(g.compradorKey)}" draggable="${estado === 'entregado' ? 'false' : 'true'}">
-      <div class="card-header" data-action="toggle-card">
-        ${estado !== 'entregado' ? `<span class="drag-handle" title="Arrastra para reordenar">⠿</span>` : `<span class="orden-num">${idx + 1}</span>`}
-        <div class="ch-info">
-          <h2>${esc(g.compradorNombre)}</h2>
-          <span class="ch-total">$${Number(g.total || 0).toLocaleString()}</span>
-        </div>
-        <span class="estado-pill ${estado}">${ico} ${label}</span>
-        <span class="chevron">${Icon('arrow-up-down', { size: 14 })}</span>
-      </div>
-      <div class="card-body" style="${abierta ? '' : 'display:none;'}">
-        ${g.compradorTelefono ? `
-          <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:8px;">
-            <a class="tel-link" href="tel:${String(g.compradorTelefono)}">${Icon('phone-call')} ${esc(String(g.compradorTelefono))}</a>
-            <a class="tel-link" href="https://wa.me/${encodeURIComponent(String(g.compradorTelefono).replace(/[\s()-]/g, ''))}" target="_blank" rel="noopener">${Icon('whatsapp')} WhatsApp</a>
+    const estado = ESTADOS_CONOCIDOS.includes(g.estado) ? g.estado : 'pendiente';
+    const url = mapsUrl(g);
+    const compartiendo = !!watchers[g.compradorKey];
+    const puedeEditar = estado !== 'entregado';
+    const [ico, label] = [ESTADO_ICONS[estado] || 'clock', estado.toUpperCase()];
+    const abierta = expandedKeys.has(g.compradorKey);
+    return `
+      <div class="entrega-card ${estado === 'entregado' ? 'is-entregado' : ''} ${abierta ? 'expanded' : ''}" data-key="${esc(g.compradorKey)}" draggable="${estado === 'entregado' ? 'false' : 'true'}">
+        <div class="card-header" data-action="toggle-card">
+          ${estado !== 'entregado' ? `<span class="drag-handle" title="Arrastra para reordenar">⠿</span>` : `<span class="orden-num">${idx + 1}</span>`}
+          <div class="ch-info">
+            <h2>${esc(g.compradorNombre)}</h2>
+            <span class="ch-total">$${Number(g.total || 0).toLocaleString()}</span>
           </div>
-        ` : ''}
-        ${g.compradorDireccion ? `<p class="entrega-detail"><b>Dirección:</b> ${esc(g.compradorDireccion)}</p>` : ''}
-        ${g.compradorHorario ? `<p class="entrega-detail"><b>Horario:</b> ${esc(g.compradorHorario)}</p>` : ''}
-        ${g.compradorNota ? `<p class="entrega-detail"><b>📝 Entregar en otra ubicación:</b> ${esc(g.compradorNota)}</p>` : ''}
-        <div class="items-list">
-          ${(g.items || []).map(it => `<div class="item-row"><span>${esc(it.nombre)}</span><span>$${Number(it.precio || 0).toLocaleString()}</span></div>`).join('')}
-          <div class="total-row"><span>Total</span><span>$${Number(g.total || 0).toLocaleString()}</span></div>
+          <span class="estado-pill ${estado}">${Icon(ico, { size: 10 })} ${label}</span>
+          <span class="chevron">${Icon('arrow-up-down', { size: 14 })}</span>
         </div>
-        ${url ? `<a class="btn-maps" href="${esc(url)}" target="_blank" rel="noopener">${Icon('map-pin')} Iniciar navegación (Google Maps)</a>` : ''}
-        ${enCamino ? `
-        <div class="live-mini-map-label">${Icon('map-pin')} Tu ruta en vivo hacia el destino</div>
-        <div class="live-mini-map" id="mini-map-${esc(g.compradorKey)}"></div>` : ''}
-        ${puedeEditar ? `
-        <div style="display:flex; gap:8px; margin-top:8px;">
-          <select class="btn-tracking" data-action="set-estado-manual" style="flex:1; ${enCamino ? 'display:none;' : ''}">
-            <option value="pendiente" ${estado === 'pendiente' ? 'selected' : ''}>⏳ Pendiente</option>
-            <option value="preparando" ${estado === 'preparando' ? 'selected' : ''}>📦 Preparando</option>
-          </select>
+        <div class="card-body" style="${abierta ? '' : 'display:none;'}">
+          ${g.compradorTelefono ? `
+            <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:8px;">
+              <a class="tel-link" href="tel:${String(g.compradorTelefono)}">${Icon('phone-call')} ${esc(String(g.compradorTelefono))}</a>
+              <a class="tel-link" href="https://wa.me/${encodeURIComponent(String(g.compradorTelefono).replace(/[\s()-]/g, ''))}" target="_blank" rel="noopener">${Icon('whatsapp')} WhatsApp</a>
+            </div>
+          ` : ''}
+          ${g.compradorDireccion ? `<p class="entrega-detail"><b>Dirección:</b> ${esc(g.compradorDireccion)}</p>` : ''}
+          ${g.compradorHorario ? `<p class="entrega-detail"><b>Horario:</b> ${esc(g.compradorHorario)}</p>` : ''}
+          ${g.compradorNota ? `<p class="entrega-detail"><b>📝 Entregar en otra ubicación:</b> ${esc(g.compradorNota)}</p>` : ''}
+          <div class="items-list">
+            ${(g.items || []).map(it => `<div class="item-row"><span>${esc(it.nombre)}</span><span>$${Number(it.precio || 0).toLocaleString()}</span></div>`).join('')}
+            <div class="total-row"><span>Total</span><span>$${Number(g.total || 0).toLocaleString()}</span></div>
+          </div>
+          ${url ? `<a class="btn-maps" href="${esc(url)}" target="_blank" rel="noopener">${Icon('map-pin')} Iniciar navegación (Google Maps)</a>` : ''}
+          ${puedeEditar ? `
+          <div style="display:flex; gap:8px; margin-top:8px;">
+            <select class="btn-tracking" data-action="set-estado-manual" style="flex:1; ${estado === 'en-ruta' || estado === 'cerca' ? 'display:none;' : ''}">
+              <option value="pendiente" ${estado === 'pendiente' ? 'selected' : ''}>⏳ Pendiente</option>
+              <option value="preparando" ${estado === 'preparando' ? 'selected' : ''}>📦 Preparando</option>
+            </select>
+          </div>
+          <div class="tracking-row" style="display:flex; gap:8px; margin-top:8px;">
+            <button class="btn-tracking ${compartiendo ? 'active' : ''}" data-action="toggle-ruta" style="flex:1;">${compartiendo ? Icon('clock') + ' Detener ruta' : Icon('map-pin') + ' Iniciar ruta / compartir ubicación'}</button>
+          </div>` : ''}
+          <div class="estado-actions">
+            <button class="btn-entregado ${estado === 'entregado' ? 'active' : ''}" data-action="entregado" ${estado === 'entregado' ? 'disabled' : ''}>${Icon('check')} Entregado</button>
+            <button class="btn-avisar" data-action="avisar">${Icon('map-pin')} Avisar llegada</button>
+          </div>
         </div>
-        <div class="tracking-row" style="display:flex; gap:8px; margin-top:8px;">
-          <button class="btn-tracking ${compartiendo ? 'active' : ''}" data-action="toggle-ruta" style="flex:1;">${compartiendo ? Icon('clock') + ' Detener ruta' : Icon('map-pin') + ' Iniciar ruta / compartir ubicación'}</button>
-        </div>` : ''}
-        <div class="estado-actions">
-          <button class="btn-entregado ${estado === 'entregado' ? 'active' : ''}" data-action="entregado" ${estado === 'entregado' ? 'disabled' : ''}>${Icon('check')} Entregado</button>
-          <button class="btn-avisar" data-action="avisar">${Icon('map-pin')} Avisar llegada</button>
-        </div>
-      </div>
-    </div>`;
-}
+      </div>`;
+  }
 
   function gruposOrdenados() {
     return entrega.grupos.slice().sort((a, b) => (a.orden ?? 999) - (b.orden ?? 999));
   }
 
   const expandedKeys = new Set();
-  const liveMaps = {}; // compradorKey -> {map, repMarker, line}
-  const posActual = {}; // compradorKey -> {lat,lng} última posición conocida del repartidor
-  const ultimaRutaCalc = {}; // compradorKey -> timestamp del último cálculo de ruta por calles
-  const RUTA_REFRESH_MS = 15000; // no pedir ruta nueva a OSRM más seguido que esto por entrega
-
-  function limpiarMiniMapas() {
-    Object.values(liveMaps).forEach(lm => { try { lm.map.remove(); } catch (_) {} });
-    for (const k in liveMaps) delete liveMaps[k];
-  }
-
-  // Recalcula la ruta real (respeta sentidos de calle) desde la posición
-  // actual del repartidor hasta el destino cada RUTA_REFRESH_MS, y mueve el
-  // marcador en cada posición nueva — así se ve como si estuviera siguiendo
-  // el camino en vivo, sin necesidad de voz ni de salir de la página.
-  function actualizarMiniMapa(key) {
-    const g = entrega.grupos.find(x => x.compradorKey === key);
-    const pos = posActual[key];
-    if (!g || !pos || typeof g.lat !== 'number' || typeof g.lng !== 'number') return;
-    const container = document.getElementById(`mini-map-${key}`);
-    if (!container || typeof L === 'undefined') return;
-
-    let lm = liveMaps[key];
-    const destino = [g.lat, g.lng];
-    const repartidor = [pos.lat, pos.lng];
-    if (!lm) {
-      const map = L.map(container, { zoomControl: false, attributionControl: false, dragging: true, scrollWheelZoom: false });
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(map);
-      L.marker(destino).addTo(map).bindPopup('Destino');
-      const repIcon = L.divIcon({
-        className: '', html: '<div style="width:14px;height:14px;border-radius:50%;background:#c084fc;border:2px solid #fff;box-shadow:0 0 0 2px #c084fc;"></div>',
-        iconSize: [14, 14], iconAnchor: [7, 7]
-      });
-      const repMarker = L.marker(repartidor, { icon: repIcon }).addTo(map).bindPopup('Tú');
-      const line = L.polyline([repartidor, destino], { color: '#c084fc', weight: 3, dashArray: '6 6' }).addTo(map);
-      map.fitBounds([repartidor, destino], { padding: [24, 24] });
-      liveMaps[key] = { map, repMarker, line };
-      lm = liveMaps[key];
-    } else {
-      lm.repMarker.setLatLng(repartidor);
-      lm.map.panTo(repartidor); // sigue al repartidor en cada tick, aunque la ruta todavía no se recalcule
-    }
-
-    const ahora = Date.now();
-    if (ahora - (ultimaRutaCalc[key] || 0) < RUTA_REFRESH_MS) return;
-    ultimaRutaCalc[key] = ahora;
-    trazarRutaCalles([repartidor, destino]).then(ruta => {
-      const actual = liveMaps[key];
-      if (!actual) return; // la tarjeta pudo cerrarse mientras esperábamos la respuesta
-      actual.line.setLatLngs(ruta || [repartidor, destino]);
-      actual.line.setStyle({ dashArray: ruta ? null : '6 6' });
-      actual.map.fitBounds(ruta || [repartidor, destino], { padding: [24, 24] });
-    });
-  }
+  const watchers = {};
 
   function render() {
     headerTitle.textContent = entrega.liveTitulo ? `Entregas — ${entrega.liveTitulo}` : 'Entregas';
     headerSubtitle.textContent = entrega.vendedorNombre ? `De ${entrega.vendedorNombre}` : 'Coordinación de entregas';
 
-    limpiarMiniMapas();
     wrap.innerHTML = renderResumen() +
       gruposOrdenados().map((g, i) => renderGrupo(g, i)).join('') +
       `<p class="local-note">Lo que marques aquí lo va a ver el vendedor desde su panel.</p>`;
@@ -453,8 +410,6 @@
         });
         card.addEventListener('dragend', () => { card.classList.remove('dragging'); dragKey = null; persistirOrden(); });
       }
-
-      if (posActual[key]) actualizarMiniMapa(key);
     });
 
     wrap.addEventListener('dragover', onDragOver);
@@ -488,7 +443,6 @@
     }
   }
 
-  // --- Distancia (haversine, mismo criterio que el backend) ---
   function distanciaMetros(lat1, lng1, lat2, lng2) {
     const R = 6371000;
     const toRad = d => d * Math.PI / 180;
@@ -497,7 +451,6 @@
     return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   }
 
-  // --- TSP: vecino más cercano, punto de partida = ubicación actual del repartidor ---
   function ordenarPorVecinoMasCercano(pendientes, origenLat, origenLng) {
     const conCoords = pendientes.filter(g => typeof g.lat === 'number' && typeof g.lng === 'number');
     const sinCoords = pendientes.filter(g => !(typeof g.lat === 'number' && typeof g.lng === 'number'));
@@ -544,10 +497,7 @@
     );
   }
 
-  // --- Modal de ruta completa (Leaflet + ruta real por calles vía OSRM) ---
-  // OSRM demo público, sin API key: se manda en tramos de 25 paradas (con
-  // solape de 1 punto entre tramos) para no romper si algún día hay una
-  // ruta muy larga. Si falla o no hay servicio, se cae a línea recta.
+  // --- Ruta por calles vía OSRM ---
   async function trazarRutaCalles(latlngs) {
     if (latlngs.length < 2) return null;
     const CHUNK = 25;
@@ -563,57 +513,201 @@
       }));
       return tramos.reduce((acc, tramo, i) => i === 0 ? tramo : acc.concat(tramo.slice(1)), []);
     } catch (err) {
-      return null; // sin ruta por calles disponible ahora, quien llama cae a línea recta
+      return null;
     }
   }
 
+  // --- Modal de ruta completa MEJORADO con seguimiento en tiempo real ---
   function abrirMapaRuta() {
-    const puntos = gruposOrdenados().filter(g => g.estado !== 'entregado' && typeof g.lat === 'number' && typeof g.lng === 'number');
+    // Cerrar modal existente si hay
+    if (routeModalInstance) {
+      cerrarMapaRuta();
+      return;
+    }
+
+    const puntos = gruposOrdenados().filter(g => typeof g.lat === 'number' && typeof g.lng === 'number');
     const overlay = document.createElement('div');
     overlay.className = 'route-modal-overlay';
+    overlay.id = 'route-modal-overlay';
     overlay.innerHTML = `
       <div class="route-modal">
         <div class="route-modal-header">
           <h3>${Icon('map-pin')} Ruta completa (${puntos.length} paradas)</h3>
           <button class="route-modal-close" id="route-modal-close">&times;</button>
         </div>
-        <p class="route-note route-note-info">Referencia del recorrido — para navegar usa "Iniciar navegación" en cada entrega.</p>
+        <p class="route-note route-note-info">🟣 Tu ubicación se actualiza automáticamente cada 10 segundos</p>
         <p class="route-note" id="route-note" style="display:none;"></p>
         <div id="route-map"></div>
         <div class="route-list">
-          ${puntos.length ? puntos.map((g, i) => `
-            <div class="route-list-item">
+          ${puntos.length ? puntos.map((g, i) => {
+            const estado = g.estado || 'pendiente';
+            const estadoLabel = estado === 'entregado' ? '✅ Entregado' : estado === 'en-ruta' ? '🟣 En ruta' : estado === 'cerca' ? '🟡 Cerca' : '⏳ Pendiente';
+            return `
+            <div class="route-list-item" data-key="${esc(g.compradorKey)}">
               <span class="rli-num">${i + 1}</span>
-              <div><div class="rli-nombre">${esc(g.compradorNombre)}</div><div class="rli-dir">${esc(g.compradorDireccion || 'Sin dirección')}</div></div>
-            </div>`).join('') : '<p style="color:var(--color-text-soft); text-align:center; padding:20px;">Ninguna entrega pendiente tiene ubicación guardada todavía.</p>'}
+              <div>
+                <div class="rli-nombre">${esc(g.compradorNombre)}</div>
+                <div class="rli-dir">${esc(g.compradorDireccion || 'Sin dirección')}</div>
+                <div class="rli-estado ${estado}">${estadoLabel}</div>
+              </div>
+            </div>`;
+          }).join('') : '<p style="color:var(--color-text-soft); text-align:center; padding:20px;">Ninguna entrega tiene ubicación guardada todavía.</p>'}
         </div>
       </div>`;
     document.body.appendChild(overlay);
-    document.getElementById('route-modal-close').addEventListener('click', () => overlay.remove());
-    overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+    routeModalInstance = overlay;
+
+    document.getElementById('route-modal-close').addEventListener('click', cerrarMapaRuta);
+    overlay.addEventListener('click', e => { if (e.target === overlay) cerrarMapaRuta(); });
 
     if (puntos.length && typeof L !== 'undefined') {
       setTimeout(async () => {
-        const map = L.map('route-map');
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; OpenStreetMap', maxZoom: 19 }).addTo(map);
+        const map = L.map('route-map', { zoomControl: true });
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { 
+          attribution: '&copy; OpenStreetMap', 
+          maxZoom: 19 
+        }).addTo(map);
+
         const latlngs = puntos.map(g => [g.lat, g.lng]);
+        const markers = [];
+        
+        // Marcar cada destino con número
         latlngs.forEach((ll, i) => {
-          L.marker(ll).addTo(map).bindPopup(`${i + 1}. ${puntos[i].compradorNombre}`);
+          const marker = L.marker(ll, {
+            icon: L.divIcon({
+              className: 'route-marker',
+              html: `<div style="background:#ec4899;color:#fff;border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;border:2px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,0.3);">${i + 1}</div>`,
+              iconSize: [28, 28],
+              iconAnchor: [14, 14]
+            })
+          }).addTo(map);
+          marker.bindPopup(`<strong>${i + 1}. ${puntos[i].compradorNombre}</strong><br>${puntos[i].compradorDireccion || ''}`);
+          markers.push(marker);
         });
+
+        // Calcular ruta por calles
         const rutaCalles = await trazarRutaCalles(latlngs);
-        L.polyline(rutaCalles || latlngs, { color: '#ec4899', weight: 3, dashArray: rutaCalles ? null : '6 6' }).addTo(map);
+        const routeLine = L.polyline(rutaCalles || latlngs, { 
+          color: '#ec4899', 
+          weight: 3, 
+          dashArray: rutaCalles ? null : '6 6',
+          opacity: 0.8
+        }).addTo(map);
+        
         if (!rutaCalles && latlngs.length > 1) {
           const note = document.getElementById('route-note');
           note.style.display = 'block';
           note.textContent = 'No se pudo calcular la ruta por calles ahora mismo — se muestra la línea directa entre paradas.';
         }
-        map.fitBounds(latlngs, { padding: [30, 30] });
+
+        // MARCADOR DEL REPARTIDOR (con icono de coche/persona)
+        let repMarker = null;
+        let repCircle = null;
+        let repPos = null;
+
+        // Icono personalizado para el repartidor
+        const repIcon = L.divIcon({
+          className: 'repartidor-icon',
+          html: `<div style="width:32px;height:32px;border-radius:50%;background:#c084fc;border:3px solid #fff;box-shadow:0 2px 12px rgba(192,132,252,0.6);display:flex;align-items:center;justify-content:center;font-size:16px;">🚗</div>`,
+          iconSize: [32, 32],
+          iconAnchor: [16, 16]
+        });
+
+        // Función para actualizar posición del repartidor en el mapa
+        function actualizarPosicionRepartidor(lat, lng) {
+          if (!repMarker) {
+            repMarker = L.marker([lat, lng], { icon: repIcon }).addTo(map);
+            repCircle = L.circle([lat, lng], { radius: 15, color: '#c084fc', fillColor: '#c084fc', fillOpacity: 0.2 }).addTo(map);
+          } else {
+            repMarker.setLatLng([lat, lng]);
+            repCircle.setLatLng([lat, lng]);
+          }
+          repPos = { lat, lng };
+          // Hacer zoom/pan para seguir al repartidor si está lejos
+          map.panTo([lat, lng], { animate: true, duration: 0.5 });
+        }
+
+        // Intentar obtener ubicación inicial
+        if ('geolocation' in navigator) {
+          navigator.geolocation.getCurrentPosition(
+            pos => {
+              actualizarPosicionRepartidor(pos.coords.latitude, pos.coords.longitude);
+              // Ajustar vista para mostrar todo
+              const allPoints = [...latlngs, [pos.coords.latitude, pos.coords.longitude]];
+              map.fitBounds(allPoints, { padding: [30, 30] });
+            },
+            () => {
+              map.fitBounds(latlngs, { padding: [30, 30] });
+            },
+            { enableHighAccuracy: true, timeout: 5000 }
+          );
+        } else {
+          map.fitBounds(latlngs, { padding: [30, 30] });
+        }
+
+        // Actualizar cada 10 segundos la ubicación
+        if (routeUpdateInterval) clearInterval(routeUpdateInterval);
+        routeUpdateInterval = setInterval(() => {
+          if (!routeModalInstance) {
+            clearInterval(routeUpdateInterval);
+            routeUpdateInterval = null;
+            return;
+          }
+          if ('geolocation' in navigator) {
+            navigator.geolocation.getCurrentPosition(
+              pos => {
+                actualizarPosicionRepartidor(pos.coords.latitude, pos.coords.longitude);
+                // Actualizar también la variable global para otros usos
+                repartidorPos = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+              },
+              () => {},
+              { enableHighAccuracy: true, maximumAge: 10000 }
+            );
+          }
+        }, 10000);
+
+        // Guardar referencia para limpieza
+        routeModalInstance._map = map;
+        routeModalInstance._repMarker = repMarker;
+        routeModalInstance._repCircle = repCircle;
+        routeModalInstance._routeLine = routeLine;
+        routeModalInstance._updatePos = actualizarPosicionRepartidor;
+
+        // Si ya tenemos posición previa, usarla
+        if (repartidorPos) {
+          setTimeout(() => {
+            actualizarPosicionRepartidor(repartidorPos.lat, repartidorPos.lng);
+          }, 100);
+        }
+
+        // Escuchar actualizaciones de posición desde el watch
+        const origWatch = window._repartidorWatchCb;
+        window._repartidorWatchCb = (lat, lng) => {
+          if (routeModalInstance && routeModalInstance._updatePos) {
+            routeModalInstance._updatePos(lat, lng);
+          }
+        };
+
       }, 50);
     }
   }
 
-  const watchers = {}; // compradorKey -> watchPosition id, mientras se comparte ubicación
+  function cerrarMapaRuta() {
+    if (routeUpdateInterval) {
+      clearInterval(routeUpdateInterval);
+      routeUpdateInterval = null;
+    }
+    if (routeModalInstance) {
+      // Limpiar referencias del mapa
+      if (routeModalInstance._map) {
+        routeModalInstance._map.remove();
+      }
+      routeModalInstance.remove();
+      routeModalInstance = null;
+    }
+  }
 
+  // --- Enlace de seguimiento ---
   function linkSeguimiento(key) {
     return `${location.origin}/znr/seguimiento-entrega.html?live=${encodeURIComponent(liveId)}&key=${encodeURIComponent(key)}`;
   }
@@ -630,38 +724,41 @@
     }
   }
 
-  // Botón unificado "Iniciar ruta / compartir ubicación": pone el
-  // pedido en en-ruta, avisa al cliente (push + WhatsApp con el link
-  // de seguimiento) y empieza a mandar la ubicación del repartidor
-  // cada 5s (además de dibujarla al toque en el mini-mapa local, sin
-  // esperar esos 5s — eso es aparte, nada más para no saturar el
-  // servidor). Volver a darle click detiene todo y regresa a
-  // pendiente (si no se marcó como entregado mientras tanto).
+  // --- Toggle ruta (iniciar/detener) ---
   async function toggleRuta(key, btn) {
     if (watchers[key]) {
       navigator.geolocation.clearWatch(watchers[key]);
       delete watchers[key];
-      delete posActual[key];
-      if (liveMaps[key]) { try { liveMaps[key].map.remove(); } catch (_) {} delete liveMaps[key]; }
+      delete repartidorPos;
       await toggleEstado(key, 'pendiente');
+      // Si el modal de ruta está abierto, actualizar el estado visual
+      if (routeModalInstance) {
+        // Reabrir para refrescar
+        cerrarMapaRuta();
+        abrirMapaRuta();
+      }
       return;
     }
     if (!('geolocation' in navigator)) {
       alert('Tu navegador no soporta geolocalización.');
       return;
     }
-    expandedKeys.add(key); // para que vea su mini-mapa de inmediato
+    expandedKeys.add(key);
     await toggleEstado(key, 'en-ruta');
     enviarLinkSeguimiento(key);
 
     let ultimoEnvio = 0;
     watchers[key] = navigator.geolocation.watchPosition(
       (pos) => {
-        posActual[key] = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-        actualizarMiniMapa(key); // se dibuja al toque, no espera el throttle de red
+        repartidorPos = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+        
+        // Si el modal de ruta está abierto, actualizar en tiempo real
+        if (routeModalInstance && routeModalInstance._updatePos) {
+          routeModalInstance._updatePos(pos.coords.latitude, pos.coords.longitude);
+        }
 
         const ahora = Date.now();
-        if (ahora - ultimoEnvio < 5000) return; // manda al servidor como máximo cada 5s
+        if (ahora - ultimoEnvio < 5000) return;
         ultimoEnvio = ahora;
         apiFetch({
           action: 'actualizarUbicacionRepartidor',
@@ -710,9 +807,7 @@
     }
   }
 
-  // --- Modo offline: cache del último listado + cola de cambios pendientes en localStorage.
-  // La cola dedupea por "compradorKey:tipo" (estado/ubicación) así solo se guarda y
-  // manda el último valor de cada uno, no un historial de cada click o cada GPS.
+  // --- Offline ---
   const cacheKey = () => 'zr_entregas_cache_' + liveId;
   const queueKey = () => 'zr_entregas_queue_' + liveId;
   const loadQueue = () => { try { return JSON.parse(localStorage.getItem(queueKey())) || []; } catch (e) { return []; } };
@@ -722,23 +817,20 @@
     q.push({ action, extra, dedupeKey });
     saveQueue(q);
     headerSubtitle.textContent = `Sin conexión — ${q.length} cambio${q.length !== 1 ? 's' : ''} pendiente${q.length !== 1 ? 's' : ''}`;
-    // Deja el reintento en manos del Service Worker (evento 'sync'): sigue
-    // funcionando aunque la pestaña quede en segundo plano, no solo con
-    // el evento 'online' del documento.
     navigator.serviceWorker?.ready.then(reg => reg.sync?.register('sync-entregas')).catch(() => {});
   }
   navigator.serviceWorker?.addEventListener('message', e => { if (e.data?.type === 'SYNC_ENTREGAS') sync(); });
   async function sync() {
     if (!navigator.onLine) return;
     let q = loadQueue();
-    if (!q.length) return; // nada pendiente: no hay nada que sincronizar ni por qué recargar
+    if (!q.length) return;
     for (const item of q.slice()) {
       try {
         const resp = await apiFetch({ action: item.action, liveId, ...item.extra }, 'POST');
         if (resp.ok) { q = q.filter(x => x !== item); saveQueue(q); }
-      } catch (err) { break; } // seguimos sin conexión, se reintenta después
+      } catch (err) { break; }
     }
-    if (!loadQueue().length) cargar(); // se vació la cola: refresca con datos reales del servidor
+    if (!loadQueue().length) cargar();
   }
   window.addEventListener('online', sync);
 
@@ -746,7 +838,7 @@
     const grupo = entrega.grupos.find(g => String(g.compradorKey) === String(key));
     if (!grupo || grupo.estado === nuevoEstado) return;
 
-    grupo.estado = nuevoEstado; // optimista, se mantiene aunque falle: se encola
+    grupo.estado = nuevoEstado;
     render();
 
     try {
@@ -780,7 +872,16 @@
         const pendientes = loadQueue().length;
         headerSubtitle.textContent = pendientes ? `Sin conexión — ${pendientes} cambio(s) pendiente(s)` : 'Sin conexión — mostrando datos guardados';
     }
-}
+  }
+
+  // Limpiar al cerrar la página
+  window.addEventListener('beforeunload', () => {
+    if (routeUpdateInterval) clearInterval(routeUpdateInterval);
+    if (routeModalInstance) {
+      routeModalInstance.remove();
+      routeModalInstance = null;
+    }
+  });
 
   cargar();
 })();
