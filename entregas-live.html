@@ -218,15 +218,25 @@
 (function() {
   'use strict';
 
-  async function apiFetch(data, method = 'GET') {
+  // Icon helper
+  function Icon(name, opts) {
+    opts = opts || {};
+    const size = opts.size || 16;
+    return '<svg xmlns="http://www.w3.org/2000/svg" width="' + size + '" height="' + size + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><use href="#ic-' + name + '"/></svg>';
+  }
+
+  async function apiFetch(data, method) {
+    method = method || 'GET';
     const API_BASE = "https://live-api-1038143238323.us-central1.run.app";
     const params = new URLSearchParams();
-    Object.entries(data || {}).forEach(([k, v]) => {
-      if (v !== undefined && v !== null) params.append(k, v);
-    });
-    let res;
+    for (var k in data) {
+      if (data.hasOwnProperty(k) && data[k] !== undefined && data[k] !== null) {
+        params.append(k, data[k]);
+      }
+    }
+    var res;
     if (method === 'GET') {
-      res = await fetch(`${API_BASE}?${params.toString()}`, { method: 'GET' });
+      res = await fetch(API_BASE + '?' + params.toString(), { method: 'GET' });
     } else {
       res = await fetch(API_BASE, {
         method: 'POST',
@@ -238,75 +248,75 @@
   }
 
   function esc(s) {
-    const d = document.createElement('div');
+    var d = document.createElement('div');
     d.textContent = s == null ? '' : String(s);
     return d.innerHTML;
   }
 
-  function Icon(name, opts = {}) {
-    const size = opts.size || 16;
-    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><use href="#ic-${name}"/></svg>`;
-    return svg;
-  }
+  var wrap = document.getElementById('entregas-wrap');
+  var headerTitle = document.getElementById('header-title');
+  var headerSubtitle = document.getElementById('header-subtitle');
+  var params = new URLSearchParams(location.search);
+  var liveId = params.get('id');
 
-  const wrap = document.getElementById('entregas-wrap');
-  const headerTitle = document.getElementById('header-title');
-  const headerSubtitle = document.getElementById('header-subtitle');
-  const params = new URLSearchParams(location.search);
-  const liveId = params.get('id');
-
-  let entrega = null;
-  let repartidorPos = null; // {lat, lng} última posición conocida
-  let watchId = null;
-  let routeModalInstance = null;
-  let routeUpdateInterval = null;
+  var entrega = null;
+  var repartidorPos = null;
+  var watchId = null;
+  var routeModalInstance = null;
+  var routeUpdateInterval = null;
+  var expandedKeys = new Set();
+  var watchers = {};
+  var dragKey = null;
 
   function renderInvalido(msg) {
     headerSubtitle.textContent = 'Enlace inválido';
-    wrap.innerHTML = `
-      <div class="center-card">
-        <div class="icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" aria-hidden="true"><use href="#ic-link"/></svg></div>
-        <h2>No pudimos cargar esta entrega</h2>
-        <p>${esc(msg || 'Pide al vendedor que te comparta el link de nuevo.')}</p>
-      </div>`;
+    wrap.innerHTML = 
+      '<div class="center-card">' +
+        '<div class="icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" aria-hidden="true"><use href="#ic-link"/></svg></div>' +
+        '<h2>No pudimos cargar esta entrega</h2>' +
+        '<p>' + esc(msg || 'Pide al vendedor que te comparta el link de nuevo.') + '</p>' +
+      '</div>';
   }
 
   function mapsUrl(g) {
-    // CORREGIDO: usa las coordenadas reales del destino
     if (typeof g.lat === 'number' && typeof g.lng === 'number') {
-      return `https://www.google.com/maps/dir/?api=1&destination=${g.lat},${g.lng}&travelmode=driving`;
+      return 'https://www.google.com/maps/dir/?api=1&destination=' + g.lat + ',' + g.lng + '&travelmode=driving';
     }
     if (g.compradorDireccion) {
-      return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(g.compradorDireccion)}&travelmode=driving`;
+      return 'https://www.google.com/maps/dir/?api=1&destination=' + encodeURIComponent(g.compradorDireccion) + '&travelmode=driving';
     }
     return null;
   }
 
   function renderResumen() {
-    const total = entrega.grupos.length;
-    const entregados = entrega.grupos.filter(g => g.estado === 'entregado').length;
-    const enRuta = entrega.grupos.filter(g => g.estado === 'en-ruta' || g.estado === 'cerca').length;
-    const pendientes = total - entregados - enRuta;
-    const posHtml = repartidorPos 
-      ? `<span class="repartidor-pos-indicator"><span class="dot"></span> Ubicación activa</span>`
+    var total = entrega.grupos.length;
+    var entregados = 0;
+    var enRuta = 0;
+    for (var i = 0; i < entrega.grupos.length; i++) {
+      var g = entrega.grupos[i];
+      if (g.estado === 'entregado') entregados++;
+      else if (g.estado === 'en-ruta' || g.estado === 'cerca') enRuta++;
+    }
+    var pendientes = total - entregados - enRuta;
+    var posHtml = repartidorPos 
+      ? '<span class="repartidor-pos-indicator"><span class="dot"></span> Ubicación activa</span>'
       : '';
-    return `
-      ${posHtml}
-      <button class="btn-refrescar" id="btn-refrescar"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" aria-hidden="true"><use href="#ic-refresh"/></svg> Actualizar</button>
-      <div class="resumen-bar">
-        <div class="resumen-chip"><span class="num">${total}</span><span class="lbl">Total</span></div>
-        <div class="resumen-chip ruta"><span class="num">${enRuta}</span><span class="lbl">En ruta</span></div>
-        <div class="resumen-chip ok"><span class="num">${entregados}</span><span class="lbl">Entregados</span></div>
-        <div class="resumen-chip pend"><span class="num">${pendientes}</span><span class="lbl">Pendientes</span></div>
-      </div>
-      <div class="ruta-actions">
-        <button class="btn-ruta-accion" id="btn-ver-ruta">${Icon('map-pin')} Ver ruta completa</button>
-        <button class="btn-ruta-accion" id="btn-optimizar-ruta">${Icon('refresh')} Reordenar (más eficiente)</button>
-      </div>`;
+    return posHtml +
+      '<button class="btn-refrescar" id="btn-refrescar">' + Icon('refresh') + ' Actualizar</button>' +
+      '<div class="resumen-bar">' +
+        '<div class="resumen-chip"><span class="num">' + total + '</span><span class="lbl">Total</span></div>' +
+        '<div class="resumen-chip ruta"><span class="num">' + enRuta + '</span><span class="lbl">En ruta</span></div>' +
+        '<div class="resumen-chip ok"><span class="num">' + entregados + '</span><span class="lbl">Entregados</span></div>' +
+        '<div class="resumen-chip pend"><span class="num">' + pendientes + '</span><span class="lbl">Pendientes</span></div>' +
+      '</div>' +
+      '<div class="ruta-actions">' +
+        '<button class="btn-ruta-accion" id="btn-ver-ruta">' + Icon('map-pin') + ' Ver ruta completa</button>' +
+        '<button class="btn-ruta-accion" id="btn-optimizar-ruta">' + Icon('refresh') + ' Reordenar (más eficiente)</button>' +
+      '</div>';
   }
 
-  const ESTADOS_CONOCIDOS = ['pendiente', 'preparando', 'en-ruta', 'cerca', 'entregado'];
-  const ESTADO_ICONS = {
+  var ESTADOS_CONOCIDOS = ['pendiente', 'preparando', 'en-ruta', 'cerca', 'entregado'];
+  var ESTADO_ICONS = {
     pendiente: 'clock',
     preparando: 'box',
     'en-ruta': 'map-pin',
@@ -315,305 +325,441 @@
   };
 
   function renderGrupo(g, idx) {
-    const estado = ESTADOS_CONOCIDOS.includes(g.estado) ? g.estado : 'pendiente';
-    const url = mapsUrl(g);
-    const compartiendo = !!watchers[g.compradorKey];
-    const puedeEditar = estado !== 'entregado';
-    const [ico, label] = [ESTADO_ICONS[estado] || 'clock', estado.toUpperCase()];
-    const abierta = expandedKeys.has(g.compradorKey);
-    return `
-      <div class="entrega-card ${estado === 'entregado' ? 'is-entregado' : ''} ${abierta ? 'expanded' : ''}" data-key="${esc(g.compradorKey)}" draggable="${estado === 'entregado' ? 'false' : 'true'}">
-        <div class="card-header" data-action="toggle-card">
-          ${estado !== 'entregado' ? `<span class="drag-handle" title="Arrastra para reordenar">⠿</span>` : `<span class="orden-num">${idx + 1}</span>`}
-          <div class="ch-info">
-            <h2>${esc(g.compradorNombre)}</h2>
-            <span class="ch-total">$${Number(g.total || 0).toLocaleString()}</span>
-          </div>
-          <span class="estado-pill ${estado}">${Icon(ico, { size: 10 })} ${label}</span>
-          <span class="chevron">${Icon('arrow-up-down', { size: 14 })}</span>
-        </div>
-        <div class="card-body" style="${abierta ? '' : 'display:none;'}">
-          ${g.compradorTelefono ? `
-            <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:8px;">
-              <a class="tel-link" href="tel:${String(g.compradorTelefono)}">${Icon('phone-call')} ${esc(String(g.compradorTelefono))}</a>
-              <a class="tel-link" href="https://wa.me/${encodeURIComponent(String(g.compradorTelefono).replace(/[\s()-]/g, ''))}" target="_blank" rel="noopener">${Icon('whatsapp')} WhatsApp</a>
-            </div>
-          ` : ''}
-          ${g.compradorDireccion ? `<p class="entrega-detail"><b>Dirección:</b> ${esc(g.compradorDireccion)}</p>` : ''}
-          ${g.compradorHorario ? `<p class="entrega-detail"><b>Horario:</b> ${esc(g.compradorHorario)}</p>` : ''}
-          ${g.compradorNota ? `<p class="entrega-detail"><b>📝 Entregar en otra ubicación:</b> ${esc(g.compradorNota)}</p>` : ''}
-          <div class="items-list">
-            ${(g.items || []).map(it => `<div class="item-row"><span>${esc(it.nombre)}</span><span>$${Number(it.precio || 0).toLocaleString()}</span></div>`).join('')}
-            <div class="total-row"><span>Total</span><span>$${Number(g.total || 0).toLocaleString()}</span></div>
-          </div>
-          ${url ? `<a class="btn-maps" href="${esc(url)}" target="_blank" rel="noopener">${Icon('map-pin')} Iniciar navegación (Google Maps)</a>` : ''}
-          ${puedeEditar ? `
-          <div style="display:flex; gap:8px; margin-top:8px;">
-            <select class="btn-tracking" data-action="set-estado-manual" style="flex:1; ${estado === 'en-ruta' || estado === 'cerca' ? 'display:none;' : ''}">
-              <option value="pendiente" ${estado === 'pendiente' ? 'selected' : ''}>⏳ Pendiente</option>
-              <option value="preparando" ${estado === 'preparando' ? 'selected' : ''}>📦 Preparando</option>
-            </select>
-          </div>
-          <div class="tracking-row" style="display:flex; gap:8px; margin-top:8px;">
-            <button class="btn-tracking ${compartiendo ? 'active' : ''}" data-action="toggle-ruta" style="flex:1;">${compartiendo ? Icon('clock') + ' Detener ruta' : Icon('map-pin') + ' Iniciar ruta / compartir ubicación'}</button>
-          </div>` : ''}
-          <div class="estado-actions">
-            <button class="btn-entregado ${estado === 'entregado' ? 'active' : ''}" data-action="entregado" ${estado === 'entregado' ? 'disabled' : ''}>${Icon('check')} Entregado</button>
-            <button class="btn-avisar" data-action="avisar">${Icon('map-pin')} Avisar llegada</button>
-          </div>
-        </div>
-      </div>`;
+    var estado = ESTADOS_CONOCIDOS.indexOf(g.estado) !== -1 ? g.estado : 'pendiente';
+    var url = mapsUrl(g);
+    var compartiendo = !!watchers[g.compradorKey];
+    var puedeEditar = estado !== 'entregado';
+    var ico = ESTADO_ICONS[estado] || 'clock';
+    var label = estado.toUpperCase();
+    var abierta = expandedKeys.has(g.compradorKey);
+    var itemsHtml = '';
+    if (g.items) {
+      for (var i = 0; i < g.items.length; i++) {
+        var it = g.items[i];
+        itemsHtml += '<div class="item-row"><span>' + esc(it.nombre) + '</span><span>$' + Number(it.precio || 0).toLocaleString() + '</span></div>';
+      }
+    }
+    var telHtml = '';
+    if (g.compradorTelefono) {
+      var tel = String(g.compradorTelefono);
+      telHtml = 
+        '<div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:8px;">' +
+          '<a class="tel-link" href="tel:' + tel + '">' + Icon('phone-call') + ' ' + esc(tel) + '</a>' +
+          '<a class="tel-link" href="https://wa.me/' + encodeURIComponent(tel.replace(/[\s()-]/g, '')) + '" target="_blank" rel="noopener">' + Icon('whatsapp') + ' WhatsApp</a>' +
+        '</div>';
+    }
+    var dirHtml = g.compradorDireccion ? '<p class="entrega-detail"><b>Dirección:</b> ' + esc(g.compradorDireccion) + '</p>' : '';
+    var horarioHtml = g.compradorHorario ? '<p class="entrega-detail"><b>Horario:</b> ' + esc(g.compradorHorario) + '</p>' : '';
+    var notaHtml = g.compradorNota ? '<p class="entrega-detail"><b>📝 Entregar en otra ubicación:</b> ' + esc(g.compradorNota) + '</p>' : '';
+    var mapsHtml = url ? '<a class="btn-maps" href="' + esc(url) + '" target="_blank" rel="noopener">' + Icon('map-pin') + ' Iniciar navegación (Google Maps)</a>' : '';
+    
+    var selectHtml = '';
+    var trackingHtml = '';
+    if (puedeEditar) {
+      var selectStyle = (estado === 'en-ruta' || estado === 'cerca') ? 'display:none;' : '';
+      selectHtml = 
+        '<div style="display:flex; gap:8px; margin-top:8px;">' +
+          '<select class="btn-tracking" data-action="set-estado-manual" style="flex:1; ' + selectStyle + '">' +
+            '<option value="pendiente" ' + (estado === 'pendiente' ? 'selected' : '') + '>⏳ Pendiente</option>' +
+            '<option value="preparando" ' + (estado === 'preparando' ? 'selected' : '') + '>📦 Preparando</option>' +
+          '</select>' +
+        '</div>';
+      trackingHtml = 
+        '<div class="tracking-row" style="display:flex; gap:8px; margin-top:8px;">' +
+          '<button class="btn-tracking ' + (compartiendo ? 'active' : '') + '" data-action="toggle-ruta" style="flex:1;">' + 
+            (compartiendo ? Icon('clock') + ' Detener ruta' : Icon('map-pin') + ' Iniciar ruta / compartir ubicación') +
+          '</button>' +
+        '</div>';
+    }
+
+    var btnEntregadoDisabled = estado === 'entregado' ? 'disabled' : '';
+    var btnEntregadoClass = 'btn-entregado' + (estado === 'entregado' ? ' active' : '');
+    var dragHandle = estado !== 'entregado' ? '<span class="drag-handle" title="Arrastra para reordenar">⠿</span>' : '<span class="orden-num">' + (idx + 1) + '</span>';
+    var draggable = estado === 'entregado' ? 'false' : 'true';
+
+    return '<div class="entrega-card ' + (estado === 'entregado' ? 'is-entregado' : '') + ' ' + (abierta ? 'expanded' : '') + '" data-key="' + esc(g.compradorKey) + '" draggable="' + draggable + '">' +
+      '<div class="card-header" data-action="toggle-card">' +
+        dragHandle +
+        '<div class="ch-info">' +
+          '<h2>' + esc(g.compradorNombre) + '</h2>' +
+          '<span class="ch-total">$' + Number(g.total || 0).toLocaleString() + '</span>' +
+        '</div>' +
+        '<span class="estado-pill ' + estado + '">' + Icon(ico, { size: 10 }) + ' ' + label + '</span>' +
+        '<span class="chevron">' + Icon('arrow-up-down', { size: 14 }) + '</span>' +
+      '</div>' +
+      '<div class="card-body" style="' + (abierta ? '' : 'display:none;') + '">' +
+        telHtml +
+        dirHtml +
+        horarioHtml +
+        notaHtml +
+        '<div class="items-list">' +
+          itemsHtml +
+          '<div class="total-row"><span>Total</span><span>$' + Number(g.total || 0).toLocaleString() + '</span></div>' +
+        '</div>' +
+        mapsHtml +
+        selectHtml +
+        trackingHtml +
+        '<div class="estado-actions">' +
+          '<button class="' + btnEntregadoClass + '" data-action="entregado" ' + btnEntregadoDisabled + '>' + Icon('check') + ' Entregado</button>' +
+          '<button class="btn-avisar" data-action="avisar">' + Icon('map-pin') + ' Avisar llegada</button>' +
+        '</div>' +
+      '</div>' +
+    '</div>';
   }
 
   function gruposOrdenados() {
-    return entrega.grupos.slice().sort((a, b) => (a.orden ?? 999) - (b.orden ?? 999));
+    var arr = entrega.grupos.slice();
+    arr.sort(function(a, b) {
+      return (a.orden || 999) - (b.orden || 999);
+    });
+    return arr;
   }
 
-  const expandedKeys = new Set();
-  const watchers = {};
-
   function render() {
-    headerTitle.textContent = entrega.liveTitulo ? `Entregas — ${entrega.liveTitulo}` : 'Entregas';
-    headerSubtitle.textContent = entrega.vendedorNombre ? `De ${entrega.vendedorNombre}` : 'Coordinación de entregas';
+    headerTitle.textContent = entrega.liveTitulo ? 'Entregas — ' + entrega.liveTitulo : 'Entregas';
+    headerSubtitle.textContent = entrega.vendedorNombre ? 'De ' + entrega.vendedorNombre : 'Coordinación de entregas';
 
-    wrap.innerHTML = renderResumen() +
-      gruposOrdenados().map((g, i) => renderGrupo(g, i)).join('') +
-      `<p class="local-note">Lo que marques aquí lo va a ver el vendedor desde su panel.</p>`;
+    var grupos = gruposOrdenados();
+    var html = renderResumen();
+    for (var i = 0; i < grupos.length; i++) {
+      html += renderGrupo(grupos[i], i);
+    }
+    html += '<p class="local-note">Lo que marques aquí lo va a ver el vendedor desde su panel.</p>';
+    wrap.innerHTML = html;
 
     document.getElementById('btn-refrescar').addEventListener('click', cargar);
     document.getElementById('btn-ver-ruta').addEventListener('click', abrirMapaRuta);
     document.getElementById('btn-optimizar-ruta').addEventListener('click', optimizarRuta);
 
-    wrap.querySelectorAll('.entrega-card').forEach(card => {
-      const key = card.dataset.key;
-      card.querySelector('[data-action="toggle-card"]').addEventListener('click', () => {
-        if (expandedKeys.has(key)) expandedKeys.delete(key);
-        else expandedKeys.add(key);
-        render();
-      });
-      card.querySelectorAll('.estado-actions button').forEach(btn => {
+    var cards = wrap.querySelectorAll('.entrega-card');
+    for (var i = 0; i < cards.length; i++) {
+      var card = cards[i];
+      var key = card.dataset.key;
+      var header = card.querySelector('[data-action="toggle-card"]');
+      header.addEventListener('click', function(k) {
+        return function() {
+          if (expandedKeys.has(k)) expandedKeys.delete(k);
+          else expandedKeys.add(k);
+          render();
+        };
+      }(key));
+
+      var actions = card.querySelectorAll('.estado-actions button');
+      for (var j = 0; j < actions.length; j++) {
+        var btn = actions[j];
         if (btn.dataset.action === 'avisar') {
-          btn.addEventListener('click', () => avisarLlegada(key, btn));
+          btn.addEventListener('click', function(k, b) {
+            return function() { avisarLlegada(k, b); };
+          }(key, btn));
         } else if (btn.dataset.action === 'entregado') {
-          btn.addEventListener('click', () => toggleEstado(key, 'entregado'));
+          btn.addEventListener('click', function(k) {
+            return function() { toggleEstado(k, 'entregado'); };
+          }(key));
         }
-      });
-      const select = card.querySelector('[data-action="set-estado-manual"]');
-      if (select) select.addEventListener('change', () => toggleEstado(key, select.value));
-      const btnRuta = card.querySelector('[data-action="toggle-ruta"]');
-      if (btnRuta) btnRuta.addEventListener('click', () => toggleRuta(key, btnRuta));
+      }
+
+      var select = card.querySelector('[data-action="set-estado-manual"]');
+      if (select) {
+        select.addEventListener('change', function(k, sel) {
+          return function() { toggleEstado(k, sel.value); };
+        }(key, select));
+      }
+
+      var btnRuta = card.querySelector('[data-action="toggle-ruta"]');
+      if (btnRuta) {
+        btnRuta.addEventListener('click', function(k, b) {
+          return function() { toggleRuta(k, b); };
+        }(key, btnRuta));
+      }
 
       if (card.getAttribute('draggable') === 'true') {
-        card.addEventListener('dragstart', (e) => {
-          if (e.target.closest('.card-body')) { e.preventDefault(); return; }
-          card.classList.add('dragging'); dragKey = key;
-        });
-        card.addEventListener('dragend', () => { card.classList.remove('dragging'); dragKey = null; persistirOrden(); });
+        card.addEventListener('dragstart', function(k, c) {
+          return function(e) {
+            if (e.target.closest('.card-body')) { e.preventDefault(); return; }
+            c.classList.add('dragging');
+            dragKey = k;
+          };
+        }(key, card));
+        card.addEventListener('dragend', function(c) {
+          return function() {
+            c.classList.remove('dragging');
+            dragKey = null;
+            persistirOrden();
+          };
+        }(card));
       }
-    });
+    }
 
     wrap.addEventListener('dragover', onDragOver);
   }
 
-  let dragKey = null;
   function onDragOver(e) {
     e.preventDefault();
-    const dragging = wrap.querySelector('.entrega-card.dragging');
+    var dragging = wrap.querySelector('.entrega-card.dragging');
     if (!dragging) return;
-    const siblings = [...wrap.querySelectorAll('.entrega-card:not(.dragging)')];
-    const after = siblings.find(sib => {
-      const box = sib.getBoundingClientRect();
-      return e.clientY < box.top + box.height / 2;
-    });
+    var siblings = wrap.querySelectorAll('.entrega-card:not(.dragging)');
+    var after = null;
+    for (var i = 0; i < siblings.length; i++) {
+      var sib = siblings[i];
+      var box = sib.getBoundingClientRect();
+      if (e.clientY < box.top + box.height / 2) {
+        after = sib;
+        break;
+      }
+    }
     if (after) wrap.insertBefore(dragging, after);
     else wrap.appendChild(dragging);
   }
 
   async function persistirOrden() {
-    const keys = [...wrap.querySelectorAll('.entrega-card')].map(c => c.dataset.key);
-    keys.forEach((key, i) => {
-      const g = entrega.grupos.find(x => String(x.compradorKey) === String(key));
-      if (g) g.orden = i;
-    });
-    const ordenes = JSON.stringify(keys.map((key, i) => ({ compradorKey: key, orden: i })));
+    var cards = wrap.querySelectorAll('.entrega-card');
+    var keys = [];
+    for (var i = 0; i < cards.length; i++) {
+      keys.push(cards[i].dataset.key);
+    }
+    for (var i = 0; i < keys.length; i++) {
+      var key = keys[i];
+      for (var j = 0; j < entrega.grupos.length; j++) {
+        if (String(entrega.grupos[j].compradorKey) === String(key)) {
+          entrega.grupos[j].orden = i;
+          break;
+        }
+      }
+    }
+    var ordenes = JSON.stringify(keys.map(function(k, i) { return { compradorKey: k, orden: i }; }));
     try {
-      await apiFetch({ action: 'guardarOrdenEntregas', liveId, ordenes }, 'POST');
+      await apiFetch({ action: 'guardarOrdenEntregas', liveId: liveId, ordenes: ordenes }, 'POST');
     } catch (err) {
-      enqueue('guardarOrdenEntregas', { ordenes }, 'orden');
+      enqueue('guardarOrdenEntregas', { ordenes: ordenes }, 'orden');
     }
   }
 
   function distanciaMetros(lat1, lng1, lat2, lng2) {
-    const R = 6371000;
-    const toRad = d => d * Math.PI / 180;
-    const dLat = toRad(lat2 - lat1), dLng = toRad(lng2 - lng1);
-    const a = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2;
+    var R = 6371000;
+    var toRad = function(d) { return d * Math.PI / 180; };
+    var dLat = toRad(lat2 - lat1);
+    var dLng = toRad(lng2 - lng1);
+    var a = Math.sin(dLat / 2) * Math.sin(dLat / 2) + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) * Math.sin(dLng / 2);
     return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   }
 
   function ordenarPorVecinoMasCercano(pendientes, origenLat, origenLng) {
-    const conCoords = pendientes.filter(g => typeof g.lat === 'number' && typeof g.lng === 'number');
-    const sinCoords = pendientes.filter(g => !(typeof g.lat === 'number' && typeof g.lng === 'number'));
-    const restantes = conCoords.slice();
-    const ruta = [];
-    let curLat = origenLat, curLng = origenLng;
+    var conCoords = [];
+    var sinCoords = [];
+    for (var i = 0; i < pendientes.length; i++) {
+      var g = pendientes[i];
+      if (typeof g.lat === 'number' && typeof g.lng === 'number') {
+        conCoords.push(g);
+      } else {
+        sinCoords.push(g);
+      }
+    }
+    var restantes = conCoords.slice();
+    var ruta = [];
+    var curLat = origenLat;
+    var curLng = origenLng;
     if (curLat == null && restantes.length) {
-      const primero = restantes.shift();
+      var primero = restantes.shift();
       ruta.push(primero);
-      curLat = primero.lat; curLng = primero.lng;
+      curLat = primero.lat;
+      curLng = primero.lng;
     }
     while (restantes.length) {
-      let idxMasCercano = 0, distMinima = Infinity;
-      restantes.forEach((g, i) => {
-        const d = distanciaMetros(curLat, curLng, g.lat, g.lng);
-        if (d < distMinima) { distMinima = d; idxMasCercano = i; }
-      });
-      const siguiente = restantes.splice(idxMasCercano, 1)[0];
+      var idxMasCercano = 0;
+      var distMinima = Infinity;
+      for (var i = 0; i < restantes.length; i++) {
+        var g = restantes[i];
+        var d = distanciaMetros(curLat, curLng, g.lat, g.lng);
+        if (d < distMinima) {
+          distMinima = d;
+          idxMasCercano = i;
+        }
+      }
+      var siguiente = restantes.splice(idxMasCercano, 1)[0];
       ruta.push(siguiente);
-      curLat = siguiente.lat; curLng = siguiente.lng;
+      curLat = siguiente.lat;
+      curLng = siguiente.lng;
     }
-    return [...ruta, ...sinCoords];
+    return ruta.concat(sinCoords);
   }
 
   function optimizarRuta() {
-    const btn = document.getElementById('btn-optimizar-ruta');
-    const pendientes = entrega.grupos.filter(g => g.estado !== 'entregado');
-    const entregados = entrega.grupos.filter(g => g.estado === 'entregado');
-    if (pendientes.length < 2) { alert('No hay suficientes entregas pendientes para reordenar.'); return; }
+    var btn = document.getElementById('btn-optimizar-ruta');
+    var pendientes = [];
+    var entregados = [];
+    for (var i = 0; i < entrega.grupos.length; i++) {
+      var g = entrega.grupos[i];
+      if (g.estado !== 'entregado') pendientes.push(g);
+      else entregados.push(g);
+    }
+    if (pendientes.length < 2) {
+      alert('No hay suficientes entregas pendientes para reordenar.');
+      return;
+    }
 
-    const aplicar = (lat, lng) => {
-      const ordenados = ordenarPorVecinoMasCercano(pendientes, lat, lng);
-      [...ordenados, ...entregados].forEach((g, i) => { g.orden = i; });
+    var aplicar = function(lat, lng) {
+      var ordenados = ordenarPorVecinoMasCercano(pendientes, lat, lng);
+      var todos = ordenados.concat(entregados);
+      for (var i = 0; i < todos.length; i++) {
+        todos[i].orden = i;
+      }
       render();
       persistirOrden();
     };
 
-    if (!('geolocation' in navigator)) { aplicar(null, null); return; }
+    if (!('geolocation' in navigator)) {
+      aplicar(null, null);
+      return;
+    }
     btn.innerHTML = Icon('clock') + ' Calculando…';
     navigator.geolocation.getCurrentPosition(
-      pos => aplicar(pos.coords.latitude, pos.coords.longitude),
-      () => aplicar(null, null),
+      function(pos) {
+        aplicar(pos.coords.latitude, pos.coords.longitude);
+      },
+      function() {
+        aplicar(null, null);
+      },
       { enableHighAccuracy: true, timeout: 5000 }
     );
   }
 
-  // --- Ruta por calles vía OSRM ---
   async function trazarRutaCalles(latlngs) {
     if (latlngs.length < 2) return null;
-    const CHUNK = 25;
-    const tramosCoords = [];
-    for (let i = 0; i < latlngs.length - 1; i += CHUNK - 1) tramosCoords.push(latlngs.slice(i, i + CHUNK));
+    var CHUNK = 25;
+    var tramosCoords = [];
+    for (var i = 0; i < latlngs.length - 1; i += CHUNK - 1) {
+      tramosCoords.push(latlngs.slice(i, i + CHUNK));
+    }
     try {
-      const tramos = await Promise.all(tramosCoords.map(async (tramo) => {
-        const coordsStr = tramo.map(([lat, lng]) => `${lng},${lat}`).join(';');
-        const resp = await fetch(`https://router.project-osrm.org/route/v1/driving/${coordsStr}?overview=full&geometries=geojson`);
-        const data = await resp.json();
-        if (data.code !== 'Ok') throw new Error(data.message || 'OSRM error');
-        return data.routes[0].geometry.coordinates.map(([lng, lat]) => [lat, lng]);
-      }));
-      return tramos.reduce((acc, tramo, i) => i === 0 ? tramo : acc.concat(tramo.slice(1)), []);
+      var tramosPromises = tramosCoords.map(function(tramo) {
+        var coordsStr = tramo.map(function(ll) { return ll[1] + ',' + ll[0]; }).join(';');
+        return fetch('https://router.project-osrm.org/route/v1/driving/' + coordsStr + '?overview=full&geometries=geojson')
+          .then(function(r) { return r.json(); })
+          .then(function(data) {
+            if (data.code !== 'Ok') throw new Error(data.message || 'OSRM error');
+            return data.routes[0].geometry.coordinates.map(function(coord) {
+              return [coord[1], coord[0]];
+            });
+          });
+      });
+      var tramos = await Promise.all(tramosPromises);
+      var resultado = tramos[0] || [];
+      for (var i = 1; i < tramos.length; i++) {
+        resultado = resultado.concat(tramos[i].slice(1));
+      }
+      return resultado;
     } catch (err) {
       return null;
     }
   }
 
-  // --- Modal de ruta completa MEJORADO con seguimiento en tiempo real ---
   function abrirMapaRuta() {
-    // Cerrar modal existente si hay
     if (routeModalInstance) {
       cerrarMapaRuta();
       return;
     }
 
-    const puntos = gruposOrdenados().filter(g => typeof g.lat === 'number' && typeof g.lng === 'number');
-    const overlay = document.createElement('div');
+    var puntos = [];
+    var grupos = gruposOrdenados();
+    for (var i = 0; i < grupos.length; i++) {
+      var g = grupos[i];
+      if (typeof g.lat === 'number' && typeof g.lng === 'number') {
+        puntos.push(g);
+      }
+    }
+
+    var overlay = document.createElement('div');
     overlay.className = 'route-modal-overlay';
     overlay.id = 'route-modal-overlay';
-    overlay.innerHTML = `
-      <div class="route-modal">
-        <div class="route-modal-header">
-          <h3>${Icon('map-pin')} Ruta completa (${puntos.length} paradas)</h3>
-          <button class="route-modal-close" id="route-modal-close">&times;</button>
-        </div>
-        <p class="route-note route-note-info">🟣 Tu ubicación se actualiza automáticamente cada 10 segundos</p>
-        <p class="route-note" id="route-note" style="display:none;"></p>
-        <div id="route-map"></div>
-        <div class="route-list">
-          ${puntos.length ? puntos.map((g, i) => {
-            const estado = g.estado || 'pendiente';
-            const estadoLabel = estado === 'entregado' ? '✅ Entregado' : estado === 'en-ruta' ? '🟣 En ruta' : estado === 'cerca' ? '🟡 Cerca' : '⏳ Pendiente';
-            return `
-            <div class="route-list-item" data-key="${esc(g.compradorKey)}">
-              <span class="rli-num">${i + 1}</span>
-              <div>
-                <div class="rli-nombre">${esc(g.compradorNombre)}</div>
-                <div class="rli-dir">${esc(g.compradorDireccion || 'Sin dirección')}</div>
-                <div class="rli-estado ${estado}">${estadoLabel}</div>
-              </div>
-            </div>`;
-          }).join('') : '<p style="color:var(--color-text-soft); text-align:center; padding:20px;">Ninguna entrega tiene ubicación guardada todavía.</p>'}
-        </div>
-      </div>`;
+    var listHtml = '';
+    if (puntos.length) {
+      for (var i = 0; i < puntos.length; i++) {
+        var g = puntos[i];
+        var estado = g.estado || 'pendiente';
+        var estadoLabel = estado === 'entregado' ? '✅ Entregado' : estado === 'en-ruta' ? '🟣 En ruta' : estado === 'cerca' ? '🟡 Cerca' : '⏳ Pendiente';
+        listHtml += 
+          '<div class="route-list-item" data-key="' + esc(g.compradorKey) + '">' +
+            '<span class="rli-num">' + (i + 1) + '</span>' +
+            '<div>' +
+              '<div class="rli-nombre">' + esc(g.compradorNombre) + '</div>' +
+              '<div class="rli-dir">' + esc(g.compradorDireccion || 'Sin dirección') + '</div>' +
+              '<div class="rli-estado ' + estado + '">' + estadoLabel + '</div>' +
+            '</div>' +
+          '</div>';
+      }
+    } else {
+      listHtml = '<p style="color:var(--color-text-soft); text-align:center; padding:20px;">Ninguna entrega tiene ubicación guardada todavía.</p>';
+    }
+
+    overlay.innerHTML = 
+      '<div class="route-modal">' +
+        '<div class="route-modal-header">' +
+          '<h3>' + Icon('map-pin') + ' Ruta completa (' + puntos.length + ' paradas)</h3>' +
+          '<button class="route-modal-close" id="route-modal-close">&times;</button>' +
+        '</div>' +
+        '<p class="route-note route-note-info">🟣 Tu ubicación se actualiza automáticamente cada 10 segundos</p>' +
+        '<p class="route-note" id="route-note" style="display:none;"></p>' +
+        '<div id="route-map"></div>' +
+        '<div class="route-list">' + listHtml + '</div>' +
+      '</div>';
     document.body.appendChild(overlay);
     routeModalInstance = overlay;
 
     document.getElementById('route-modal-close').addEventListener('click', cerrarMapaRuta);
-    overlay.addEventListener('click', e => { if (e.target === overlay) cerrarMapaRuta(); });
+    overlay.addEventListener('click', function(e) {
+      if (e.target === overlay) cerrarMapaRuta();
+    });
 
     if (puntos.length && typeof L !== 'undefined') {
-      setTimeout(async () => {
-        const map = L.map('route-map', { zoomControl: true });
+      setTimeout(function() {
+        var map = L.map('route-map', { zoomControl: true });
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { 
           attribution: '&copy; OpenStreetMap', 
           maxZoom: 19 
         }).addTo(map);
 
-        const latlngs = puntos.map(g => [g.lat, g.lng]);
-        const markers = [];
-        
-        // Marcar cada destino con número
-        latlngs.forEach((ll, i) => {
-          const marker = L.marker(ll, {
+        var latlngs = puntos.map(function(g) { return [g.lat, g.lng]; });
+
+        // Marcar cada destino
+        for (var i = 0; i < latlngs.length; i++) {
+          var ll = latlngs[i];
+          var marker = L.marker(ll, {
             icon: L.divIcon({
               className: 'route-marker',
-              html: `<div style="background:#ec4899;color:#fff;border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;border:2px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,0.3);">${i + 1}</div>`,
+              html: '<div style="background:#ec4899;color:#fff;border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;border:2px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,0.3);">' + (i + 1) + '</div>',
               iconSize: [28, 28],
               iconAnchor: [14, 14]
             })
           }).addTo(map);
-          marker.bindPopup(`<strong>${i + 1}. ${puntos[i].compradorNombre}</strong><br>${puntos[i].compradorDireccion || ''}`);
-          markers.push(marker);
-        });
-
-        // Calcular ruta por calles
-        const rutaCalles = await trazarRutaCalles(latlngs);
-        const routeLine = L.polyline(rutaCalles || latlngs, { 
-          color: '#ec4899', 
-          weight: 3, 
-          dashArray: rutaCalles ? null : '6 6',
-          opacity: 0.8
-        }).addTo(map);
-        
-        if (!rutaCalles && latlngs.length > 1) {
-          const note = document.getElementById('route-note');
-          note.style.display = 'block';
-          note.textContent = 'No se pudo calcular la ruta por calles ahora mismo — se muestra la línea directa entre paradas.';
+          marker.bindPopup('<strong>' + (i + 1) + '. ' + puntos[i].compradorNombre + '</strong><br>' + (puntos[i].compradorDireccion || ''));
         }
 
-        // MARCADOR DEL REPARTIDOR (con icono de coche/persona)
-        let repMarker = null;
-        let repCircle = null;
-        let repPos = null;
+        // Calcular ruta por calles
+        trazarRutaCalles(latlngs).then(function(rutaCalles) {
+          var routeLine = L.polyline(rutaCalles || latlngs, { 
+            color: '#ec4899', 
+            weight: 3, 
+            dashArray: rutaCalles ? null : '6 6',
+            opacity: 0.8
+          }).addTo(map);
+          if (!rutaCalles && latlngs.length > 1) {
+            var note = document.getElementById('route-note');
+            note.style.display = 'block';
+            note.textContent = 'No se pudo calcular la ruta por calles ahora mismo — se muestra la línea directa entre paradas.';
+          }
+        });
 
-        // Icono personalizado para el repartidor
-        const repIcon = L.divIcon({
+        // Marcador del repartidor
+        var repMarker = null;
+        var repCircle = null;
+
+        var repIcon = L.divIcon({
           className: 'repartidor-icon',
-          html: `<div style="width:32px;height:32px;border-radius:50%;background:#c084fc;border:3px solid #fff;box-shadow:0 2px 12px rgba(192,132,252,0.6);display:flex;align-items:center;justify-content:center;font-size:16px;">🚗</div>`,
+          html: '<div style="width:32px;height:32px;border-radius:50%;background:#c084fc;border:3px solid #fff;box-shadow:0 2px 12px rgba(192,132,252,0.6);display:flex;align-items:center;justify-content:center;font-size:16px;">🚗</div>',
           iconSize: [32, 32],
           iconAnchor: [16, 16]
         });
 
-        // Función para actualizar posición del repartidor en el mapa
         function actualizarPosicionRepartidor(lat, lng) {
           if (!repMarker) {
             repMarker = L.marker([lat, lng], { icon: repIcon }).addTo(map);
@@ -622,21 +768,20 @@
             repMarker.setLatLng([lat, lng]);
             repCircle.setLatLng([lat, lng]);
           }
-          repPos = { lat, lng };
-          // Hacer zoom/pan para seguir al repartidor si está lejos
+          repartidorPos = { lat: lat, lng: lng };
           map.panTo([lat, lng], { animate: true, duration: 0.5 });
         }
 
         // Intentar obtener ubicación inicial
         if ('geolocation' in navigator) {
           navigator.geolocation.getCurrentPosition(
-            pos => {
+            function(pos) {
               actualizarPosicionRepartidor(pos.coords.latitude, pos.coords.longitude);
-              // Ajustar vista para mostrar todo
-              const allPoints = [...latlngs, [pos.coords.latitude, pos.coords.longitude]];
+              var allPoints = latlngs.slice();
+              allPoints.push([pos.coords.latitude, pos.coords.longitude]);
               map.fitBounds(allPoints, { padding: [30, 30] });
             },
-            () => {
+            function() {
               map.fitBounds(latlngs, { padding: [30, 30] });
             },
             { enableHighAccuracy: true, timeout: 5000 }
@@ -645,9 +790,9 @@
           map.fitBounds(latlngs, { padding: [30, 30] });
         }
 
-        // Actualizar cada 10 segundos la ubicación
+        // Actualizar cada 10 segundos
         if (routeUpdateInterval) clearInterval(routeUpdateInterval);
-        routeUpdateInterval = setInterval(() => {
+        routeUpdateInterval = setInterval(function() {
           if (!routeModalInstance) {
             clearInterval(routeUpdateInterval);
             routeUpdateInterval = null;
@@ -655,38 +800,23 @@
           }
           if ('geolocation' in navigator) {
             navigator.geolocation.getCurrentPosition(
-              pos => {
+              function(pos) {
                 actualizarPosicionRepartidor(pos.coords.latitude, pos.coords.longitude);
-                // Actualizar también la variable global para otros usos
-                repartidorPos = { lat: pos.coords.latitude, lng: pos.coords.longitude };
               },
-              () => {},
+              function() {},
               { enableHighAccuracy: true, maximumAge: 10000 }
             );
           }
         }, 10000);
 
-        // Guardar referencia para limpieza
         routeModalInstance._map = map;
-        routeModalInstance._repMarker = repMarker;
-        routeModalInstance._repCircle = repCircle;
-        routeModalInstance._routeLine = routeLine;
-        routeModalInstance._updatePos = actualizarPosicionRepartidor;
 
-        // Si ya tenemos posición previa, usarla
+        // Si ya tenemos posición previa
         if (repartidorPos) {
-          setTimeout(() => {
+          setTimeout(function() {
             actualizarPosicionRepartidor(repartidorPos.lat, repartidorPos.lng);
           }, 100);
         }
-
-        // Escuchar actualizaciones de posición desde el watch
-        const origWatch = window._repartidorWatchCb;
-        window._repartidorWatchCb = (lat, lng) => {
-          if (routeModalInstance && routeModalInstance._updatePos) {
-            routeModalInstance._updatePos(lat, lng);
-          }
-        };
 
       }, 50);
     }
@@ -698,7 +828,6 @@
       routeUpdateInterval = null;
     }
     if (routeModalInstance) {
-      // Limpiar referencias del mapa
       if (routeModalInstance._map) {
         routeModalInstance._map.remove();
       }
@@ -707,33 +836,35 @@
     }
   }
 
-  // --- Enlace de seguimiento ---
   function linkSeguimiento(key) {
-    return `${location.origin}/znr/seguimiento-entrega.html?live=${encodeURIComponent(liveId)}&key=${encodeURIComponent(key)}`;
+    return location.origin + '/znr/seguimiento-entrega.html?live=' + encodeURIComponent(liveId) + '&key=' + encodeURIComponent(key);
   }
 
   function enviarLinkSeguimiento(key) {
-    const trackUrl = linkSeguimiento(key);
-    const g = entrega.grupos.find(x => x.compradorKey === key);
-    const tel = g && g.compradorTelefono ? String(g.compradorTelefono).replace(/\D/g, '') : '';
-    const texto = `¡Tu pedido va en camino! Sigue la ubicación del repartidor aquí: ${trackUrl}`;
+    var trackUrl = linkSeguimiento(key);
+    var g = null;
+    for (var i = 0; i < entrega.grupos.length; i++) {
+      if (entrega.grupos[i].compradorKey === key) {
+        g = entrega.grupos[i];
+        break;
+      }
+    }
+    var tel = g && g.compradorTelefono ? String(g.compradorTelefono).replace(/\D/g, '') : '';
+    var texto = '¡Tu pedido va en camino! Sigue la ubicación del repartidor aquí: ' + trackUrl;
     if (tel) {
-      window.open(`https://wa.me/${tel}?text=${encodeURIComponent(texto)}`, '_blank', 'noopener');
+      window.open('https://wa.me/' + tel + '?text=' + encodeURIComponent(texto), '_blank', 'noopener');
     } else if (navigator.share) {
-      navigator.share({ text: texto, url: trackUrl }).catch(() => {});
+      navigator.share({ text: texto, url: trackUrl }).catch(function() {});
     }
   }
 
-  // --- Toggle ruta (iniciar/detener) ---
   async function toggleRuta(key, btn) {
     if (watchers[key]) {
       navigator.geolocation.clearWatch(watchers[key]);
       delete watchers[key];
-      delete repartidorPos;
+      repartidorPos = null;
       await toggleEstado(key, 'pendiente');
-      // Si el modal de ruta está abierto, actualizar el estado visual
       if (routeModalInstance) {
-        // Reabrir para refrescar
         cerrarMapaRuta();
         abrirMapaRuta();
       }
@@ -747,49 +878,70 @@
     await toggleEstado(key, 'en-ruta');
     enviarLinkSeguimiento(key);
 
-    let ultimoEnvio = 0;
+    var ultimoEnvio = 0;
     watchers[key] = navigator.geolocation.watchPosition(
-      (pos) => {
+      function(pos) {
         repartidorPos = { lat: pos.coords.latitude, lng: pos.coords.longitude };
         
-        // Si el modal de ruta está abierto, actualizar en tiempo real
-        if (routeModalInstance && routeModalInstance._updatePos) {
-          routeModalInstance._updatePos(pos.coords.latitude, pos.coords.longitude);
+        if (routeModalInstance && routeModalInstance._map) {
+          // Actualizar marcador en el modal si está abierto
+          var markers = routeModalInstance._map._layers;
+          for (var id in markers) {
+            var layer = markers[id];
+            if (layer.options && layer.options.icon && layer.options.icon.className === 'repartidor-icon') {
+              layer.setLatLng([pos.coords.latitude, pos.coords.longitude]);
+              break;
+            }
+          }
         }
 
-        const ahora = Date.now();
+        var ahora = Date.now();
         if (ahora - ultimoEnvio < 5000) return;
         ultimoEnvio = ahora;
         apiFetch({
           action: 'actualizarUbicacionRepartidor',
-          liveId, compradorKey: key,
-          lat: pos.coords.latitude, lng: pos.coords.longitude
-        }, 'POST').then(resp => {
-          if (resp.ok && resp.estado && resp.estado !== entrega.grupos.find(g => g.compradorKey === key)?.estado) {
-            const g = entrega.grupos.find(x => x.compradorKey === key);
-            if (g) { g.estado = resp.estado; render(); }
+          liveId: liveId,
+          compradorKey: key,
+          lat: pos.coords.latitude,
+          lng: pos.coords.longitude
+        }, 'POST').then(function(resp) {
+          if (resp.ok && resp.estado) {
+            var grupo = null;
+            for (var i = 0; i < entrega.grupos.length; i++) {
+              if (entrega.grupos[i].compradorKey === key) {
+                grupo = entrega.grupos[i];
+                break;
+              }
+            }
+            if (grupo && resp.estado !== grupo.estado) {
+              grupo.estado = resp.estado;
+              render();
+            }
           }
-        }).catch(() => {
+        }).catch(function() {
           enqueue('actualizarUbicacionRepartidor', { compradorKey: key, lat: pos.coords.latitude, lng: pos.coords.longitude }, key + ':ubi');
         });
       },
-      (err) => {
+      function(err) {
         console.error('Geolocalización falló:', err);
         alert('No se pudo obtener tu ubicación. Revisa que le diste permiso de ubicación a la página.');
-        if (watchers[key]) { navigator.geolocation.clearWatch(watchers[key]); delete watchers[key]; }
+        if (watchers[key]) {
+          navigator.geolocation.clearWatch(watchers[key]);
+          delete watchers[key];
+        }
       },
       { enableHighAccuracy: true, maximumAge: 5000 }
     );
   }
 
   async function avisarLlegada(key, btn) {
-    const original = btn.innerHTML;
+    var original = btn.innerHTML;
     btn.disabled = true;
     btn.innerHTML = Icon('clock') + ' Enviando...';
     try {
-      const resp = await apiFetch({
+      var resp = await apiFetch({
         action: 'notificarLlegadaEntrega',
-        liveId,
+        liveId: liveId,
         compradorKey: key
       }, 'POST');
       if (!resp.ok) throw new Error(resp.error || 'No se pudo enviar el aviso');
@@ -803,48 +955,77 @@
       btn.innerHTML = Icon('x') + ' Error';
       alert('No se pudo avisar al cliente: ' + err.message);
     } finally {
-      setTimeout(() => { btn.innerHTML = original; btn.disabled = false; }, 2500);
+      setTimeout(function() {
+        btn.innerHTML = original;
+        btn.disabled = false;
+      }, 2500);
     }
   }
 
-  // --- Offline ---
-  const cacheKey = () => 'zr_entregas_cache_' + liveId;
-  const queueKey = () => 'zr_entregas_queue_' + liveId;
-  const loadQueue = () => { try { return JSON.parse(localStorage.getItem(queueKey())) || []; } catch (e) { return []; } };
-  const saveQueue = (q) => localStorage.setItem(queueKey(), JSON.stringify(q));
-  function enqueue(action, extra, dedupeKey) {
-    const q = loadQueue().filter(x => x.dedupeKey !== dedupeKey);
-    q.push({ action, extra, dedupeKey });
-    saveQueue(q);
-    headerSubtitle.textContent = `Sin conexión — ${q.length} cambio${q.length !== 1 ? 's' : ''} pendiente${q.length !== 1 ? 's' : ''}`;
-    navigator.serviceWorker?.ready.then(reg => reg.sync?.register('sync-entregas')).catch(() => {});
+  function cacheKey() { return 'zr_entregas_cache_' + liveId; }
+  function queueKey() { return 'zr_entregas_queue_' + liveId; }
+  function loadQueue() {
+    try { return JSON.parse(localStorage.getItem(queueKey())) || []; }
+    catch (e) { return []; }
   }
-  navigator.serviceWorker?.addEventListener('message', e => { if (e.data?.type === 'SYNC_ENTREGAS') sync(); });
+  function saveQueue(q) { localStorage.setItem(queueKey(), JSON.stringify(q)); }
+
+  function enqueue(action, extra, dedupeKey) {
+    var q = loadQueue().filter(function(x) { return x.dedupeKey !== dedupeKey; });
+    q.push({ action: action, extra: extra, dedupeKey: dedupeKey });
+    saveQueue(q);
+    headerSubtitle.textContent = 'Sin conexión — ' + q.length + ' cambio' + (q.length !== 1 ? 's' : '') + ' pendiente' + (q.length !== 1 ? 's' : '');
+    if (navigator.serviceWorker) {
+      navigator.serviceWorker.ready.then(function(reg) {
+        if (reg.sync) reg.sync.register('sync-entregas');
+      }).catch(function() {});
+    }
+  }
+
+  if (navigator.serviceWorker) {
+    navigator.serviceWorker.addEventListener('message', function(e) {
+      if (e.data && e.data.type === 'SYNC_ENTREGAS') sync();
+    });
+  }
+
   async function sync() {
     if (!navigator.onLine) return;
-    let q = loadQueue();
+    var q = loadQueue();
     if (!q.length) return;
-    for (const item of q.slice()) {
+    for (var i = 0; i < q.length; i++) {
+      var item = q[i];
       try {
-        const resp = await apiFetch({ action: item.action, liveId, ...item.extra }, 'POST');
-        if (resp.ok) { q = q.filter(x => x !== item); saveQueue(q); }
-      } catch (err) { break; }
+        var resp = await apiFetch({ action: item.action, liveId: liveId, ...item.extra }, 'POST');
+        if (resp.ok) {
+          q = q.filter(function(x) { return x !== item; });
+          saveQueue(q);
+        }
+      } catch (err) {
+        break;
+      }
     }
     if (!loadQueue().length) cargar();
   }
+
   window.addEventListener('online', sync);
 
   async function toggleEstado(key, nuevoEstado) {
-    const grupo = entrega.grupos.find(g => String(g.compradorKey) === String(key));
+    var grupo = null;
+    for (var i = 0; i < entrega.grupos.length; i++) {
+      if (String(entrega.grupos[i].compradorKey) === String(key)) {
+        grupo = entrega.grupos[i];
+        break;
+      }
+    }
     if (!grupo || grupo.estado === nuevoEstado) return;
 
     grupo.estado = nuevoEstado;
     render();
 
     try {
-      const resp = await apiFetch({
+      var resp = await apiFetch({
         action: 'actualizarEstadoEntrega',
-        liveId,
+        liveId: liveId,
         compradorKey: key,
         estado: nuevoEstado
       }, 'POST');
@@ -855,27 +1036,35 @@
   }
 
   async function cargar() {
-    if (!liveId) { renderInvalido('Este link no trae identificador de transmisión.'); return; }
+    if (!liveId) {
+      renderInvalido('Este link no trae identificador de transmisión.');
+      return;
+    }
     wrap.innerHTML = '<div class="loading-spinner"></div>';
     try {
-        const resp = await apiFetch({ action: 'obtenerEntregasLive', liveId });
-        if (!resp.ok) { renderInvalido(resp.error || 'Error al cargar los datos'); return; }
-        entrega = resp;
-        localStorage.setItem(cacheKey(), JSON.stringify(resp));
-        render();
-        sync();
+      var resp = await apiFetch({ action: 'obtenerEntregasLive', liveId: liveId });
+      if (!resp.ok) {
+        renderInvalido(resp.error || 'Error al cargar los datos');
+        return;
+      }
+      entrega = resp;
+      localStorage.setItem(cacheKey(), JSON.stringify(resp));
+      render();
+      sync();
     } catch (err) {
-        const cached = localStorage.getItem(cacheKey());
-        if (!cached) { renderInvalido('Hubo un problema de conexión.'); return; }
-        entrega = JSON.parse(cached);
-        render();
-        const pendientes = loadQueue().length;
-        headerSubtitle.textContent = pendientes ? `Sin conexión — ${pendientes} cambio(s) pendiente(s)` : 'Sin conexión — mostrando datos guardados';
+      var cached = localStorage.getItem(cacheKey());
+      if (!cached) {
+        renderInvalido('Hubo un problema de conexión.');
+        return;
+      }
+      entrega = JSON.parse(cached);
+      render();
+      var pendientes = loadQueue().length;
+      headerSubtitle.textContent = pendientes ? 'Sin conexión — ' + pendientes + ' cambio(s) pendiente(s)' : 'Sin conexión — mostrando datos guardados';
     }
   }
 
-  // Limpiar al cerrar la página
-  window.addEventListener('beforeunload', () => {
+  window.addEventListener('beforeunload', function() {
     if (routeUpdateInterval) clearInterval(routeUpdateInterval);
     if (routeModalInstance) {
       routeModalInstance.remove();
