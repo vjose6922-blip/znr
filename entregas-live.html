@@ -8,7 +8,7 @@
  script-src 'self' 'unsafe-inline' https://www.gstatic.com https://cdn.jsdelivr.net;
  style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net;
  img-src 'self' data: blob: https://lh3.googleusercontent.com https://drive.google.com https://placehold.co https://via.placeholder.com https://*.tile.openstreetmap.org https://cdn.jsdelivr.net;
- connect-src 'self' https://script.google.com https://script.googleusercontent.com https://wttr.in https://www.gstatic.com https://firebaseinstallations.googleapis.com https://fcmregistrations.googleapis.com https://registrar-token-fcm-1038143238323.us-central1.run.app https://ventas-api-1038143238323.us-central1.run.app https://auth-api-1038143238323.us-central1.run.app https://live-api-1038143238323.us-central1.run.app https://firebase.googleapis.com https://znr-live-default-rtdb.firebaseio.com https://nominatim.openstreetmap.org https://*.tile.openstreetmap.org;
+ connect-src 'self' https://script.google.com https://script.googleusercontent.com https://wttr.in https://www.gstatic.com https://firebaseinstallations.googleapis.com https://fcmregistrations.googleapis.com https://registrar-token-fcm-1038143238323.us-central1.run.app https://ventas-api-1038143238323.us-central1.run.app https://auth-api-1038143238323.us-central1.run.app https://live-api-1038143238323.us-central1.run.app https://firebase.googleapis.com https://znr-live-default-rtdb.firebaseio.com https://nominatim.openstreetmap.org https://*.tile.openstreetmap.org https://router.project-osrm.org;
  font-src 'self';
  frame-src 'none';
  frame-ancestors 'none';
@@ -158,6 +158,8 @@
     padding: 14px 16px; border-bottom: 1px solid var(--color-border-subtle);
   }
   .route-modal-header h3 { margin: 0; font-size: 15px; color: var(--color-text-primary); }
+  .route-note { margin: 0; padding: 8px 16px; font-size: 12px; color: #fbbf24; background: rgba(251,191,36,.1); }
+  .route-note-info { color: var(--color-text-soft); background: transparent; padding-top: 0; }
   .route-modal-close { background: none; border: none; color: var(--color-text-soft); font-size: 20px; cursor: pointer; }
   #route-map { width: 100%; height: 45vh; }
   .route-list { overflow-y: auto; padding: 10px 16px 20px; }
@@ -255,11 +257,14 @@
 }
 
   function mapsUrl(g) {
+    // Navegación real turn-by-turn (respeta calles de sentido contrario,
+    // tráfico en vivo, etc.) — no la línea recta/OSRM del mapa en pantalla,
+    // que es solo referencia visual del recorrido, nunca para guiar al manejar.
     if (typeof g.lat === 'number' && typeof g.lng === 'number') {
-      return `https://www.google.com/maps?q=${g.lat},${g.lng}`;
+      return `https://www.google.com/maps/dir/?api=1&destination=${g.lat},${g.lng}&travelmode=driving`;
     }
     if (g.direccion) {
-      return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(g.direccion)}`;
+      return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(g.direccion)}&travelmode=driving`;
     }
     return null;
   }
@@ -328,7 +333,7 @@
           ${(g.items || []).map(it => `<div class="item-row"><span>${esc(it.nombre)}</span><span>$${Number(it.precio || 0).toLocaleString()}</span></div>`).join('')}
           <div class="total-row"><span>Total</span><span>$${Number(g.total || 0).toLocaleString()}</span></div>
         </div>
-        ${url ? `<a class="btn-maps" href="${esc(url)}" target="_blank" rel="noopener">${Icon('map-pin')} Abrir en la app de Maps</a>` : ''}
+        ${url ? `<a class="btn-maps" href="${esc(url)}" target="_blank" rel="noopener">${Icon('map-pin')} Iniciar navegación (Google Maps)</a>` : ''}
         ${enCamino ? `
         <div class="live-mini-map-label">${Icon('map-pin')} Tu ruta en vivo hacia el destino</div>
         <div class="live-mini-map" id="mini-map-${esc(g.compradorKey)}"></div>` : ''}
@@ -357,12 +362,18 @@
   const expandedKeys = new Set();
   const liveMaps = {}; // compradorKey -> {map, repMarker, line}
   const posActual = {}; // compradorKey -> {lat,lng} última posición conocida del repartidor
+  const ultimaRutaCalc = {}; // compradorKey -> timestamp del último cálculo de ruta por calles
+  const RUTA_REFRESH_MS = 15000; // no pedir ruta nueva a OSRM más seguido que esto por entrega
 
   function limpiarMiniMapas() {
     Object.values(liveMaps).forEach(lm => { try { lm.map.remove(); } catch (_) {} });
     for (const k in liveMaps) delete liveMaps[k];
   }
 
+  // Recalcula la ruta real (respeta sentidos de calle) desde la posición
+  // actual del repartidor hasta el destino cada RUTA_REFRESH_MS, y mueve el
+  // marcador en cada posición nueva — así se ve como si estuviera siguiendo
+  // el camino en vivo, sin necesidad de voz ni de salir de la página.
   function actualizarMiniMapa(key) {
     const g = entrega.grupos.find(x => x.compradorKey === key);
     const pos = posActual[key];
@@ -385,11 +396,22 @@
       const line = L.polyline([repartidor, destino], { color: '#c084fc', weight: 3, dashArray: '6 6' }).addTo(map);
       map.fitBounds([repartidor, destino], { padding: [24, 24] });
       liveMaps[key] = { map, repMarker, line };
+      lm = liveMaps[key];
     } else {
       lm.repMarker.setLatLng(repartidor);
-      lm.line.setLatLngs([repartidor, destino]);
-      lm.map.fitBounds([repartidor, destino], { padding: [24, 24] });
+      lm.map.panTo(repartidor); // sigue al repartidor en cada tick, aunque la ruta todavía no se recalcule
     }
+
+    const ahora = Date.now();
+    if (ahora - (ultimaRutaCalc[key] || 0) < RUTA_REFRESH_MS) return;
+    ultimaRutaCalc[key] = ahora;
+    trazarRutaCalles([repartidor, destino]).then(ruta => {
+      const actual = liveMaps[key];
+      if (!actual) return; // la tarjeta pudo cerrarse mientras esperábamos la respuesta
+      actual.line.setLatLngs(ruta || [repartidor, destino]);
+      actual.line.setStyle({ dashArray: ruta ? null : '6 6' });
+      actual.map.fitBounds(ruta || [repartidor, destino], { padding: [24, 24] });
+    });
   }
 
   function render() {
@@ -522,7 +544,29 @@
     );
   }
 
-  // --- Modal de ruta completa (Leaflet) ---
+  // --- Modal de ruta completa (Leaflet + ruta real por calles vía OSRM) ---
+  // OSRM demo público, sin API key: se manda en tramos de 25 paradas (con
+  // solape de 1 punto entre tramos) para no romper si algún día hay una
+  // ruta muy larga. Si falla o no hay servicio, se cae a línea recta.
+  async function trazarRutaCalles(latlngs) {
+    if (latlngs.length < 2) return null;
+    const CHUNK = 25;
+    const tramosCoords = [];
+    for (let i = 0; i < latlngs.length - 1; i += CHUNK - 1) tramosCoords.push(latlngs.slice(i, i + CHUNK));
+    try {
+      const tramos = await Promise.all(tramosCoords.map(async (tramo) => {
+        const coordsStr = tramo.map(([lat, lng]) => `${lng},${lat}`).join(';');
+        const resp = await fetch(`https://router.project-osrm.org/route/v1/driving/${coordsStr}?overview=full&geometries=geojson`);
+        const data = await resp.json();
+        if (data.code !== 'Ok') throw new Error(data.message || 'OSRM error');
+        return data.routes[0].geometry.coordinates.map(([lng, lat]) => [lat, lng]);
+      }));
+      return tramos.reduce((acc, tramo, i) => i === 0 ? tramo : acc.concat(tramo.slice(1)), []);
+    } catch (err) {
+      return null; // sin ruta por calles disponible ahora, quien llama cae a línea recta
+    }
+  }
+
   function abrirMapaRuta() {
     const puntos = gruposOrdenados().filter(g => g.estado !== 'entregado' && typeof g.lat === 'number' && typeof g.lng === 'number');
     const overlay = document.createElement('div');
@@ -533,6 +577,8 @@
           <h3>${Icon('map-pin')} Ruta completa (${puntos.length} paradas)</h3>
           <button class="route-modal-close" id="route-modal-close">&times;</button>
         </div>
+        <p class="route-note route-note-info">Referencia del recorrido — para navegar usa "Iniciar navegación" en cada entrega.</p>
+        <p class="route-note" id="route-note" style="display:none;"></p>
         <div id="route-map"></div>
         <div class="route-list">
           ${puntos.length ? puntos.map((g, i) => `
@@ -547,14 +593,20 @@
     overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
 
     if (puntos.length && typeof L !== 'undefined') {
-      setTimeout(() => {
+      setTimeout(async () => {
         const map = L.map('route-map');
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; OpenStreetMap', maxZoom: 19 }).addTo(map);
         const latlngs = puntos.map(g => [g.lat, g.lng]);
         latlngs.forEach((ll, i) => {
           L.marker(ll).addTo(map).bindPopup(`${i + 1}. ${puntos[i].compradorNombre}`);
         });
-        L.polyline(latlngs, { color: '#ec4899', weight: 3, dashArray: '6 6' }).addTo(map);
+        const rutaCalles = await trazarRutaCalles(latlngs);
+        L.polyline(rutaCalles || latlngs, { color: '#ec4899', weight: 3, dashArray: rutaCalles ? null : '6 6' }).addTo(map);
+        if (!rutaCalles && latlngs.length > 1) {
+          const note = document.getElementById('route-note');
+          note.style.display = 'block';
+          note.textContent = 'No se pudo calcular la ruta por calles ahora mismo — se muestra la línea directa entre paradas.';
+        }
         map.fitBounds(latlngs, { padding: [30, 30] });
       }, 50);
     }
