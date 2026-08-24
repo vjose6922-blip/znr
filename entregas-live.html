@@ -679,13 +679,14 @@
   async function sync() {
     if (!navigator.onLine) return;
     let q = loadQueue();
+    if (!q.length) return; // nada pendiente: no hay nada que sincronizar ni por qué recargar
     for (const item of q.slice()) {
       try {
         const resp = await apiFetch({ action: item.action, liveId, ...item.extra }, 'POST');
         if (resp.ok) { q = q.filter(x => x !== item); saveQueue(q); }
       } catch (err) { break; } // seguimos sin conexión, se reintenta después
     }
-    if (!loadQueue().length) cargar();
+    if (!loadQueue().length) cargar(); // se vació la cola: refresca con datos reales del servidor
   }
   window.addEventListener('online', sync);
 
