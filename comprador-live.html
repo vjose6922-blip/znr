@@ -166,12 +166,19 @@
     font-family: inherit;
   }
   .day-row { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
-  .day-btn {
+  .identity-sheet .day-btn {
     width: auto; padding: 7px 12px; border-radius: var(--radius-pill);
     border: 1.5px solid var(--color-border-subtle); background: transparent;
     color: var(--color-text-soft); font-size: 12px; font-weight: 600; cursor: pointer;
   }
-  .day-btn.active { border-color: #ff4f81; background: rgba(255,79,129,.18); color: #ff4f81; }
+  .identity-sheet .day-btn.active { border-color: #ff4f81; background: rgba(255,79,129,.18); color: #ff4f81; }
+  .identity-sheet-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+  .identity-sheet .btn-close {
+    flex-shrink: 0; background: var(--color-surface-2); color: var(--color-text-soft);
+    border: 1px solid var(--color-border-subtle); border-radius: 50%;
+    width: 30px; height: 30px; padding: 0; font-size: 16px; line-height: 1; display: flex;
+    align-items: center; justify-content: center;
+  }
   .hour-row { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 8px; margin-bottom: 10px; }
   .hour-row span { color: var(--color-text-soft); font-size: 13px; }
   .gps-status { margin: 0 0 12px; font-size: 12px; min-height: 15px; color: var(--color-text-soft); }
@@ -545,8 +552,13 @@ function askIdentity(onDone) {
   overlay.className = 'identity-overlay';
   overlay.innerHTML = `
     <div class="identity-sheet">
-      <h2>Únete al chat</h2>
-      <p>Para comentar y apartar productos necesitamos tu ubicación, para poder llegar a entregarte. Dinos también quién eres y en qué horario.</p>
+      <div class="identity-sheet-header">
+        <div>
+          <h2>Únete al chat</h2>
+          <p>Para comentar y apartar productos necesitamos tu ubicación, para poder llegar a entregarte. Dinos también quién eres y en qué horario.</p>
+        </div>
+        <button type="button" class="btn-close" id="idn-close-btn" aria-label="Cerrar">✕</button>
+      </div>
       <label for="idn-nombre">Tu nombre</label>
       <input type="text" id="idn-nombre" placeholder="Nombre y apellido" maxlength="40" value="${esc(prev.nombre || '')}">
       <label for="idn-tel">Tu teléfono</label>
@@ -568,6 +580,10 @@ function askIdentity(onDone) {
       <button id="idn-btn">Entrar al chat</button>
     </div>`;
   document.body.appendChild(overlay);
+
+  document.getElementById('idn-close-btn').addEventListener('click', () => {
+    window.location.href = 'lives.html';
+  });
 
   const diasSeleccionados = new Set(prevDias);
   overlay.querySelectorAll('.day-btn').forEach(btn => {
