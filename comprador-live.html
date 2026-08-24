@@ -158,6 +158,22 @@
     border: 1px solid var(--color-border-subtle);
     font-size: 13px; padding: 11px; margin-bottom: 4px;
   }
+  .identity-sheet select {
+    width: 100%; box-sizing: border-box; margin-bottom: 10px;
+    padding: 12px 14px; border-radius: var(--radius-md);
+    border: 1px solid var(--color-border-subtle); appearance: none; cursor: pointer;
+    background: var(--color-surface-2); color: var(--color-text-primary); font-size: 14px;
+    font-family: inherit;
+  }
+  .day-row { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+  .day-btn {
+    width: auto; padding: 7px 12px; border-radius: var(--radius-pill);
+    border: 1.5px solid var(--color-border-subtle); background: transparent;
+    color: var(--color-text-soft); font-size: 12px; font-weight: 600; cursor: pointer;
+  }
+  .day-btn.active { border-color: #ff4f81; background: rgba(255,79,129,.18); color: #ff4f81; }
+  .hour-row { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 8px; margin-bottom: 10px; }
+  .hour-row span { color: var(--color-text-soft); font-size: 13px; }
   .gps-status { margin: 0 0 12px; font-size: 12px; min-height: 15px; color: var(--color-text-soft); }
   .gps-status.ok { color: #4ade80; }
   .gps-status.error { color: #f87171; }
@@ -228,8 +244,11 @@ auth.onAuthStateChanged((user) => {
 
 const CATALOGO_API_URL_CLIVE = "https://catalogo-api-1038143238323.us-central1.run.app";
 const LIVE_API_URL_CLIVE = "https://live-api-1038143238323.us-central1.run.app"; // TODO: pegar la URL real tras el deploy
+const AUTH_API_URL_CLIVE = "https://auth-api-1038143238323.us-central1.run.app";
+const AUTH_ACTIONS_CLIVE = ['leerPerfilComprador', 'guardarPerfilComprador'];
 async function apiFetch(data, method = 'GET') {
-  const API_BASE = (data && data.action === 'productosPorVendedor') ? CATALOGO_API_URL_CLIVE : LIVE_API_URL_CLIVE;
+  const API_BASE = AUTH_ACTIONS_CLIVE.includes(data && data.action) ? AUTH_API_URL_CLIVE
+    : (data && data.action === 'productosPorVendedor') ? CATALOGO_API_URL_CLIVE : LIVE_API_URL_CLIVE;
   const params = new URLSearchParams();
   Object.entries(data || {}).forEach(([k, v]) => {
     if (v !== undefined && v !== null) params.append(k, v);
@@ -506,10 +525,21 @@ function getIdentity() {
   } catch (e) { return null; }
 }
 
+const DIAS_SEMANA = ['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'];
+const HORAS_DIA = ['7:00 AM','8:00 AM','9:00 AM','10:00 AM','11:00 AM','12:00 PM',
+  '1:00 PM','2:00 PM','3:00 PM','4:00 PM','5:00 PM','6:00 PM','7:00 PM','8:00 PM','9:00 PM'];
+function horaOpts(sel) {
+  return HORAS_DIA.map(h => `<option value="${h}"${sel === h ? ' selected' : ''}>${h}</option>`).join('');
+}
+
 function askIdentity(onDone) {
   const prev = identity || {};
-  let gpsCoords = (typeof prev.lat === 'number' && typeof prev.lng === 'number')
-    ? { lat: prev.lat, lng: prev.lng } : null;
+  const prevDias = prev.dias || [];
+  let gpsCoords = null; // el GPS SIEMPRE se exige fresco en esta sesión, nunca se acepta solo el guardado
+  let perfilUbicacionPrevia = null; // {lat,lng} que ya tenía guardado el perfil, solo para decidir si preguntar al actualizar
+  let actualizarUbicacionPerfil = false;
+
+  const gpsIconSvg = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" aria-hidden="true"><use href="#ic-map-pin"/></svg>';
 
   const overlay = document.createElement('div');
   overlay.className = 'identity-overlay';
@@ -521,15 +551,60 @@ function askIdentity(onDone) {
       <input type="text" id="idn-nombre" placeholder="Nombre y apellido" maxlength="40" value="${esc(prev.nombre || '')}">
       <label for="idn-tel">Tu teléfono</label>
       <input type="tel" id="idn-tel" placeholder="10 dígitos" maxlength="10" value="${esc(prev.telefono || '')}">
-      <button type="button" class="btn-gps" id="idn-gps-btn"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" aria-hidden="true"><use href="#ic-map-pin"/></svg> ${gpsCoords ? 'Actualizar mi ubicación' : 'Obtener mi ubicación (obligatorio)'}</button>
-      <p class="gps-status ${gpsCoords ? 'ok' : ''}" id="idn-gps-status">${gpsCoords ? Icon('check') + ' Ya tenemos tu ubicación guardada.' : 'Necesitamos tu ubicación GPS para poder entregarte — toca el botón y acepta el permiso.'}</p>
-      <label for="idn-horario">Horario para entrega</label>
-      <input type="text" id="idn-horario" placeholder="Ej. Tardes después de 5pm, fines de semana…" maxlength="80" value="${esc(prev.horario || '')}">
+      <button type="button" class="btn-gps" id="idn-gps-btn">${gpsIconSvg} Obtener mi ubicación (obligatorio)</button>
+      <p class="gps-status" id="idn-gps-status">Necesitamos tu ubicación GPS para poder entregarte — toca el botón y acepta el permiso.</p>
+      <label>Días disponibles</label>
+      <div class="day-row" id="idn-dias-row">
+        ${DIAS_SEMANA.map(d => `<button type="button" class="day-btn${prevDias.includes(d) ? ' active' : ''}" data-day="${d}">${d}</button>`).join('')}
+      </div>
+      <label for="idn-hora-desde">Horario para entrega</label>
+      <div class="hour-row">
+        <select id="idn-hora-desde"><option value="">Desde</option>${horaOpts(prev.horaDesde)}</select>
+        <span>a</span>
+        <select id="idn-hora-hasta"><option value="">Hasta</option>${horaOpts(prev.horaHasta)}</select>
+      </div>
       <label for="idn-dir">Entregar en otra ubicación (opcional)</label>
       <textarea id="idn-dir" placeholder="Solo si quieres dejar instrucciones o pedir que se entregue en un lugar distinto a tu ubicación GPS…" maxlength="200">${esc(prev.nota || '')}</textarea>
       <button id="idn-btn">Entrar al chat</button>
     </div>`;
   document.body.appendChild(overlay);
+
+  const diasSeleccionados = new Set(prevDias);
+  overlay.querySelectorAll('.day-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const d = btn.dataset.day;
+      if (diasSeleccionados.has(d)) diasSeleccionados.delete(d); else diasSeleccionados.add(d);
+      btn.classList.toggle('active');
+    });
+  });
+
+  // Si el teléfono ya tiene 10 dígitos guardados/perfil en otro
+  // dispositivo, precarga días/horario/nota para no volver a pedirlos —
+  // pero el nombre y el GPS siempre los da la persona en esta sesión,
+  // nunca se autocompletan (así alguien que solo teclea un teléfono
+  // ajeno no puede enviar el formulario sin estar ahí físicamente).
+  async function aplicarPerfilGuardado(tel) {
+    if (tel.length !== 10) return;
+    const resp = await apiFetch({ action: 'leerPerfilComprador', telefono: tel }, 'GET').catch(() => null);
+    const perfil = resp && resp.ok ? resp.perfil : null;
+    if (!perfil) return;
+    if (Array.isArray(perfil.dias)) {
+      diasSeleccionados.clear();
+      perfil.dias.forEach(d => diasSeleccionados.add(d));
+      overlay.querySelectorAll('.day-btn').forEach(b => b.classList.toggle('active', diasSeleccionados.has(b.dataset.day)));
+    }
+    if (perfil.horaDesde) document.getElementById('idn-hora-desde').value = perfil.horaDesde;
+    if (perfil.horaHasta) document.getElementById('idn-hora-hasta').value = perfil.horaHasta;
+    if (perfil.nota) document.getElementById('idn-dir').value = perfil.nota;
+    if (typeof perfil.lat === 'number' && typeof perfil.lng === 'number' && !gpsCoords) {
+      perfilUbicacionPrevia = { lat: perfil.lat, lng: perfil.lng };
+      document.getElementById('idn-gps-status').textContent = 'Ya tenemos una ubicación guardada — toca el botón para confirmarla.';
+    }
+  }
+  if (prev.telefono) aplicarPerfilGuardado(prev.telefono.replace(/\D/g, ''));
+  document.getElementById('idn-tel').addEventListener('input', (e) => {
+    aplicarPerfilGuardado(e.target.value.replace(/\D/g, ''));
+  });
 
   document.getElementById('idn-gps-btn').addEventListener('click', () => {
     const statusEl = document.getElementById('idn-gps-status');
@@ -542,8 +617,10 @@ function askIdentity(onDone) {
     statusEl.textContent = 'Obteniendo tu ubicación…';
     navigator.geolocation.getCurrentPosition((pos) => {
       gpsCoords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+      actualizarUbicacionPerfil = !perfilUbicacionPrevia || confirm('¿Quieres actualizar tu ubicación guardada para futuras compras?');
       statusEl.className = 'gps-status ok';
       statusEl.innerHTML = Icon('check') + ' Ubicación capturada. El vendedor podrá verla en el mapa.';
+      document.getElementById('idn-gps-btn').innerHTML = `${gpsIconSvg} Actualizar mi ubicación`;
     }, (err) => {
       gpsCoords = null;
       statusEl.className = 'gps-status error';
@@ -554,31 +631,51 @@ function askIdentity(onDone) {
   document.getElementById('idn-btn').addEventListener('click', () => {
     const nombre = document.getElementById('idn-nombre').value.trim();
     const tel = document.getElementById('idn-tel').value.replace(/\D/g, '');
-    const horario = document.getElementById('idn-horario').value.trim();
+    const dias = DIAS_SEMANA.filter(d => diasSeleccionados.has(d));
+    const horaDesde = document.getElementById('idn-hora-desde').value;
+    const horaHasta = document.getElementById('idn-hora-hasta').value;
     const nota = document.getElementById('idn-dir').value.trim();
     if (!nombre || tel.length !== 10) {
       alert('Escribe tu nombre y un teléfono válido de 10 dígitos.');
       return;
     }
-    if (!horario) {
-      alert('Dinos en qué horario podemos entregarte.');
+    if (!dias.length || !horaDesde || !horaHasta) {
+      alert('Selecciona al menos un día y el rango de horario en que podemos entregarte.');
       return;
     }
     if (!gpsCoords) {
       alert('Necesitamos tu ubicación para continuar — toca "Obtener mi ubicación" y acepta el permiso de tu navegador.');
       return;
     }
+    const horario = `${dias.join(', ')} · ${horaDesde} a ${horaHasta}`;
     identity = {
-      nombre, telefono: tel, horario, nota,
+      nombre, telefono: tel, horario, dias, horaDesde, horaHasta, nota,
       lat: gpsCoords.lat,
       lng: gpsCoords.lng
     };
     localStorage.setItem('znr_chat_identity', JSON.stringify(identity));
     guardarContacto(identity);
+    guardarPerfilRemoto(identity, actualizarUbicacionPerfil);
     actualizarPresenciaNombre();
     document.body.removeChild(overlay);
     onDone();
   });
+}
+
+// Perfil por teléfono en auth-api (compradores/{telefono}), separado de
+// registrarContactoLive: ese es el contacto de ESTA transmisión, esto es
+// lo que se reutiliza la próxima vez que compre, en cualquier dispositivo.
+function guardarPerfilRemoto(idn, actualizarUbicacion) {
+  const payload = {
+    action: 'guardarPerfilComprador',
+    telefono: idn.telefono,
+    dias: idn.dias.join(','),
+    horaDesde: idn.horaDesde,
+    horaHasta: idn.horaHasta,
+    nota: idn.nota || ''
+  };
+  if (actualizarUbicacion) { payload.lat = idn.lat; payload.lng = idn.lng; }
+  apiFetch(payload, 'POST').catch(err => console.error('guardarPerfilComprador falló:', err));
 }
 
 // Manda el teléfono/dirección/horario/GPS UNA sola vez a

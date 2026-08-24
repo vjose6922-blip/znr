@@ -458,13 +458,11 @@
       const g = entrega.grupos.find(x => String(x.compradorKey) === String(key));
       if (g) g.orden = i;
     });
+    const ordenes = JSON.stringify(keys.map((key, i) => ({ compradorKey: key, orden: i })));
     try {
-      await apiFetch({
-        action: 'guardarOrdenEntregas', liveId,
-        ordenes: JSON.stringify(keys.map((key, i) => ({ compradorKey: key, orden: i })))
-      }, 'POST');
+      await apiFetch({ action: 'guardarOrdenEntregas', liveId, ordenes }, 'POST');
     } catch (err) {
-      console.error('No se pudo guardar el nuevo orden:', err);
+      enqueue('guardarOrdenEntregas', { ordenes }, 'orden');
     }
   }
 
@@ -622,7 +620,9 @@
             const g = entrega.grupos.find(x => x.compradorKey === key);
             if (g) { g.estado = resp.estado; render(); }
           }
-        }).catch(() => {});
+        }).catch(() => {
+          enqueue('actualizarUbicacionRepartidor', { compradorKey: key, lat: pos.coords.latitude, lng: pos.coords.longitude }, key + ':ubi');
+        });
       },
       (err) => {
         console.error('Geolocalización falló:', err);
@@ -658,12 +658,42 @@
     }
   }
 
+  // --- Modo offline: cache del último listado + cola de cambios pendientes en localStorage.
+  // La cola dedupea por "compradorKey:tipo" (estado/ubicación) así solo se guarda y
+  // manda el último valor de cada uno, no un historial de cada click o cada GPS.
+  const cacheKey = () => 'zr_entregas_cache_' + liveId;
+  const queueKey = () => 'zr_entregas_queue_' + liveId;
+  const loadQueue = () => { try { return JSON.parse(localStorage.getItem(queueKey())) || []; } catch (e) { return []; } };
+  const saveQueue = (q) => localStorage.setItem(queueKey(), JSON.stringify(q));
+  function enqueue(action, extra, dedupeKey) {
+    const q = loadQueue().filter(x => x.dedupeKey !== dedupeKey);
+    q.push({ action, extra, dedupeKey });
+    saveQueue(q);
+    headerSubtitle.textContent = `Sin conexión — ${q.length} cambio${q.length !== 1 ? 's' : ''} pendiente${q.length !== 1 ? 's' : ''}`;
+    // Deja el reintento en manos del Service Worker (evento 'sync'): sigue
+    // funcionando aunque la pestaña quede en segundo plano, no solo con
+    // el evento 'online' del documento.
+    navigator.serviceWorker?.ready.then(reg => reg.sync?.register('sync-entregas')).catch(() => {});
+  }
+  navigator.serviceWorker?.addEventListener('message', e => { if (e.data?.type === 'SYNC_ENTREGAS') sync(); });
+  async function sync() {
+    if (!navigator.onLine) return;
+    let q = loadQueue();
+    for (const item of q.slice()) {
+      try {
+        const resp = await apiFetch({ action: item.action, liveId, ...item.extra }, 'POST');
+        if (resp.ok) { q = q.filter(x => x !== item); saveQueue(q); }
+      } catch (err) { break; } // seguimos sin conexión, se reintenta después
+    }
+    if (!loadQueue().length) cargar();
+  }
+  window.addEventListener('online', sync);
+
   async function toggleEstado(key, nuevoEstado) {
     const grupo = entrega.grupos.find(g => String(g.compradorKey) === String(key));
     if (!grupo || grupo.estado === nuevoEstado) return;
 
-    const estadoAnterior = grupo.estado;
-    grupo.estado = nuevoEstado; // optimista
+    grupo.estado = nuevoEstado; // optimista, se mantiene aunque falle: se encola
     render();
 
     try {
@@ -675,9 +705,7 @@
       }, 'POST');
       if (!resp.ok) throw new Error(resp.error || 'No se pudo guardar');
     } catch (err) {
-      grupo.estado = estadoAnterior; // revertir si falló
-      render();
-      alert('No se pudo guardar el cambio. Revisa tu conexión e intenta de nuevo.');
+      enqueue('actualizarEstadoEntrega', { compradorKey: key, estado: nuevoEstado }, key + ':estado');
     }
   }
 
@@ -688,9 +716,16 @@
         const resp = await apiFetch({ action: 'obtenerEntregasLive', liveId });
         if (!resp.ok) { renderInvalido(resp.error || 'Error al cargar los datos'); return; }
         entrega = resp;
+        localStorage.setItem(cacheKey(), JSON.stringify(resp));
         render();
+        sync();
     } catch (err) {
-        renderInvalido('Hubo un problema de conexión.');
+        const cached = localStorage.getItem(cacheKey());
+        if (!cached) { renderInvalido('Hubo un problema de conexión.'); return; }
+        entrega = JSON.parse(cached);
+        render();
+        const pendientes = loadQueue().length;
+        headerSubtitle.textContent = pendientes ? `Sin conexión — ${pendientes} cambio(s) pendiente(s)` : 'Sin conexión — mostrando datos guardados';
     }
 }
 

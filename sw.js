@@ -230,10 +230,11 @@ self.addEventListener('notificationclick', event => {
 });
 
 self.addEventListener('sync', event => {
-  if (event.tag === 'sync-cart') {
+  const TAG_MSG = { 'sync-cart': 'SYNC_CART', 'sync-entregas': 'SYNC_ENTREGAS' };
+  if (TAG_MSG[event.tag]) {
     event.waitUntil(
       self.clients.matchAll().then(clients =>
-        clients.forEach(c => c.postMessage({ type: 'SYNC_CART' }))
+        clients.forEach(c => c.postMessage({ type: TAG_MSG[event.tag] }))
       )
     );
   }
