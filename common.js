@@ -1808,6 +1808,8 @@ const savedDays = localStorage.getItem('client_days')  || '';
 const savedFrom = localStorage.getItem('client_hour_from')|| '';
 const savedTo  = localStorage.getItem('client_hour_to')  || '';
 const savedNote = localStorage.getItem('client_note')  || '';
+const savedPhoneForPerfil = (localStorage.getItem('client_phone') || '').replace(/\D/g, '');
+const AUTH_API_URL_CART = "https://auth-api-1038143238323.us-central1.run.app";
 const DAYS  = ['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'];
 const HOURS = ['7:00 AM','8:00 AM','9:00 AM','10:00 AM','11:00 AM','12:00 PM',
 '1:00 PM','2:00 PM','3:00 PM','4:00 PM','5:00 PM','6:00 PM',
@@ -1866,6 +1868,31 @@ style="width:100%;background:rgba(255,255,255,.06);border:1px solid rgba(255,255
 `;
 document.body.appendChild(overlay);
 setTimeout(() => overlay.querySelector('textarea').focus(), 100);
+
+// Si ya hay un teléfono guardado en este navegador, precarga lo que
+// tengamos guardado en su perfil (mismo compradores/{telefono} que ya
+// usa comprador-live.html) — solo rellena los campos que sigan vacíos,
+// nunca pisa lo que la persona ya tenga puesto o guardado localmente.
+if (savedPhoneForPerfil.length === 10) {
+fetch(`${AUTH_API_URL_CART}?${new URLSearchParams({ action: 'leerPerfilComprador', telefono: savedPhoneForPerfil })}`)
+.then(r => r.json()).then(resp => {
+const perfil = resp && resp.ok ? resp.perfil : null;
+if (!perfil) return;
+const addrInput = overlay.querySelector('#_addr-input');
+if (perfil.direccion && !addrInput.value.trim()) addrInput.value = perfil.direccion;
+if (Array.isArray(perfil.dias) && !savedDays) {
+overlay.querySelectorAll('._day-btn').forEach(btn => {
+if (perfil.dias.includes(btn.dataset.day)) {
+btn.classList.add('_day-active');
+btn.style.border = '1.5px solid #ff4f81'; btn.style.background = 'rgba(255,79,129,.18)'; btn.style.color = '#ff4f81';
+}
+});
+}
+if (perfil.horaDesde && !savedFrom) overlay.querySelector('#_hour-from').value = perfil.horaDesde;
+if (perfil.horaHasta && !savedTo) overlay.querySelector('#_hour-to').value = perfil.horaHasta;
+if (perfil.nota && !savedNote) overlay.querySelector('#_note-input').value = perfil.nota;
+}).catch(() => {});
+}
 const prevLat = localStorage.getItem('client_gps_lat');
 const prevLng = localStorage.getItem('client_gps_lng');
 if (prevLat && prevLng && saved) {
@@ -1959,6 +1986,13 @@ localStorage.setItem('client_days',  selectedDays.join(','));
 localStorage.setItem('client_hour_from', hourFrom);
 localStorage.setItem('client_hour_to',  hourTo);
 overlay.remove();
+// Deja el perfil actualizado (compradores/{telefono}) para la próxima
+// compra, en cualquier página — no bloquea el checkout si falla.
+if (savedPhoneForPerfil.length === 10) {
+const payload = { action: 'guardarPerfilComprador', telefono: savedPhoneForPerfil, direccion: address, dias: selectedDays.join(','), horaDesde: hourFrom, horaHasta: hourTo, nota: note };
+if (overlay._gpsLat !== undefined && overlay._gpsLng !== undefined) { payload.lat = overlay._gpsLat; payload.lng = overlay._gpsLng; }
+fetch(AUTH_API_URL_CART, { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams(payload).toString() }).catch(() => {});
+}
 resolve({ address, schedule, note });
 });
 });

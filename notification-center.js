@@ -453,12 +453,15 @@ const PICKUP_HORAS = ['9:00 AM','10:00 AM','11:00 AM','12:00 PM','1:00 PM','2:00
       const mapsBtn = meta.mapsUrl
         ? `<a class="nc-maps-btn" href="${meta.mapsUrl}" target="_blank" rel="noopener" onclick="event.stopPropagation()">${Icon('map-pin')} Ver ubicación en Maps</a>`
         : '';
-      // n.url llega bien del backend en varias notificaciones (ej. el link
-      // de seguimiento del repartidor) pero nunca se dibujaba como enlace
-      // clickeable — solo se guardaba en data-url sin usarse. Se agrega
-      // aquí el botón que faltaba.
-      const abrirBtn = n.url
-        ? `<a class="nc-maps-btn" href="${n.url}" target="_blank" rel="noopener" onclick="event.stopPropagation()">${Icon('link')} Abrir</a>`
+      // Solo se muestra el botón "Abrir" cuando la URL es un link específico
+      // de esta notificación (trae parámetros, ej. el link de seguimiento
+      // con ?live=...&key=...) — no para los redirects genéricos a
+      // comunidad.html/index.html que llevan varias notificaciones (pedido
+      // confirmado, sin stock, etc.), esas no necesitan botón.
+      let urlEspecifica = '';
+      try { if (n.url && new URL(n.url).search) urlEspecifica = n.url; } catch (_) {}
+      const abrirBtn = urlEspecifica
+        ? `<a class="nc-maps-btn" href="${urlEspecifica}" target="_blank" rel="noopener" onclick="event.stopPropagation()">${Icon('link')} Abrir</a>`
         : '';
       // Pedido de Comunidad para RECOGER (no calificó para domicilio): se
       // le pregunta al comprador la hora a la que va a pasar, ya justo
