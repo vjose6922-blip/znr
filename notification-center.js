@@ -453,6 +453,13 @@ const PICKUP_HORAS = ['9:00 AM','10:00 AM','11:00 AM','12:00 PM','1:00 PM','2:00
       const mapsBtn = meta.mapsUrl
         ? `<a class="nc-maps-btn" href="${meta.mapsUrl}" target="_blank" rel="noopener" onclick="event.stopPropagation()">${Icon('map-pin')} Ver ubicación en Maps</a>`
         : '';
+      // n.url llega bien del backend en varias notificaciones (ej. el link
+      // de seguimiento del repartidor) pero nunca se dibujaba como enlace
+      // clickeable — solo se guardaba en data-url sin usarse. Se agrega
+      // aquí el botón que faltaba.
+      const abrirBtn = n.url
+        ? `<a class="nc-maps-btn" href="${n.url}" target="_blank" rel="noopener" onclick="event.stopPropagation()">${Icon('link')} Abrir</a>`
+        : '';
       // Pedido de Comunidad para RECOGER (no calificó para domicilio): se
       // le pregunta al comprador la hora a la que va a pasar, ya justo
       // aquí en la notificación — antes de esto no tiene caso preguntar,
@@ -482,6 +489,7 @@ const PICKUP_HORAS = ['9:00 AM','10:00 AM','11:00 AM','12:00 PM','1:00 PM','2:00
               <p class="nc-item-msg">${n.mensaje || ''}</p>
               ${waBtn}
               ${mapsBtn}
+              ${abrirBtn}
               ${pickupAvisoHtml}
             </div>
           </div>

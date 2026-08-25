@@ -2479,6 +2479,7 @@ clientAddress: clientAddressParaVendedor || "",
 clientSchedule: clientScheduleParaVendedor || "",
 clientLat: (clientLatParaVendedor !== null && clientLatParaVendedor !== undefined) ? clientLatParaVendedor : "",
 clientLng: (clientLngParaVendedor !== null && clientLngParaVendedor !== undefined) ? clientLngParaVendedor : "",
+calificaEnvio: !!calificaEnvio,
 items: notifItems,
 vendorNombre: nombre || "",
 waUrl: waUrl || ""
