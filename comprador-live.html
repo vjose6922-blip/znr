@@ -7,7 +7,7 @@
  script-src 'self' 'unsafe-inline' https://www.gstatic.com https://connect.facebook.net https://*.firebaseio.com;
  style-src 'self' 'unsafe-inline';
  img-src 'self' data: blob: https://lh3.googleusercontent.com https://drive.google.com https://placehold.co https://via.placeholder.com https://*.fbcdn.net;
- connect-src 'self' https://script.google.com https://script.googleusercontent.com https://wttr.in https://www.gstatic.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firebaseinstallations.googleapis.com https://fcmregistrations.googleapis.com https://registrar-token-fcm-1038143238323.us-central1.run.app https://ventas-api-1038143238323.us-central1.run.app https://auth-api-1038143238323.us-central1.run.app https://live-api-1038143238323.us-central1.run.app https://catalogo-api-1038143238323.us-central1.run.app https://firebase.googleapis.com https://znr-live-default-rtdb.firebaseio.com wss://znr-live-default-rtdb.firebaseio.com https://*.firebaseio.com wss://*.firebaseio.com https://nominatim.openstreetmap.org https://graph.facebook.com;
+ connect-src 'self' https://script.google.com https://script.googleusercontent.com https://wttr.in https://www.gstatic.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firebaseinstallations.googleapis.com https://fcmregistrations.googleapis.com https://registrar-token-fcm-1038143238323.us-central1.run.app https://ventas-api-1038143238323.us-central1.run.app https://auth-api-1038143238323.us-central1.run.app https://live-api-1038143238323.us-central1.run.app https://catalogo-api-1038143238323.us-central1.run.app https://vendedores-api-1038143238323.us-central1.run.app https://firebase.googleapis.com https://znr-live-default-rtdb.firebaseio.com wss://znr-live-default-rtdb.firebaseio.com https://*.firebaseio.com wss://*.firebaseio.com https://nominatim.openstreetmap.org https://graph.facebook.com;
  font-src 'self';
  frame-src https://www.facebook.com https://staticxx.facebook.com https://*.firebaseio.com https://www.youtube.com;
  frame-ancestors 'none';
@@ -252,9 +252,12 @@ auth.onAuthStateChanged((user) => {
 const CATALOGO_API_URL_CLIVE = "https://catalogo-api-1038143238323.us-central1.run.app";
 const LIVE_API_URL_CLIVE = "https://live-api-1038143238323.us-central1.run.app"; // TODO: pegar la URL real tras el deploy
 const AUTH_API_URL_CLIVE = "https://auth-api-1038143238323.us-central1.run.app";
+const VENDEDORES_API_URL_CLIVE = "https://vendedores-api-1038143238323.us-central1.run.app";
 const AUTH_ACTIONS_CLIVE = ['leerPerfilComprador', 'guardarPerfilComprador'];
+const VENDEDORES_ACTIONS_CLIVE = ['verificarSesionVendedor'];
 async function apiFetch(data, method = 'GET') {
   const API_BASE = AUTH_ACTIONS_CLIVE.includes(data && data.action) ? AUTH_API_URL_CLIVE
+    : VENDEDORES_ACTIONS_CLIVE.includes(data && data.action) ? VENDEDORES_API_URL_CLIVE
     : (data && data.action === 'productosPorVendedor') ? CATALOGO_API_URL_CLIVE : LIVE_API_URL_CLIVE;
   const params = new URLSearchParams();
   Object.entries(data || {}).forEach(([k, v]) => {
@@ -488,6 +491,17 @@ function renderNoId() {
       <div class="icon">${Icon('link', {size:40})}</div>
       <h2>Link inválido</h2>
       <p>Este link de transmisión no es válido. Pide al vendedor que te comparta el link de nuevo.</p>
+    </div>`;
+}
+
+function renderRequiereVendedor() {
+  document.body.classList.remove('live-active');
+  wrap.innerHTML = `
+    <div class="center-card">
+      <div class="icon">${Icon('lock', {size:40})}</div>
+      <h2>Necesitas una cuenta para entrar</h2>
+      <p>Para comentar y comprar en los lives, primero necesitas una cuenta de vendedor (el plan gratis alcanza) — así verificamos que eres una persona real. Si ya tienes cuenta y ves esto, revisa tu conexión e intenta de nuevo.</p>
+      <a href="vendedor.html" class="btn-primary" style="display:block; text-decoration:none; text-align:center; margin-top:14px;">Iniciar sesión o registrarme gratis</a>
     </div>`;
 }
 
@@ -866,7 +880,29 @@ function startPolling() {
 async function init() {
   if (!liveId) { renderNoId(); return; }
 
+  const vendorToken = (() => {
+    try { return (JSON.parse(localStorage.getItem('vendor_session') || 'null') || {}).token || null; }
+    catch (e) { return null; }
+  })();
+  if (!vendorToken) { renderRequiereVendedor(); return; }
+  let vendorNombre = '', vendorTelefono = '';
+  try {
+    const sesionVendedor = await apiFetch({ action: 'verificarSesionVendedor', vendorToken }, 'POST');
+    if (!sesionVendedor.ok) { renderRequiereVendedor(); return; }
+    vendorNombre = sesionVendedor.nombre || '';
+    vendorTelefono = sesionVendedor.telefono || '';
+  } catch (err) {
+    renderRequiereVendedor();
+    return;
+  }
+
   identity = getIdentity();
+  // Ya verificamos que es una cuenta real — si todavía no había llenado el
+  // sheet de "Únete al chat" en este navegador, le ahorramos escribir de
+  // nuevo lo que ya sabemos de su cuenta de vendedor.
+  if (!identity) identity = {};
+  if (!identity.nombre && vendorNombre) identity.nombre = vendorNombre;
+  if (!identity.telefono && vendorTelefono) identity.telefono = vendorTelefono;
   await authReady; // esperar a que Firebase asigne el uid anónimo antes de leer/escribir RTDB
 
   try {
