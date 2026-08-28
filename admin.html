@@ -20,7 +20,9 @@
     https://*.run.app
     https://ventas-api-1038143238323.us-central1.run.app
     https://vendedores-api-1038143238323.us-central1.run.app
-    https://beneficiarios-api-1038143238323.us-central1.run.app;
+    https://beneficiarios-api-1038143238323.us-central1.run.app
+    https://catalogo-api-1038143238323.us-central1.run.app
+    https://admin-api-1038143238323.us-central1.run.app;
   font-src 'self';
   frame-ancestors 'none';
   object-src 'none';
@@ -1075,7 +1077,9 @@ async function openDonacionesStatsModal() {
   if (old) old.remove();
   const token = sessionStorage.getItem('admin_token') || '';
   const api   = window.API_URL || '';
-  const beneficiariosApi = "https://beneficiarios-api-1038143238323.us-central1.run.app"; // TODO: pegar la URL real tras el deploy
+  const beneficiariosApi = "https://beneficiarios-api-1038143238323.us-central1.run.app";
+  const vendedoresApi = "https://vendedores-api-1038143238323.us-central1.run.app";
+  const catalogoApi = "https://catalogo-api-1038143238323.us-central1.run.app";
 
   const modal = document.createElement('div');
   modal.id = 'modal-donaciones-stats';
@@ -1094,10 +1098,10 @@ async function openDonacionesStatsModal() {
   try {
     // Cargar vendedores, productos comunidad, beneficiarios y el historial de donaciones
     const [vRes, prodRes, benRes, donRes] = await Promise.all([
-      fetch(api + '?' + new URLSearchParams({ action:'vendedoresAdmin', token })).then(r=>r.json()).catch(()=>({})),
-      fetch(api + '?' + new URLSearchParams({ action:'listarComunidad', admin:'true' })).then(r=>r.json()).catch(()=>({})),
+      fetch(vendedoresApi + '?' + new URLSearchParams({ action:'vendedoresAdmin', token })).then(r=>r.json()).catch(()=>({})),
+      fetch(catalogoApi + '?' + new URLSearchParams({ action:'listarTodoComunidad', token })).then(r=>r.json()).catch(()=>({})),
       fetch(beneficiariosApi + '?' + new URLSearchParams({ action:'obtenerBeneficiarios', token })).then(r=>r.json()).catch(()=>({})),
-      fetch(api + '?' + new URLSearchParams({ action:'obtenerDonaciones', token })).then(r=>r.json()).catch(()=>({})),
+      fetch(beneficiariosApi + '?' + new URLSearchParams({ action:'obtenerDonaciones', token })).then(r=>r.json()).catch(()=>({})),
     ]);
     const vendors    = vRes.vendors || [];
     const products   = prodRes.products || [];
@@ -1372,7 +1376,7 @@ async function resincronizarComunidadAlgoliaBtn() {
 
   showLoader('Resincronizando Comunidad con Algolia...');
   try {
-    const api = window.API_URL || '';
+    const api = "https://catalogo-api-1038143238323.us-central1.run.app";
     const token = sessionStorage.getItem('admin_token') || '';
     if (!api || !token) {
       hideLoader();
@@ -1434,7 +1438,7 @@ async function reentrenarModeloIA() {
 
   showLoader('Disparando reentrenamiento...');
   try {
-    const api = window.API_URL || '';
+    const api = "https://admin-api-1038143238323.us-central1.run.app";
     const token = sessionStorage.getItem('admin_token') || '';
     if (!api || !token) {
       hideLoader();
@@ -1588,7 +1592,7 @@ async function ejecutarSyncVendedor() {
     if (window.showTemporaryMessage) window.showTemporaryMessage('Ingresa el UID del vendedor', 'error');
     return;
   }
-  const api = window.API_URL || '';
+  const api = "https://catalogo-api-1038143238323.us-central1.run.app";
   const token = sessionStorage.getItem('admin_token') || '';
   if (!api || !token) {
     showCustomAlert({
@@ -1680,7 +1684,7 @@ window.loadErrorLog = function() {
   const list = document.getElementById('em-list');
   if (!list) return;
   list.innerHTML = '<p style="color:#888;text-align:center;padding:20px">' + Icon('clock') + ' Cargando errores...</p>';
-  const api   = window.API_URL || '';
+  const api   = "https://admin-api-1038143238323.us-central1.run.app";
   const token = sessionStorage.getItem('admin_token') || '';
 
   if (!api || !token) {
@@ -1688,12 +1692,8 @@ window.loadErrorLog = function() {
     return;
   }
 
-  const url = api;
-  fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: new URLSearchParams({ action: 'obtenerErrorLog', token }).toString()
-  })
+  const url = api + '?' + new URLSearchParams({ action: 'obtenerErrorLog', token }).toString();
+  fetch(url)
     .then(r => {
       if (!r.ok) throw new Error('HTTP ' + r.status);
       return r.json();
@@ -1767,9 +1767,9 @@ window.renderErrorLog = function() {
 
 window.clearErrorLog = function() {
   if (!confirm('¿Borrar todos los errores del log?')) return;
-  const api   = window.API_URL || window.ADMIN_API_URL || '';
+  const api   = "https://admin-api-1038143238323.us-central1.run.app";
   const token = sessionStorage.getItem('admin_token') || '';
-  // Limpiar en el backend (Apps Script: limpiarErrorLog)
+  // Limpiar en el backend (Cloud Function admin-api: limpiarErrorLog)
   if (api && token) {
     fetch(api, {
       method: 'POST',
@@ -1910,7 +1910,8 @@ function openInspectorMode() {
 
 window.openVendorStatsGlobal = async function() {
   const token = sessionStorage.getItem('admin_token') || '';
-  const api  = window.API_URL || window.ADMIN_API_URL || '';
+  const vendedoresApi = "https://vendedores-api-1038143238323.us-central1.run.app";
+  const catalogoApi = "https://catalogo-api-1038143238323.us-central1.run.app";
   let modal = document.getElementById('global-vendor-stats-modal');
   if (!modal) {
     modal = document.createElement('div');
@@ -1931,8 +1932,8 @@ window.openVendorStatsGlobal = async function() {
   document.getElementById('gvs-list').innerHTML = '';
   try {
     const [vRes, pRes] = await Promise.all([
-      fetch(api + '?' + new URLSearchParams({ action: "vendedoresAdmin", token: token }).toString()).then(r=>r.json()).catch(()=>({})),
-      fetch(api + '?' + new URLSearchParams({ action: "listarComunidad", token: token }).toString()).then(r=>r.json()).catch(()=>({}))
+      fetch(vendedoresApi + '?' + new URLSearchParams({ action: "vendedoresAdmin", token: token }).toString()).then(r=>r.json()).catch(()=>({})),
+      fetch(catalogoApi + '?' + new URLSearchParams({ action: "listarTodoComunidad", token: token }).toString()).then(r=>r.json()).catch(()=>({}))
     ]);
     const vendors  = vRes.vendors  || [];
     const products = pRes.products || pRes.pendientes || [];
@@ -2003,7 +2004,7 @@ window.openVendorStatsGlobal = async function() {
 
 window.togglePlanVendedor = async function(uid, nombre, currentPlan) {
   const token = sessionStorage.getItem('admin_token') || '';
-  const api   = window.API_URL || window.ADMIN_API_URL || '';
+  const api   = "https://vendedores-api-1038143238323.us-central1.run.app";
 
   if (!api) {
     if (window.showTemporaryMessage) window.showTemporaryMessage('API no disponible', 'error');
@@ -2062,12 +2063,12 @@ window.togglePlanVendedor = async function(uid, nombre, currentPlan) {
 
 window.eliminarCuentaVendedorAdmin = async function(uid, nombre) {
   const token = sessionStorage.getItem('admin_token') || '';
-  const api   = window.API_URL || window.ADMIN_API_URL || '';
+  const api   = "https://vendedores-api-1038143238323.us-central1.run.app";
 
   if (!api)   { if (window.showTemporaryMessage) window.showTemporaryMessage('API no disponible', 'error'); return; }
   if (!token) { if (window.showTemporaryMessage) window.showTemporaryMessage('Token no encontrado. Re-inicia sesión.', 'error'); return; }
 
-  if (!confirm(`Esto borrará TODO de "${nombre}": productos, imágenes, sesiones en vivo, entregas y su cuenta. Es irreversible. ¿Continuar?`)) return;
+  if (!confirm(`Esto borrará TODO de "${nombre}": productos, sesiones en vivo, entregas y su cuenta. Es irreversible. ¿Continuar?`)) return;
   if (!confirm(`Última confirmación: se eliminará por completo a "${nombre}" y no podrás recuperar sus datos. ¿Eliminar definitivamente?`)) return;
 
   try {
