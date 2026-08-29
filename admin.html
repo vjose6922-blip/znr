@@ -1261,7 +1261,7 @@ async function openAnalyticsModal(period, source) {
   try {
     if (!token) throw new Error('Sin sesión de admin');
     const action = source === 'comunidad' ? 'getAnalyticsComunidad' : 'getAnalytics';
-    const apiUrl = source === 'comunidad' ? "https://ventas-api-1038143238323.us-central1.run.app" : api;
+    const apiUrl = source === 'comunidad' ? "https://ventas-api-1038143238323.us-central1.run.app" : "https://tienda-znr-api-1038143238323.us-central1.run.app";
     const res = await fetch(apiUrl + '?' + new URLSearchParams({ action, token, period })).then(r=>r.json());
     if (!res.ok) throw new Error(res.error || 'Error del servidor');
 

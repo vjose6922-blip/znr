@@ -2097,7 +2097,7 @@ items: znrItems.map(i => ({ name: i.name, quantity: i.quantity, price: i.price }
 });
 }
 try {
-await fetch(API_URL, {
+await fetch(window.TIENDA_ZNR_API_URL, {
 method: "POST",
 body: JSON.stringify({ action: "saveClientPhone", requestId: requestId, phone: clientPhone })
 });
@@ -2109,7 +2109,7 @@ imagen:  item.Imagen1 || "",
 talla:  item.Talla  || "",
 precio:  item.price  || 0
 }));
-await fetch(API_URL, {
+await fetch(window.TIENDA_ZNR_API_URL, {
 method: "POST",
 body: JSON.stringify({ action: "createNotification", items: notificationItems, requestId: requestId })
 });
