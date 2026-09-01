@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>ZNR — Prototipo de mapa 3D</title>
+<script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+<link href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" rel="stylesheet" />
+<style>
+  :root{
+    --bg:#0d1117;
+    --panel:#12181f;
+    --panel-border:#22303c;
+    --accent:#3fd6a0;
+    --accent-dim:#2a9d76;
+    --text:#e6edf3;
+    --text-dim:#8b98a5;
+    --danger:#ff6b6b;
+  }
+  *{ box-sizing:border-box; }
+  html,body{
+    margin:0; padding:0; height:100%; width:100%;
+    background:var(--bg); color:var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    overflow:hidden;
+  }
+  #map{ position:absolute; inset:0; }
+
+  /* Panel superior */
+  #top-bar{
+    position:absolute; top:0; left:0; right:0;
+    display:flex; align-items:center; justify-content:space-between;
+    padding:14px 16px;
+    background:linear-gradient(to bottom, rgba(13,17,23,0.9), rgba(13,17,23,0));
+    z-index:5;
+    pointer-events:none;
+  }
+  #top-bar .brand{
+    font-weight:700; font-size:15px; letter-spacing:0.3px;
+    color:var(--text);
+    pointer-events:auto;
+  }
+  #top-bar .brand span{ color:var(--accent); }
+  #status-pill{
+    pointer-events:auto;
+    background:var(--panel);
+    border:1px solid var(--panel-border);
+    padding:6px 12px;
+    border-radius:20px;
+    font-size:12px;
+    color:var(--text-dim);
+    display:flex; align-items:center; gap:6px;
+  }
+  #status-dot{
+    width:7px; height:7px; border-radius:50%;
+    background:var(--text-dim);
+    transition:background .3s;
+  }
+  #status-dot.live{ background:var(--accent); box-shadow:0 0 6px var(--accent); }
+  #status-dot.err{ background:var(--danger); }
+
+  /* Panel inferior de ruta */
+  #route-panel{
+    position:absolute; left:0; right:0; bottom:0;
+    background:var(--panel);
+    border-top:1px solid var(--panel-border);
+    padding:16px;
+    z-index:5;
+    border-radius:18px 18px 0 0;
+    box-shadow: 0 -8px 24px rgba(0,0,0,0.35);
+  }
+  #route-info{
+    display:flex; justify-content:space-between; align-items:center;
+    margin-bottom:12px;
+  }
+  #route-info .metric{ text-align:left; }
+  #route-info .metric .value{ font-size:22px; font-weight:700; }
+  #route-info .metric .label{ font-size:11px; color:var(--text-dim); text-transform:uppercase; letter-spacing:0.5px; }
+  #route-info .metric.right{ text-align:right; }
+
+  #hint{
+    font-size:12.5px; color:var(--text-dim); margin-bottom:12px; line-height:1.4;
+  }
+  #hint b{ color:var(--text); }
+
+  .btn-row{ display:flex; gap:10px; }
+  button{
+    flex:1;
+    border:none; border-radius:12px;
+    padding:13px 14px;
+    font-size:14px; font-weight:600;
+    cursor:pointer;
+    transition:opacity .15s, transform .1s;
+  }
+  button:active{ transform:scale(0.98); }
+  button:disabled{ opacity:0.35; cursor:not-allowed; }
+  #btn-track{
+    background:var(--accent);
+    color:#04140d;
+  }
+  #btn-track.tracking{
+    background:var(--danger);
+    color:#2a0000;
+  }
+  #btn-clear{
+    background:transparent;
+    border:1px solid var(--panel-border);
+    color:var(--text-dim);
+    flex:0 0 auto;
+    width:48px;
+  }
+
+  /* control tilt/bearing */
+  #view-controls{
+    position:absolute; right:14px; bottom:200px;
+    display:flex; flex-direction:column; gap:8px;
+    z-index:5;
+  }
+  .view-btn{
+    width:40px; height:40px;
+    border-radius:50%;
+    background:var(--panel);
+    border:1px solid var(--panel-border);
+    color:var(--text);
+    display:flex; align-items:center; justify-content:center;
+    font-size:16px;
+    cursor:pointer;
+  }
+
+  .maplibregl-ctrl-attrib{ font-size:9px; }
+
+  /* marcador destino */
+  .dest-marker{
+    width:22px; height:22px;
+    background:var(--danger);
+    border:3px solid #fff;
+    border-radius:50% 50% 50% 0;
+    transform: rotate(-45deg);
+    box-shadow:0 2px 6px rgba(0,0,0,0.4);
+  }
+  .user-marker{
+    width:18px; height:18px;
+    background:var(--accent);
+    border:3px solid #fff;
+    border-radius:50%;
+    box-shadow:0 0 0 6px rgba(63,214,160,0.25);
+  }
+</style>
+</head>
+<body>
+
+<div id="map"></div>
+
+<div id="top-bar">
+  <div class="brand">ZNR <span>· mapa 3D</span></div>
+  <div id="status-pill"><div id="status-dot"></div><span id="status-text">ubicación inactiva</span></div>
+</div>
+
+<div id="view-controls">
+  <div class="view-btn" id="btn-tilt-up" title="Más inclinación">⤢</div>
+  <div class="view-btn" id="btn-tilt-down" title="Menos inclinación">⤡</div>
+  <div class="view-btn" id="btn-recenter" title="Centrar en mí">◎</div>
+</div>
+
+<div id="route-panel">
+  <div id="hint">Toca el mapa para <b>fijar un destino</b>. Luego pulsa <b>Iniciar ruta</b> para seguir tu posición en vivo mientras te desplazas hacia allá.</div>
+  <div id="route-info">
+    <div class="metric">
+      <div class="value" id="dist-value">—</div>
+      <div class="label">distancia</div>
+    </div>
+    <div class="metric right">
+      <div class="value" id="eta-value">—</div>
+      <div class="label">rumbo</div>
+    </div>
+  </div>
+  <div class="btn-row">
+    <button id="btn-track" disabled>Iniciar ruta</button>
+    <button id="btn-clear">✕</button>
+  </div>
+</div>
+
+<script>
+// ---------- Mapa base (OpenFreeMap, gratis, sin API key) ----------
+const map = new maplibregl.Map({
+  container: 'map',
+  style: 'https://tiles.openfreemap.org/styles/liberty',
+  center: [-99.5075, 27.4761], // Nuevo Laredo, Tamaulipas
+  zoom: 14,
+  pitch: 55,           // inclinación tipo Apple Maps
+  bearing: -12,
+  antialias: true,
+  attributionControl: { compact: true }
+});
+
+map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), 'top-left');
+
+let userMarker = null;
+let destMarker = null;
+let destLngLat = null;
+let watchId = null;
+let tracking = false;
+let routeDistanceMeters = null;
+
+const statusDot = document.getElementById('status-dot');
+const statusText = document.getElementById('status-text');
+const distValue = document.getElementById('dist-value');
+const etaValue = document.getElementById('eta-value');
+const btnTrack = document.getElementById('btn-track');
+const btnClear = document.getElementById('btn-clear');
+
+// Look estilo Apple Maps simplificado: sin texturas, edificios extruidos planos con sombreado por altura
+map.on('load', () => {
+  const layers = map.getStyle().layers;
+  let labelLayerId;
+  for (const l of layers) {
+    if (l.type === 'symbol' && l.layout && l.layout['text-field']) { labelLayerId = l.id; break; }
+  }
+
+  map.addLayer({
+    id: '3d-buildings',
+    source: 'openmaptiles',
+    'source-layer': 'building',
+    type: 'fill-extrusion',
+    minzoom: 13,
+    paint: {
+      'fill-extrusion-color': [
+        'interpolate', ['linear'], ['coalesce', ['get', 'render_height'], 8],
+        0, '#5b6b78',
+        20, '#7c8d99',
+        60, '#a3b3bd',
+        150, '#cfd9e0'
+      ],
+      'fill-extrusion-height': ['coalesce', ['get', 'render_height'], 8],
+      'fill-extrusion-base': ['coalesce', ['get', 'render_min_height'], 0],
+      'fill-extrusion-opacity': 0.92
+    }
+  }, labelLayerId);
+
+  map.setFog({}); // atmósfera sutil, sin texturas satelitales
+});
+
+// ---------- Fijar destino con toque/clic ----------
+map.on('click', (e) => {
+  setDestination(e.lngLat);
+});
+
+function setDestination(lngLat) {
+  destLngLat = lngLat;
+  if (destMarker) destMarker.remove();
+  const el = document.createElement('div');
+  el.className = 'dest-marker';
+  destMarker = new maplibregl.Marker({ element: el, anchor: 'bottom' })
+    .setLngLat(lngLat)
+    .addTo(map);
+  btnTrack.disabled = false;
+  updateRouteLine();
+  updateMetrics();
+}
+
+// ---------- Ruta real por calles (OSRM público, gratis, útil para prototipo) ----------
+// Nota: router.project-osrm.org es un servidor DEMO sin SLA. Para producción,
+// auto-hospeda tu propio OSRM (Docker, datos de OSM de tu región) o usa un
+// proveedor de ruteo con capa gratuita.
+let routeFetchInFlight = false;
+let lastRouteFetchAt = 0;
+
+async function updateRouteLine() {
+  if (!destLngLat) return;
+  const userPos = userMarker ? userMarker.getLngLat() : map.getCenter();
+
+  // throttle: no más de 1 solicitud cada 3s mientras se camina
+  const now = Date.now();
+  if (routeFetchInFlight || now - lastRouteFetchAt < 3000) return;
+  routeFetchInFlight = true;
+  lastRouteFetchAt = now;
+
+  try {
+    const url = `https://router.project-osrm.org/route/v1/foot/${userPos.lng},${userPos.lat};${destLngLat.lng},${destLngLat.lat}?overview=full&geometries=geojson`;
+    const res = await fetch(url);
+    const data = await res.json();
+
+    let coords;
+    if (data.code === 'Ok' && data.routes && data.routes[0]) {
+      coords = data.routes[0].geometry.coordinates;
+      routeDistanceMeters = data.routes[0].distance; // metros, por calles
+    } else {
+      // fallback: si OSRM no responde, muestra línea recta para no dejar el panel vacío
+      coords = [[userPos.lng, userPos.lat], [destLngLat.lng, destLngLat.lat]];
+      routeDistanceMeters = null;
+    }
+
+    const geojson = { type: 'Feature', geometry: { type: 'LineString', coordinates: coords } };
+    if (map.getSource('route')) {
+      map.getSource('route').setData(geojson);
+    } else {
+      map.addSource('route', { type: 'geojson', data: geojson });
+      map.addLayer({
+        id: 'route-line',
+        type: 'line',
+        source: 'route',
+        layout: { 'line-cap': 'round', 'line-join': 'round' },
+        paint: {
+          'line-color': '#3fd6a0',
+          'line-width': 4,
+          'line-opacity': 0.9
+        }
+      });
+    }
+  } catch (e) {
+    console.warn('No se pudo obtener ruta de OSRM:', e);
+  } finally {
+    routeFetchInFlight = false;
+    updateMetrics();
+  }
+}
+
+// ---------- Geolocalización en vivo ----------
+btnTrack.addEventListener('click', () => {
+  if (!tracking) startTracking(); else stopTracking();
+});
+
+btnClear.addEventListener('click', () => {
+  stopTracking();
+  if (destMarker) { destMarker.remove(); destMarker = null; }
+  destLngLat = null;
+  if (map.getLayer('route-line')) map.removeLayer('route-line');
+  if (map.getSource('route')) map.removeSource('route');
+  btnTrack.disabled = true;
+  distValue.textContent = '—';
+  etaValue.textContent = '—';
+});
+
+function startTracking() {
+  if (!navigator.geolocation) {
+    statusText.textContent = 'geolocalización no disponible';
+    statusDot.className = 'err';
+    return;
+  }
+  const isSecure = window.isSecureContext; // true en https:// y en localhost/127.0.0.1
+  if (!isSecure) {
+    statusText.textContent = 'abre con http://localhost, no con file://';
+    statusDot.className = 'err';
+    alert('El navegador bloquea el GPS cuando abres el archivo directo (file://) y ni siquiera muestra el diálogo de permiso.\n\nPara probarlo local:\n1. Abre una terminal en la carpeta del archivo\n2. Corre: python3 -m http.server 8000\n3. Entra a http://localhost:8000/ en el navegador\n\nAhí sí te pedirá permiso normalmente.');
+    return;
+  }
+  tracking = true;
+  btnTrack.textContent = 'Detener ruta';
+  btnTrack.classList.add('tracking');
+  statusText.textContent = 'buscando señal…';
+
+  watchId = navigator.geolocation.watchPosition(onPosition, onGeoError, {
+    enableHighAccuracy: true,
+    maximumAge: 2000,
+    timeout: 15000
+  });
+}
+
+function stopTracking() {
+  tracking = false;
+  btnTrack.textContent = 'Iniciar ruta';
+  btnTrack.classList.remove('tracking');
+  statusDot.classList.remove('live');
+  statusText.textContent = 'ubicación inactiva';
+  if (watchId !== null) navigator.geolocation.clearWatch(watchId);
+  watchId = null;
+}
+
+function onPosition(pos) {
+  const { longitude, latitude, heading } = pos.coords;
+  statusDot.classList.add('live');
+  statusDot.classList.remove('err');
+  statusText.textContent = 'en vivo';
+
+  const lngLat = [longitude, latitude];
+  if (!userMarker) {
+    const el = document.createElement('div');
+    el.className = 'user-marker';
+    userMarker = new maplibregl.Marker({ element: el }).setLngLat(lngLat).addTo(map);
+  } else {
+    userMarker.setLngLat(lngLat);
+  }
+
+  map.easeTo({
+    center: lngLat,
+    bearing: heading != null ? heading : map.getBearing(),
+    duration: 800
+  });
+
+  updateRouteLine();
+  updateMetrics();
+}
+
+function onGeoError(err) {
+  statusDot.classList.add('err');
+  statusDot.classList.remove('live');
+  statusText.textContent = 'permiso de ubicación denegado';
+}
+
+function updateMetrics() {
+  if (!destLngLat) return;
+  const userPos = userMarker ? userMarker.getLngLat() : map.getCenter();
+
+  let distKm;
+  if (routeDistanceMeters != null) {
+    distKm = routeDistanceMeters / 1000; // distancia real por calle, de OSRM
+  } else {
+    distKm = haversine(userPos.lat, userPos.lng, destLngLat.lat, destLngLat.lng); // línea de aire, fallback
+  }
+  distValue.textContent = distKm < 1 ? `${Math.round(distKm * 1000)} m` : `${distKm.toFixed(2)} km`;
+  etaValue.textContent = `${bearingCompass(userPos, destLngLat)}`;
+}
+
+function haversine(lat1, lon1, lat2, lon2) {
+  const R = 6371;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)**2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+}
+
+function bearingCompass(from, to) {
+  const y = Math.sin((to.lng-from.lng)*Math.PI/180) * Math.cos(to.lat*Math.PI/180);
+  const x = Math.cos(from.lat*Math.PI/180)*Math.sin(to.lat*Math.PI/180) -
+            Math.sin(from.lat*Math.PI/180)*Math.cos(to.lat*Math.PI/180)*Math.cos((to.lng-from.lng)*Math.PI/180);
+  let brng = Math.atan2(y, x) * 180 / Math.PI;
+  brng = (brng + 360) % 360;
+  const dirs = ['N','NE','E','SE','S','SO','O','NO'];
+  return dirs[Math.round(brng / 45) % 8];
+}
+
+// ---------- Controles de inclinación ----------
+document.getElementById('btn-tilt-up').addEventListener('click', () => {
+  map.easeTo({ pitch: Math.min(map.getPitch() + 10, 70), duration: 300 });
+});
+document.getElementById('btn-tilt-down').addEventListener('click', () => {
+  map.easeTo({ pitch: Math.max(map.getPitch() - 10, 0), duration: 300 });
+});
+document.getElementById('btn-recenter').addEventListener('click', () => {
+  const pos = userMarker ? userMarker.getLngLat() : map.getCenter();
+  map.easeTo({ center: pos, zoom: 16, duration: 500 });
+});
+</script>
+</body>
+</html>
