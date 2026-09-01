@@ -524,6 +524,8 @@
 
     let map = null, repMarker = null, line = null, watchId = null;
     let ultimoCalculo = 0;
+    let fitAutoPendiente = true; // se apaga en cuanto tenemos tu posición GPS real una vez
+    let followMode = true; // true = el mapa te sigue solo; se apaga si arrastras el mapa a mano
     const REFRESH_MS = 15000;
 
     function cerrar() {
@@ -543,13 +545,45 @@
         if (!map) return; // el modal ya se cerró mientras esperábamos la respuesta
         line.setLatLngs(ruta || todos);
         line.setStyle({ dashArray: ruta ? null : '6 6' });
-        map.fitBounds(ruta || todos, { padding: [30, 30] });
+        if (fitAutoPendiente) {
+          map.fitBounds(ruta || todos, { padding: [30, 30] });
+          // Una vez que ya centramos con tu GPS real (no solo con las paradas),
+          // dejamos de mover la vista sola en cada recálculo de 15s — así
+          // puedes acercarte a una calle y que se quede ahí.
+          if (repLatLng) fitAutoPendiente = false;
+        }
         const note = document.getElementById('route-note');
         if (note) {
           note.style.display = ruta ? 'none' : 'block';
           note.textContent = 'No se pudo calcular la ruta por calles ahora mismo — se muestra la línea directa entre paradas.';
         }
       });
+    }
+
+    function mostrarBotonRecentrar() {
+      const Control = L.Control.extend({
+        onAdd: function() {
+          const btn = L.DomUtil.create('button', '');
+          btn.innerHTML = '◎';
+          btn.title = 'Centrar y reactivar seguimiento';
+          Object.assign(btn.style, {
+            width: '38px', height: '38px', fontSize: '18px',
+            background: 'var(--color-surface-2, #1e2128)',
+            color: 'var(--color-text-primary, #fff)',
+            border: '1px solid var(--color-border-subtle, #333)',
+            borderRadius: '8px', cursor: 'pointer'
+          });
+          L.DomEvent.disableClickPropagation(btn);
+          btn.onclick = () => {
+            followMode = true;
+            if (repMarker) map.panTo(repMarker.getLatLng());
+            else if (line) map.fitBounds(line.getBounds(), { padding: [30, 30] });
+          };
+          return btn;
+        },
+        onRemove: function() {}
+      });
+      new Control({ position: 'topright' }).addTo(map);
     }
 
     setTimeout(() => {
@@ -559,6 +593,10 @@
       latlngs.forEach((ll, i) => L.marker(ll).addTo(map).bindPopup(`${i + 1}. ${puntos[i].compradorNombre}`));
       line = L.polyline(latlngs, { color: '#ec4899', weight: 3, dashArray: '6 6' }).addTo(map);
       map.fitBounds(latlngs, { padding: [30, 30] });
+      mostrarBotonRecentrar();
+      // Si el usuario arrastra el mapa a mano, soltamos el seguimiento
+      // automático hasta que vuelva a pulsar el botón "◎".
+      map.on('dragstart', () => { followMode = false; });
       recalcular(null); // primer trazo, todavía sin GPS propio
 
       if (!navigator.geolocation) return;
@@ -570,7 +608,13 @@
         if (!map) return;
         const repLatLng = [pos.coords.latitude, pos.coords.longitude];
         if (!repMarker) repMarker = L.marker(repLatLng, { icon: repIcon }).addTo(map).bindPopup('Tú');
-        else { repMarker.setLatLng(repLatLng); map.panTo(repLatLng); }
+        else {
+          repMarker.setLatLng(repLatLng);
+          // Modo "seguir": el mapa se recentra en tu posición sin tocar el
+          // zoom, pero solo mientras followMode siga activo (se apaga si
+          // arrastras el mapa a mano; se reactiva con el botón "◎").
+          if (followMode) map.panTo(repLatLng, { animate: true, duration: 0.5 });
+        }
         const ahora = Date.now();
         if (ahora - ultimoCalculo < REFRESH_MS) return;
         ultimoCalculo = ahora;

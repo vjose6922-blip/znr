@@ -97,6 +97,7 @@ let map = null;
 let destinoMarker = null;
 let repartidorMarker = null;
 let pollTimer = null;
+let followMode = true; // true = el mapa sigue al repartidor solo; se apaga si arrastras el mapa a mano
 
 async function apiFetch(action, extra) {
   const p = new URLSearchParams({ action, liveId, compradorKey, ...extra });
@@ -115,6 +116,9 @@ function initMap(lat, lng) {
     attribution: '&copy; OpenStreetMap',
     maxZoom: 19
   }).addTo(map);
+  // Si el comprador arrastra el mapa a mano, soltamos el seguimiento
+  // automático hasta que vuelva a pulsar el botón "◎".
+  map.on('dragstart', () => { followMode = false; });
 }
 
 function actualizarMapa(entrega) {
@@ -141,15 +145,54 @@ function actualizarMapa(entrega) {
       repartidorMarker = L.marker(pos, { icon, title: 'Repartidor' }).addTo(map).bindPopup('Repartidor');
     } else {
       repartidorMarker.setLatLng(pos);
+      // Modo "seguir": se recentra en el repartidor sin tocar tu zoom,
+      // pero solo mientras followMode siga activo.
+      if (followMode && map._znrFitInicial) map.panTo(pos, { animate: true, duration: 0.5 });
     }
     puntos.push(pos);
   }
 
-  if (map && puntos.length === 2) {
+  // Solo ajustamos el zoom/encuadre automáticamente la PRIMERA vez que
+  // tenemos ambos puntos. Después, cada poll solo mueve los marcadores
+  // (arriba) sin tocar la vista, para respetar el zoom manual del usuario.
+  if (map && puntos.length === 2 && !map._znrFitInicial) {
+    map._znrFitInicial = true;
     map.fitBounds(puntos, { padding: [40, 40] });
+    mostrarBotonRecentrar();
   } else if (map && !map._znrCentradoInicial && puntos.length === 1) {
     map._znrCentradoInicial = true;
   }
+}
+
+let btnRecentrar = null;
+function mostrarBotonRecentrar() {
+  if (btnRecentrar || !map) return;
+  const Control = L.Control.extend({
+    onAdd: function() {
+      const btn = L.DomUtil.create('button', '');
+      btn.innerHTML = '◎';
+      btn.title = 'Centrar y reactivar seguimiento';
+      Object.assign(btn.style, {
+        width: '38px', height: '38px', fontSize: '18px',
+        background: 'var(--color-surface-2, #1e2128)',
+        color: 'var(--color-text-primary, #fff)',
+        border: '1px solid var(--color-border-subtle, #333)',
+        borderRadius: '8px', cursor: 'pointer'
+      });
+      L.DomEvent.disableClickPropagation(btn);
+      btn.onclick = () => {
+        followMode = true;
+        const puntos = [];
+        if (destinoMarker) puntos.push(destinoMarker.getLatLng());
+        if (repartidorMarker) puntos.push(repartidorMarker.getLatLng());
+        if (puntos.length) map.fitBounds(puntos, { padding: [40, 40] });
+      };
+      return btn;
+    },
+    onRemove: function() {}
+  });
+  btnRecentrar = new Control({ position: 'topright' });
+  btnRecentrar.addTo(map);
 }
 
 // Distancia en línea recta (haversine) — la misma fórmula que usa el
