@@ -688,13 +688,13 @@
 
  async function loadHomeComunidad() {
  const grid = document.getElementById('home-comunidad-grid');
- if (!grid || !window.API_URL) return;
+ if (!grid) return;
  try {
- const res  = await fetch(window.API_URL + '?action=listarComunidad');
+ const res  = await fetch('https://znr-live-default-rtdb.firebaseio.com/catalogo/snapshot.json');
  const data = await res.json();
- if (!data.ok || !data.products) throw new Error('Sin datos');
- const aprobados = data.products.filter(p => p.estado === 'aprobado').slice(0, PREVIEW_COUNT);
- window.allCommunityProductsIndexed = data.products.filter(p => p.estado === 'aprobado');
+ if (!data || !data.ok || !data.products) throw new Error('Sin datos');
+ const aprobados = data.products.slice(0, PREVIEW_COUNT);
+ window.allCommunityProductsIndexed = data.products;
  grid.innerHTML = '';
  if (!aprobados.length) {
  grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:24px;color:var(--color-text-muted)">Pronto habrá productos de la comunidad aquí.</div>';

@@ -207,6 +207,12 @@ container.innerHTML = cards;
 
 // ── Construye la URL de la API con los parámetros actuales ──────────────────
 function buildComunidadUrl(page, filters) {
+  // Modo inspector (admin): catalogo-api ya migrado, sin filtros de
+  // servidor (lista completa hasta 200, se pagina/ordena localmente).
+  if (inspectorMode) {
+    const token = sessionStorage.getItem('admin_token') || '';
+    return CATALOGO_API_URL_INSPECTOR + '?' + new URLSearchParams({ action: 'listarTodoComunidad', token }).toString();
+  }
   const u = new URL(window.API_URL);
   u.searchParams.set('action', 'listarComunidad');
   u.searchParams.set('page',   String(page));
@@ -216,7 +222,6 @@ function buildComunidadUrl(page, filters) {
   if (filters.vendedor)   u.searchParams.set('vendedor_uid', filters.vendedor);
   if (filters.orden === 'verificados') u.searchParams.set('soloPro', 'true');
   if (filters.orden)      u.searchParams.set('orden',       filters.orden);
-  if (inspectorMode)      u.searchParams.set('admin',        'true');
   return u.toString();
 }
 
@@ -280,6 +285,7 @@ async function loadComunidadPageGAS(page, filters, opts = {}) {
     if (!res.ok) throw new Error('HTTP ' + res.status);
     const data = await res.json();
     if (!data.ok) throw new Error(data.error || 'Error del servidor');
+    if (inspectorMode) data.fullSet = true; // listarTodoComunidad no pagina en servidor
 
     if (data.fullSet) {
       communityRandomOrder = data.products || [];
