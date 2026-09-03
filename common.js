@@ -2872,6 +2872,7 @@ if (!('serviceWorker' in navigator)) {
 return false;
 }
 try {
+const teniaControllerPrevio = !!navigator.serviceWorker.controller;
 const registration = await navigator.serviceWorker.register('/znr/sw.js', {
 scope: '/znr/'
 });
@@ -2879,6 +2880,19 @@ navigator.serviceWorker.addEventListener('message', event => {
 if (event.data.type === 'CONNECTION_STATUS') {
 }
 });
+// Si ya había un SW controlando esta pestaña y entra uno nuevo (versión
+// recién desplegada), recarga automático — evita que el usuario tenga
+// que forzar la recarga a mano para ver los cambios. En la primera
+// visita (sin controller previo) no recarga, para no interrumpir la
+// primera carga.
+if (teniaControllerPrevio) {
+  let yaRecargando = false;
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (yaRecargando) return;
+    yaRecargando = true;
+    window.location.reload();
+  });
+}
 return true;
 } catch (error) {
 console.error(' Error registrando SW:', error);

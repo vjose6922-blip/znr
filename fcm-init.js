@@ -95,7 +95,10 @@ async function solicitarPermisoNotificacionesSiFalta(ownerType, ownerId) {
 
     // 2. ✅ Ahora sí, permiso es "granted" (recién otorgado o YA LO TENÍA)
     //    Obtenemos el token y REGISTRAMOS al dueño actual SIEMPRE.
-    const registration = await navigator.serviceWorker.register("/znr/firebase-messaging-sw.js");
+    // Antes registraba firebase-messaging-sw.js aparte, peleando por el
+    // mismo scope /znr/ que sw.js (que ya trae su propio handler de push,
+    // ver comentario en sw.js). Ahora reutiliza ese único registro.
+    const registration = await navigator.serviceWorker.ready;
     const token = await getToken(messaging, {
       vapidKey: VAPID_KEY,
       serviceWorkerRegistration: registration
