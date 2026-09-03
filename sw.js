@@ -1,4 +1,5 @@
-const CACHE_NAME    = 'zr-cache-v67';
+
+const CACHE_NAME    = 'zr-cache-v69';
 const DYNAMIC_CACHE = 'zr-dynamic-v16';
 const OFFLINE_URL   = '/znr/offline.html';
 
@@ -89,6 +90,9 @@ function getCacheStrategy(request) {
   if (IMAGE_CDN_HOSTS.some(h => url.hostname.includes(h))) return 'CACHE_FIRST';
   if (IMAGE_EXTENSIONS.some(ext => url.pathname.toLowerCase().endsWith(ext))) return 'CACHE_FIRST';
   if (url.hostname.includes('wttr.in') || url.hostname.includes('openweathermap.org')) return 'NETWORK_ONLY';
+  // RTDB (snapshot de Comunidad, se regenera cada 5 min) — siempre red
+  // primero, nunca servir cacheado indefinidamente como haría CACHE_FIRST.
+  if (url.hostname.includes('firebaseio.com')) return 'NETWORK_FIRST';
   if (API_DOMAINS.some(d => url.hostname.includes(d))) return 'NETWORK_FIRST';
   if (['document','style','script'].includes(request.destination)) return 'STALE_WHILE_REVALIDATE';
   return 'CACHE_FIRST';
