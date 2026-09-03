@@ -42,14 +42,21 @@ try {
 const controller = new AbortController();
 const timeoutId = setTimeout(() => controller.abort(), 5000);
 // En background solo actualizamos la primera página sin filtros
-const bgUrl = new URL(API_URL);
-bgUrl.searchParams.set('action', 'list');
-bgUrl.searchParams.set('page', '1');
-bgUrl.searchParams.set('limit', String(PRODUCTS_PER_PAGE));
-const res = await fetch(bgUrl.toString(), { signal: controller.signal });
+let freshProducts = null;
+if (window.znrFirestore && window.znrFirestore.getProductosZNR) {
+  const fs = await window.znrFirestore.getProductosZNR();
+  if (fs && fs.ok) freshProducts = fs.products.slice(0, PRODUCTS_PER_PAGE);
+}
 clearTimeout(timeoutId);
-const data = await res.json();
-const freshProducts = (data.products || []);
+if (freshProducts === null) {
+  const bgUrl = new URL(API_URL);
+  bgUrl.searchParams.set('action', 'list');
+  bgUrl.searchParams.set('page', '1');
+  bgUrl.searchParams.set('limit', String(PRODUCTS_PER_PAGE));
+  const res = await fetch(bgUrl.toString(), { signal: controller.signal });
+  const data = await res.json();
+  freshProducts = (data.products || []);
+}
 if (JSON.stringify(freshProducts) !== JSON.stringify(allProducts)) {
 allProducts = freshProducts;
 setCachedProducts(allProducts);
@@ -288,23 +295,29 @@ async function ensureFullCatalog(force = false) {
         }
 }
 
-function refreshFullCatalogInBackground() {
+async function refreshFullCatalogInBackground() {
   if (!navigator.onLine) return;
-  const url = new URL(API_URL);
-  url.searchParams.set('action', 'list');
-  url.searchParams.set('page', '1');
-  url.searchParams.set('limit', '400');
-  fetch(url.toString())
-    .then(r => r.json())
-    .then(data => {
-      const fresh = data.products || [];
-      if (JSON.stringify(fresh) !== JSON.stringify(fullCatalogCache)) {
-        fullCatalogCache = fresh;
-        setFullCatalogToStorage(fresh);
-        if (!_suppressFilterEvents) fetchProducts(false, currentPageGlobal, currentFilters);
-      }
-    })
-    .catch(() => {});
+  try {
+    let fresh = null;
+    if (window.znrFirestore && window.znrFirestore.getProductosZNR) {
+      const fs = await window.znrFirestore.getProductosZNR();
+      if (fs && fs.ok) fresh = fs.products;
+    }
+    if (!fresh) {
+      const url = new URL(API_URL);
+      url.searchParams.set('action', 'list');
+      url.searchParams.set('page', '1');
+      url.searchParams.set('limit', '400');
+      const res = await fetch(url.toString());
+      const data = await res.json();
+      fresh = data.products || [];
+    }
+    if (JSON.stringify(fresh) !== JSON.stringify(fullCatalogCache)) {
+      fullCatalogCache = fresh;
+      setFullCatalogToStorage(fresh);
+      if (!_suppressFilterEvents) fetchProducts(false, currentPageGlobal, currentFilters);
+    }
+  } catch (e) {}
 }
 
 // Replica exactamente la lógica de filtros que antes hacía listProducts() en GAS,

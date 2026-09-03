@@ -59,6 +59,7 @@
     suspenderVendedor: VENDEDORES_API_URL_COMUNIDAD,
     reactivarVendedor: VENDEDORES_API_URL_COMUNIDAD,
     productosPendientes: CATALOGO_API_URL_COMUNIDAD,
+    listarTodoComunidad: CATALOGO_API_URL_COMUNIDAD,
     aprobarProductoComunidad: CATALOGO_API_URL_COMUNIDAD,
     rechazarProductoComunidad: CATALOGO_API_URL_COMUNIDAD,
     deleteComunidad: CATALOGO_API_URL_COMUNIDAD,
@@ -283,7 +284,7 @@
     const prods = document.getElementById('vstats-products');
     grid.innerHTML = '<p style="color:#aaa;text-align:center;grid-column:span 2">Cargando...</p>';
     prods.innerHTML = '';
-    _gasGet({ action: 'listarComunidad', vendedor_uid: uid, admin: 'true', token: _getToken() })
+    _gasGet({ action: 'listarTodoComunidad', token: _getToken() })
       .then(data => {
         const all       = (data.products || []).filter(p => p.vendedor_uid === uid);
         const totalStock = all.reduce((s, p) => s + (Number(p.stock) || 0), 0);

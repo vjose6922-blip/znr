@@ -70,8 +70,7 @@
   }
 
   async function sendEntry(entry) {
-    const api = window.API_URL;
-    if (!api) return false;
+    const api = 'https://admin-api-1038143238323.us-central1.run.app';
     if (_sendsThisLoad >= EM_MAX_SENDS_PER_LOAD) return false; // ya está en localStorage, se reintentará en el próximo flush()
     _sendsThisLoad++;
     try {

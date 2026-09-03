@@ -411,7 +411,7 @@ return;
 }
 console.log("🔄 Actualización en background...");
 try {
-const url = `${API_URL}?action=notificationsBatch&page=1&pageSize=100&noCache=true`;
+const url = `${TIENDA_ZNR_API_URL_NOTIF}?action=notificationsBatch&page=1&pageSize=100&noCache=true`;
 const response = await fetch(url);
 const result = await response.json();
 if (result.ok && result.groups) {

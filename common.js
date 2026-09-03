@@ -4,6 +4,48 @@ const RECENT_PRODUCTS_KEY = 'zr_recent_products';
 const MAX_RECENT_PRODUCTS = 12;
 const UP_KEY  = 'zr_user_prefs_v1';
 const ORDERS_KEY  = 'zr_orders_history';
+const GENERO_POR_CATEGORIA = {
+  'playeras': 'HOMBRE', 'pantalon para caballero': 'HOMBRE', 'short para caballero': 'HOMBRE',
+  'calzado para caballero': 'HOMBRE', 'sueter para caballero': 'HOMBRE', 'chamarra para caballero': 'HOMBRE',
+  'blusas': 'MUJER', 'pantalon para dama': 'MUJER', 'short para dama': 'MUJER', 'vestidos': 'MUJER',
+  'calzado para dama': 'MUJER', 'sueter para dama': 'MUJER', 'chamarra para dama': 'MUJER', 'faldas': 'MUJER',
+  'accesorios': 'UNISEX',
+};
+// Catálogo propio de ZNR (productos_znr) vía Firestore, con los mismos
+// filtros/orden/paginado que antes hacía GAS del lado servidor — el
+// dataset es chico, así que se filtra en cliente. GAS solo como respaldo.
+async function fetchZNRCatalogo({ page = 1, limit = 10, filters = {} } = {}) {
+  let allProducts = null;
+  if (window.znrFirestore && window.znrFirestore.getProductosZNR) {
+    const fs = await window.znrFirestore.getProductosZNR();
+    if (fs && fs.ok) allProducts = fs.products;
+  }
+  if (allProducts) {
+    let list = allProducts;
+    if (filters.gender)   list = list.filter(p => GENERO_POR_CATEGORIA[String(p.Categoria || '').toLowerCase().trim()] === filters.gender);
+    if (filters.category) list = list.filter(p => (p.Categoria || '') === filters.category);
+    if (filters.search) {
+      const s = String(filters.search).toLowerCase();
+      list = list.filter(p => (p.Nombre || '').toLowerCase().includes(s) || (p.Descripcion || '').toLowerCase().includes(s));
+    }
+    if (filters.size) {
+      list = list.filter(p => String(p.Talla || '').trim().split(/[,\/]/).map(t => t.trim()).includes(filters.size));
+    }
+    if (filters.sort === 'price-asc')  list = [...list].sort((a, b) => (Number(a.Precio) || 0) - (Number(b.Precio) || 0));
+    if (filters.sort === 'price-desc') list = [...list].sort((a, b) => (Number(b.Precio) || 0) - (Number(a.Precio) || 0));
+    const total = list.length;
+    const totalPages = Math.ceil(total / limit) || 1;
+    const start = (page - 1) * limit;
+    return { ok: true, products: list.slice(start, start + limit), page, totalPages, total };
+  }
+  const url = new URL(API_URL);
+  url.searchParams.set('action', 'list');
+  url.searchParams.set('page', page);
+  url.searchParams.set('limit', limit);
+  Object.entries(filters).forEach(([k, v]) => { if (v) url.searchParams.set(k, v); });
+  const res = await fetch(url.toString());
+  return await res.json();
+}
 let localCart = {};
 let imageObserver = null;
 let activeModal = null;
@@ -53,10 +95,21 @@ async function fetchFilterOptions(force = false) {
   }
 
   try {
-    const url = new URL(API_URL);
-    url.searchParams.set('action', 'getFilterOptions');
-    const res = await fetch(url.toString());
-    const data = await res.json();
+    let data = null;
+    if (window.znrFirestore && window.znrFirestore.getProductosZNR) {
+      const fs = await window.znrFirestore.getProductosZNR();
+      if (fs && fs.ok) {
+        const categories = [...new Set(fs.products.map(p => p.Categoria).filter(Boolean))].sort();
+        const sizes = [...new Set(fs.products.flatMap(p => String(p.Talla || '').split(/[,\/]/).map(t => t.trim()).filter(Boolean)))].sort();
+        data = { ok: true, categories, sizes };
+      }
+    }
+    if (!data) {
+      const url = new URL(API_URL);
+      url.searchParams.set('action', 'getFilterOptions');
+      const res = await fetch(url.toString());
+      data = await res.json();
+    }
     if (data.ok) {
       window.globalCategories = data.categories || [];
       window.globalSizes = data.sizes || [];
@@ -2576,8 +2629,7 @@ if (shouldIndex) buildProductIndex(cached);
 return cached;
 }
 try {
-const res = await fetch(API_URL);
-const data = await res.json();
+const data = await fetchZNRCatalogo({ page: 1, limit: 400 });
 const raw = data.products || data || [];
 const products = raw.filter(validateProduct);
 if (products.length < raw.length) {
@@ -2600,15 +2652,6 @@ return allProductsIndexed;
 async function loadProductsUnified({ onProducts, onError, force = false, page = 1, limit = 10, filters = {} } = {}) {
   const hasPagination = page > 1 || limit !== 10 || Object.keys(filters).length > 0;
 
-  function buildUrl() {
-    const url = new URL(API_URL);
-    url.searchParams.set('action', 'list');
-    url.searchParams.set('page', page);
-    url.searchParams.set('limit', limit);
-    Object.entries(filters).forEach(([k, v]) => { if (v) url.searchParams.set(k, v); });
-    return url.toString();
-  }
-
   const deliver = (products, fromCache, meta) => {
     buildProductIndex(products);
     window.allProducts = products;
@@ -2621,8 +2664,7 @@ async function loadProductsUnified({ onProducts, onError, force = false, page = 
       const cachedMeta = { page: 1, totalPages: 1, total: cached.length };
       deliver(cached, true, cachedMeta);
       if (navigator.onLine) {
-        fetch(buildUrl())
-          .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+        fetchZNRCatalogo({ page, limit, filters })
           .then(data => {
             const fresh = data.products || [];
             const meta = { page: data.page || 1, totalPages: data.totalPages || 1, total: data.total || fresh.length };
@@ -2654,12 +2696,7 @@ async function loadProductsUnified({ onProducts, onError, force = false, page = 
 
   try {
     showLoader('Cargando productos...');
-    const res = await fetchWithRetry(() => {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 8000);
-      return fetch(buildUrl(), { signal: controller.signal }).finally(() => clearTimeout(timeoutId));
-    }, 2, [1500]);
-    const data = await res.json();
+    const data = await fetchZNRCatalogo({ page, limit, filters });
     const products = data.products || [];
     const meta = {
       page: data.page || page,
