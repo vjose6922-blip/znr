@@ -1415,11 +1415,18 @@ return;
 }
 try {
 console.log("Cargando productos desde red...");
-const controller = new AbortController();
-const timeoutId = setTimeout(() => controller.abort(), 8000);
-const res = await fetch(API_URL, { signal: controller.signal });
-clearTimeout(timeoutId);
-const data = await res.json();
+let data = null;
+if (window.znrFirestore && window.znrFirestore.getProductosZNR) {
+  const fs = await window.znrFirestore.getProductosZNR();
+  if (fs && fs.ok && fs.products.length) data = fs;
+}
+if (!data) {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 8000);
+  const res = await fetch(API_URL, { signal: controller.signal });
+  clearTimeout(timeoutId);
+  data = await res.json();
+}
 allProducts = Array.isArray(data?.products) ? data.products
             : Array.isArray(data) ? data
             : [];
@@ -1452,11 +1459,18 @@ async function loadFreshProductsInBackground() {
 if (isGeneratingLooks) return;
 isGeneratingLooks = true;
 try {
-const controller = new AbortController();
-const timeoutId = setTimeout(() => controller.abort(), 8000);
-const res = await fetch(API_URL, { signal: controller.signal });
-clearTimeout(timeoutId);
-const data = await res.json();
+let data = null;
+if (window.znrFirestore && window.znrFirestore.getProductosZNR) {
+  const fs = await window.znrFirestore.getProductosZNR();
+  if (fs && fs.ok && fs.products.length) data = fs;
+}
+if (!data) {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 8000);
+  const res = await fetch(API_URL, { signal: controller.signal });
+  clearTimeout(timeoutId);
+  data = await res.json();
+}
 const freshProducts = data.products || data || [];
 bgProductsRetryCount = 0;
 if (bgProductsRetryTimer) { clearTimeout(bgProductsRetryTimer); bgProductsRetryTimer = null; }
