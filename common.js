@@ -242,6 +242,7 @@ messageDiv.style.animation = "slideDown 0.3s ease";
 setTimeout(() => messageDiv.remove(), 300);
 }, 3000);
 }
+window.showTemporaryMessage = showTemporaryMessage; // otros scripts (admin.js) la usan como global
 function closeCurrentModal() {
 if (activeModal) {
 activeModal.classList.add("closing");

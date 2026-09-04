@@ -1765,22 +1765,30 @@ window.renderErrorLog = function() {
   }).join('');
 };
 
-window.clearErrorLog = function() {
+window.clearErrorLog = async function() {
   if (!confirm('¿Borrar todos los errores del log?')) return;
   const api   = "https://admin-api-1038143238323.us-central1.run.app";
   const token = sessionStorage.getItem('admin_token') || '';
-  // Limpiar en el backend (Cloud Function admin-api: limpiarErrorLog)
-  if (api && token) {
-    fetch(api, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: new URLSearchParams({ action: 'limpiarErrorLog', token }).toString()
-    }).catch(() => {});
-  }
-  // Limpiar localStorage también
   if (window.ZRMonitor) window.ZRMonitor.clear();
-  window._emErrors = [];
-  renderErrorLog();
+  if (api && token) {
+    try {
+      const res = await fetch(api, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({ action: 'limpiarErrorLog', token }).toString()
+      });
+      const data = await res.json();
+      if (!data.ok) {
+        showTemporaryMessage('No se pudo limpiar el log del servidor: ' + (data.error || 'error desconocido'), 'error');
+      }
+    } catch (err) {
+      showTemporaryMessage('No se pudo limpiar el log del servidor: ' + err.message, 'error');
+    }
+  }
+  // Volver a pedir el log real al servidor en vez de confiar en un
+  // borrado local optimista — así se ve de inmediato si algo no se
+  // borró de verdad.
+  window.loadErrorLog();
 };
 
 
