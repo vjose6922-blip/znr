@@ -3597,6 +3597,7 @@ window.hasPendingImageUploads = function() {
 };
 
 window.uploadImagesInQueue = async function(files, startSlot = 1, uploadFn, onProgress, onSuccess) {
+    console.log('[ZR-DEBUG] uploadImagesInQueue llamada, files:', files ? files.length : 0, 'startSlot:', startSlot);
     const maxFiles = 3;
     const filesArray = Array.from(files).slice(0, maxFiles);
     if (filesArray.length === 0) return;
@@ -3643,7 +3644,9 @@ window.uploadImagesInQueue = async function(files, startSlot = 1, uploadFn, onPr
 
         try {
             if (typeof onProgress === 'function') onProgress(slot, 10);
+            console.log('[ZR-DEBUG] subiendo imagen, slot', slot);
             const url = await uploadFn(file, slot);
+            console.log('[ZR-DEBUG] upload OK, url:', url);
             const textInput = document.getElementById(`product-image${slot}`) || document.getElementById(`Imagen${slot}`);
             if (textInput) textInput.value = url;
             if (progress) progress.style.width = '100%';
@@ -3651,6 +3654,7 @@ window.uploadImagesInQueue = async function(files, startSlot = 1, uploadFn, onPr
             if (typeof onSuccess === 'function') onSuccess(slot, url);
             showTemporaryMessage(`Imagen ${slot} subida correctamente`, 'success');
         } catch (err) {
+            console.log('[ZR-DEBUG] ERROR subiendo imagen:', err.message);
             console.error(`Error subiendo imagen ${slot}:`, err);
             showTemporaryMessage(`Error en imagen ${slot}: ${err.message}`, 'error');
             if (progress) progress.style.width = '0%';

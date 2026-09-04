@@ -379,7 +379,7 @@ function clearProductFormImages() {
     previews.forEach(id => {
         const preview = document.getElementById(id);
         if (preview) {
-            preview.src = "";
+            preview.removeAttribute("src");
             preview.style.display = "none";
         }
     });
@@ -549,8 +549,9 @@ hideLoader();
 const UPLOAD_API_URL = ADMIN_API_URL;
 let _imageUploadsInitialized = false;
 function initImageUploads() {
-if (_imageUploadsInitialized) return;
+if (_imageUploadsInitialized) { console.log('[ZR-DEBUG] initImageUploads ya se había llamado, saliendo'); return; }
 _imageUploadsInitialized = true;
+console.log('[ZR-DEBUG] initImageUploads corriendo, input1 existe:', !!document.getElementById('image-upload-1'));
 setupImageUpload("image-upload-1", "product-image1", "preview-image-upload-1", "progress-image-upload-1");
 setupImageUpload("image-upload-2", "product-image2", "preview-image-upload-2", "progress-image-upload-2");
 setupImageUpload("image-upload-3", "product-image3", "preview-image-upload-3", "progress-image-upload-3");
@@ -574,8 +575,9 @@ function setupImageUpload(fileInputId, textInputId, previewId, progressId) {
     fileInput.removeEventListener('change', fileInput._listener);
 
     const newListener = async function(e) {
+        console.log('[ZR-DEBUG] change event disparado en', fileInputId);
         const files = this.files;
-        if (!files || files.length === 0) return;
+        if (!files || files.length === 0) { console.log('[ZR-DEBUG] sin archivos, saliendo'); return; }
 
         // Extraer el número de slot del id (ej: image-upload-1 → slot 1)
         const slotMatch = fileInputId.match(/\d+$/);
@@ -601,7 +603,9 @@ function setupImageUpload(fileInputId, textInputId, previewId, progressId) {
         };
 
         // Llamar a la función central
+        console.log('[ZR-DEBUG] llamando a uploadImagesInQueue, slot inicial', startSlot);
         await window.uploadImagesInQueue(files, startSlot, adminUploadFn, onProgress, onSuccess);
+        console.log('[ZR-DEBUG] uploadImagesInQueue terminó');
         // Limpiar input para permitir nueva selección
         this.value = '';
     };
@@ -653,7 +657,7 @@ async function uploadImageToDrive(file) {
 function clearImageUploads() {
   const previews = document.querySelectorAll(".image-preview");
   previews.forEach(img => {
-    img.src = "";
+    img.removeAttribute("src");
     img.style.display = "none";
   });
   const progressBars = document.querySelectorAll(".upload-progress");
