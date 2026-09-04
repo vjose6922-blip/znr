@@ -1,5 +1,4 @@
-
-const CACHE_NAME    = 'zr-cache-v71';
+const CACHE_NAME    = 'zr-cache-v72';
 const DYNAMIC_CACHE = 'zr-dynamic-v16';
 const OFFLINE_URL   = '/znr/offline.html';
 
@@ -40,11 +39,15 @@ const API_DOMAINS      = [
   'wttr.in',
   'openweathermap.org',
   'registrar-token-fcm-1038143238323.us-central1.run.app',
+  'eliminar-token-fcm-1038143238323.us-central1.run.app',
   'vendedores-api-1038143238323.us-central1.run.app',
   'catalogo-api-1038143238323.us-central1.run.app',
   'auth-api-1038143238323.us-central1.run.app',
   'ventas-api-1038143238323.us-central1.run.app',
   'live-api-1038143238323.us-central1.run.app',
+  'admin-api-1038143238323.us-central1.run.app',
+  'beneficiarios-api-1038143238323.us-central1.run.app',
+  'tienda-znr-api-1038143238323.us-central1.run.app',
 ];
 const IMAGE_CDN_HOSTS  = ['lh3.googleusercontent.com', 'googleusercontent.com'];
 
@@ -258,3 +261,4 @@ self.addEventListener('periodicsync', event => {
     );
   }
 });
+
