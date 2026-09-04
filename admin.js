@@ -20,12 +20,19 @@ const VENDEDORES_API_URL_ADMIN =
   "https://vendedores-api-1038143238323.us-central1.run.app";
 const AUTH_API_URL_ADMIN =
   "https://auth-api-1038143238323.us-central1.run.app"; // TODO: confirmá y pegá la URL real de auth-api
+const CATALOGO_API_URL_ADMIN =
+  "https://catalogo-api-1038143238323.us-central1.run.app";
 const MAPA_ACCIONES_MIGRADAS_ADMIN = {
   aprobarVendedor: VENDEDORES_API_URL_ADMIN,
   rechazarVendedor: VENDEDORES_API_URL_ADMIN,
   vendedoresAdmin: VENDEDORES_API_URL_ADMIN,
   login: AUTH_API_URL_ADMIN,
   verificarAdmin: AUTH_API_URL_ADMIN,
+  list: CATALOGO_API_URL_ADMIN,
+  create: CATALOGO_API_URL_ADMIN,
+  update: CATALOGO_API_URL_ADMIN,
+  delete: CATALOGO_API_URL_ADMIN,
+  uploadImage: CATALOGO_API_URL_ADMIN,
 };
 function resolverApiUrlAdmin(action) {
   return MAPA_ACCIONES_MIGRADAS_ADMIN[action] || ADMIN_API_URL;

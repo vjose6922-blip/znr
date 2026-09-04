@@ -38,7 +38,7 @@ savePendingActions();
 showMessage(`Producto guardado localmente. Se sincronizará cuando haya internet.`, 'info');
 console.log(`📝 Acción "${type}" guardada. Total pendientes: ${pendingActions.length}`);
 }
-const ADMIN_API = window.API_URL || "";
+const ADMIN_API = "https://catalogo-api-1038143238323.us-central1.run.app";
 async function syncPendingActions() {
 if (!navigator.onLine) {
 console.log("📡 Sin conexión, no se puede sincronizar");
