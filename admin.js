@@ -682,8 +682,12 @@ async function checkNotifications() {
     const CATALOGO_API_BADGES = "https://catalogo-api-1038143238323.us-central1.run.app";
     const BENEFICIARIOS_API_BADGES = "https://beneficiarios-api-1038143238323.us-central1.run.app";
 
+    const TIENDA_API_BADGES = "https://tienda-znr-api-1038143238323.us-central1.run.app";
     const [gasRes, vendRes, pendRes, repRes, benRes, plusRes] = await Promise.all([
-      fetch(`${ADMIN_API_URL}?action=contarBadgesAdmin&token=${encodeURIComponent(token)}`).then(r => r.json()).catch(() => ({ ok: false })),
+      fetch(`${TIENDA_API_BADGES}?${new URLSearchParams({ action: 'notificationsBatch', page: 1, pageSize: 500, token })}`)
+        .then(r => r.json())
+        .then(d => ({ ok: d.ok, solicitudes: d.ok ? (d.groups || []).filter(g => g.availableCount > 0).length : 0 }))
+        .catch(() => ({ ok: false })),
       fetch(`${VENDEDORES_API_BADGES}?${new URLSearchParams({ action: 'vendedoresAdmin', token })}`).then(r => r.json()).catch(() => ({ ok: false })),
       fetch(`${CATALOGO_API_BADGES}?${new URLSearchParams({ action: 'productosPendientes', token })}`).then(r => r.json()).catch(() => ({ ok: false })),
       fetch(`${CATALOGO_API_BADGES}?${new URLSearchParams({ action: 'obtenerReportes', token })}`).then(r => r.json()).catch(() => ({ ok: false })),
