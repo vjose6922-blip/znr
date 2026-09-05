@@ -209,6 +209,11 @@ if (productForm) {
 const newForm = productForm.cloneNode(true);
 productForm.parentNode.replaceChild(newForm, productForm);
 newForm.addEventListener("submit", window.handleProductFormSubmit);
+// cloneNode no copia los onchange que setupImageUpload asignó a los
+// inputs de imagen antes de este reemplazo — hay que reengancharlos.
+// force=true porque _imageUploadsInitialized ya quedó en true desde
+// el init original y si no, initImageUploads no haría nada.
+if (typeof window.initImageUploads === 'function') window.initImageUploads(true);
 }
 window.deleteProduct = async function(id) {
 if (!navigator.onLine) {

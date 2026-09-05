@@ -548,8 +548,8 @@ hideLoader();
 }
 const UPLOAD_API_URL = ADMIN_API_URL;
 let _imageUploadsInitialized = false;
-function initImageUploads() {
-if (_imageUploadsInitialized) { console.log('[ZR-DEBUG] initImageUploads ya se había llamado, saliendo'); return; }
+function initImageUploads(force = false) {
+if (_imageUploadsInitialized && !force) { console.log('[ZR-DEBUG] initImageUploads ya se había llamado, saliendo'); return; }
 _imageUploadsInitialized = true;
 console.log('[ZR-DEBUG] initImageUploads corriendo, input1 existe:', !!document.getElementById('image-upload-1'));
 setupImageUpload("image-upload-1", "product-image1", "preview-image-upload-1", "progress-image-upload-1");
@@ -1546,4 +1546,5 @@ window.deleteProduct  = deleteProduct;
 window.resetProductForm  = resetProductForm;
 window.clearImageUploads  = clearImageUploads;
 window.loadAdminProducts  = loadAdminProducts;
+window.initImageUploads  = initImageUploads;
 })();
