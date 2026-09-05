@@ -984,7 +984,7 @@
  <div class="form-row">
  <label>Imagen 1</label>
  <div class="image-upload-area">
-<input type="file" id="image-upload-1" accept="image/*" multiple>
+<input type="file" id="image-upload-1" accept="image/*" multiple onchange="console.log('[ZR-DEBUG-NATIVO] onchange nativo SÍ disparó, archivos:', this.files.length)">
  <div class="image-preview-container">
  <img id="preview-image-upload-1" class="image-preview" style="display: none;">
  <input type="text" id="product-image1" name="Imagen1" class="image-url-input" placeholder="URL de la imagen" readonly>
