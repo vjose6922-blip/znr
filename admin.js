@@ -552,7 +552,6 @@ function initImageUploads() {
 if (_imageUploadsInitialized) { console.log('[ZR-DEBUG] initImageUploads ya se había llamado, saliendo'); return; }
 _imageUploadsInitialized = true;
 console.log('[ZR-DEBUG] initImageUploads corriendo, input1 existe:', !!document.getElementById('image-upload-1'));
-document.getElementById('image-upload-1')?.addEventListener('change', () => console.log('[ZR-DEBUG-DIRECTO] listener directo (sin setupImageUpload) SÍ disparó'));
 setupImageUpload("image-upload-1", "product-image1", "preview-image-upload-1", "progress-image-upload-1");
 setupImageUpload("image-upload-2", "product-image2", "preview-image-upload-2", "progress-image-upload-2");
 setupImageUpload("image-upload-3", "product-image3", "preview-image-upload-3", "progress-image-upload-3");
@@ -572,8 +571,6 @@ function showLogMessage(msg, isError = false) {
 function setupImageUpload(fileInputId, textInputId, previewId, progressId) {
     const fileInput = document.getElementById(fileInputId);
     if (!fileInput) return;
-
-    fileInput.removeEventListener('change', fileInput._listener);
 
     const newListener = async function(e) {
         console.log('[ZR-DEBUG] change event disparado en', fileInputId);
@@ -612,8 +609,8 @@ function setupImageUpload(fileInputId, textInputId, previewId, progressId) {
     };
 
     fileInput._listener = newListener;
-    fileInput.addEventListener('change', newListener);
-    console.log('[ZR-DEBUG] listener addEventListener() ejecutado para', fileInputId, 'mismo elemento que encontró initImageUploads:', fileInput === document.getElementById(fileInputId));
+    fileInput.onchange = newListener;
+    console.log('[ZR-DEBUG] listener asignado vía onchange para', fileInputId, 'mismo elemento que encontró initImageUploads:', fileInput === document.getElementById(fileInputId));
 }
 
 async function compressImage(file) {
