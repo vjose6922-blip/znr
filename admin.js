@@ -549,9 +549,8 @@ hideLoader();
 const UPLOAD_API_URL = ADMIN_API_URL;
 let _imageUploadsInitialized = false;
 function initImageUploads(force = false) {
-if (_imageUploadsInitialized && !force) { console.log('[ZR-DEBUG] initImageUploads ya se había llamado, saliendo'); return; }
+if (_imageUploadsInitialized && !force) { return; }
 _imageUploadsInitialized = true;
-console.log('[ZR-DEBUG] initImageUploads corriendo, input1 existe:', !!document.getElementById('image-upload-1'));
 setupImageUpload("image-upload-1", "product-image1", "preview-image-upload-1", "progress-image-upload-1");
 setupImageUpload("image-upload-2", "product-image2", "preview-image-upload-2", "progress-image-upload-2");
 setupImageUpload("image-upload-3", "product-image3", "preview-image-upload-3", "progress-image-upload-3");
@@ -573,9 +572,8 @@ function setupImageUpload(fileInputId, textInputId, previewId, progressId) {
     if (!fileInput) return;
 
     const newListener = async function(e) {
-        console.log('[ZR-DEBUG] change event disparado en', fileInputId);
         const files = this.files;
-        if (!files || files.length === 0) { console.log('[ZR-DEBUG] sin archivos, saliendo'); return; }
+        if (!files || files.length === 0) { return; }
 
         // Extraer el número de slot del id (ej: image-upload-1 → slot 1)
         const slotMatch = fileInputId.match(/\d+$/);
@@ -601,16 +599,13 @@ function setupImageUpload(fileInputId, textInputId, previewId, progressId) {
         };
 
         // Llamar a la función central
-        console.log('[ZR-DEBUG] llamando a uploadImagesInQueue, slot inicial', startSlot);
         await window.uploadImagesInQueue(files, startSlot, adminUploadFn, onProgress, onSuccess);
-        console.log('[ZR-DEBUG] uploadImagesInQueue terminó');
         // Limpiar input para permitir nueva selección
         this.value = '';
     };
 
     fileInput._listener = newListener;
     fileInput.onchange = newListener;
-    console.log('[ZR-DEBUG] listener asignado vía onchange para', fileInputId, 'mismo elemento que encontró initImageUploads:', fileInput === document.getElementById(fileInputId));
 }
 
 async function compressImage(file) {
