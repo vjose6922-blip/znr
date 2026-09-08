@@ -1754,7 +1754,7 @@ window.openBeneficiarioRegister = function(modoEdicion, idBeneficiario, datosAct
           fileName: file.name,
           vendorToken: vendor.token
         });
-        const r = await fetch(window.API_URL, {
+        const r = await fetch(CATALOGO_API_URL_INSPECTOR, {
           method: 'POST',
           headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
           body: params.toString()

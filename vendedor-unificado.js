@@ -43,6 +43,7 @@ const MAPA_ACCIONES_MIGRADAS = {
   eliminarCuentaVendedor: VENDEDORES_API_URL,
   createComunidad: CATALOGO_API_URL,
   updateComunidad: CATALOGO_API_URL,
+  uploadImageVendedor: CATALOGO_API_URL,
   deleteComunidad: CATALOGO_API_URL,
   misProductosComunidad: CATALOGO_API_URL,
   resolverNotificacionVentaComunidad: VENTAS_API_URL,
@@ -1549,7 +1550,7 @@ async function uploadSingleImage(file) {
     formData.append('fileName', file.name.replace(/\.[^.]+$/, '') + (mime === 'image/webp' ? '.webp' : '.jpg'));
     formData.append('vendorToken', token);
 
-    const res = await fetch(API_BASE, {
+    const res = await fetch(resolverApiUrl('uploadImageVendedor'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: formData.toString()
@@ -3561,7 +3562,7 @@ function abrirEditarFundacionVendedor(miBen) {
           reader.onerror = rej;
           reader.readAsDataURL(file);
         });
-        const r = await fetch(window.API_URL, {
+        const r = await fetch(CATALOGO_API_URL, {
           method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
           body: new URLSearchParams({ action:'uploadImageVendedor', data: base64, mimeType: file.type, fileName: file.name, vendorToken: vendorSession.token }).toString()
         });
