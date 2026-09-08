@@ -8,6 +8,8 @@
 
   const TIPO_INFO = {
     confirmacion_stock:     { grupo: 'pedidos', icono: Icon('box') },
+    pago_pendiente:         { grupo: 'pedidos', icono: Icon('credit-card') },
+    pago_confirmado:        { grupo: 'pedidos', icono: Icon('check') },
     sin_stock:              { grupo: 'pedidos', icono: Icon('x') },
     solicitud_comprador:    { grupo: 'pedidos', icono: Icon('shopping-bag') },
     pedido_enviado_vendedor:{ grupo: 'pedidos', icono: Icon('send') },
@@ -317,6 +319,46 @@
 }
 .nc-maps-btn:hover{background:#60a5fa33}
 
+.nc-pago-pendiente{
+  margin-top:8px;
+  padding:10px 12px;
+  border-radius:12px;
+  background:rgba(250,204,21,.08);
+  border:1px solid rgba(250,204,21,.3);
+}
+.nc-pago-pendiente-label{
+  font-size:11.5px;
+  font-weight:700;
+  color:#facc15;
+  margin:0 0 8px;
+}
+.nc-pago-pendiente-venc{
+  margin:0 0 8px;
+  font-size:10.5px;
+  color:#e6c766;
+  line-height:1.4;
+}
+.nc-pago-pendiente-row{
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+}
+.nc-pago-pendiente-btn{
+  display:inline-flex;
+  align-items:center;
+  gap:5px;
+  flex-shrink:0;
+  background:#facc15;
+  color:#3b2f00;
+  border:none;
+  border-radius:10px;
+  padding:8px 13px;
+  font-size:12px;
+  font-weight:700;
+  text-decoration:none;
+  white-space:nowrap;
+}
+
 /* ── Skeletons ── */
 .nc-skel-item{
   display:flex;
@@ -479,6 +521,20 @@ const PICKUP_HORAS = ['9:00 AM','10:00 AM','11:00 AM','12:00 PM','1:00 PM','2:00
              <p class="nc-pickup-aviso-note">Se abre WhatsApp con el vendedor. Si no está disponible a esa hora, pueden reagendar directo desde el chat.</p>
            </div>`
         : '';
+      // Pago pendiente (OXXO/SPEI vía MercadoPago, checkout de invitado sin
+      // cuenta MP): el comprador pudo haber cerrado la pestaña de MP sin
+      // guardar el código, así que se le vuelve a mostrar aquí, persistido
+      // en meta desde el momento en que mpWebhook lo recibió.
+      const METODO_LABEL = { oxxo: 'OXXO', spei: 'transferencia SPEI', bank_transfer: 'transferencia SPEI', pse: 'transferencia SPEI' };
+      const pagoPendienteHtml = (n.tipo === 'pago_pendiente' && meta.comprobanteUrl)
+        ? `<div class="nc-pago-pendiente" onclick="event.stopPropagation()">
+             <p class="nc-pago-pendiente-label">🧾 Pago por ${METODO_LABEL[meta.metodoPago] || 'efectivo/transferencia'} pendiente</p>
+             ${meta.vencimiento ? `<p class="nc-pago-pendiente-venc">Vence: ${fechaCorta(meta.vencimiento)}</p>` : ''}
+             <div class="nc-pago-pendiente-row">
+               <a class="nc-pago-pendiente-btn" href="${meta.comprobanteUrl}" target="_blank" rel="noopener" onclick="event.stopPropagation()">${Icon('credit-card')} Ver código de pago</a>
+             </div>
+           </div>`
+        : '';
       return `
         <div class="nc-item ${n.leida ? '' : 'unread'}" data-id="${n.id}" data-url="${n.url || ''}">
           <div class="nc-icon">${info.icono}</div>
@@ -494,6 +550,7 @@ const PICKUP_HORAS = ['9:00 AM','10:00 AM','11:00 AM','12:00 PM','1:00 PM','2:00
               ${mapsBtn}
               ${abrirBtn}
               ${pickupAvisoHtml}
+              ${pagoPendienteHtml}
             </div>
           </div>
         </div>`;
