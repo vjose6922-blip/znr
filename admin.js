@@ -12,8 +12,6 @@ window.originalDeleteProduct = deleteProduct;
 console.log(" Función original deleteProduct guardada");
 }
 }, 100);
-const ADMIN_API_URL = window.API_URL || "";
-
 // ── Router de migración GAS → Cloud Run (mismo criterio que en
 // vendedor-unificado.js) ──────────────────────────────────────────
 const VENDEDORES_API_URL_ADMIN =
@@ -34,8 +32,10 @@ const MAPA_ACCIONES_MIGRADAS_ADMIN = {
   delete: CATALOGO_API_URL_ADMIN,
   uploadImage: CATALOGO_API_URL_ADMIN,
 };
+// Apps Script está archivado — si una acción no está en el mapa, es un
+// olvido nuestro, no algo que deba caer a GAS en silencio.
 function resolverApiUrlAdmin(action) {
-  return MAPA_ACCIONES_MIGRADAS_ADMIN[action] || ADMIN_API_URL;
+  return MAPA_ACCIONES_MIGRADAS_ADMIN[action] || null;
 }
 let adminSession = null;
 let adminProducts = [];
@@ -546,7 +546,6 @@ console.error(err);
 hideLoader();
 }
 }
-const UPLOAD_API_URL = ADMIN_API_URL;
 let _imageUploadsInitialized = false;
 function initImageUploads(force = false) {
 if (_imageUploadsInitialized && !force) { return; }
@@ -938,7 +937,6 @@ if (loginForm) loginForm.reset();
 }
 (function () {
 'use strict';
-function getApi()  { return ADMIN_API_URL; }
 function getToken() {
 return sessionStorage.getItem('admin_token')
 || '';

@@ -1,4 +1,4 @@
-const CACHE_NAME    = 'zr-cache-v77';
+const CACHE_NAME    = 'zr-cache-v78';
 const DYNAMIC_CACHE = 'zr-dynamic-v16';
 const OFFLINE_URL   = '/znr/offline.html';
 
@@ -246,19 +246,3 @@ self.addEventListener('sync', event => {
     );
   }
 });
-
-self.addEventListener('periodicsync', event => {
-  if (event.tag === 'update-products') {
-    event.waitUntil(
-      fetch('https://script.google.com/macros/s/AKfycbzNshrt3zldBNiyoB8x36ktCEO02H0cKxebiTuK7UAbsgd5R9biaCW7W4ihm1aVOJG7ww/exec') 
-        .then(async r => {
-          if (r.ok) {
-            const cache = await caches.open(CACHE_NAME);
-            await cache.put('/znr/api/products', r.clone());
-          }
-        })
-        .catch(() => {})
-    );
-  }
-});
-

@@ -138,25 +138,6 @@ window.apiFetch = async function(data, method = 'POST') {
   return checkTokenInvalid(JSON.parse(text));
 };
 
-window.apiCall = async function(data) {
-  const API_BASE = window.API_URL;
-  if (!API_BASE) throw new Error('API_URL no está disponible');
-
-  const params = new URLSearchParams();
-  Object.entries(data || {}).forEach(([k, v]) => {
-    if (v !== undefined && v !== null) params.append(k, v);
-  });
-
-  const res = await fetch(API_BASE, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: params.toString()
-  });
-
-  const text = await res.text();
-  return JSON.parse(text);
-};
-
 
 
 
