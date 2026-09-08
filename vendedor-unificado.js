@@ -44,6 +44,7 @@ const MAPA_ACCIONES_MIGRADAS = {
   createComunidad: CATALOGO_API_URL,
   updateComunidad: CATALOGO_API_URL,
   uploadImageVendedor: CATALOGO_API_URL,
+  completarAnuncioIA: VENDEDORES_API_URL,
   deleteComunidad: CATALOGO_API_URL,
   misProductosComunidad: CATALOGO_API_URL,
   resolverNotificacionVentaComunidad: VENTAS_API_URL,
