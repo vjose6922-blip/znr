@@ -31,6 +31,12 @@ const LIVE_API_URL =
 const MAPA_ACCIONES_MIGRADAS = {
   registrarVendedor: VENDEDORES_API_URL,
   loginVendedor: VENDEDORES_API_URL,
+  webauthnLoginOpciones: VENDEDORES_API_URL,
+  webauthnLoginVerificar: VENDEDORES_API_URL,
+  webauthnRegistroOpciones: VENDEDORES_API_URL,
+  webauthnRegistroVerificar: VENDEDORES_API_URL,
+  webauthnListarDispositivos: VENDEDORES_API_URL,
+  webauthnEliminarDispositivo: VENDEDORES_API_URL,
   cambiarPasswordVendedor: VENDEDORES_API_URL,
   solicitarResetPasswordVendedor: VENDEDORES_API_URL,
   actualizarPerfilVendedor: VENDEDORES_API_URL,
@@ -409,6 +415,43 @@ btn.textContent = 'Registrarme';
 const registerBtn = document.getElementById('register-btn');
 if (registerBtn) registerBtn.addEventListener('click', registerVendor);
 
+async function finalizarLoginVendedor(res, telefono) {
+vendorSession = {
+token: res.token,
+uid: res.uid,
+telefono: telefono || '',
+nombre: res.nombre,
+confiable: res.confiable,
+plan: res.plan || 'free',
+planVence: res.planVence || null,
+limiteProductos: res.limiteProductos || 20,
+productosActuales: res.productosActuales || 0,
+logo: res.logo || '',
+descripcion: res.descripcion || '',
+whatsapp: res.whatsapp || '',
+categoria: res.categoria || '',
+facebook: res.facebook || '',
+twitter: res.twitter || '',
+instagram: res.instagram || '',
+tiktok: res.tiktok || '',
+fechaRegistro: res.fechaRegistro || '',
+coverBg: res.coverBg || '',
+coverIcons: res.coverIcons || '',
+coverIconColor: res.coverIconColor || ''
+};
+localStorage.setItem('vendor_session', JSON.stringify(vendorSession));
+
+if (typeof window.solicitarPermisoNotificacionesSiFalta === 'function') {
+  window.solicitarPermisoNotificacionesSiFalta('vendedor', vendorSession.uid);
+}
+
+// 🆕 El teléfono con el que acaba de iniciar sesión como vendedor pasa a
+// ser también el que se usa para comprar (carrito/checkout), sin importar
+// si ya tenía otro guardado o si es la primera vez.
+if (telefono) localStorage.setItem('client_phone', telefono);
+if (typeof updateSavedPhoneDisplay === 'function') updateSavedPhoneDisplay();
+}
+
 async function vendorLogin() {
 const firstField  = document.getElementById('login-phone')?.value.trim();
 const secondField = document.getElementById('login-password')?.value.trim();
@@ -459,40 +502,7 @@ return;
 try {
 const res = await apiFetch({ action: 'loginVendedor', telefono: firstField, password: secondField });
 if (!res.ok) throw new Error();
-vendorSession = {
-token: res.token,
-uid: res.uid,
-telefono: firstField,
-nombre: res.nombre,
-confiable: res.confiable,
-plan: res.plan || 'free',
-planVence: res.planVence || null,
-limiteProductos: res.limiteProductos || 20,
-productosActuales: res.productosActuales || 0,
-logo: res.logo || '',
-descripcion: res.descripcion || '',
-whatsapp: res.whatsapp || '',
-categoria: res.categoria || '',
-facebook: res.facebook || '',
-twitter: res.twitter || '',
-instagram: res.instagram || '',
-tiktok: res.tiktok || '',
-fechaRegistro: res.fechaRegistro || '',
-coverBg: res.coverBg || '',
-coverIcons: res.coverIcons || '',
-coverIconColor: res.coverIconColor || ''
-};
-localStorage.setItem('vendor_session', JSON.stringify(vendorSession));
-
-if (typeof window.solicitarPermisoNotificacionesSiFalta === 'function') {
-  window.solicitarPermisoNotificacionesSiFalta('vendedor', vendorSession.uid);
-}
-
-// 🆕 El teléfono con el que acaba de iniciar sesión como vendedor pasa a
-// ser también el que se usa para comprar (carrito/checkout), sin importar
-// si ya tenía otro guardado o si es la primera vez.
-localStorage.setItem('client_phone', firstField);
-if (typeof updateSavedPhoneDisplay === 'function') updateSavedPhoneDisplay();
+await finalizarLoginVendedor(res, firstField);
 } catch (_) {
 showTemporaryMessage('Credenciales incorrectas', 'error');
 hideLoader();
@@ -505,6 +515,47 @@ console.error('showPanel error:', e);
 } finally {
 hideLoader();
 }
+}
+
+// ── Login con huella/Face ID (WebAuthn) ─────────────────────────────
+// Botón separado del de contraseña — nunca la reemplaza. Solo se
+// muestra si el navegador soporta WebAuthn; si el dispositivo no tiene
+// ninguna huella registrada para este sitio, el propio sistema
+// operativo se lo dice al vendedor, y sigue pudiendo usar su contraseña
+// normal sin ningún problema.
+async function vendorLoginWebauthn() {
+  if (typeof window.webauthnSupported !== 'function' || !window.webauthnSupported()) {
+    showTemporaryMessage('Tu navegador no soporta inicio de sesión con huella', 'error');
+    return;
+  }
+  showLoader('Verificando huella...');
+  try {
+    const opciones = await apiFetch({ action: 'webauthnLoginOpciones' });
+    if (!opciones.ok) throw new Error(opciones.error || 'No se pudo iniciar');
+
+    const credential = await window.webauthnStartAuthentication(opciones.options);
+
+    const res = await apiFetch({ action: 'webauthnLoginVerificar', sessionId: opciones.sessionId, credential });
+    if (!res.ok) throw new Error(res.error || 'No se pudo verificar la huella');
+
+    await finalizarLoginVendedor(res, res.telefono || '');
+    showPanel();
+  } catch (err) {
+    if (err && err.name === 'NotAllowedError') {
+      // El vendedor canceló el diálogo de huella — no es un error real.
+    } else {
+      showTemporaryMessage(err.message || 'No se pudo iniciar sesión con huella', 'error');
+    }
+  } finally {
+    hideLoader();
+  }
+}
+const webauthnLoginBtn = document.getElementById('webauthn-login-btn');
+if (webauthnLoginBtn) {
+  if (typeof window.webauthnSupported === 'function' && window.webauthnSupported()) {
+    webauthnLoginBtn.style.display = 'block';
+  }
+  webauthnLoginBtn.addEventListener('click', vendorLoginWebauthn);
 }
 
 function vendorLogout() {
@@ -545,6 +596,7 @@ if (liveBtn) liveBtn.style.display = (vendorSession && vendorSession.plan === 'p
 const verEntregasBtn = document.getElementById('btn-ver-entregas-panel');
 if (verEntregasBtn) verEntregasBtn.style.display = (vendorSession && vendorSession.plan === 'plus') ? 'flex' : 'none';
 renderChecklistVendedor();
+if (typeof cargarSeccionHuella === 'function') cargarSeccionHuella();
   
 const nameHeader = document.getElementById('vendor-name-header');
 if (nameHeader && vendorSession) {
@@ -2711,6 +2763,70 @@ msg.style.color = '#dc2626'; msg.textContent = 'Error de red.';
 btn.disabled = false; btn.textContent = 'Cambiar contraseña';
 }
 }
+
+// ── Activar / gestionar huella en este dispositivo (perfil) ─────────
+async function cargarSeccionHuella() {
+  const wrap = document.getElementById('settings-webauthn');
+  if (!wrap) return;
+  if (typeof window.webauthnSupported !== 'function' || !window.webauthnSupported()) {
+    wrap.style.display = 'none';
+    return;
+  }
+  wrap.style.display = 'block';
+  const lista = document.getElementById('settings-webauthn-lista');
+  try {
+    const res = await apiCall({ action: 'webauthnListarDispositivos', vendorToken: vendorSession.token });
+    if (res.ok && res.dispositivos.length) {
+      lista.innerHTML = res.dispositivos.map(d =>
+        `<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;">
+           <span>👆 ${d.deviceLabel}</span>
+           <span style="color:#dc2626;cursor:pointer;font-weight:700;" onclick="eliminarDispositivoHuella('${d.id}')">Quitar</span>
+         </div>`
+      ).join('');
+    } else {
+      lista.textContent = 'Sin dispositivos activados todavía.';
+    }
+  } catch (_) {
+    lista.textContent = '';
+  }
+}
+
+window.activarHuellaDispositivo = async function() {
+  const btn = document.getElementById('btn-activar-huella');
+  const msg = document.getElementById('settings-webauthn-msg');
+  msg.textContent = '';
+  btn.disabled = true; btn.textContent = 'Activando...';
+  try {
+    const opciones = await apiCall({ action: 'webauthnRegistroOpciones', vendorToken: vendorSession.token });
+    if (!opciones.ok) throw new Error(opciones.error || 'No se pudo iniciar el registro');
+
+    const credential = await window.webauthnStartRegistration(opciones.options);
+
+    const label = /iPhone|iPad/.test(navigator.userAgent) ? 'iPhone/iPad'
+                : /Android/.test(navigator.userAgent) ? 'Este Android'
+                : 'Este dispositivo';
+    const res = await apiCall({ action: 'webauthnRegistroVerificar', vendorToken: vendorSession.token, credential, deviceLabel: label });
+    if (!res.ok) throw new Error(res.error || 'No se pudo activar la huella');
+
+    msg.style.color = '#16a34a'; msg.innerHTML = Icon('check') + ' Activado en este dispositivo';
+    await cargarSeccionHuella();
+  } catch (err) {
+    if (err && err.name === 'NotAllowedError') {
+      msg.textContent = ''; // el vendedor canceló el diálogo, no es un error
+    } else {
+      msg.style.color = '#dc2626'; msg.textContent = err.message || 'No se pudo activar la huella';
+    }
+  } finally {
+    btn.disabled = false; btn.textContent = 'Activar en este dispositivo';
+  }
+};
+
+window.eliminarDispositivoHuella = async function(credentialId) {
+  try {
+    await apiCall({ action: 'webauthnEliminarDispositivo', vendorToken: vendorSession.token, credentialId });
+    await cargarSeccionHuella();
+  } catch (_) {}
+};
 
 window.eliminarMiCuenta = async function() {
   if (!vendorSession || !vendorSession.token) return;
