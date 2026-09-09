@@ -358,6 +358,36 @@
   text-decoration:none;
   white-space:nowrap;
 }
+.nc-pago-pendiente-clabe{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  margin:0 0 8px;
+  flex-wrap:wrap;
+}
+.nc-pago-pendiente-clabe-texto{
+  font-family:monospace;
+  font-size:12.5px;
+  color:#fff;
+  background:rgba(0,0,0,.2);
+  border-radius:8px;
+  padding:5px 9px;
+  letter-spacing:.3px;
+}
+.nc-pago-pendiente-clabe-btn{
+  display:inline-flex;
+  align-items:center;
+  gap:5px;
+  flex-shrink:0;
+  background:transparent;
+  color:#facc15;
+  border:1px solid rgba(250,204,21,.5);
+  border-radius:10px;
+  padding:6px 11px;
+  font-size:11.5px;
+  font-weight:700;
+  cursor:pointer;
+}
 
 /* ── Skeletons ── */
 .nc-skel-item{
@@ -530,6 +560,11 @@ const PICKUP_HORAS = ['9:00 AM','10:00 AM','11:00 AM','12:00 PM','1:00 PM','2:00
         ? `<div class="nc-pago-pendiente" onclick="event.stopPropagation()">
              <p class="nc-pago-pendiente-label">🧾 Pago por ${METODO_LABEL[meta.metodoPago] || 'efectivo/transferencia'} pendiente</p>
              ${meta.vencimiento ? `<p class="nc-pago-pendiente-venc">Vence: ${fechaCorta(meta.vencimiento)}</p>` : ''}
+             ${meta.clabe ? `
+             <div class="nc-pago-pendiente-clabe">
+               <span class="nc-pago-pendiente-clabe-texto">${meta.clabe}</span>
+               <button type="button" class="nc-pago-pendiente-clabe-btn" data-clabe="${meta.clabe}">${Icon('clipboard')} Copiar CLABE</button>
+             </div>` : ''}
              <div class="nc-pago-pendiente-row">
                <a class="nc-pago-pendiente-btn" href="${meta.comprobanteUrl}" target="_blank" rel="noopener" onclick="event.stopPropagation()">${Icon('credit-card')} Ver código de pago</a>
              </div>
@@ -565,6 +600,18 @@ const PICKUP_HORAS = ['9:00 AM','10:00 AM','11:00 AM','12:00 PM','1:00 PM','2:00
         if (!tel) return;
         const texto = `Hola, buen día 👋 Pasaré a recoger mi pedido a las ${hora}.`;
         window.open(`https://wa.me/52${tel}?text=${encodeURIComponent(texto)}`, '_blank');
+      });
+    });
+
+    listEl.querySelectorAll('.nc-pago-pendiente-clabe-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const clabe = btn.dataset.clabe || '';
+        if (!clabe) return;
+        if (navigator.clipboard && window.isSecureContext) {
+          navigator.clipboard.writeText(clabe)
+            .then(() => { btn.textContent = '✓ Copiada'; setTimeout(() => { btn.innerHTML = `${Icon('clipboard')} Copiar CLABE`; }, 1500); });
+        }
       });
     });
 

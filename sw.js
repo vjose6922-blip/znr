@@ -1,4 +1,4 @@
-const CACHE_NAME    = 'zr-cache-v78';
+const CACHE_NAME    = 'zr-cache-v79';
 const DYNAMIC_CACHE = 'zr-dynamic-v16';
 const OFFLINE_URL   = '/znr/offline.html';
 
@@ -223,17 +223,21 @@ self.addEventListener('push', event => {
 
 self.addEventListener('notificationclick', event => {
   event.notification.close();
-  if (event.action === 'open' || !event.action) {
-    const url = event.notification.data?.url || '/znr/';
-    event.waitUntil(
-      self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(clients => {
-        for (const c of clients) {
-          if (c.url === url && 'focus' in c) return c.focus();
-        }
-        return self.clients.openWindow?.(url);
-      })
-    );
-  }
+  // Antes comparaba event.action === 'open' — en PWAs instaladas en
+  // Android a veces ese valor no llega bien desde el botón de acción
+  // (aunque el clic en el cuerpo de la notificación sí funcionaba,
+  // porque ahí event.action llega vacío). Más robusto: abrir siempre,
+  // excepto cuando se toca explícitamente "Cerrar".
+  if (event.action === 'close') return;
+  const url = event.notification.data?.url || '/znr/';
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(clients => {
+      for (const c of clients) {
+        if (c.url === url && 'focus' in c) return c.focus();
+      }
+      return self.clients.openWindow?.(url);
+    })
+  );
 });
 
 self.addEventListener('sync', event => {
