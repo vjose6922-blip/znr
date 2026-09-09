@@ -535,7 +535,7 @@ async function vendorLoginWebauthn() {
 
     const credential = await window.webauthnStartAuthentication(opciones.options);
 
-    const res = await apiFetch({ action: 'webauthnLoginVerificar', sessionId: opciones.sessionId, credential });
+    const res = await apiFetch({ action: 'webauthnLoginVerificar', sessionId: opciones.sessionId, credential: JSON.stringify(credential) });
     if (!res.ok) throw new Error(res.error || 'No se pudo verificar la huella');
 
     await finalizarLoginVendedor(res, res.telefono || '');
@@ -2805,7 +2805,7 @@ window.activarHuellaDispositivo = async function() {
     const label = /iPhone|iPad/.test(navigator.userAgent) ? 'iPhone/iPad'
                 : /Android/.test(navigator.userAgent) ? 'Este Android'
                 : 'Este dispositivo';
-    const res = await apiCall({ action: 'webauthnRegistroVerificar', vendorToken: vendorSession.token, credential, deviceLabel: label });
+    const res = await apiCall({ action: 'webauthnRegistroVerificar', vendorToken: vendorSession.token, credential: JSON.stringify(credential), deviceLabel: label });
     if (!res.ok) throw new Error(res.error || 'No se pudo activar la huella');
 
     msg.style.color = '#16a34a'; msg.innerHTML = Icon('check') + ' Activado en este dispositivo';
