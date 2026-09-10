@@ -229,32 +229,51 @@ window.dispatchEvent(new CustomEvent('recentProductsUpdated'));
 } catch(e) {}
 }
 function renderRecentProducts() {
-const container = document.getElementById('recent-products');
-if (!container) return;
-const savedLayout = localStorage.getItem('products_layout') || 'list';
-container.classList.toggle('layout-grid', savedLayout === 'grid');
-container.classList.toggle('layout-list', savedLayout === 'list');
-if (!window.allProducts.length) {
-container.innerHTML = '<p style="text-align: center; color: var(--color-text-muted);">Cargando productos...</p>';
-return;
-}
-const recentProducts = getRecentProductsList();
-const section = container.closest('section');
-if (section && !section.querySelector('.clear-recents-btn')) {
-const titleEl = section.querySelector('.section-title');
-if (titleEl) {
-titleEl.style.display = 'flex';
-titleEl.style.alignItems = 'center';
-titleEl.style.justifyContent = 'center';
-titleEl.style.gap = '12px';
-const clearBtn = document.createElement('button');
-clearBtn.className = 'clear-recents-btn';
-clearBtn.textContent = 'Limpiar';
-clearBtn.style.cssText = 'font-size:12px;padding:4px 12px;border-radius:20px;border:1px solid var(--border-header);background:transparent;color:var(--color-text-muted);cursor:pointer;font-weight:500;';
-clearBtn.addEventListener('click', clearRecentProducts);
-titleEl.appendChild(clearBtn);
-}
-}
+  const container = document.getElementById('recent-products');
+  if (!container) return;
+
+  const savedLayout = localStorage.getItem('products_layout') || 'list';
+  container.classList.toggle('layout-grid', savedLayout === 'grid');
+  container.classList.toggle('layout-list', savedLayout === 'list');
+
+  if (!window.allProducts.length) {
+    container.innerHTML = '<p style="text-align: center; color: var(--color-text-muted);">Cargando productos...</p>';
+    return;
+  }
+
+  const recentProducts = getRecentProductsList();
+  const section = container.closest('section');
+
+  if (section && !section.querySelector('.clear-recents-btn')) {
+    const titleEl = section.querySelector('.section-title');
+    if (titleEl) {
+      titleEl.style.display = 'flex';
+      titleEl.style.alignItems = 'center';
+      titleEl.style.justifyContent = 'center';
+      titleEl.style.gap = '12px';
+
+      const clearBtn = document.createElement('button');
+      clearBtn.className = 'clear-recents-btn';
+      clearBtn.type = 'button';
+      clearBtn.setAttribute('aria-label', 'Limpiar vistos recientemente');
+
+      // Ícono de basura + texto
+      clearBtn.innerHTML = `
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+          <path d="M4 7l16 0" />
+          <path d="M10 11l0 6" />
+          <path d="M14 11l0 6" />
+          <path d="M5 7l1 12a2 2 0 0 0 2 2h8a2 2 0 0 0 2 -2l1 -12" />
+          <path d="M9 7v-3a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v3" />
+        </svg>
+        Limpiar
+      `;
+
+      clearBtn.addEventListener('click', clearRecentProducts);
+      titleEl.appendChild(clearBtn);
+    }
+  }
 if (recentProducts.length === 0) {
 container.innerHTML = `
 <div style="text-align: center; color: var(--color-text-muted); grid-column: span 4; padding: 40px;">
