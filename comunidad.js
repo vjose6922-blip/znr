@@ -1302,7 +1302,7 @@ function initBeneficiariosToggle() {
       if (grid) grid.style.display = '';
       if (pagination) pagination.style.display = '';
       if (toolbarArea) toolbarArea.style.display = '';
-      btn.innerHTML = Icon('heart-fill') + ' Ver fundaciones';
+      btn.innerHTML = Icon('heart') + ' Ver refugios';
     } else {
       // Mostrar fundaciones
       wrap.style.display = 'block';
