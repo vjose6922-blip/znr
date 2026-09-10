@@ -371,48 +371,51 @@
 
  .app-header { position: flex !important; top: 0; left: 0; right: 0; width: 100%; box-sizing: border-box; }
 
- /* ---- Estilo mejorado para el botón de limpiar vistos recientemente ---- */
- .clear-recent-btn {
-   background: linear-gradient(135deg, #3b1f5f, #ff4f81);
-   border: none;
-   color: white;
-   font-weight: 600;
-   font-size: 13px;
-   padding: 8px 20px;
-   border-radius: 40px;
-   display: inline-flex;
-   align-items: center;
-   gap: 6px;
-   box-shadow: 0 6px 14px rgba(255, 79, 129, 0.35);
-   transition: transform 0.2s ease, box-shadow 0.2s ease;
-   cursor: pointer;
-   margin: 0 auto 12px;
-   text-decoration: none;
-   letter-spacing: 0.3px;
- }
- .clear-recent-btn:hover {
-   transform: translateY(-2px);
-   box-shadow: 0 10px 20px rgba(255, 79, 129, 0.5);
- }
- .clear-recent-btn svg {
-   width: 16px;
-   height: 16px;
-   stroke: currentColor;
-   stroke-width: 2;
-   fill: none;
- }
- .recent-products-header {
-   display: flex;
-   justify-content: space-between;
-   align-items: center;
-   max-width: 1400px;
-   margin: 0 auto 10px;
-   padding: 0 20px;
- }
- .recent-products-header .section-title {
-   margin-bottom: 0;
-   text-align: left;
- }
+/* ---- Botón Limpiar vistos recientemente (generado por home.js) ---- */
+.clear-recents-btn {
+  font-size: 12px;
+  padding: 6px 16px;
+  border-radius: 40px;
+  border: none;
+  background: linear-gradient(135deg, #3b1f5f, #ff4f81);
+  color: #ffffff;
+  cursor: pointer;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  box-shadow: 0 6px 14px rgba(255, 79, 129, 0.35);
+  transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
+  margin-left: 8px;
+  white-space: nowrap;
+  font-family: inherit;
+}
+
+.clear-recents-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 20px rgba(255, 79, 129, 0.5);
+  filter: brightness(1.05);
+}
+
+.clear-recents-btn:active {
+  transform: translateY(0);
+  box-shadow: 0 4px 10px rgba(255, 79, 129, 0.35);
+}
+
+.clear-recents-btn:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* Tema claro: mismo gradiente pero con un toque más cálido */
+[data-theme="light"] .clear-recents-btn {
+}
+
+[data-theme="light"] .clear-recents-btn:hover {
+}
+
+
 
  /* ---- SVGs para botones de recargar y añadir ---- */
  .icon-btn-svg {
@@ -520,25 +523,11 @@
  </div>
 </section>
 
-<!-- Sección Vistos Recientemente mejorada con botón de limpiar -->
 <section>
- <div class="recent-products-header">
-   <h2 class="section-title" style="margin-bottom: 0;">Vistos Recientemente</h2>
-   <button class="clear-recent-btn" id="clear-recent-btn" aria-label="Limpiar vistos recientemente">
-     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-       <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
-       <path d="M4 7l16 0" />
-       <path d="M10 11l0 6" />
-       <path d="M14 11l0 6" />
-       <path d="M5 7l1 12a2 2 0 0 0 2 2h8a2 2 0 0 0 2 -2l1 -12" />
-       <path d="M9 7v-3a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v3" />
-     </svg>
-     Limpiar
-   </button>
- </div>
- <div class="recent-products">
-   <div class="recent-scroll" id="recent-products"></div>
- </div>
+  <h2 class="section-title">Vistos Recientemente</h2>
+  <div class="recent-products">
+    <div class="recent-scroll" id="recent-products"></div>
+  </div>
 </section>
 
  
