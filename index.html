@@ -371,21 +371,20 @@
 
  .app-header { position: flex !important; top: 0; left: 0; right: 0; width: 100%; box-sizing: border-box; }
 
-/* ---- Botón Limpiar vistos recientemente (generado por home.js) ---- */
 .clear-recents-btn {
   font-size: 12px;
   padding: 6px 16px;
   border-radius: 40px;
   border: none;
-  background: linear-gradient(135deg, #3b1f5f, #ff4f81);
-  color: #ffffff;
+  background: var(--color-surface);
+  color: #ff4f81;
   cursor: pointer;
   font-weight: 600;
   letter-spacing: 0.3px;
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  box-shadow: 0 6px 14px rgba(255, 79, 129, 0.35);
+  box-shadow: var(--shadow-soft);
   transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
   margin-left: 8px;
   white-space: nowrap;
@@ -393,14 +392,13 @@
 }
 
 .clear-recents-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 10px 20px rgba(255, 79, 129, 0.5);
-  filter: brightness(1.05);
+  transform: translateY(-3px);
+  box-shadow: 0 15px 30px rgba(0,0,0,0.15);
 }
 
 .clear-recents-btn:active {
   transform: translateY(0);
-  box-shadow: 0 4px 10px rgba(255, 79, 129, 0.35);
+  box-shadow: var(--shadow-soft);
 }
 
 .clear-recents-btn:focus-visible {
@@ -408,7 +406,6 @@
   outline-offset: 2px;
 }
 
-/* Tema claro: mismo gradiente pero con un toque más cálido */
 [data-theme="light"] .clear-recents-btn {
 }
 
