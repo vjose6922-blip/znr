@@ -560,8 +560,21 @@
 
 
 <script>
+  // Intercepta los logs del runtime WASM de LiteRT (Emscripten).
+  // Se instala ANTES de cargar ai-clasificador.js / ai-busqueda-visual.js.
   (function() {
-    const RUIDO = [
+    // Si ya existe un Module (raro, pero posible si algo lo definió antes),
+    // lo respetamos; si no, creamos uno vacío.
+    window.Module = window.Module || {};
+
+    // Guardamos los originales por si en el futuro quieres depurar.
+    const _printOriginal = window.Module.print;
+    const _printErrOriginal = window.Module.printErr;
+
+    // Filtro: silenciamos todo lo que sea ruido interno del runtime.
+    // Los errores reales (por ejemplo "Aborted" o fallos de compilación)
+    // se dejan pasar porque no coinciden con los patrones de abajo.
+    const RUIDO_WASM = [
       'Creating LiteRT environment',
       'Adding options to the existing LiteRT environment',
       'RegisterAccelerator',
@@ -578,13 +591,24 @@
       'Created TensorFlow Lite XNNPACK',
       'Flatbuffer model initialized',
     ];
-    const _log = console.log;
-    const _info = console.info;
-    const _warn = console.warn;
-    const esRuido = (args) => RUIDO.some(r => args.some(a => typeof a === 'string' && a.includes(r)));
-    console.log  = (...a) => { if (!esRuido(a)) _log(...a); };
-    console.info = (...a) => { if (!esRuido(a)) _info(...a); };
-    console.warn = (...a) => { if (!esRuido(a)) _warn(...a); };
+
+    const esRuidoWasm = (texto) => {
+      if (typeof texto !== 'string') return false;
+      return RUIDO_WASM.some(p => texto.includes(p));
+    };
+
+    // Emscripten llama a Module.print para stdout y Module.printErr para stderr.
+    window.Module.print = function(text) {
+      if (esRuidoWasm(text)) return;
+      if (_printOriginal) return _printOriginal(text);
+      console.log(text);
+    };
+
+    window.Module.printErr = function(text) {
+      if (esRuidoWasm(text)) return;
+      if (_printErrOriginal) return _printErrOriginal(text);
+      console.error(text);
+    };
   })();
 </script>
 
