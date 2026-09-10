@@ -28,6 +28,8 @@
 const ZR_ICONS = {
 
   // ===== Navegación / UI general =====
+    // información / ayuda contextual (Tabler icon-info-circle)
+  'info': { attrs: 'viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"', body: `<path d="M12 9h.01"/><path d="M11 12h1v4h1"/><path d="M12 21a9 9 0 1 0 0 -18a9 9 0 0 0 0 18z"/>` },
   // home
   'home': { attrs: 'viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"', body: `<path d="M2.25 12l8.954-8.955a1.126 1.126 0 011.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25"/>` },
   // settings/gear
