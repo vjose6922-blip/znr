@@ -769,17 +769,14 @@ document.addEventListener('DOMContentLoaded', () => {
       <!-- ── Sección colapsable: Donaciones ── -->
       <div class="settings-section">
         <button class="settings-section-toggle" onclick="toggleSettingsSection(this)">
-          <span><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" aria-hidden="true"><use href="#ic-heart-fill"/></svg> Donar productos <span id="donaciones-count-badge"></span></span>
+          <span><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" aria-hidden="true"><use href="#ic-heart"/></svg> Donar productos <span id="donaciones-count-badge"></span></span>
           <svg class="toggle-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
         </button>
         <div class="settings-section-body" style="display:none;">
           <p style="font-size:.78rem;color:#888;margin:0 0 12px;line-height:1.5;">Asigna tus productos de Comunidad a un beneficiario. El comprador le pagará directamente a ellos.</p>
           <button id="btn-gestionar-donaciones" onclick="openGestionarDonacionesModal()" style="width:100%;padding:11px;border-radius:10px;border:1.5px solid #f97316;background:#fff7ed;color:#ea580c;font-size:.9rem;font-weight:700;cursor:pointer;">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" aria-hidden="true"><use href="#ic-heart-fill"/></svg> Gestionar donaciones
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" aria-hidden="true"><use href="#ic-heart"/></svg> Gestionar donaciones
           </button>
-          <!-- Si este vendedor también está registrado como beneficiario/fundación,
-               aquí se muestra su perfil (nombre, historia, cuenta, fotos) y las
-               donaciones que recibe. Ver loadBeneficiarioDonaciones() en vendedor-unificado.js -->
           <div id="settings-donaciones-recibidas-area" style="display:none;"></div>
         </div>
       </div>
@@ -787,7 +784,7 @@ document.addEventListener('DOMContentLoaded', () => {
       <!-- ── Sección colapsable: Información ── -->
       <div class="settings-section">
         <button class="settings-section-toggle" onclick="toggleSettingsSection(this)">
-          <span>ℹ️ Información de cuenta</span>
+          <span><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" aria-hidden="true"><use href="#ic-info"/></svg> Información de cuenta</span>
           <svg class="toggle-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
         </button>
         <div class="settings-section-body" style="display:none;">
