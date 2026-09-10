@@ -739,7 +739,6 @@ function createHomeLookCard(look) {
   card.className = 'look-card';
   card.dataset.lookId = look.id;
 
-  // 🔥 MODIFICACIÓN: envolver el botón en un div.look-actions-row
   card.innerHTML = `
     <div class="look-images-container">
       ${imagesHtml || '<div class="look-slot-image empty">Sin imágenes</div>'}
@@ -759,7 +758,6 @@ function createHomeLookCard(look) {
           <span class="look-total-price">${formatCurrency(totalPrice)}</span>
         </div>
       </div>
-      <!-- 👇 NUEVO ENVOLTORIO para evitar estiramiento vertical -->
       <div class="look-actions-row">
         <button class="buy-look-btn" data-look-id="${escapeHtml(String(look.id))}">
           <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -768,11 +766,9 @@ function createHomeLookCard(look) {
           Comprar todo
         </button>
       </div>
-      <!-- 👆 FIN DEL ENVOLTORIO -->
     </div>
   `;
 
-  // Los event listeners (wishlist, modal, add, reload, buy) quedan igual que antes...
   card.querySelector('[data-action="wishlist"]')?.addEventListener('click', (e) => {
     toggleLookWishlist(look.id, e);
   });
@@ -784,8 +780,6 @@ function createHomeLookCard(look) {
   card.querySelectorAll('.look-product-reload').forEach(btn => {
     btn.addEventListener('click', (e) => reloadHomeLookSlot(btn.dataset.lookId, btn.dataset.slotKey, e));
   });
-
-  card.querySelector('.buy-look-btn')?.addEventListener('click', () => addHomeLookToCart(look.id));
 
   return card;
 }
