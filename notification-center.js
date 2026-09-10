@@ -388,6 +388,36 @@
   font-weight:700;
   cursor:pointer;
 }
+.nc-pago-tarjeta{
+  margin-top:8px;
+  padding:10px 12px;
+  border-radius:12px;
+  background:rgba(0,158,227,.08);
+  border:1px solid rgba(0,158,227,.3);
+}
+.nc-pago-tarjeta-check{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  font-size:12.5px;
+  font-weight:700;
+  color:#5ec3f0;
+  cursor:pointer;
+}
+.nc-pago-tarjeta-btn{
+  display:inline-flex;
+  align-items:center;
+  gap:5px;
+  margin-top:8px;
+  background:#009EE3;
+  color:#fff;
+  border:none;
+  border-radius:10px;
+  padding:8px 13px;
+  font-size:12px;
+  font-weight:700;
+  cursor:pointer;
+}
 
 /* ── Skeletons ── */
 .nc-skel-item{
@@ -570,6 +600,20 @@ const PICKUP_HORAS = ['9:00 AM','10:00 AM','11:00 AM','12:00 PM','1:00 PM','2:00
              </div>
            </div>`
         : '';
+      // Cobro con tarjeta en Comunidad — solo aparece si ESE vendedor ya
+      // conectó su propia cuenta de Mercado Pago (permiteTarjeta viene
+      // desde el backend, no se decide en el cliente). Por defecto
+      // efectivo/transferencia (como hoy); el comprador elige tarjeta si
+      // quiere.
+      const pagoTarjetaHtml = (n.tipo === 'confirmacion_vendedor' && meta.permiteTarjeta === true && meta.requestId && meta.vendedor_uid)
+        ? `<div class="nc-pago-tarjeta" onclick="event.stopPropagation()">
+             <label class="nc-pago-tarjeta-check">
+               <input type="checkbox" class="nc-pago-tarjeta-toggle">
+               💳 Prefiero pagar con tarjeta
+             </label>
+             <button type="button" class="nc-pago-tarjeta-btn" style="display:none;" data-request-id="${meta.requestId}" data-vendedor-uid="${meta.vendedor_uid}">${Icon('credit-card')} Ir a pagar con tarjeta</button>
+           </div>`
+        : '';
       return `
         <div class="nc-item ${n.leida ? '' : 'unread'}" data-id="${n.id}" data-url="${n.url || ''}">
           <div class="nc-icon">${info.icono}</div>
@@ -584,6 +628,7 @@ const PICKUP_HORAS = ['9:00 AM','10:00 AM','11:00 AM','12:00 PM','1:00 PM','2:00
               ${waBtn}
               ${mapsBtn}
               ${abrirBtn}
+              ${pagoTarjetaHtml}
               ${pickupAvisoHtml}
               ${pagoPendienteHtml}
             </div>
@@ -600,6 +645,42 @@ const PICKUP_HORAS = ['9:00 AM','10:00 AM','11:00 AM','12:00 PM','1:00 PM','2:00
         if (!tel) return;
         const texto = `Hola, buen día 👋 Pasaré a recoger mi pedido a las ${hora}.`;
         window.open(`https://wa.me/52${tel}?text=${encodeURIComponent(texto)}`, '_blank');
+      });
+    });
+
+    listEl.querySelectorAll('.nc-pago-tarjeta-toggle').forEach(chk => {
+      chk.addEventListener('change', (e) => {
+        e.stopPropagation();
+        const btn = chk.closest('.nc-pago-tarjeta').querySelector('.nc-pago-tarjeta-btn');
+        btn.style.display = chk.checked ? 'inline-flex' : 'none';
+      });
+    });
+
+    listEl.querySelectorAll('.nc-pago-tarjeta-btn').forEach(btn => {
+      btn.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        const requestId = btn.dataset.requestId;
+        const vendedorUid = btn.dataset.vendedorUid;
+        const textoOriginal = btn.innerHTML;
+        btn.disabled = true; btn.textContent = 'Generando link de pago...';
+        try {
+          const VENTAS_API_URL_NC = 'https://ventas-api-1038143238323.us-central1.run.app';
+          const res = await fetch(VENTAS_API_URL_NC, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: new URLSearchParams({ action: 'crearPreferenciaComunidad', requestId, vendedor_uid: vendedorUid }).toString()
+          });
+          const data = await res.json();
+          if (data.ok && data.url) {
+            window.location.href = data.url;
+          } else {
+            btn.disabled = false; btn.innerHTML = textoOriginal;
+            alert(data.error || 'No se pudo generar el link de pago');
+          }
+        } catch (err) {
+          btn.disabled = false; btn.innerHTML = textoOriginal;
+          alert('No se pudo generar el link de pago');
+        }
       });
     });
 

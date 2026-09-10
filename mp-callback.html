@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Content-Security-Policy" content="
+  default-src 'self';
+  script-src 'self' 'unsafe-inline';
+  style-src 'self' 'unsafe-inline';
+  connect-src 'self' https://vendedores-api-1038143238323.us-central1.run.app;
+  img-src 'self';
+">
+<title>Conectando con Mercado Pago...</title>
+<style>
+  body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;
+       background:#0f0f1a;color:#fff;font-family:system-ui,-apple-system,sans-serif;text-align:center;padding:24px;}
+  .card{max-width:340px;}
+  .spinner{width:36px;height:36px;border:3px solid rgba(255,255,255,.2);border-top-color:#facc15;
+           border-radius:50%;margin:0 auto 18px;animation:spin 0.8s linear infinite;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+  h2{font-size:1.1rem;margin:0 0 8px;}
+  p{color:#aaa;font-size:.9rem;margin:0;}
+  .error{color:#f87171;}
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="spinner" id="spinner"></div>
+  <h2 id="titulo">Conectando tu cuenta...</h2>
+  <p id="mensaje">Un momento, por favor.</p>
+</div>
+<script>
+(async function () {
+  const params = new URLSearchParams(window.location.search);
+  const code = params.get('code');
+  const state = params.get('state');
+  const titulo = document.getElementById('titulo');
+  const mensaje = document.getElementById('mensaje');
+  const spinner = document.getElementById('spinner');
+
+  function terminar(ok, texto) {
+    spinner.style.display = 'none';
+    titulo.textContent = ok ? '¡Cuenta conectada!' : 'No se pudo conectar';
+    titulo.className = ok ? '' : 'error';
+    mensaje.textContent = texto;
+    setTimeout(() => { window.location.href = 'vendedor.html'; }, 2200);
+  }
+
+  if (!code || !state) {
+    terminar(false, 'Faltan datos de la autorización. Vuelve a intentar desde tu perfil.');
+    return;
+  }
+
+  try {
+    const res = await fetch('https://vendedores-api-1038143238323.us-central1.run.app', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({ action: 'mpConectarCallback', code, state }).toString()
+    });
+    const data = await res.json();
+    if (data.ok) {
+      terminar(true, 'Ya puedes recibir pagos con tarjeta directo en tu cuenta.');
+    } else {
+      terminar(false, data.error || 'Intenta de nuevo desde tu perfil.');
+    }
+  } catch (err) {
+    terminar(false, 'No se pudo completar la conexión. Intenta de nuevo.');
+  }
+})();
+</script>
+</body>
+</html>

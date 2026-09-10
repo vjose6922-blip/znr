@@ -37,6 +37,10 @@ const MAPA_ACCIONES_MIGRADAS = {
   webauthnRegistroVerificar: VENDEDORES_API_URL,
   webauthnListarDispositivos: VENDEDORES_API_URL,
   webauthnEliminarDispositivo: VENDEDORES_API_URL,
+  mpConectarUrl: VENDEDORES_API_URL,
+  mpEstadoConexion: VENDEDORES_API_URL,
+  mpDesconectar: VENDEDORES_API_URL,
+  crearPreferenciaComunidad: VENTAS_API_URL,
   cambiarPasswordVendedor: VENDEDORES_API_URL,
   solicitarResetPasswordVendedor: VENDEDORES_API_URL,
   actualizarPerfilVendedor: VENDEDORES_API_URL,
@@ -597,6 +601,7 @@ const verEntregasBtn = document.getElementById('btn-ver-entregas-panel');
 if (verEntregasBtn) verEntregasBtn.style.display = (vendorSession && vendorSession.plan === 'plus') ? 'flex' : 'none';
 renderChecklistVendedor();
 if (typeof cargarSeccionHuella === 'function') cargarSeccionHuella();
+if (typeof cargarEstadoMP === 'function') cargarEstadoMP();
   
 const nameHeader = document.getElementById('vendor-name-header');
 if (nameHeader && vendorSession) {
@@ -2825,6 +2830,48 @@ window.eliminarDispositivoHuella = async function(credentialId) {
   try {
     await apiCall({ action: 'webauthnEliminarDispositivo', vendorToken: vendorSession.token, credentialId });
     await cargarSeccionHuella();
+  } catch (_) {}
+};
+
+// ── Conectar/desconectar Mercado Pago (cobro con tarjeta en Comunidad) ──
+async function cargarEstadoMP() {
+  const estadoEl = document.getElementById('mp-conexion-estado');
+  const btnConectar = document.getElementById('btn-mp-conectar');
+  const btnDesconectar = document.getElementById('btn-mp-desconectar');
+  if (!estadoEl) return;
+  try {
+    const res = await apiCall({ action: 'mpEstadoConexion', vendorToken: vendorSession.token });
+    if (res.ok && res.conectado) {
+      estadoEl.textContent = '✅ Tu cuenta de Mercado Pago está conectada.';
+      btnConectar.style.display = 'none';
+      btnDesconectar.style.display = 'block';
+    } else {
+      estadoEl.textContent = 'Aún no has conectado ninguna cuenta.';
+      btnConectar.style.display = 'block';
+      btnDesconectar.style.display = 'none';
+    }
+  } catch (_) {
+    estadoEl.textContent = '';
+  }
+}
+
+window.conectarMercadoPago = async function() {
+  const msg = document.getElementById('mp-conexion-msg');
+  msg.textContent = '';
+  try {
+    const res = await apiCall({ action: 'mpConectarUrl', vendorToken: vendorSession.token });
+    if (!res.ok) throw new Error(res.error || 'No se pudo iniciar la conexión');
+    window.location.href = res.url;
+  } catch (err) {
+    msg.style.color = '#dc2626'; msg.textContent = err.message || 'No se pudo iniciar la conexión';
+  }
+};
+
+window.desconectarMercadoPago = async function() {
+  if (!confirm('¿Desconectar tu cuenta de Mercado Pago? Dejarás de poder cobrar con tarjeta en tus ventas de Comunidad.')) return;
+  try {
+    await apiCall({ action: 'mpDesconectar', vendorToken: vendorSession.token });
+    await cargarEstadoMP();
   } catch (_) {}
 };
 
