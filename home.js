@@ -781,18 +781,6 @@ function createHomeLookCard(look) {
     div.addEventListener('click', () => openImageModal(div.dataset.modalUrl, div.dataset.productId));
   });
 
-  card.querySelectorAll('.look-product-add').forEach(btn => {
-    btn.addEventListener('click', () => {
-      addToCart({
-        ID: btn.dataset.id,
-        Nombre: btn.dataset.nombre,
-        Precio: Number(btn.dataset.precio),
-        Imagen1: btn.dataset.imagen,
-        Talla: btn.dataset.talla
-      });
-    });
-  });
-
   card.querySelectorAll('.look-product-reload').forEach(btn => {
     btn.addEventListener('click', (e) => reloadHomeLookSlot(btn.dataset.lookId, btn.dataset.slotKey, e));
   });
