@@ -13,6 +13,9 @@
 //
 // Este módulo NUNCA debe bloquear ni interrumpir el flujo de publicar producto.
 
+// 👇 Cambia a true solo cuando necesites depurar el módulo
+const DEBUG_AI = false;
+
 const MODEL_URL = './model.tflite';
 const WASM_BASE = 'https://cdn.jsdelivr.net/npm/@litertjs/core/wasm/';
 const LITERT_ESM = 'https://cdn.jsdelivr.net/npm/@litertjs/core/+esm';
@@ -54,7 +57,7 @@ async function _cargarModelo() {
         return null;
       }
       CATEGORY_MAP = labels;
-      console.error('[ai-clasificador] labels.txt cargado, categorías del modelo:', CATEGORY_MAP);
+      if (DEBUG_AI) console.error('[ai-clasificador] labels.txt cargado, categorías del modelo:', CATEGORY_MAP);
 
       _liteRtCore = await import(/* webpackIgnore: true */ LITERT_ESM);
       await _liteRtCore.loadLiteRt(WASM_BASE);
@@ -71,18 +74,18 @@ async function _cargarModelo() {
         modeloWebGpuValido = await _probarSalidaValida(modeloGpu);
         if (modeloWebGpuValido) {
           _model = modeloGpu;
-          console.error('[ai-clasificador] Modelo cargado con aceleración WebGPU (auto-prueba de sanidad OK)');
+          if (DEBUG_AI) console.error('[ai-clasificador] Modelo cargado con aceleración WebGPU (auto-prueba de sanidad OK)');
         } else {
-          console.error('[ai-clasificador] WebGPU cargó pero la auto-prueba detectó salida degenerada (bug conocido) — usando CPU/wasm en su lugar.');
+          if (DEBUG_AI) console.error('[ai-clasificador] WebGPU cargó pero la auto-prueba detectó salida degenerada (bug conocido) — usando CPU/wasm en su lugar.');
           modeloGpu.delete?.();
         }
       } catch (errGpu) {
-        console.error('[ai-clasificador] WebGPU no disponible o falló al cargar, usando CPU/wasm:', errGpu);
+        if (DEBUG_AI) console.error('[ai-clasificador] WebGPU no disponible o falló al cargar, usando CPU/wasm:', errGpu);
       }
 
       if (!modeloWebGpuValido) {
         _model = await _liteRtCore.loadAndCompile(MODEL_URL, { accelerator: 'wasm' });
-        console.error('[ai-clasificador] Modelo cargado con CPU/wasm');
+        if (DEBUG_AI) console.error('[ai-clasificador] Modelo cargado con CPU/wasm');
       }
 
       return _model;
@@ -192,7 +195,7 @@ export async function clasificarImagen(file) {
   try {
     inputTensor = await fileToInputTensor(file);
     const resultados = await model.run(inputTensor);
-    console.error(`[ai-clasificador] model.run() devolvió ${resultados.length} tensor(es) de salida.`);
+    if (DEBUG_AI) console.error(`[ai-clasificador] model.run() devolvió ${resultados.length} tensor(es) de salida.`);
 
     // IMPORTANTE: no asumimos el orden [clasificación, embedding] por
     // posición — TFLite no siempre conserva el orden en que se definieron
@@ -209,7 +212,7 @@ export async function clasificarImagen(file) {
       tensor.delete?.();
       cpuTensor.delete?.();
     }
-    console.error('[ai-clasificador] Tamaños de las salidas leídas:', tensoresLeidos.map(v => v.length));
+    if (DEBUG_AI) console.error('[ai-clasificador] Tamaños de las salidas leídas:', tensoresLeidos.map(v => v.length));
 
     const DIM_EMBEDDING = 1280;
     const salidaEmbedding = tensoresLeidos.find(v => v.length === DIM_EMBEDDING) || null;
@@ -217,10 +220,10 @@ export async function clasificarImagen(file) {
 
     const embedding = salidaEmbedding;
     const { idx, confianza } = _softmaxArgmax(salidaClasificacion);
-    console.error(`[ai-clasificador] Índice ganador: ${idx}, confianza: ${confianza}, CATEGORY_MAP.length: ${CATEGORY_MAP?.length}`);
+    if (DEBUG_AI) console.error(`[ai-clasificador] Índice ganador: ${idx}, confianza: ${confianza}, CATEGORY_MAP.length: ${CATEGORY_MAP?.length}`);
 
     if (idx < 0 || !CATEGORY_MAP || idx >= CATEGORY_MAP.length) {
-      console.error('[ai-clasificador] Índice fuera de rango (posible salida vacía o CATEGORY_MAP no coincide en tamaño).');
+      if (DEBUG_AI) console.error('[ai-clasificador] Índice fuera de rango (posible salida vacía o CATEGORY_MAP no coincide en tamaño).');
       return { categoria: null, confianza: 0, embedding };
     }
 
@@ -247,7 +250,7 @@ window.sugerirYAplicar = async function(file) {
   try {
     const resultado = await clasificarImagen(file);
     if (!resultado) {
-      console.error('[ai-clasificador] Sin resultado: el modelo no está disponible.');
+      if (DEBUG_AI) console.error('[ai-clasificador] Sin resultado: el modelo no está disponible.');
       return;
     }
 
@@ -256,36 +259,36 @@ window.sugerirYAplicar = async function(file) {
     // publicar el producto, para el buscador visual de Comunidad.
     if (resultado.embedding) {
       window.__znrUltimoEmbedding = resultado.embedding;
-      console.error(`[ai-clasificador] Embedding calculado (${resultado.embedding.length} valores), listo para publicar.`);
+      if (DEBUG_AI) console.error(`[ai-clasificador] Embedding calculado (${resultado.embedding.length} valores), listo para publicar.`);
     }
 
     if (!resultado.categoria) {
-      console.error('[ai-clasificador] Sin sugerencia de categoría (salida del modelo fuera de rango).');
+      if (DEBUG_AI) console.error('[ai-clasificador] Sin sugerencia de categoría (salida del modelo fuera de rango).');
       return;
     }
 
-    console.error(`[ai-clasificador] Predicción cruda del modelo: "${resultado.categoria}" (${Math.round(resultado.confianza * 100)}%)`);
+    if (DEBUG_AI) console.error(`[ai-clasificador] Predicción cruda del modelo: "${resultado.categoria}" (${Math.round(resultado.confianza * 100)}%)`);
 
     if (resultado.confianza < UMBRAL_CONFIANZA) {
-      console.error(`[ai-clasificador] Confianza ${resultado.confianza} menor al umbral ${UMBRAL_CONFIANZA}, no se aplica la sugerencia de categoría.`);
+      if (DEBUG_AI) console.error(`[ai-clasificador] Confianza ${resultado.confianza} menor al umbral ${UMBRAL_CONFIANZA}, no se aplica la sugerencia de categoría.`);
       return;
     }
 
     const select = document.getElementById('pCategoria');
     if (!select) {
-      console.error('[ai-clasificador] No se encontró el <select id="pCategoria"> en la página.');
+      if (DEBUG_AI) console.error('[ai-clasificador] No se encontró el <select id="pCategoria"> en la página.');
       return;
     }
 
     // No pisar una categoría que el vendedor ya eligió manualmente.
     if (select.value && select.dataset.aiSugerida !== 'true') {
-      console.error(`[ai-clasificador] Ya hay una categoría seleccionada manualmente ("${select.value}"), no se sobreescribe.`);
+      if (DEBUG_AI) console.error(`[ai-clasificador] Ya hay una categoría seleccionada manualmente ("${select.value}"), no se sobreescribe.`);
       return;
     }
 
     const opcionExiste = Array.from(select.options).some(o => o.value === resultado.categoria);
     if (!opcionExiste) {
-      console.error(`[ai-clasificador] La categoría predicha "${resultado.categoria}" no coincide con ninguna <option> del <select>. Opciones disponibles:`,
+      if (DEBUG_AI) console.error(`[ai-clasificador] La categoría predicha "${resultado.categoria}" no coincide con ninguna <option> del <select>. Opciones disponibles:`,
         Array.from(select.options).map(o => o.value));
       return;
     }
@@ -301,7 +304,7 @@ window.sugerirYAplicar = async function(file) {
     select.style.color = 'var(--color-text-primary, #1a1a2e)';
     select.style.fontWeight = '600';
 
-    console.error(`[ai-clasificador] Sugerencia aplicada: ${resultado.categoria} (${Math.round(resultado.confianza * 100)}%)`);
+    if (DEBUG_AI) console.error(`[ai-clasificador] Sugerencia aplicada: ${resultado.categoria} (${Math.round(resultado.confianza * 100)}%)`);
 
     if (typeof window.showTemporaryMessage === 'function') {
       window.showTemporaryMessage(`Categoría sugerida: ${resultado.categoria} (${Math.round(resultado.confianza * 100)}%)`, 'info');
