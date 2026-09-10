@@ -119,12 +119,6 @@
   <script src="api-config.js" defer></script>
   <script type="module" src="firestore-init.js"></script>
   <script>
-    document.getElementById('fa-back-btn').innerHTML = Icon('arrow-left');
-    document.getElementById('fa-back-btn').addEventListener('click', () => {
-      if (document.referrer && document.referrer.includes(location.host)) history.back();
-      else window.location.href = 'vendedor.html';
-    });
-
     function esc(s) {
       return String(s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
     }
@@ -184,6 +178,12 @@
     }
 
     document.addEventListener('DOMContentLoaded', () => {
+      document.getElementById('fa-back-btn').innerHTML = Icon('arrow-left');
+      document.getElementById('fa-back-btn').addEventListener('click', () => {
+        if (document.referrer && document.referrer.includes(location.host)) history.back();
+        else window.location.href = 'vendedor.html';
+      });
+
       cargarFeed();
       // Se siente "vivo": refresca sola cada minuto, sin que el usuario tenga que jalar/recargar.
       setInterval(cargarFeed, 60000);
