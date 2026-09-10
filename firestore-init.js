@@ -288,4 +288,37 @@ window.znrFirestore.getLivesActivos = async function () {
   }
 };
 
+/**
+ * Feed de "ventas recientes" de Comunidad (registrarVentaEnFeed en
+ * ventas-api escribe aquí). Cada doc expira a los 7 días (campo
+ * expiraEn) — se filtra en cliente en vez de un where() compuesto con
+ * orderBy(fecha), para no necesitar un índice de Firestore nuevo.
+ */
+window.znrFirestore.getFeedActividad = async function () {
+  try {
+    const q = query(collection(db, 'feed_actividad'), orderBy('fecha', 'desc'), limit(40));
+    const snap = await getDocs(q);
+    const ahora = Date.now();
+    const items = snap.docs
+      .map(d => {
+        const data = d.data();
+        return {
+          id: d.id,
+          vendedor: data.vendedor || '',
+          producto: data.producto || '',
+          imagen: data.imagen || '',
+          stockRestante: data.stockRestante ?? null,
+          fecha: data.fecha ? data.fecha.toDate().toISOString() : '',
+          expiraEn: data.expiraEn ? data.expiraEn.toDate().getTime() : null,
+        };
+      })
+      .filter(it => it.fecha && (!it.expiraEn || it.expiraEn > ahora));
+    return { ok: true, items };
+  } catch (err) {
+    console.warn('Firestore feed_actividad falló:', err);
+    return { ok: false, error: String(err) };
+  }
+};
+
+
 
