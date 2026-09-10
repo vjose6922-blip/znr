@@ -482,6 +482,46 @@
  </div>
  </div>
 
+
+
+
+
+
+
+
+<script>
+  (function() {
+    const RUIDO = [
+      'Creating LiteRT environment',
+      'Adding options to the existing LiteRT environment',
+      'RegisterAccelerator',
+      'accelerator_registry',
+      'cpu_registry',
+      'gpu_registry',
+      'gpu_environment',
+      'environment.cc',
+      'compiled_model.cc',
+      'delegate_webgpu.cc',
+      'delegate_kernel.cc',
+      'npu_registry',
+      'Failed to load OpenCL',
+      'Created TensorFlow Lite XNNPACK',
+      'Flatbuffer model initialized',
+    ];
+    const _log = console.log;
+    const _info = console.info;
+    const _warn = console.warn;
+    const esRuido = (args) => RUIDO.some(r => args.some(a => typeof a === 'string' && a.includes(r)));
+    console.log  = (...a) => { if (!esRuido(a)) _log(...a); };
+    console.info = (...a) => { if (!esRuido(a)) _info(...a); };
+    console.warn = (...a) => { if (!esRuido(a)) _warn(...a); };
+  })();
+</script>
+
+
+
+
+ 
  <script src="api-config.js"></script>
  <script type="module" src="fcm-init.js"></script>
  <script type="module" src="firestore-init.js"></script>
