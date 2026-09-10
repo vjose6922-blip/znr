@@ -726,7 +726,10 @@ document.addEventListener('DOMContentLoaded', () => {
           </div>
 
           <div id="settings-webauthn" style="display:none;margin-top:16px;padding-top:16px;border-top:1px solid #eee;">
-            <label style="font-size:.8rem;color:#555;display:block;margin-bottom:8px;">👆 Entrar con huella o Face ID en este dispositivo</label>
+            <label style="font-size:.8rem;color:#555;display:flex;align-items:center;gap:6px;margin-bottom:8px;">
+  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" aria-hidden="true"><use href="#ic-fingerprint"/></svg>
+  Entrar con huella o Face ID en este dispositivo
+</label>
             <div id="settings-webauthn-lista" style="margin-bottom:10px;font-size:.82rem;color:#777;"></div>
             <button onclick="activarHuellaDispositivo()" id="btn-activar-huella"
               style="width:100%;padding:11px;border-radius:10px;border:1px solid #7c3aed;background:#fff;color:#7c3aed;font-size:.9rem;font-weight:700;cursor:pointer;">
