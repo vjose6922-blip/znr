@@ -3849,17 +3849,17 @@ function abrirModalCompartirTienda() {
   modal.addEventListener('click', (e) => { if (e.target === modal) modal.remove(); });
 
   // --- Generar QR ---
-  const qrContainer = document.getElementById('qr-code-styling-container');
-  qrContainer.innerHTML = '';
-  const qrCode = new QRCodeStyling({
-    width: 180,
-    height: 180,
-    data: shareUrl,
-    dotsOptions: { color: "#7c3aed", type: "rounded" },
-    backgroundOptions: { color: "#ffffff" },
-    cornersSquareOptions: { color: "#5b21b6", type: "dot" },
-    cornersDotOptions: { color: "#7c3aed", type: "dot" }
-  });
+const qrContainer = document.getElementById('qr-code-styling-container');
+qrContainer.innerHTML = '';
+const qrCode = new QRCodeStyling({
+  width: 180,
+  height: 180,
+  data: shareUrl,
+  dotsOptions: { color: "#000000", type: "rounded" },      // puntos negros
+  backgroundOptions: { color: "#ffffff" },
+  cornersSquareOptions: { color: "#000000", type: "dot" }, // esquinas negras
+  cornersDotOptions: { color: "#000000", type: "dot" }     // punto central negro
+});
   qrCode.append(qrContainer);
 
   // --- Construir el texto dinámico una sola vez ---
