@@ -245,33 +245,6 @@ window.znrFirestore.getDonacionesRecibidas = async function (vendorUid) {
 };
 
 /**
- * Devuelve { ok: true, items: [...] } con el feed de actividad
- * (últimos 50, más recientes primero), igual que el endpoint GAS
- * obtenerFeedActividad.
- */
-window.znrFirestore.getFeedActividad = async function () {
-  try {
-    const q = query(collection(db, 'feed_actividad'), orderBy('fecha', 'desc'), limit(50));
-    const snap = await getDocs(q);
-    const items = snap.docs.map(d => {
-      const data = d.data();
-      const fecha = data.fecha && data.fecha.toDate ? data.fecha.toDate() : new Date(data.fecha);
-      return {
-        vendedor: data.vendedor || '',
-        producto: data.producto || '',
-        imagen: data.imagen || '',
-        fecha: fecha.toISOString(),
-        stockRestante: data.stockRestante === undefined ? null : data.stockRestante,
-      };
-    });
-    return { ok: true, items };
-  } catch (err) {
-    console.warn('Firestore feed_actividad falló, se usará GAS como respaldo:', err);
-    return { ok: false, error: String(err) };
-  }
-};
-
-/**
  * 🔥 NUEVA FUNCIÓN: Devuelve { ok: true, lives: [...] } con todos los
  * lives activos (estado === 'en_vivo'). Esta función reemplaza la
  * llamada a GAS action=obtenerLivesActivos.
@@ -305,6 +278,7 @@ window.znrFirestore.getFeedActividad = async function () {
         return {
           id: d.id,
           vendedor: data.vendedor || '',
+          vendedorUid: data.vendedorUid || '',
           producto: data.producto || '',
           imagen: data.imagen || '',
           stockRestante: data.stockRestante ?? null,
@@ -319,6 +293,3 @@ window.znrFirestore.getFeedActividad = async function () {
     return { ok: false, error: String(err) };
   }
 };
-
-
-
