@@ -1314,9 +1314,6 @@ window.loadMyProducts = async function loadMyProducts(force = false, page = 1) {
   await window.fetchPage(uid, page, limit, status, false);
 };
 
-// Hace la llamada a GAS y guarda el resultado en el caché por página
-// compartido. Es el único punto de red para "mis productos paginados",
-// tanto vendedor.html como el modal de donaciones pasan por aquí.
 window.fetchAndCacheVendorPage = async function(uid, page, limit, status) {
   const data = await apiFetch({
     action: 'misProductosComunidad',
@@ -3837,11 +3834,11 @@ function abrirModalCompartirTienda() {
       </div>
       <div style="display:flex;justify-content:center;gap:8px;margin-top:4px;">
         <button id="download-qr-btn" style="padding:6px 16px;border:none;border-radius:10px;background:#e0e7ff;color:#4c1d95;font-weight:600;cursor:pointer;font-size:.8rem;">⬇ Descargar QR</button>
-        <button id="share-facebook-btn" style="padding:6px 16px;border:none;border-radius:10px;background:#1877f2;color:#fff;font-weight:600;cursor:pointer;font-size:.8rem;">📘 Compartir en Facebook</button>
+        <button id="share-facebook-btn" style="padding:6px 16px;border:none;border-radius:10px;background:#1877f2;color:#fff;font-weight:600;cursor:pointer;font-size:.8rem;"> Compartir en Facebook</button>
       </div>
       <p style="font-size:.75rem;color:#888;margin:8px 0 4px;">Escanea el QR o comparte el enlace para que otros vean tu perfil.</p>
       <button id="share-text-copy-btn" style="width:100%;padding:9px;border:1px solid #ddd;border-radius:12px;background:#f9f9fb;color:#555;font-weight:600;cursor:pointer;font-size:.8rem;margin-top:6px;">
-        📋 Copiar publicación para Facebook
+         Copiar publicación para Facebook
       </button>
     </div>
   `;
@@ -3865,7 +3862,7 @@ const qrCode = new QRCodeStyling({
   // --- Construir el texto dinámico una sola vez ---
   const nombreVendedor = vendorSession.nombre || 'Mi tienda';
   const descripcion = obtenerDescripcionNegocio();
-  const textoPublicacion = `🛍️ ¡Descubre ${nombreVendedor} en Z&R! Tenemos ${descripcion} con entrega en Comunidad. Haz tu pedido y apoya el comercio local. 📲\n\n👉 Visita mi catálogo:\n${shareUrl}\n\n#ZR #TiendaLocal #Comunidad`;
+  const textoPublicacion = `🛍️ ¡Visita mi perfil ${nombreVendedor} en Z&R! Tenemos ${descripcion}. Haz tu pedido y apoya el comercio local. 📲\n\n👉 Visita mi catálogo:\n${shareUrl}\n\n#ZR #TiendaLocal #Comunidad`;
 
   // --- Botón Copiar enlace (cierra modal) ---
   document.getElementById('share-copy-btn')?.addEventListener('click', () => {
@@ -3894,15 +3891,13 @@ const qrCode = new QRCodeStyling({
     modal.remove();
   });
 
-// --- Botón Compartir en Facebook (directo, cierra modal) ---
 document.getElementById('share-facebook-btn')?.addEventListener('click', () => {
-  // 🔥 Copia el texto al portapapeles como plan B
   navigator.clipboard.writeText(textoPublicacion)
-    .then(() => showTemporaryMessage('📋 Texto copiado. Pégalo en tu publicación si no aparece.', 'success'))
+    .then(() => showTemporaryMessage('Texto copiado. Pégalo en tu publicación si no aparece.', 'success'))
     .catch(() => {}); // Silencioso si falla
 
   const url = encodeURIComponent(shareUrl);
-  const quote = encodeURIComponent(`🛍️ ¡Descubre ${nombreVendedor} en Z&R! Tenemos ${descripcion}.`);
+  const quote = encodeURIComponent(`🛍️ ¡Visita mi perfil ${nombreVendedor} en Z&R! Tenemos ${descripcion}.`);
   const fbUrl = `https://www.facebook.com/sharer/sharer.php?u=${url}&quote=${quote}`;
   window.open(fbUrl, '_blank', 'width=600,height=400');
   modal.remove();
