@@ -28,7 +28,7 @@
   <link rel="apple-touch-icon" sizes="152x152" href="icons/icon-152x152.png">
 
   <style>
-    body { margin: 0; background: var(--page-bg); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; min-height: 100vh; }
+    body { margin: 0; background: var(--page-bg); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; min-height: 100vh; padding-bottom: 70px; }
 
     .fa-subtitle-bar { padding: 14px 16px 6px; font-size: .78rem; color: var(--color-text-soft); font-weight: 600; }
     .fa-list { padding: 6px 16px 40px; display: flex; flex-direction: column; gap: 12px; }
@@ -123,62 +123,27 @@
     <div class="fa-skeleton"><div class="sk-img"></div><div class="sk-line"></div></div>
   </div>
 
+  <nav class="bottom-nav" id="bottom-nav-feed">
+    <button class="bottom-nav-item" id="nav-v-inicio">
+      <span class="nav-icon"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" aria-hidden="true"><use href="#ic-home"/></svg></span>
+      <span>Inicio</span>
+    </button>
+    <button class="bottom-nav-item" id="nav-v-comunidad">
+      <span class="nav-icon"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" aria-hidden="true"><use href="#ic-community"/></svg></span>
+      <span>Comunidad</span>
+    </button>
+    <button class="bottom-nav-item active" id="nav-vendedor">
+      <span class="nav-icon"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 12m-9 0a9 9 0 1 0 18 0a9 9 0 1 0 -18 0" /><path d="M12 10m-3 0a3 3 0 1 0 6 0a3 3 0 1 0 -6 0" /><path d="M6.168 18.849a4 4 0 0 1 3.832 -2.849h4a4 4 0 0 1 3.834 2.855" /></svg></span>
+      <span>Vendedor</span>
+    </button>
+  </nav>
 
+  <script>
+    document.getElementById('nav-v-inicio')?.addEventListener('click', () => { window.location.href = 'index.html'; });
+    document.getElementById('nav-v-comunidad')?.addEventListener('click', () => { window.location.href = 'comunidad.html'; });
+    document.getElementById('nav-vendedor')?.addEventListener('click', () => { window.location.href = 'vendedor.html'; });
+  </script>
 
-
-
-
-
-
- 
- <nav class="bottom-nav" id="bottom-nav-vendor" style="display:none">
- <button class="bottom-nav-item" id="nav-v-inicio">
- <span class="nav-icon"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" aria-hidden="true"><use href="#ic-home"/></svg></span>
- <span>Inicio</span>
- </button>
- <button class="bottom-nav-item" data-page="comunidad" id="nav-v-comunidad">
- <span class="nav-icon"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" aria-hidden="true"><use href="#ic-community"/></svg></span>
- <span>Comunidad</span>
- </button>
- <button class="bottom-nav-item" data-page="vendedor" id="nav-vendedor">
- <span class="nav-icon"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 12m-9 0a9 9 0 1 0 18 0a9 9 0 1 0 -18 0" /><path d="M12 10m-3 0a3 3 0 1 0 6 0a3 3 0 1 0 -6 0" /><path d="M6.168 18.849a4 4 0 0 1 3.832 -2.849h4a4 4 0 0 1 3.834 2.855" /></svg></span>
- <span>Vendedor</span>
- <button class="bottom-nav-item active" id="nav-v-productos" data-vendor-page="products">
- <span class="nav-icon"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" aria-hidden="true"><use href="#ic-grid"/></svg></span>
- <span>Productos</span>
- </button>
-
- <button class="bottom-nav-item" id="nav-v-ajustes">
- <span class="nav-icon"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" aria-hidden="true"><use href="#ic-settings"/></svg></span>
- <span>Ajustes</span>
- </button>
- </nav>
-
- <style>
- #bottom-nav-vendor .bottom-nav-item.active{ color: #7c3aed; }
- </style>
-
- <script>
- document.getElementById('nav-v-comunidad')?.addEventListener('click', () => { window.location.href = 'comunidad.html'; });
- document.getElementById('nav-v-actividad')?.addEventListener('click', () => { window.location.href = 'feed-actividad.html'; });
- document.getElementById('nav-v-productos')?.addEventListener('click', () => { window.switchTab && window.switchTab('products'); });
- document.getElementById('nav-v-inicio')?.addEventListener('click', () => { window.location.href = 'index.html'; });
- document.getElementById('nav-vendedor')?.addEventListener('click', () => { window.location.href = 'vendedor.html'; });
- </script>
-
-
-
-
-
-
-
-
-
-
-
-
-
-  
   <script src="icons.js" defer></script>
   <script src="api-config.js" defer></script>
   <script type="module" src="firestore-init.js"></script>
