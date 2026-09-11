@@ -306,6 +306,7 @@
  <button id="share-vendor-link" class="btn-secondary" style="font-size:12px; margin-left:10px;"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" aria-hidden="true"><use href="#ic-share"/></svg> Link de mi tienda</button>
  </h2>
  <div id="vendor-plan-panel" style="margin:4px 0 16px;"></div>
+ <button id="btn-crear-producto" class="btn-primary" onclick="window.switchTab && window.switchTab('form')" style="margin-bottom:16px;"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" aria-hidden="true"><use href="#ic-plus"/></svg> Crear producto</button>
  <div id="informe-semanal-card"></div>
 <div id="checklist-vendedor"></div>
  <input type="file" id="logo-file-input" accept="image/*" style="display:none">
@@ -614,9 +615,9 @@ document.addEventListener('DOMContentLoaded', () => {
  <span class="nav-icon"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" aria-hidden="true"><use href="#ic-grid"/></svg></span>
  <span>Productos</span>
  </button>
- <button class="bottom-nav-item" id="nav-v-publicar" data-vendor-page="form">
- <span class="nav-icon"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" aria-hidden="true"><use href="#ic-plus"/></svg></span>
- <span>Publicar</span>
+ <button class="bottom-nav-item" id="nav-v-inicio">
+ <span class="nav-icon"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" aria-hidden="true"><use href="#ic-home"/></svg></span>
+ <span>Inicio</span>
  </button>
  <button class="bottom-nav-item" id="nav-v-ajustes">
  <span class="nav-icon"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" aria-hidden="true"><use href="#ic-settings"/></svg></span>
@@ -637,7 +638,7 @@ document.addEventListener('DOMContentLoaded', () => {
  document.getElementById('nav-v-comunidad')?.addEventListener('click', () => { window.location.href = 'comunidad.html'; });
  document.getElementById('nav-v-actividad')?.addEventListener('click', () => { window.location.href = 'feed-actividad.html'; });
  document.getElementById('nav-v-productos')?.addEventListener('click', () => { window.switchTab && window.switchTab('products'); });
- document.getElementById('nav-v-publicar')?.addEventListener('click', () => { window.switchTab && window.switchTab('form'); });
+ document.getElementById('nav-v-inicio')?.addEventListener('click', () => { window.location.href = 'index.html'; });
  document.getElementById('nav-v-ajustes')?.addEventListener('click', () => { window.openSettingsModal && window.openSettingsModal(); });
  </script>
 
