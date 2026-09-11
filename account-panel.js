@@ -262,6 +262,16 @@ data-section="${key}" data-size=""><svg xmlns="http://www.w3.org/2000/svg" width
 <h3 class="up-section-title">Mis datos guardados</h3>
 <div class="up-privacy-item">
 <div class="up-privacy-info">
+<span class="up-privacy-icon"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" aria-hidden="true"><use href="#ic-bell"/></svg></span>
+<div>
+<strong>Notificaciones del dispositivo</strong>
+<span class="up-privacy-value" id="up-notif-status">${_upNotifStatusText()}</span>
+</div>
+</div>
+${_upNotifButtonHtml()}
+</div>
+<div class="up-privacy-item">
+<div class="up-privacy-info">
 <span class="up-privacy-icon"></span>
 <div>
 <strong>Número de teléfono</strong>
@@ -301,6 +311,17 @@ overlay.classList.add('visible');
 panel.classList.add('visible');
 });
 }
+// ── Notificaciones del dispositivo (tab Privacidad) ────────────────────────
+function _upNotifStatusText() {
+if (!("Notification" in window)) return 'No disponible en este navegador';
+if (Notification.permission === 'granted') return 'Activadas en este dispositivo';
+if (Notification.permission === 'denied') return 'Bloqueadas — actívalas desde los ajustes del navegador';
+return 'No activadas';
+}
+function _upNotifButtonHtml() {
+if (!("Notification" in window) || Notification.permission === 'denied' || Notification.permission === 'granted') return '';
+return `<button class="up-secondary-btn" id="up-enable-notif-btn"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" aria-hidden="true"><use href="#ic-bell"/></svg> Activar</button>`;
+}
 function attachPanelEvents(panel) {
 panel.querySelector('#up-close-btn').addEventListener('click', closePanel);
 panel.querySelectorAll('.up-tab').forEach(tab=>{
@@ -325,6 +346,44 @@ if (tab.dataset.tab === 'pedidos') {
 });
 
 attachOrderCancelListeners();
+const enableNotifBtn = panel.querySelector('#up-enable-notif-btn');
+if (enableNotifBtn) {
+enableNotifBtn.addEventListener('click', async () => {
+let vendorUid = '';
+try {
+const vs = window.vendorSession || JSON.parse(localStorage.getItem('vendor_session') || 'null');
+if (vs && vs.uid) vendorUid = vs.uid;
+} catch (e) {}
+const clientPhone = localStorage.getItem('client_phone') || '';
+const primaryType = vendorUid ? 'vendedor' : 'cliente';
+const primaryId = vendorUid || clientPhone;
+if (!primaryId) {
+showTemporaryMessage('Necesitamos tu teléfono para activar notificaciones. Agrégalo primero desde el carrito.', 'error');
+return;
+}
+enableNotifBtn.disabled = true;
+enableNotifBtn.textContent = 'Activando…';
+const token = window.solicitarPermisoNotificacionesSiFalta
+? await window.solicitarPermisoNotificacionesSiFalta(primaryType, primaryId)
+: null;
+// Si además tiene teléfono de comprador guardado, registramos el mismo
+// token también como cliente (no vuelve a pedir permiso al navegador).
+if (token && vendorUid && clientPhone && window.registrarTokenFCM) {
+await window.registrarTokenFCM('cliente', clientPhone, token);
+}
+const statusEl = document.getElementById('up-notif-status');
+if (token) {
+if (statusEl) statusEl.textContent = _upNotifStatusText();
+enableNotifBtn.remove();
+showTemporaryMessage('¡Notificaciones activadas!', 'success');
+} else {
+enableNotifBtn.disabled = false;
+enableNotifBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" aria-hidden="true"><use href="#ic-bell"/></svg> Activar';
+if (statusEl) statusEl.textContent = _upNotifStatusText();
+showTemporaryMessage('No se pudieron activar las notificaciones.', 'error');
+}
+});
+}
 panel.querySelectorAll('.up-theme-btn').forEach(btn=>{
 btn.addEventListener('click',()=>{
 panel.querySelectorAll('.up-theme-btn').forEach(b=>b.classList.remove('active'));
