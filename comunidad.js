@@ -1867,22 +1867,31 @@ window.openBeneficiarioModal = async function(beneficiarioId) {
     const b = data.beneficiario;
     const esc2 = s => String(s||'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
     const imgs = [b.imagen1, b.imagen2, b.imagen3].filter(Boolean);
+    const inicial = esc2(b.nombre).charAt(0).toUpperCase() || '?';
     body.innerHTML = `
-      ${imgs.length ? `<div style="display:flex;gap:8px;overflow-x:auto;margin-bottom:14px;">${imgs.map(u=>`<img src="${esc2(u)}" style="height:120px;border-radius:10px;object-fit:cover;flex-shrink:0;">`).join('')}</div>` : ''}
-      <h3 style="margin:0 0 4px;font-size:1.05rem;">${esc2(b.nombre)}</h3>
-      ${b.organizacion ? `<p style="margin:0 0 8px;font-size:.8rem;color:#888;">${esc2(b.organizacion)}</p>` : ''}
-      <p style="margin:0 0 6px;font-size:.82rem;"><strong>${Icon('map-pin',{size:13})}</strong> ${esc2(b.ubicacion)}</p>
-      ${b.facebook ? `<p style="margin:0 0 10px;font-size:.82rem;"><a href="${esc2(b.facebook)}" target="_blank" rel="noopener" style="color:#1877f2;">Facebook ${Icon('arrow-right',{size:12})}</a></p>` : ''}
-      <div style="background:#fff7ed;border-radius:10px;padding:12px;margin-bottom:14px;">
-        <p style="margin:0;font-size:.85rem;line-height:1.6;">${esc2(b.historia)}</p>
-      </div>
-      <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:12px;">
-        <p style="margin:0 0 4px;font-weight:700;font-size:.8rem;color:#166534;">${Icon('credit-card')} Datos de pago directo</p>
-        <div style="display:flex;align-items:center;gap:8px;">
-          <p style="margin:0;font-size:.88rem;font-family:monospace;letter-spacing:.05em;flex:1;word-break:break-all;">${esc2(b.cuenta_bancaria)}</p>
-          <button id="btn-copy-cuenta" style="flex-shrink:0;border:none;background:#166534;color:#fff;border-radius:8px;padding:6px 10px;font-size:.72rem;font-weight:700;cursor:pointer;">Copiar</button>
+      ${imgs.length ? `<div style="display:flex;gap:8px;overflow-x:auto;margin-bottom:16px;">${imgs.map(u=>`<img src="${esc2(u)}" style="height:140px;border-radius:14px;object-fit:cover;flex-shrink:0;border:1px solid var(--color-border-subtle);">`).join('')}</div>` : ''}
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
+        <div style="width:48px;height:48px;border-radius:50%;background:var(--color-accent-soft);color:var(--color-accent-solid);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:1.1rem;flex-shrink:0;">${inicial}</div>
+        <div style="min-width:0;">
+          <h3 style="margin:0;font-size:1.05rem;color:var(--color-text-primary);">${esc2(b.nombre)}</h3>
+          ${b.organizacion ? `<p style="margin:2px 0 0;font-size:.8rem;color:var(--color-text-soft);">${esc2(b.organizacion)}</p>` : ''}
         </div>
-        <p style="margin:4px 0 0;font-size:.75rem;color:#888;">A nombre de: ${esc2(b.nombre)}</p>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px;">
+        <span style="display:inline-flex;align-items:center;gap:5px;background:var(--color-surface-2);color:var(--color-text-muted);border-radius:20px;padding:5px 12px;font-size:.78rem;">${Icon('map-pin',{size:13})} ${esc2(b.ubicacion)}</span>
+        ${b.facebook ? `<a href="${esc2(b.facebook)}" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:5px;background:var(--color-info-bg);color:var(--color-info);border-radius:20px;padding:5px 12px;font-size:.78rem;text-decoration:none;font-weight:600;">Facebook ${Icon('arrow-right',{size:12})}</a>` : ''}
+      </div>
+      <div style="background:var(--color-warning-bg);border-radius:12px;padding:14px;margin-bottom:14px;">
+        <p style="margin:0 0 6px;font-weight:700;font-size:.75rem;color:var(--color-warning);text-transform:uppercase;letter-spacing:.03em;">Sobre este refugio</p>
+        <p style="margin:0;font-size:.85rem;line-height:1.6;color:var(--color-text-primary);">${esc2(b.historia)}</p>
+      </div>
+      <div style="background:var(--color-success-bg);border:1px solid var(--color-success);border-radius:12px;padding:14px;">
+        <p style="margin:0 0 6px;font-weight:700;font-size:.8rem;color:var(--color-success);">${Icon('credit-card')} Datos de pago directo</p>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <p style="margin:0;font-size:.9rem;font-family:monospace;letter-spacing:.05em;flex:1;word-break:break-all;color:var(--color-text-primary);">${esc2(b.cuenta_bancaria)}</p>
+          <button id="btn-copy-cuenta" style="flex-shrink:0;border:none;background:var(--color-success);color:#fff;border-radius:8px;padding:6px 10px;font-size:.72rem;font-weight:700;cursor:pointer;">Copiar</button>
+        </div>
+        <p style="margin:6px 0 0;font-size:.75rem;color:var(--color-text-soft);">A nombre de: ${esc2(b.nombre)}</p>
       </div>`;
 
     const copyBtn = document.getElementById('btn-copy-cuenta');
