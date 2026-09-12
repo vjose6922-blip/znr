@@ -1885,13 +1885,21 @@ window.openBeneficiarioModal = async function(beneficiarioId) {
         <p style="margin:0 0 6px;font-weight:700;font-size:.75rem;color:var(--color-warning);text-transform:uppercase;letter-spacing:.03em;">Sobre este refugio</p>
         <p style="margin:0;font-size:.85rem;line-height:1.6;color:var(--color-text-primary);">${esc2(b.historia)}</p>
       </div>
-      <div style="background:var(--color-success-bg);border:1px solid var(--color-success);border-radius:12px;padding:14px;">
-        <p style="margin:0 0 6px;font-weight:700;font-size:.8rem;color:var(--color-success);">${Icon('credit-card')} Datos de pago directo</p>
-        <div style="display:flex;align-items:center;gap:8px;">
-          <p style="margin:0;font-size:.9rem;font-family:monospace;letter-spacing:.05em;flex:1;word-break:break-all;color:var(--color-text-primary);">${esc2(b.cuenta_bancaria)}</p>
-          <button id="btn-copy-cuenta" style="flex-shrink:0;border:none;background:var(--color-success);color:#fff;border-radius:8px;padding:6px 10px;font-size:.72rem;font-weight:700;cursor:pointer;">Copiar</button>
+      <p style="margin:0 0 6px;font-weight:700;font-size:.75rem;color:var(--color-text-soft);text-transform:uppercase;letter-spacing:.03em;">Datos de pago directo</p>
+      <div style="position:relative;border-radius:16px;padding:18px;background:linear-gradient(135deg,var(--color-primary),var(--color-accent-solid));box-shadow:0 6px 16px rgba(0,0,0,.18);color:#fff;overflow:hidden;">
+        <div style="position:absolute;top:-30px;right:-30px;width:110px;height:110px;border-radius:50%;background:rgba(255,255,255,.12);"></div>
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;position:relative;">
+          <span style="font-size:.7rem;opacity:.8;letter-spacing:.05em;">CUENTA / CLABE</span>
+          <button id="btn-copy-cuenta" style="border:none;background:rgba(255,255,255,.22);color:#fff;border-radius:8px;padding:5px 10px;font-size:.7rem;font-weight:700;cursor:pointer;backdrop-filter:blur(2px);">Copiar</button>
         </div>
-        <p style="margin:6px 0 0;font-size:.75rem;color:var(--color-text-soft);">A nombre de: ${esc2(b.nombre)}</p>
+        <p style="margin:22px 0 18px;font-size:1.05rem;font-family:monospace;letter-spacing:.12em;word-break:break-all;position:relative;">${esc2(b.cuenta_bancaria).replace(/(.{4})/g,'$1 ').trim()}</p>
+        <div style="display:flex;justify-content:space-between;align-items:flex-end;position:relative;">
+          <div>
+            <span style="display:block;font-size:.6rem;opacity:.75;">TITULAR</span>
+            <span style="font-size:.82rem;font-weight:700;">${esc2(b.nombre)}</span>
+          </div>
+          ${Icon('heart-fill',{size:20})}
+        </div>
       </div>`;
 
     const copyBtn = document.getElementById('btn-copy-cuenta');
