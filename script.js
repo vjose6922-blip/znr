@@ -632,7 +632,7 @@ function renderPagination() {
   // Botón Anterior
   if (currentPageGlobal > 1) {
     const prevBtn = document.createElement("button");
-    prevBtn.innerHTML = Icon('arrow-left') + " Anterior";
+    prevBtn.innerHTML = Icon('arrow-left') + "";
     prevBtn.onclick = () => {
       fetchProducts(false, currentPageGlobal - 1, currentFilters);
       window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -661,7 +661,7 @@ function renderPagination() {
   // Botón Siguiente
   if (currentPageGlobal < totalPages) {
     const nextBtn = document.createElement("button");
-    nextBtn.innerHTML = "Siguiente " + Icon('arrow-right');
+    nextBtn.innerHTML = "" + Icon('arrow-right');
     nextBtn.onclick = () => {
       fetchProducts(false, currentPageGlobal + 1, currentFilters);
       window.scrollTo({ top: 0, behavior: 'smooth' });
