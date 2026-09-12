@@ -2415,6 +2415,17 @@ a[data-loading="true"] {
   text-decoration: underline;
   flex-shrink: 0;
 }
+#change-address-btn {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 4px !important;
+  background: #ff4f81 !important;
+  border: none !important;
+  color: #fff !important;
+  border-radius: 20px !important;
+  padding: 5px 12px !important;
+  text-decoration: none !important;
+}
 .cart-address-display {
   display: flex;
   align-items: flex-start;
