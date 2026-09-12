@@ -2121,23 +2121,22 @@ a[data-loading="true"] {
 }
 
 #saved-phone-container button {
-  display: inline-block !important;
-  background: transparent !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 4px !important;
+  background: #ff4f81 !important;
   border: none !important;
-  color: #3b1f5f !important;
+  color: #fff !important;
   cursor: pointer !important;
-  text-decoration: underline !important;
+  border-radius: 20px !important;
   margin-left: 8px !important;
   font-size: 11px !important;
-  padding: 4px 8px !important;
+  font-weight: 600 !important;
+  padding: 5px 12px !important;
 }
 
 [data-theme="light"] #saved-phone-container {
   background: var(--color-surface-2) !important;
-}
-
-[data-theme="light"] #saved-phone-container button {
-  color: var(--color-accent) !important;
 }
 
 @media screen and (max-width: 480px) {
