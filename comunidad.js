@@ -1844,7 +1844,7 @@ window.openBeneficiarioModal = async function(beneficiarioId) {
   document.getElementById('btn-close-ben-det').onclick = () => modal.remove();
   modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
   try {
-    const res  = await fetch(_resolverApiUrlInspector('obtenerBeneficiario') + '?' + new URLSearchParams({ action:'obtenerBeneficiario', id: beneficiarioId }));
+    const res = await fetch(_resolverApiUrlInspector('obtenerBeneficiario') + '?' + new URLSearchParams({ action:'obtenerBeneficiario', id_beneficiario: beneficiarioId }));
     const data = await res.json();
     const body = document.getElementById('ben-det-body');
     if (!data.ok || !data.beneficiario) { body.innerHTML = '<p style="color:#ef4444;text-align:center;">No se pudo cargar.</p>'; return; }
