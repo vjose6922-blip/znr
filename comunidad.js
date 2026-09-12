@@ -1078,7 +1078,7 @@ function renderPagination() {
   // Botón Anterior
   if (currentPage > 1) {
     const prevBtn = document.createElement('button');
-    prevBtn.innerHTML = Icon('arrow-left') + ' Anterior';
+    prevBtn.innerHTML = Icon('arrow-left') + '';
     prevBtn.onclick = () => {
       loadComunidadPage(currentPage - 1, currentFilters, { isPageChange: true });
       window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -1104,7 +1104,7 @@ function renderPagination() {
   // Botón Siguiente
   if (currentPage < totalPages) {
     const nextBtn = document.createElement('button');
-    nextBtn.innerHTML = 'Siguiente ' + Icon('arrow-right');
+    nextBtn.innerHTML = '' + Icon('arrow-right');
     nextBtn.onclick = () => {
       loadComunidadPage(currentPage + 1, currentFilters, { isPageChange: true });
       window.scrollTo({ top: 0, behavior: 'smooth' });
