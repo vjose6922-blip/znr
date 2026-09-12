@@ -999,10 +999,10 @@ container.parentNode.insertBefore(paginationDiv, container.nextSibling);
 }
 function createPaginationButton(text, onClick) {
 const btn = document.createElement("button");
-if (text === "← Anterior") {
-btn.innerHTML = Icon('arrow-left') + " Anterior";
-} else if (text === "Siguiente →") {
-btn.innerHTML = "Siguiente " + Icon('arrow-right');
+if (text === "←") {
+btn.innerHTML = Icon('arrow-left') + "";
+} else if (text === "→") {
+btn.innerHTML = "" + Icon('arrow-right');
 } else {
 btn.textContent = text;
 }
