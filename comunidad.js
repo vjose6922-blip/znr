@@ -20,7 +20,7 @@ function _resolverApiUrlInspector(action) {
   }
   if (action === 'verificarAdmin') return AUTH_API_URL_INSPECTOR;
   if (action === 'obtenerCalificacionesPendientes') return VENTAS_API_URL_INSPECTOR;
-  if (['registrarBeneficiario', 'solicitarEdicionBeneficiario', 'obtenerBeneficiario'].includes(action)) {
+  if (['registrarBeneficiario', 'solicitarEdicionBeneficiario', 'obtenerBeneficiario', 'asignarDonacion', 'desasignarDonacion'].includes(action)) {
     return BENEFICIARIOS_API_URL_INSPECTOR;
   }
   return window.API_URL;
@@ -989,6 +989,7 @@ ${!hasStock ? '-' : 'Añadir'}
 </button>
 ${!product.es_znr ? `<button class="btn-report" title="Reportar" style="background:var(--color-surface-3);border:none;border-radius:30px;padding:8px 8px;cursor:pointer;color:var(--color-text-muted);display:flex;align-items:center;"><svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" aria-hidden="true"><use href="#ic-flag"/></svg></button>` : ''}
 <button class="btn-share-comunidad" title="Compartir" style="background:var(--color-surface-3);border:none;border-radius:30px;padding:8px 8px;cursor:pointer;color:var(--color-text-muted);display:flex;align-items:center;"><svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" aria-hidden="true"><use href="#ic-share"/></svg></button>
+${(window.vendorSession && window.vendorSession.uid && product.vendedor_uid === window.vendorSession.uid && !product.es_znr) ? `<button class="btn-donar-comunidad" title="${esDonativo ? 'Gestionar donación' : 'Donar este producto'}" style="background:${esDonativo ? 'linear-gradient(135deg,#f97316,#ef4444)' : 'var(--color-surface-3)'};border:none;border-radius:30px;padding:8px 8px;cursor:pointer;color:${esDonativo ? '#fff' : 'var(--color-text-muted)'};display:flex;align-items:center;">${Icon('heart-fill')}</button>` : ''}
 </div>
 </div>
 `;
@@ -1059,6 +1060,14 @@ if (benBtn) {
 benBtn.addEventListener('click', (e) => {
 e.stopPropagation();
 if (window.openBeneficiarioModal) window.openBeneficiarioModal(benBtn.dataset.benId);
+});
+}
+
+const donarBtn = card.querySelector('.btn-donar-comunidad');
+if (donarBtn) {
+donarBtn.addEventListener('click', (e) => {
+e.stopPropagation();
+if (window.openDonarComunidadModal) window.openDonarComunidadModal(product, card);
 });
 }
 
@@ -1862,12 +1871,187 @@ window.openBeneficiarioModal = async function(beneficiarioId) {
       </div>
       <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:12px;">
         <p style="margin:0 0 4px;font-weight:700;font-size:.8rem;color:#166534;">${Icon('credit-card')} Datos de pago directo</p>
-        <p style="margin:0;font-size:.88rem;font-family:monospace;letter-spacing:.05em;">${esc2(b.cuenta_bancaria)}</p>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <p style="margin:0;font-size:.88rem;font-family:monospace;letter-spacing:.05em;flex:1;word-break:break-all;">${esc2(b.cuenta_bancaria)}</p>
+          <button id="btn-copy-cuenta" style="flex-shrink:0;border:none;background:#166534;color:#fff;border-radius:8px;padding:6px 10px;font-size:.72rem;font-weight:700;cursor:pointer;">Copiar</button>
+        </div>
         <p style="margin:4px 0 0;font-size:.75rem;color:#888;">A nombre de: ${esc2(b.nombre)}</p>
       </div>`;
+
+    const copyBtn = document.getElementById('btn-copy-cuenta');
+    if (copyBtn) {
+      copyBtn.addEventListener('click', async () => {
+        try {
+          await navigator.clipboard.writeText(b.cuenta_bancaria || '');
+          copyBtn.textContent = '¡Copiado!';
+          setTimeout(() => { copyBtn.textContent = 'Copiar'; }, 1500);
+        } catch (e) {
+          copyBtn.textContent = 'Error';
+          setTimeout(() => { copyBtn.textContent = 'Copiar'; }, 1500);
+        }
+      });
+    }
   } catch(err) {
     const body = document.getElementById('ben-det-body');
     if (body) body.innerHTML = '<p style="color:#ef4444;text-align:center;">Error de conexión.</p>';
+  }
+};
+
+// Modal para donar (o quitar donación de) un producto propio directamente
+// desde su card en el catálogo de Comunidad. Mismo flujo/acciones que
+// openDonarProductosModal en vendedor-unificado.js (asignarDonacion /
+// desasignarDonacion), adaptado a este archivo: sin apiFetch propio, así
+// que usamos fetch + _resolverApiUrlInspector como el resto de comunidad.js.
+window.openDonarComunidadModal = async function(product, cardElement) {
+  if (!window.vendorSession || !window.vendorSession.token) {
+    window.showTemporaryMessage && window.showTemporaryMessage('Inicia sesión como vendedor para donar productos', 'error');
+    return;
+  }
+  const esc = window.escapeHtml || (s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])));
+  const optUrl = window.optimizeDriveUrl || (u => u);
+  const esDonado = product.donado === true || product.donado === 'TRUE' || product.donado === 'true';
+  const imgUrl = product.imagen1 ? optUrl(product.imagen1, 56) : null;
+
+  const old = document.getElementById('modal-donar-comunidad');
+  if (old) old.remove();
+
+  const modal = document.createElement('div');
+  modal.id = 'modal-donar-comunidad';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.65);backdrop-filter:blur(4px);z-index:99999;display:flex;align-items:flex-end;justify-content:center;';
+  modal.innerHTML = `
+    <div style="background:#fff;border-radius:20px 20px 0 0;width:100%;max-width:480px;padding:0 0 36px;">
+      <div style="padding:16px 20px 12px;border-bottom:1px solid #f0f0f0;display:flex;align-items:center;justify-content:space-between;">
+        <h2 style="margin:0;font-size:1rem;font-weight:800;color:#111;">${Icon('heart-fill')} Donar producto</h2>
+        <button id="btn-close-donar-comunidad" style="background:none;border:none;font-size:22px;cursor:pointer;color:#888;line-height:1;">×</button>
+      </div>
+      <div style="padding:16px 20px 0;">
+        <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:#fafafa;border-radius:12px;border:1.5px solid #f97316;margin-bottom:16px;">
+          ${imgUrl ? `<img src="${esc(imgUrl)}" style="width:48px;height:48px;object-fit:cover;border-radius:8px;flex-shrink:0;">` : `<div style="width:48px;height:48px;background:#f5f5f8;border-radius:8px;flex-shrink:0;"></div>`}
+          <div style="flex:1;min-width:0;">
+            <div style="font-size:.88rem;font-weight:700;color:#111;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(product.nombre || '')}</div>
+            <div style="font-size:.75rem;color:#888;">$${Number(product.precio || 0).toLocaleString()} · Stock: ${product.stock || 0}</div>
+            ${esDonado ? '<div style="font-size:.72rem;color:#f97316;margin-top:1px;">' + Icon('heart-fill') + ' Donando actualmente</div>' : ''}
+          </div>
+        </div>
+
+        <div id="donar-comunidad-msg" style="display:none;padding:10px;border-radius:10px;margin-bottom:12px;font-size:.82rem;"></div>
+
+        ${esDonado ? `
+        <p style="font-size:.8rem;color:#555;margin:0 0 16px;line-height:1.5;">Este producto ya está asignado a un beneficiario. ¿Deseas quitar la donación?</p>
+        <button id="btn-donar-comunidad-quitar" style="width:100%;padding:13px;border:none;border-radius:12px;background:#fee2e2;color:#b91c1c;font-weight:700;font-size:.9rem;cursor:pointer;">
+          Quitar donación
+        </button>` : `
+        <p style="font-size:.8rem;color:#888;margin:0 0 12px;line-height:1.5;">El comprador le pagará directamente al beneficiario.</p>
+        <label style="font-size:.78rem;font-weight:700;color:#555;display:block;margin-bottom:6px;">Beneficiario destino</label>
+        <select id="donar-comunidad-ben-select" style="width:100%;box-sizing:border-box;padding:10px 12px;border:1.5px solid #ddd;border-radius:10px;font-size:.88rem;background:#fff;margin-bottom:16px;outline:none;color:#111;">
+          <option value="">Cargando beneficiarios…</option>
+        </select>
+        <button id="btn-donar-comunidad-asignar" style="width:100%;padding:13px;border:none;border-radius:12px;background:linear-gradient(135deg,#f97316,#ef4444);color:#fff;font-weight:800;font-size:.9rem;cursor:pointer;">
+          ${Icon('heart-fill')} Asignar donación
+        </button>`}
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+
+  document.getElementById('btn-close-donar-comunidad').onclick = () => modal.remove();
+  modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+
+  const showMsg = (txt, ok) => {
+    const el = document.getElementById('donar-comunidad-msg');
+    el.textContent = txt;
+    el.style.display = 'block';
+    el.style.background = ok ? '#dcfce7' : '#fee2e2';
+    el.style.color = ok ? '#166534' : '#991b1b';
+  };
+
+  // Refresca el card en el catálogo sin recargar toda la grilla.
+  const actualizarCardTrasCambio = (donado, beneficiarioId) => {
+    product.donado = donado;
+    product.beneficiario_id = beneficiarioId || '';
+    if (cardElement && cardElement.parentNode) {
+      const nuevaCard = createCommunityCard(product);
+      if (nuevaCard) cardElement.replaceWith(nuevaCard);
+    }
+  };
+
+  if (esDonado) {
+    document.getElementById('btn-donar-comunidad-quitar')?.addEventListener('click', async () => {
+      const btn = document.getElementById('btn-donar-comunidad-quitar');
+      btn.disabled = true; btn.textContent = 'Quitando…';
+      try {
+        const params = new URLSearchParams({ action: 'desasignarDonacion', producto_id: String(product.id), vendor_token: window.vendorSession.token });
+        const res = await fetch(_resolverApiUrlInspector('desasignarDonacion'), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: params.toString()
+        });
+        const data = await res.json();
+        if (data.ok) {
+          showMsg('Donación removida', true);
+          actualizarCardTrasCambio(false, '');
+          setTimeout(() => modal.remove(), 1400);
+        } else {
+          showMsg(data.error || 'Error', false);
+          btn.disabled = false; btn.textContent = 'Quitar donación';
+        }
+      } catch (e) {
+        showMsg('Error de conexión', false);
+        btn.disabled = false; btn.textContent = 'Quitar donación';
+      }
+    });
+  } else {
+    const selEl = document.getElementById('donar-comunidad-ben-select');
+    (async () => {
+      try {
+        let benData = window.znrFirestore && window.znrFirestore.getBeneficiariosAprobados
+          ? await window.znrFirestore.getBeneficiariosAprobados()
+          : { ok: false };
+        if (!benData.ok && window.API_URL) {
+          const res = await fetch(window.API_URL + '?' + new URLSearchParams({ action: 'obtenerBeneficiariosAprobados' }));
+          benData = await res.json();
+        }
+        if (!benData.ok) {
+          selEl.innerHTML = '<option value="">' + Icon('error') + ' No se pudo cargar — toca para reintentar</option>';
+          return;
+        }
+        const beneficiarios = benData.beneficiarios || [];
+        if (beneficiarios.length === 0) {
+          selEl.innerHTML = '<option value="">No hay beneficiarios aprobados aún</option>';
+        } else {
+          selEl.innerHTML = '<option value="">— Seleccionar beneficiario —</option>' +
+            beneficiarios.map(b => `<option value="${esc(b.id)}">${esc(b.nombre)}${b.organizacion ? ' — ' + esc(b.organizacion) : ''}</option>`).join('');
+        }
+      } catch (e) {
+        selEl.innerHTML = '<option value="">' + Icon('error') + ' Error de conexión — toca para reintentar</option>';
+      }
+    })();
+
+    document.getElementById('btn-donar-comunidad-asignar')?.addEventListener('click', async () => {
+      const benId = document.getElementById('donar-comunidad-ben-select').value;
+      if (!benId) return showMsg('Selecciona un beneficiario.', false);
+      const btn = document.getElementById('btn-donar-comunidad-asignar');
+      btn.disabled = true; btn.textContent = 'Guardando…';
+      try {
+        const params = new URLSearchParams({ action: 'asignarDonacion', producto_id: String(product.id), beneficiario_id: benId, vendor_token: window.vendorSession.token });
+        const res = await fetch(_resolverApiUrlInspector('asignarDonacion'), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: params.toString()
+        });
+        const data = await res.json();
+        if (data.ok) {
+          showMsg('Donación asignada correctamente', true);
+          actualizarCardTrasCambio(true, benId);
+          setTimeout(() => modal.remove(), 1400);
+        } else {
+          showMsg(data.error || 'Error', false);
+          btn.disabled = false; btn.innerHTML = Icon('heart-fill') + ' Asignar donación';
+        }
+      } catch (e) {
+        showMsg('Error de conexión: ' + (e.message || ''), false);
+        btn.disabled = false; btn.innerHTML = Icon('heart-fill') + ' Asignar donación';
+      }
+    });
   }
 };
 
