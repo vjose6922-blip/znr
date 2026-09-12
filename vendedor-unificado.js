@@ -3244,10 +3244,15 @@ function abrirModalCompartirTienda() {
       <div id="qr-code-styling-container" style="display:flex;justify-content:center;margin:10px 0 18px;"></div>
       <div style="display:flex;gap:8px;margin-bottom:10px;">
         <input type="text" id="share-url-input" value="${shareUrl}" readonly style="flex:1;padding:8px 12px;border:1px solid #ddd;border-radius:10px;font-size:.85rem;background:#f5f5f8;outline:none;">
-        <button id="share-copy-btn" style="padding:8px 16px;border:none;border-radius:10px;background:#7c3aed;color:#fff;font-weight:700;cursor:pointer;">Copiar</button>
+        <button id="share-copy-btn" style="padding:8px;border:1px solid #d1d5db;border-radius:10px;background:#ffffff;color:#000000;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;">
+  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+  </svg>
+</button>
       </div>
       <div style="display:flex;justify-content:center;gap:8px;margin-top:4px;">
-        <button id="download-qr-btn" style="padding:6px 16px;border:none;border-radius:10px;background:#e0e7ff;color:#4c1d95;font-weight:600;cursor:pointer;font-size:.8rem;">⬇ Descargar QR</button>
+        <button id="download-qr-btn" style="padding:6px 16px;border:none;border-radius:10px;background:#16a34a;color:#ffffff;font-weight:600;cursor:pointer;font-size:.8rem;">⬇ Descargar QR</button>
         <button id="share-facebook-btn" style="padding:6px 16px;border:none;border-radius:10px;background:#1877f2;color:#fff;font-weight:600;cursor:pointer;font-size:.8rem;"> Compartir en Facebook</button>
       </div>
       <p style="font-size:.75rem;color:#888;margin:8px 0 4px;">Escanea el QR o comparte el enlace para que otros vean tu perfil.</p>
