@@ -968,7 +968,7 @@ let startPage = Math.max(1, currentLooksPage - 2);
 let endPage = Math.min(totalPages, startPage + 4);
 if (endPage - startPage < 4 && startPage > 1) startPage = Math.max(1, endPage - 4);
 if (currentLooksPage > 1) {
-const prevBtn = createPaginationButton("← Anterior", () => {
+const prevBtn = createPaginationButton("←", () => {
 currentLooksPage--;
 renderLooks();
 initLazyImagesAfterRender();
@@ -987,7 +987,7 @@ if (i === currentLooksPage) pageBtn.classList.add("active-page");
 paginationDiv.appendChild(pageBtn);
 }
 if (currentLooksPage < totalPages) {
-const nextBtn = createPaginationButton("Siguiente →", () => {
+const nextBtn = createPaginationButton("→", () => {
 currentLooksPage++;
 renderLooks();
 initLazyImagesAfterRender();
@@ -1007,11 +1007,11 @@ btn.innerHTML = "" + Icon('arrow-right');
 btn.textContent = text;
 }
 btn.onclick = onClick;
-if (text === "Siguiente →" && currentLooksPage < Math.ceil(allLooks.length / looksPerPage)) {
+if (text === "→" && currentLooksPage < Math.ceil(allLooks.length / looksPerPage)) {
 btn.addEventListener('mouseenter', () => {
 preloadLooksPage(currentLooksPage + 1);
 });
-} else if (text === "← Anterior" && currentLooksPage > 1) {
+} else if (text === "←" && currentLooksPage > 1) {
 btn.addEventListener('mouseenter', () => {
 preloadLooksPage(currentLooksPage - 1);
 });
