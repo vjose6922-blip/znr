@@ -14,20 +14,18 @@ Object.defineProperty(window, 'vendorSession', {
 const API_BASE = window.API_URL || ""
 
 // ── Router de migración GAS → Cloud Run ──────────────────────────
-// Mapa acción → URL de la Cloud Function que la reemplaza. Todo lo
-// que no esté acá sigue yendo a GAS (window.API_URL) como siempre.
 const VENDEDORES_API_URL =
   "https://vendedores-api-1038143238323.us-central1.run.app";
 const CATALOGO_API_URL =
   "https://catalogo-api-1038143238323.us-central1.run.app";
 const AUTH_API_URL =
-  "https://auth-api-1038143238323.us-central1.run.app"; // TODO: pegar la URL real tras el deploy
+  "https://auth-api-1038143238323.us-central1.run.app";
 const VENTAS_API_URL =
-  "https://ventas-api-1038143238323.us-central1.run.app"; // TODO: pegar la URL real tras el deploy
+  "https://ventas-api-1038143238323.us-central1.run.app";
 const BENEFICIARIOS_API_URL =
-  "https://beneficiarios-api-1038143238323.us-central1.run.app"; // TODO: pegar la URL real tras el deploy
+  "https://beneficiarios-api-1038143238323.us-central1.run.app";
 const LIVE_API_URL =
-  "https://live-api-1038143238323.us-central1.run.app"; // TODO: pegar la URL real tras el deploy
+  "https://live-api-1038143238323.us-central1.run.app";
 const MAPA_ACCIONES_MIGRADAS = {
   registrarVendedor: VENDEDORES_API_URL,
   loginVendedor: VENDEDORES_API_URL,
@@ -79,7 +77,7 @@ function _getDailyCache(key) {
     if (!raw) return _DAILY_CACHE_MISS;
     const parsed = JSON.parse(raw);
     if (!parsed || typeof parsed.timestamp !== 'number' || (Date.now() - parsed.timestamp) > DAILY_CACHE_TTL_MS) return _DAILY_CACHE_MISS;
-    return parsed.data; // puede ser null/false legítimamente (ej. "sin solicitud")
+    return parsed.data;
   } catch (e) { return _DAILY_CACHE_MISS; }
 }
 function _setDailyCache(key, data) {
@@ -147,9 +145,6 @@ window.apiFetch = async function(data, method = 'POST') {
   const text = await res.text();
   return checkTokenInvalid(JSON.parse(text));
 };
-
-
-
 
 window.debugPanel = {
   ensure() {
@@ -225,16 +220,6 @@ window.debugPanel = {
   }
 };
 
-
-
-
-
-
-
-
-
-
-
 function injectStyles(id, css) {
 if (document.getElementById(id)) return;
 const style = document.createElement('style');
@@ -246,18 +231,8 @@ document.head.appendChild(style);
 // ──────────────────────────────────────────────
 // CACHÉ DE PRODUCTOS DE VENDEDOR — nivel superior
 // ──────────────────────────────────────────────
-// IMPORTANTE: estas funciones se definen aquí (fuera de initVendorPanel)
-// a propósito. openGestionarDonacionesModal / openDonarProductosModal son
-// funciones de nivel superior que pueden dispararse antes de que
-// initVendorPanel() termine de ejecutarse (ej. el usuario toca el botón
-// muy rápido después de cargar la página). Si estas cachés solo existieran
-// dentro de initVendorPanel, esas llamadas tempranas truenan con
-// "no está definida". Al duplicarlas aquí, siempre están listas desde el
-// arranque del script; cuando initVendorPanel() sí corre, vuelve a
-// definir exactamente lo mismo sobre window (no rompe nada, es idempotente).
-
 const VENDOR_PRODUCTS_CACHE_KEY = 'zr_vendor_products';
-const VENDOR_PRODUCTS_CACHE_TTL = 3 * 60 * 1000; // 3 min
+const VENDOR_PRODUCTS_CACHE_TTL = 3 * 60 * 1000;
 
 window.getVendorProductsCache = function(uid) {
   try {
@@ -278,7 +253,7 @@ window.setVendorProductsCache = function(uid, products) {
   } catch(e) {}
 };
 
-const VENDOR_PAGE_CACHE_TTL = 3 * 60 * 1000; // 3 min, igual que antes
+const VENDOR_PAGE_CACHE_TTL = 3 * 60 * 1000;
 
 window.vendorPageCacheKey = function(uid, page, status) {
   return `vendor_products_${uid}_page_${page}_status_${status}`;
@@ -349,9 +324,6 @@ if (registerTab) registerTab.click();
 
 if (!document.getElementById('login-section') && !document.getElementById('panel-section')) return;
 
-// 🆕 Si ya tiene un teléfono guardado como comprador (lo aceptó en el
-// carrito al hacer una compra), lo prellenamos en el login de vendedor
-// para que use el mismo número y no tenga que volver a escribirlo.
 const loginPhoneInput = document.getElementById('login-phone');
 if (loginPhoneInput && !loginPhoneInput.value) {
   const savedClientPhone = localStorage.getItem('client_phone');
@@ -449,9 +421,6 @@ if (typeof window.solicitarPermisoNotificacionesSiFalta === 'function') {
   window.solicitarPermisoNotificacionesSiFalta('vendedor', vendorSession.uid);
 }
 
-// 🆕 El teléfono con el que acaba de iniciar sesión como vendedor pasa a
-// ser también el que se usa para comprar (carrito/checkout), sin importar
-// si ya tenía otro guardado o si es la primera vez.
 if (telefono) localStorage.setItem('client_phone', telefono);
 if (typeof updateSavedPhoneDisplay === 'function') updateSavedPhoneDisplay();
 }
@@ -521,12 +490,6 @@ hideLoader();
 }
 }
 
-// ── Login con huella/Face ID (WebAuthn) ─────────────────────────────
-// Botón separado del de contraseña — nunca la reemplaza. Solo se
-// muestra si el navegador soporta WebAuthn; si el dispositivo no tiene
-// ninguna huella registrada para este sitio, el propio sistema
-// operativo se lo dice al vendedor, y sigue pudiendo usar su contraseña
-// normal sin ningún problema.
 async function vendorLoginWebauthn() {
   if (typeof window.webauthnSupported !== 'function' || !window.webauthnSupported()) {
     showTemporaryMessage('Tu navegador no soporta inicio de sesión con huella', 'error');
@@ -546,7 +509,6 @@ async function vendorLoginWebauthn() {
     showPanel();
   } catch (err) {
     if (err && err.name === 'NotAllowedError') {
-      // El vendedor canceló el diálogo de huella — no es un error real.
     } else {
       showTemporaryMessage(err.message || 'No se pudo iniciar sesión con huella', 'error');
     }
@@ -618,14 +580,11 @@ if (navVendor) navVendor.style.display = '';
 const cardName = document.getElementById('vendor-card-name');
 if (cardName && vendorSession) cardName.textContent = vendorSession.nombre;
 
-// Eliminar el botón antiguo si existe
 const oldShareBtn = document.getElementById('share-vendor-link');
 if (oldShareBtn) oldShareBtn.remove();
 
-// Crear botón en el header (junto al nombre del vendedor)
 const headerName = document.getElementById('vendor-name-header');
 if (headerName) {
-  // Eliminar botón previo si ya existe (por si se llama varias veces)
   const existing = document.getElementById('share-vendor-link-header');
   if (existing) existing.remove();
 
@@ -641,15 +600,9 @@ if (headerName) {
   headerName.appendChild(shareBtn);
 }
 
-
-
 loadMyProducts();
 renderVendorPlanPanel();
 loadVendorSaleNotifications();
-// Escalonado a propósito: esta llamada no es urgente (a diferencia de
-// productos/notificaciones/FCM), así que se retrasa un poco para no sumarse
-// a la ráfaga de peticiones simultáneas al abrir el panel y no competir por
-// el límite de ejecuciones concurrentes de Apps Script.
 setTimeout(loadInformeSemanal, 4000);
 if (!window._vsnPollingStarted) {
   window._vsnPollingStarted = true;
@@ -665,14 +618,11 @@ if (!window._vsnPollingStarted) {
   document.addEventListener('visibilitychange', () => {
     if (!document.hidden) loadVendorSaleNotifications();
   });
-   // 🔧 Ya escuchamos push (znr:nueva-notificacion) y visibilitychange arriba,
-   // así que este interval pasa a ser solo red de seguridad (antes 180s).
-   intervalConJitter(loadVendorSaleNotifications, 600000, 60000); // ±0-60s
+   intervalConJitter(loadVendorSaleNotifications, 600000, 60000);
 }
 }
 
 async function loadVendorSaleNotifications() {
-  // ✅ Validación de sesión
   if (!vendorSession || !vendorSession.token) {
     console.warn('No se pueden cargar notificaciones: sesión o token faltante');
     return;
@@ -752,10 +702,6 @@ entregado: ' ¡Entrega marcada! Se descontó el stock.'
 };
 window.showTemporaryMessage?.(mensajes[accion] || 'Actualizado', 'success');
 
-// El push al comprador avisándole del resultado se procesa de forma
-// diferida (hasta ~60s), así que acá no hay manera de saber si le va a
-// llegar. En vez de adivinar, se ofrece siempre un botón manual de
-// WhatsApp con el teléfono del comprador (nunca se abre solo).
 if (data.clientPhone && typeof window.showCustomAlert === 'function') {
 let cleanPhone = String(data.clientPhone).replace(/\D/g, '');
 if (cleanPhone.length === 10) cleanPhone = '52' + cleanPhone;
@@ -819,16 +765,10 @@ function renderInformeSemanal(informe) {
   const el = document.getElementById('informe-semanal-card');
   if (!el) return;
 
-  // Si el informe es de hace más de ~10 días, ya está muy viejo para
-  // mostrarlo como "tu semana" — mejor no confundir al vendedor.
   const fechaGenerado = new Date(informe.fecha_generado);
   const diasDesde = (Date.now() - fechaGenerado.getTime()) / 86400000;
   if (isNaN(diasDesde) || diasDesde > 10) { el.innerHTML = ''; return; }
 
-  // Identificador único de este informe (por vendedor + fecha de
-  // generación). Si el vendedor ya cerró ESTE informe, no se vuelve a
-  // mostrar — pero en cuanto se genere uno nuevo la próxima semana, el id
-  // cambia y sí aparece de nuevo.
   const informeId = `${informe.vendor_uid}_${informe.fecha_generado}`;
   if (localStorage.getItem(INFORME_SEMANAL_DISMISS_KEY) === informeId) {
     el.innerHTML = '';
@@ -853,8 +793,6 @@ function renderInformeSemanal(informe) {
   }
 }
 
-// Reutiliza la misma lógica de escape que ya existe en el proyecto
-// (escapeHtml de common.js) si está disponible; si no, hace un escape básico.
 function _escapeHtmlInforme(texto) {
   if (typeof window.escapeHtml === 'function') return window.escapeHtml(texto);
   const div = document.createElement('div');
@@ -941,87 +879,12 @@ const statusFilterHTML = `
   });
 }
 
-// ── FILTRO DE ESTADO ──────────────────────────────────
-// Se expone en window (en vez de un `let` suelto) para que cualquier función
-// que la lea —sin importar en qué parte del archivo o de qué cierre esté—
-// nunca truene con "currentStatusFilter is not defined".
 window.currentStatusFilter = window.currentStatusFilter || 'todos';
 
 function applyVendorStatusFilter(status) {
   window.currentStatusFilter = status;
   loadMyProducts(true, 1);
 }
-
-// ── FUNCIONES DE CACHÉ ────────────────────────────────
-const VENDOR_PRODUCTS_CACHE_KEY = 'zr_vendor_products';
-const VENDOR_PRODUCTS_CACHE_TTL = 3 * 60 * 1000; // 3 min
-
-window.getVendorProductsCache = function(uid) {
-  try {
-    const raw = sessionStorage.getItem(VENDOR_PRODUCTS_CACHE_KEY + '_' + uid);
-    if (!raw) return null;
-    const { data, timestamp } = JSON.parse(raw);
-    if (Date.now() - timestamp > VENDOR_PRODUCTS_CACHE_TTL) {
-      sessionStorage.removeItem(VENDOR_PRODUCTS_CACHE_KEY + '_' + uid);
-      return null;
-    }
-    return data;
-  } catch(e) { return null; }
-};
-window.setVendorProductsCache = function(uid, products) {
-  try {
-    sessionStorage.setItem(VENDOR_PRODUCTS_CACHE_KEY + '_' + uid,
-      JSON.stringify({ data: products, timestamp: Date.now() }));
-  } catch(e) {}
-};
-
-// ── CACHÉ POR PÁGINA (compartida entre vendedor.html y el modal
-//    de "Gestionar donaciones" — misma clave = mismo caché, en ambos
-//    sentidos: lo que pagina uno lo puede reutilizar el otro) ──────
-// NOTA: se cuelgan de window (no como `function` sueltas) para que sean
-// accesibles sin importar en qué parte del archivo termine el código que
-// las llama — evita errores de "no está definida" por temas de scope.
-const VENDOR_PAGE_CACHE_TTL = 3 * 60 * 1000; // 3 min, igual que antes
-
-window.vendorPageCacheKey = function(uid, page, status) {
-  return `vendor_products_${uid}_page_${page}_status_${status}`;
-};
-window.getVendorPageCache = function(uid, page, status) {
-  try {
-    const raw = sessionStorage.getItem(window.vendorPageCacheKey(uid, page, status));
-    if (!raw) return null;
-    const parsed = JSON.parse(raw);
-    if (Date.now() - parsed.timestamp > VENDOR_PAGE_CACHE_TTL) {
-      sessionStorage.removeItem(window.vendorPageCacheKey(uid, page, status));
-      return null;
-    }
-    return parsed;
-  } catch(e) { return null; }
-};
-window.setVendorPageCache = function(uid, page, status, payload) {
-  try {
-    sessionStorage.setItem(window.vendorPageCacheKey(uid, page, status),
-      JSON.stringify({ ...payload, timestamp: Date.now() }));
-  } catch(e) {}
-};
-window.invalidateVendorPagesCache = function(uid) {
-  try {
-    const u = uid || vendorSession?.uid;
-    const prefix = `vendor_products_${u}_page_`;
-    Object.keys(sessionStorage).forEach(k => {
-      if (k.startsWith(prefix)) sessionStorage.removeItem(k);
-    });
-  } catch(e) {}
-};
-
-window.invalidateVendorProductsCache = function(uid) {
-  const u = uid || vendorSession?.uid;
-  try { sessionStorage.removeItem(VENDOR_PRODUCTS_CACHE_KEY + '_' + u); } catch(e) {}
-  // Una donación asignada/quitada cambia el flag "donado" de un producto que
-  // puede estar cacheado en cualquier página → se invalidan todas las páginas
-  // de este vendedor, no solo la actual.
-  window.invalidateVendorPagesCache(u);
-};
 
 function showVendorProductsSkeleton(container, count = 3) {
   const card = () => `
@@ -1041,7 +904,6 @@ function showVendorProductsSkeleton(container, count = 3) {
     ${Array.from({length: count}, card).join('')}`;
 }
 
-// ── CREAR TARJETA DE PRODUCTO (fuera de initVendorPanel) ──
 function createVendorProductCard(product) {
   const { id, nombre, precio, stock, descripcion, talla, categoria, imagen1, imagen2, imagen3, estado } = product;
   const safeNombre = escapeHtml(nombre || "Producto");
@@ -1214,12 +1076,9 @@ function attachSliderEvents(slider, totalSlides) {
   updateSlider(0);
 }
 
-// ── APLICAR PRODUCTOS Y PAGINACIÓN ──────────────────────
 function applyMyProducts(myProducts, container, total = null, currentPage = 1, totalPages = null) {
-  // Si total es null, usar la longitud de myProducts
   const realTotal = (total !== null) ? total : myProducts.length;
 
-  // Actualizar contador en la sesión
   if (vendorSession) {
     vendorSession.productosActuales = realTotal;
     renderChecklistVendedor();
@@ -1227,11 +1086,9 @@ function applyMyProducts(myProducts, container, total = null, currentPage = 1, t
   }
   if (typeof renderVendorPlanPanel === 'function') renderVendorPlanPanel();
 
-  // Guardar en variable global para otros usos (ej. donaciones)
   window._vendorProducts = myProducts;
   updateDonacionesBadge();
 
-  // Renderizar productos
   container.innerHTML = '';
   if (myProducts.length === 0) {
     container.innerHTML = `<p style="color:#aaa;text-align:center">No hay productos en esta página.</p>`;
@@ -1242,11 +1099,9 @@ function applyMyProducts(myProducts, container, total = null, currentPage = 1, t
     });
   }
 
-  // Aplicar layout (grid/lista)
   const savedLayout = localStorage.getItem('products_layout') || 'list';
   applyLayoutGlobal(savedLayout);
 
-  // Renderizar controles de paginación
   renderPagination(container, currentPage, totalPages, realTotal);
 }
 
@@ -1260,7 +1115,6 @@ function renderPagination(container, currentPage, totalPages, total) {
   paginationDiv.id = 'vendor-pagination';
   paginationDiv.style.cssText = 'display:flex;justify-content:center;align-items:center;gap:12px;margin-top:20px;padding:12px 0;';
 
-  // Botón Anterior: solo si hay página anterior
   if (currentPage > 1) {
     const prevBtn = document.createElement('button');
     prevBtn.textContent = '‹';
@@ -1270,14 +1124,12 @@ function renderPagination(container, currentPage, totalPages, total) {
     paginationDiv.appendChild(prevBtn);
   }
 
-  // Indicador de página
   const pageInfo = document.createElement('span');
   pageInfo.textContent = `Página ${currentPage} de ${totalPages}`;
   pageInfo.style.fontSize = '14px';
   pageInfo.style.color = '#555';
   paginationDiv.appendChild(pageInfo);
 
-  // Botón Siguiente: solo si hay página siguiente
   if (currentPage < totalPages) {
     const nextBtn = document.createElement('button');
     nextBtn.textContent = '›';
@@ -1290,7 +1142,6 @@ function renderPagination(container, currentPage, totalPages, total) {
   container.parentNode.insertBefore(paginationDiv, container.nextSibling);
 }
 
-// ── CARGA DE PRODUCTOS CON PAGINACIÓN ────────────────────
 window.loadMyProducts = async function loadMyProducts(force = false, page = 1) {
   const container = document.getElementById('products-container');
   if (!container) return;
@@ -1304,34 +1155,12 @@ window.loadMyProducts = async function loadMyProducts(force = false, page = 1) {
 
   if (cached) {
     applyMyProducts(cached.data, container, cached.total, cached.page, cached.totalPages);
-    // Revalidar en background (esto también refresca el caché compartido
-    // que puede estar usando el modal de "Gestionar donaciones")
     window.fetchPage(uid, page, limit, status, true);
     return;
   }
 
   showVendorProductsSkeleton(container, Math.min(limit, 6));
   await window.fetchPage(uid, page, limit, status, false);
-};
-
-window.fetchAndCacheVendorPage = async function(uid, page, limit, status) {
-  const data = await apiFetch({
-    action: 'misProductosComunidad',
-    limit: limit,
-    page: page,
-    estado: status !== 'todos' ? status : undefined,
-    vendorToken: vendorSession.token
-  }, 'GET');
-
-  if (!data.ok) throw new Error(data.error || 'Error al cargar productos');
-
-  const myProducts = (data.products || []).filter(p => p.vendedor_uid === uid);
-  const total = data.total || myProducts.length;
-  const totalPages = data.totalPages || Math.ceil(total / limit) || 1;
-
-  const payload = { data: myProducts, total, page, totalPages };
-  window.setVendorPageCache(uid, page, status, payload);
-  return payload;
 };
 
 window.fetchPage = async function(uid, page, limit, status, background = false) {
@@ -1350,7 +1179,6 @@ window.fetchPage = async function(uid, page, limit, status, background = false) 
   }
 };
 
-// ── DONACIONES BADGE ──────────────────────────────────────
 window.updateDonacionesBadge = function updateDonacionesBadge() {
   const el = document.getElementById('donaciones-count-badge');
   if (!el) return;
@@ -1361,7 +1189,6 @@ window.updateDonacionesBadge = function updateDonacionesBadge() {
   el.style.fontWeight = '700';
 };
 
-// ── SUBIR LOGO ────────────────────────────────────────────
 async function uploadVendorLogo(file) {
 const url = await uploadSingleImage(file);
 const res = await apiFetch({ action: 'actualizarLogoVendedor', vendorToken: vendorSession.token, logoUrl: url });
@@ -1371,7 +1198,6 @@ localStorage.setItem('vendor_session', JSON.stringify(vendorSession));
 return url;
 }
 
-// ── EDITAR / ELIMINAR PRODUCTO ───────────────────────────
 window.editProduct = function(id) {
 const p = (window._vendorProducts || []).find(x => String(x.id) === String(id));
 if (!p) return;
@@ -1457,7 +1283,6 @@ if (iaBox) iaBox.style.display = 'none';
 window.__znrSugerenciaIA = null;
 }
 
-// ── SUBIR IMÁGENES ────────────────────────────────────────
 window.triggerUpload = function(n) {
 const sheet = document.getElementById('photo-source-sheet');
 const input = document.getElementById(`file-${n}`);
@@ -1507,8 +1332,6 @@ window.handleFileSelect = function(n, input) {
     const files = input.files;
     if (!files || files.length === 0) return;
 
-    // Auto-tag de categoría por IA: solo se dispara con la foto del slot 1,
-    // corre 100% client-side y nunca bloquea ni retrasa la subida/publicación.
     if (n === 1 && files[0] && typeof window.sugerirYAplicar === 'function') {
         window.sugerirYAplicar(files[0]);
     }
@@ -1605,7 +1428,6 @@ reader.readAsDataURL(file);
 });
 }
 
-// ── COMPLETAR ANUNCIO CON IA (Groq) ───────────────────────
 window.completarAnuncioConIA = async function() {
   if (!vendorSession || !vendorSession.token) {
     showTemporaryMessage('Sesión expirada. Vuelve a iniciar sesión.', 'error');
@@ -1665,7 +1487,6 @@ window.descartarSugerenciaIA = function() {
   window.__znrSugerenciaIA = null;
 };
 
-// ── PUBLICAR PRODUCTO ─────────────────────────────────────
 window.submitProduct = async function() {
 if (!vendorSession || !vendorSession.token) {
   showTemporaryMessage(' Sesión expirada. Vuelve a iniciar sesión.', 'error');
@@ -1720,11 +1541,6 @@ Imagen2: uploadedImages[2] || '',
 Imagen3: uploadedImages[3] || '',
 vendorToken: vendorSession.token
 };
-// Huella visual calculada por ai-clasificador.js al subir la foto del slot 1
-// (mismo modelo del auto-tag, sin costo extra). Se usa para el buscador por
-// similitud visual de Comunidad. Si no está disponible (modelo no cargó,
-// navegador sin soporte, etc.) simplemente no se manda — nunca bloquea la
-// publicación del producto.
 if (window.__znrUltimoEmbedding && Array.isArray(window.__znrUltimoEmbedding)) {
   productData.Embedding = JSON.stringify(window.__znrUltimoEmbedding);
 }
@@ -1765,7 +1581,6 @@ el.classList.toggle('active', el.dataset.vendorPage === tab);
 });
 };
 
-// ── RECUPERAR SESIÓN ──────────────────────────────────────
 let stored = localStorage.getItem('vendor_session');
 if (!stored) {
 stored = sessionStorage.getItem('vendor_session');
@@ -1778,10 +1593,6 @@ if (stored) {
 try {
 vendorSession = JSON.parse(stored);
 showPanel();
-// Valida la sesión contra el servidor — si el token ya no es
-// válido (p. ej. porque iniciaste sesión en otro dispositivo y se
-// generó uno nuevo), esto detecta la sesión muerta y limpia el
-// token FCM viejo en vez de dejarlo huérfano para siempre.
 apiFetch({ action: 'misProductosComunidad', vendorToken: vendorSession.token, limit: 1 }, 'GET').then(resp => {
   if (!resp.ok) {
     if (typeof window.eliminarTokenFCM === 'function') {
@@ -1815,364 +1626,12 @@ const cancelBtn = document.getElementById('cancel-edit-btn');
 if (cancelBtn) {
 cancelBtn.addEventListener('click', window.cancelEdit);
 }
-} // fin initVendorPanel
+}
 
-// ──────────────────────────────────────────────
-// INIT PENDING VENDORS (solo administración)
-// ──────────────────────────────────────────────
 function initPendingVendors() {
 return;
-const STYLES = `
-<style id="vp-styles">
-#vendors-pending-section {
-margin: 0 0 24px 0;
-}
-.vp-card {
-background: white;
-border-radius: 18px;
-padding: 20px;
-margin-bottom: 20px;
-box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-}
-.vp-card-header {
-display: flex;
-align-items: center;
-justify-content: space-between;
-gap: 12px;
-background: linear-gradient(135deg, #3b1f5f, #6a3fa5);
-color: white;
-border-radius: 12px;
-padding: 14px 16px;
-margin-bottom: 16px;
-}
-.vp-card-header h2 {
-margin: 0;
-font-size: 16px;
-font-weight: 700;
-}
-.vp-refresh-btn {
-background: rgba(255,255,255,0.2);
-border: none;
-color: white;
-width: 32px;
-height: 32px;
-border-radius: 50%;
-font-size: 16px;
-cursor: pointer;
-display: flex;
-align-items: center;
-justify-content: center;
-transition: background 0.2s;
-flex-shrink: 0;
-}
-.vp-refresh-btn:hover { background: rgba(255,255,255,0.3); }
-.vp-vendor-row {
-display: flex;
-align-items: center;
-gap: 14px;
-padding: 14px;
-border-radius: 14px;
-background: #f8f8fc;
-margin-bottom: 10px;
-flex-wrap: wrap;
-border-left: 4px solid #3b1f5f;
-}
-.vp-vendor-avatar {
-width: 48px;
-height: 48px;
-border-radius: 50%;
-background: linear-gradient(135deg, #3b1f5f, #6a3fa5);
-color: white;
-display: flex;
-align-items: center;
-justify-content: center;
-font-size: 20px;
-font-weight: 700;
-flex-shrink: 0;
-}
-.vp-vendor-info { flex: 1; min-width: 0; }
-.vp-vendor-name {
-font-weight: 700;
-font-size: 15px;
-margin-bottom: 4px;
-color: #1a1a2e;
-}
-.vp-vendor-meta {
-display: flex;
-gap: 12px;
-flex-wrap: wrap;
-font-size: 12px;
-color: #666;
-align-items: center;
-}
-.vp-badge-pendiente {
-display: inline-block;
-padding: 3px 10px;
-border-radius: 20px;
-font-size: 11px;
-font-weight: 700;
-background: #fff8e1;
-color: #f57f17;
-}
-.vp-wa-link {
-color: #25d366;
-font-weight: 600;
-text-decoration: none;
-font-size: 12px;
-}
-.vp-actions {
-display: flex;
-gap: 8px;
-flex-shrink: 0;
-}
-.vp-btn-approve {
-padding: 8px 18px;
-border: none;
-border-radius: 20px;
-background: #e8f5e9;
-color: #2e7d32;
-font-size: 13px;
-font-weight: 700;
-cursor: pointer;
-transition: background 0.2s;
-}
-.vp-btn-approve:hover { background: #c8e6c9; }
-.vp-btn-reject {
-padding: 8px 18px;
-border: none;
-border-radius: 20px;
-background: #ffebee;
-color: #c62828;
-font-size: 13px;
-font-weight: 700;
-cursor: pointer;
-transition: background 0.2s;
-}
-.vp-btn-reject:hover { background: #ffcdd2; }
-.vp-empty {
-text-align: center;
-padding: 20px;
-color: #aaa;
-font-size: 14px;
-}
-.vp-btn-confiable {
-padding: 8px 14px;
-border: 1.5px solid #f0a500;
-border-radius: 20px;
-background: transparent;
-color: #f0a500;
-font-size: 13px;
-font-weight: 700;
-cursor: pointer;
-transition: all 0.2s;
-}
-.vp-btn-confiable:hover { background: #fff8e1; }
-.vp-btn-confiable.is-confiable {
-background: #fff8e1;
-color: #e65100;
-border-color: #e65100;
-}
-.vp-badge-confiable {
-display: inline-block;
-padding: 2px 8px;
-border-radius: 20px;
-font-size: 11px;
-font-weight: 700;
-background: #fff8e1;
-color: #e65100;
-}
-.vp-badge-count {
-background: #ff4f81;
-color: white;
-border-radius: 20px;
-padding: 2px 8px;
-font-size: 11px;
-font-weight: 700;
-margin-left: 6px;
-}
-@media (max-width: 600px) {
-.vp-vendor-row { flex-direction: column; align-items: flex-start; }
-.vp-actions { width: 100%; justify-content: flex-end; }
-}
-</style>
-`;
-const SECTION_HTML = `
-<div id="vendors-pending-section">
-<div class="vp-card">
-<div class="vp-card-header">
-<h2>Vendedores pendientes de aprobación <span id="vp-count-badge" class="vp-badge-count" style="display:none"></span></h2>
-<button class="vp-refresh-btn" id="vp-refresh-btn" title="Actualizar"><svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" aria-hidden="true"><use href="#ic-refresh"/></svg></button>
-</div>
-<div id="vp-vendors-list">
-<div class="vp-empty">Cargando...</div>
-</div>
-</div>
-</div>
-`;
-injectStyles('vp-styles', STYLES);
-const notifContainer = document.getElementById('notifications');
-if (notifContainer && !document.getElementById('vendors-pending-section')) {
-notifContainer.insertAdjacentHTML('beforebegin', SECTION_HTML);
-}
-let currentVendors = [];
-async function loadVendors() {
-const list = document.getElementById('vp-vendors-list');
-const badge = document.getElementById('vp-count-badge');
-if (!list) return;
-list.innerHTML = '<div class="vp-empty">Cargando...</div>';
-try {
-const token = getAdminToken();
-if (!token) {
-list.innerHTML = '<div class="vp-empty">Sin token de admin</div>';
-return;
-}
-const data = await apiFetch({ action: 'vendedoresAdmin', token }, 'GET');
-if (!data.ok) throw new Error(data.error || 'Error del servidor');
-const vendors = data.vendors || [];
-currentVendors = vendors;
-const pending = vendors.filter(v => v.estado === 'pendiente');
-if (badge) {
-if (pending.length > 0) {
-badge.textContent = pending.length;
-badge.style.display = 'inline-block';
-} else {
-badge.style.display = 'none';
-}
-}
-if (!vendors.length) {
-list.innerHTML = '<div class="vp-empty">No hay vendedores registrados aún</div>';
-return;
-}
-const toShow = [...pending, ...vendors.filter(v => v.estado !== 'pendiente')];
-list.innerHTML = toShow.map(v => {
-const inicial = (v.nombre || '?')[0].toUpperCase();
-const fecha = v.fecha ? new Date(v.fecha).toLocaleDateString('es-MX', { day:'2-digit', month:'short', year:'numeric' }) : '';
-const waUrl = `https://wa.me/52${v.telefono}?text=${encodeURIComponent('Hola ' + v.nombre + ', tu cuenta de vendedor en Z&R ha sido aprobada. Ya puedes ingresar en: znr.com/vendedor.html')}`;
-const confiableBadge = v.confiable ? '<span class="vp-badge-confiable">Confiable</span>' : '';
-return `
-<div class="vp-vendor-row" id="vprow-${escapeHtml(v.uid)}">
-<div class="vp-vendor-avatar">${inicial}</div>
-<div class="vp-vendor-info">
-<div class="vp-vendor-name">${escapeHtml(v.nombre)}</div>
-<div class="vp-vendor-meta">
-<span> ${escapeHtml(v.telefono)}</span>
-<a class="vp-wa-link" href="${waUrl}" target="_blank" rel="noopener">WhatsApp</a>
-${v.estado === 'pendiente'
-? `<span class="vp-badge-pendiente">${Icon('clock')} pendiente</span>`
-: '<span style="display:inline-block;padding:2px 10px;border-radius:20px;font-size:11px;font-weight:700;background:#e8f5e9;color:#2e7d32"> activo</span>'
-}
-${confiableBadge}
-${fecha ? `<span> ${fecha}</span>` : ''}
-</div>
-</div>
-<div class="vp-actions">
-${v.estado === 'pendiente'
-? `<button class="vp-btn-approve" data-uid="${escapeHtml(v.uid)}" data-nombre="${escapeHtml(v.nombre)}" data-tel="${escapeHtml(v.telefono)}"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" aria-hidden="true"><use href="#ic-check"/></svg> Aprobar</button>`
-: ''}
-<button class="vp-btn-reject" data-uid="${escapeHtml(v.uid)}" data-nombre="${escapeHtml(v.nombre)}"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" aria-hidden="true"><use href="#ic-x"/></svg> Rechazar
-</button>
-</div>
-</div>
-`;
-}).join('');
-document.querySelectorAll('.vp-btn-approve').forEach(btn => {
-btn.addEventListener('click', async (e) => {
-const uid = btn.dataset.uid;
-const nombre = btn.dataset.nombre;
-const telefono = btn.dataset.tel;
-await aprobarVendor(uid, nombre, telefono);
-});
-});
-document.querySelectorAll('.vp-btn-reject').forEach(btn => {
-btn.addEventListener('click', async (e) => {
-const uid = btn.dataset.uid;
-const nombre = btn.dataset.nombre;
-await rechazarVendor(uid, nombre);
-});
-});
-document.querySelectorAll('.vp-btn-confiable').forEach(btn => {
-btn.addEventListener('click', async (e) => {
-const uid = btn.dataset.uid;
-const nombre = btn.dataset.nombre;
-const esConfiable = btn.dataset.confiable === 'true';
-await toggleConfiableVendor(uid, nombre, esConfiable);
-});
-});
-} catch (err) {
-list.innerHTML = `<div class="vp-empty" style="color:#ef4444">Error: ${escapeHtml(err.message)}</div>`;
-}
-}
-async function aprobarVendor(uid, nombre, telefono) {
-const row = document.getElementById(`vprow-${uid}`);
-if (row) row.style.opacity = '0.5';
-try {
-const res = await apiFetch({ action: 'aprobarVendedor', uid, token: getAdminToken() });
-if (!res.ok) throw new Error(res.error);
-const codigo = res.codigo;
-const telefonoVendedor = res.telefono;
-const mensaje = ` *¡Cuenta aprobada!* \n\nHola ${nombre}, tu cuenta de vendedor en Z&R Comunidad ha sido *aprobada*.\n\n*Tu contraseña temporal es:* ${codigo}\n\nPuedes cambiarla después de iniciar sesión.\n\n Accede aquí: znr.com/vendedor.html\n\n¡Bienvenido! `;
-const waUrl = `https://wa.me/52${telefonoVendedor}?text=${encodeURIComponent(mensaje)}`;
-window.open(waUrl, '_blank');
-row.remove();
-} catch (err) {
-if (row) row.style.opacity = '1';
-showTemporaryMessage(' ' + err.message, 'error');
-}
-}
-async function rechazarVendor(uid, nombre) {
-const row = document.getElementById(`vprow-${uid}`);
-if (row) row.style.opacity = '0.5';
-try {
-const res = await apiFetch({ action: 'rechazarVendedor', uid, token: getAdminToken() });
-if (!res.ok) throw new Error(res.error);
-showTemporaryMessage(` ${nombre} rechazado`, 'info');
-if (row) {
-row.style.transition = 'opacity 0.3s';
-row.style.opacity = '0';
-setTimeout(() => { row.remove(); updatePendingBadge(); }, 300);
-}
-} catch (err) {
-if (row) row.style.opacity = '1';
-showTemporaryMessage(' ' + err.message, 'error');
-}
-}
-async function toggleConfiableVendor(uid, nombre, esConfiableActual) {
-try {
-const nuevoValor = !esConfiableActual;
-const res = await apiFetch({ action: 'marcarVendedorConfiable', uid, confiable: nuevoValor, token: getAdminToken() });
-if (!res.ok) throw new Error(res.error);
-const msg = nuevoValor
-? ` ${nombre} marcado como confiable. Sus próximos productos se publicarán directo.`
-: ` ${nombre} ya no es confiable.`;
-showTemporaryMessage(msg, 'success');
-loadVendors();
-} catch (err) {
-showTemporaryMessage(' ' + err.message, 'error');
-}
-}
-function updatePendingBadge() {
-const remaining = document.querySelectorAll('[id^="vprow-"]').length;
-const badge = document.getElementById('vp-count-badge');
-if (!badge) return;
-if (remaining > 0) {
-badge.textContent = remaining;
-badge.style.display = 'inline-block';
-} else {
-badge.style.display = 'none';
-const list = document.getElementById('vp-vendors-list');
-if (list && list.innerHTML.includes('pendientes')) {
-list.innerHTML = '<div class="vp-empty">No hay vendedores pendientes de aprobación</div>';
-}
-}
-}
-const refreshBtn = document.getElementById('vp-refresh-btn');
-if (refreshBtn) refreshBtn.addEventListener('click', loadVendors);
-loadVendors();
 }
 
-// ──────────────────────────────────────────────
-// DOMContentLoaded
-// ──────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
 initVendorPanel();
 initPendingVendors();
@@ -2203,22 +1662,11 @@ window.addEventListener('layoutChanged', (e) => {
   }
 });
 
-// ──────────────────────────────────────────────
-// Funciones expuestas globalmente (onclick en HTML)
-// ──────────────────────────────────────────────
-
 window.openSettingsModal  = function() { openSettingsModal(); };
 window.closeSettingsModal = function() { closeSettingsModal(); };
 window.guardarPerfil      = function() { guardarPerfil(); };
 window.guardarPassword    = function() { guardarPassword(); };
 window.solicitarPlanPlus  = function() { solicitarPlanPlus(); };
-
-
-
-
-// ──────────────────────────────────────────────
-// Funciones de perfil / configuración
-// ──────────────────────────────────────────────
 
 function getInitials(nombre) {
 if (!nombre) return '?';
@@ -2251,9 +1699,6 @@ function updateVendorAvatar() {
   }
 }
 
-// Punto de entrega con ubicación real: mismo patrón GPS + Nominatim que ya
-// usa el comprador para su dirección (common.js/_collectAddressAndSchedule),
-// adaptado a los campos de Ajustes del vendedor.
 function _actualizarPreviewMapsPuntoEntrega() {
   const lat = document.getElementById('settings-punto-entrega-lat')?.value;
   const lng = document.getElementById('settings-punto-entrega-lng')?.value;
@@ -2266,9 +1711,6 @@ function _actualizarPreviewMapsPuntoEntrega() {
   }
 }
 
-// Si el vendedor edita el texto a mano después de haber marcado su
-// ubicación, esas coordenadas ya no describen lo que escribió — se
-// limpian para no mandar un link de Maps desactualizado a los compradores.
 function _onEditarPuntoEntregaManual() {
   const latInput = document.getElementById('settings-punto-entrega-lat');
   const lngInput = document.getElementById('settings-punto-entrega-lng');
@@ -2397,7 +1839,6 @@ function openSettingsModal(expandirPlan) {
 
   const planInfoEl = document.getElementById('settings-plan-info');
 if (planInfoEl) {
-  // Resumen del plan actual
   if (esPlus) {
     const vence = vendorSession.planVence ? new Date(vendorSession.planVence).toLocaleDateString('es-MX', {day:'2-digit',month:'long',year:'numeric'}) : '—';
     planInfoEl.innerHTML = '<div style="background:#f5f3ff;border-radius:10px;padding:12px 14px;">' +
@@ -2410,7 +1851,6 @@ if (planInfoEl) {
       '<p style="margin:4px 0 0;font-size:.82rem;color:#6b7280;">Con Plus obtienes foto de perfil, destacado, logo y aprobación instantánea.</p>' +
       '<div id="settings-plus-notif" style="margin-top:10px;"><p style="color:#aaa;font-size:.78rem;margin:0;">Cargando…</p></div></div>';
   }
-  // Siempre cargar la información de pago/renovación
   loadPlusSolicitudVendedor('settings-plus-notif');
 }
 
@@ -2461,7 +1901,6 @@ if (planInfoEl) {
     }
     if (planToggle) {
       if (!planToggle.classList.contains('open')) planToggle.click();
-      // Esperar un poco a que el contenido se despliegue y luego hacer scroll
       setTimeout(() => {
         const notifArea = document.getElementById('settings-plus-notif');
         if (notifArea) {
@@ -2628,10 +2067,6 @@ async function guardarPerfil() {
   }
 }
 
-// ────────────────────────────────────────────────────────────
-// Portada personalizable (color + patrón de iconos)
-// ────────────────────────────────────────────────────────────
-
 function _updateCoverPreview() {
   const preview   = document.getElementById('cover-editor-preview');
   const colorEl   = document.getElementById('cover-color-input');
@@ -2766,7 +2201,6 @@ btn.disabled = false; btn.textContent = 'Cambiar contraseña';
 }
 }
 
-// ── Activar / gestionar huella en este dispositivo (perfil) ─────────
 async function cargarSeccionHuella() {
   const wrap = document.getElementById('settings-webauthn');
   if (!wrap) return;
@@ -2793,10 +2227,40 @@ async function cargarSeccionHuella() {
   }
 }
 
+// Detecta un nombre razonable para este dispositivo sin preguntarle nada
+// al vendedor. Chrome en Android expone el modelo real vía Client Hints
+// (ej. "Pixel 7"); ningún otro navegador/SO lo permite por privacidad,
+// así que ahí se usa SO + fecha de activación como respaldo distinguible.
+async function _detectarNombreDispositivo() {
+  try {
+    if (navigator.userAgentData && navigator.userAgentData.getHighEntropyValues) {
+      const ua = await navigator.userAgentData.getHighEntropyValues(['model', 'platformVersion']);
+      if (ua.model) return ua.model;
+    }
+  } catch (e) {}
+
+  const uaStr = navigator.userAgent;
+  let so = 'Este dispositivo';
+  const iosMatch = uaStr.match(/OS (\d+)_(\d+)/);
+  if (/iPhone/.test(uaStr)) so = iosMatch ? `iPhone (iOS ${iosMatch[1]})` : 'iPhone';
+  else if (/iPad/.test(uaStr)) so = iosMatch ? `iPad (iPadOS ${iosMatch[1]})` : 'iPad';
+  else if (/Android/.test(uaStr)) {
+    const androidMatch = uaStr.match(/Android (\d+)/);
+    so = androidMatch ? `Android ${androidMatch[1]}` : 'Android';
+  } else if (/Windows/.test(uaStr)) so = 'Windows';
+  else if (/Macintosh/.test(uaStr)) so = 'Mac';
+
+  const fecha = new Date().toLocaleDateString('es-MX', { day: '2-digit', month: 'short' });
+  return `${so} · ${fecha}`;
+}
+
 window.activarHuellaDispositivo = async function() {
   const btn = document.getElementById('btn-activar-huella');
   const msg = document.getElementById('settings-webauthn-msg');
   msg.textContent = '';
+
+  const label = await _detectarNombreDispositivo();
+
   btn.disabled = true; btn.textContent = 'Activando...';
   try {
     const opciones = await apiCall({ action: 'webauthnRegistroOpciones', vendorToken: vendorSession.token });
@@ -2804,9 +2268,6 @@ window.activarHuellaDispositivo = async function() {
 
     const credential = await window.webauthnStartRegistration(opciones.options);
 
-    const label = /iPhone|iPad/.test(navigator.userAgent) ? 'iPhone/iPad'
-                : /Android/.test(navigator.userAgent) ? 'Este Android'
-                : 'Este dispositivo';
     const res = await apiCall({ action: 'webauthnRegistroVerificar', vendorToken: vendorSession.token, credential: JSON.stringify(credential), deviceLabel: label });
     if (!res.ok) throw new Error(res.error || 'No se pudo activar la huella');
 
@@ -2814,7 +2275,7 @@ window.activarHuellaDispositivo = async function() {
     await cargarSeccionHuella();
   } catch (err) {
     if (err && err.name === 'NotAllowedError') {
-      msg.textContent = ''; // el vendedor canceló el diálogo, no es un error
+      msg.textContent = '';
     } else {
       msg.style.color = '#dc2626'; msg.textContent = err.message || 'No se pudo activar la huella';
     }
@@ -2830,7 +2291,6 @@ window.eliminarDispositivoHuella = async function(credentialId) {
   } catch (_) {}
 };
 
-// ── Conectar/desconectar Mercado Pago (cobro con tarjeta en Comunidad) ──
 async function cargarEstadoMP() {
   const estadoEl = document.getElementById('mp-conexion-estado');
   const btnConectar = document.getElementById('btn-mp-conectar');
@@ -2948,9 +2408,6 @@ window.verMisEstadisticas = async function(forceRefresh) {
   const ratingSlot = document.getElementById('mis-stats-rating');
   const ventasSlot = document.getElementById('mis-stats-ventas');
 
-  // Estas estadísticas casi no cambian de un momento a otro (a diferencia
-  // de las notificaciones), así que se cachean 24h en el navegador y solo
-  // se vuelven a pedir a GAS si expiran o el vendedor pide "Actualizar".
   const cacheKey = 'zr_vendor_stats_cache_' + vendorSession.uid;
   const cached = forceRefresh ? _DAILY_CACHE_MISS : _getDailyCache(cacheKey);
   if (cached !== _DAILY_CACHE_MISS) {
@@ -2995,12 +2452,12 @@ window.verMisEstadisticas = async function(forceRefresh) {
       rData = await rRes.json();
     }
     if (rData.ok) result.rating = { promedio: rData.promedio, total: rData.total };
-  } catch (e) { /* silencioso */ }
+  } catch (e) { }
 
   try {
     const vRes = await apiCall({ action: 'obtenerEstadisticasVendedor', vendorToken: vendorSession.token });
     if (vRes.ok) result.ventas = { conversion: vRes.conversion, historialMeses: vRes.historialMeses, tiempoRespuestaMin: vRes.tiempoRespuestaMin };
-  } catch (e) { /* silencioso */ }
+  } catch (e) { }
 
   if (result.stats) {
     _setDailyCache(cacheKey, result);
@@ -3075,16 +2532,11 @@ function _renderMisStats(result, grid, ratingSlot, ventasSlot) {
   }
 }
 
-
-
 function _formatTiempoRespuesta(min) {
   if (min < 60) return Math.round(min) + ' min';
   if (min < 1440) return (min / 60).toFixed(1) + ' h';
   return (min / 1440).toFixed(1) + ' días';
 }
-
-  
-
 
 async function loadPlusSolicitudVendedor(targetAreaId, forceRefresh) {
 const areaId = targetAreaId || 'vendor-plus-notif-area';
@@ -3136,7 +2588,6 @@ if (sol.estado === 'plus_activo') {
   </div>`;
   return;
 }
-
 
 if (sol.estado === 'approved') {
 area.innerHTML = `<div style="background:#f0fdf4;border:1px solid #86efac;border-radius:12px;padding:12px 14px;">
@@ -3207,16 +2658,12 @@ async function apiCall(data) {
   }
 }
 
-// ──────────────────────────────────────────────
-// Secciones colapsables del panel de ajustes
-// ──────────────────────────────────────────────
 window.toggleSettingsSection = function(btn) {
   const body = btn.nextElementSibling;
   const open = btn.classList.toggle('open');
   body.style.display = open ? 'block' : 'none';
 };
 
-// ── Modal de gestión de donaciones ──────────────────────────
 window.openDonarProductosModal = async function(productoId) {
   const prod = window._vendorProducts && window._vendorProducts.find(p => String(p.id) === String(productoId));
   if (!prod) { showTemporaryMessage('Recarga tus productos primero', 'error'); return; }
@@ -3350,10 +2797,6 @@ let benData = window.znrFirestore ? await window.znrFirestore.getBeneficiariosAp
   }
 };
 
-// ── "Gestionar donaciones" desde ajustes ──────────────────────
-// Pagina igual que vendedor.html (20 por página) y usa el MISMO caché
-// por página/estado: si el usuario ya visitó la página 2 en vendedor.html
-// (o en este modal antes), se reutiliza al instante en ambos sentidos.
 window.openGestionarDonacionesModal = async function(page = 1) {
   const uid = vendorSession?.uid;
   if (!uid) return;
@@ -3383,12 +2826,9 @@ window.openGestionarDonacionesModal = async function(page = 1) {
 
   const cached = window.getVendorPageCache(uid, page, status);
   if (cached) {
-    // Instantáneo: ya sea porque vendedor.html cacheó esta página, o
-    // porque el usuario ya la había abierto antes en este modal.
     window.renderGestionarLista(lista, cached.data, page, cached.totalPages, cached.total, status);
     window.fetchAndCacheVendorPage(uid, page, limit, status)
       .then(payload => {
-        // Solo repinta si el modal sigue abierto en la misma página
         if (document.getElementById('modal-gestionar-donaciones') && window._gestionarDonacionesPage === page) {
           window.renderGestionarLista(lista, payload.data, page, payload.totalPages, payload.total, status);
         }
@@ -3444,7 +2884,6 @@ window.renderGestionarLista = function(lista, productos, page, totalPages, total
           }
         </div>`;
 
-  // ── Paginación (misma UX que vendedor.html) ──
   const oldPag = document.getElementById('gestionar-pagination');
   if (oldPag) oldPag.remove();
   if (totalPages && totalPages > 1) {
@@ -3479,7 +2918,6 @@ window.renderGestionarLista = function(lista, productos, page, totalPages, total
   }
 }
 
-// ── Modal: entregas de mis transmisiones en vivo ─────────────
 window.openEntregasLiveModal = async function() {
   const esc = s => String(s||'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
@@ -3537,11 +2975,6 @@ window.openEntregasLiveModal = async function() {
   }
 };
 
-// ── Busca el registro completo de beneficiario que corresponde a este vendedor,
-// cruzando por teléfono contra la lista pública de beneficiarios aprobados.
-// (No existe todavía un endpoint "obtenerMiBeneficiario"; esto evita depender
-// de uno nuevo. Si el teléfono del vendedor cambió después de registrarse como
-// beneficiario, el cruce puede fallar — en ese caso solo se ve el aviso genérico.)
 async function buscarMiPerfilBeneficiario() {
   try {
     let data = window.znrFirestore ? await window.znrFirestore.getBeneficiariosAprobados() : { ok:false };
@@ -3556,7 +2989,6 @@ async function buscarMiPerfilBeneficiario() {
   } catch (e) { return null; }
 }
 
-// ── Panel de beneficiario: perfil propio + donaciones recibidas ──
 async function loadBeneficiarioDonaciones() {
   const area = document.getElementById('settings-donaciones-recibidas-area');
   if (!area || !vendorSession) return;
@@ -3574,7 +3006,6 @@ async function loadBeneficiarioDonaciones() {
     const dons = data.donaciones || [];
     area.style.display = 'block';
 
-    // Perfil de beneficiario (nombre, historia, cuenta, fotos)
     const miBen = await buscarMiPerfilBeneficiario();
     const perfilHtml = miBen ? `
       <div style="margin-top:12px;padding:12px;background:#fff7ed;border:1px solid #fed7aa;border-radius:12px;">
@@ -3618,7 +3049,6 @@ async function loadBeneficiarioDonaciones() {
   } catch(e) { area.style.display = 'none'; }
 }
 
-// ── Modal compacto para solicitar edición del perfil de beneficiario ──
 function abrirEditarFundacionVendedor(miBen) {
   const old = document.getElementById('modal-editar-fundacion');
   if (old) old.remove();
@@ -3748,7 +3178,6 @@ function abrirEditarFundacionVendedor(miBen) {
   });
 }
 
-// ── Solicitar eliminación de la fundación (requiere aprobación del admin) ──
 async function solicitarEliminarFundacionVendedor(miBen) {
   if (!confirm('¿Seguro que quieres solicitar la eliminación de tu fundación "' + (miBen.nombre||'') + '"? El administrador revisará tu solicitud antes de eliminarla.')) return;
   const msgEl = document.getElementById('fundacion-accion-msg');
@@ -3771,15 +3200,6 @@ async function solicitarEliminarFundacionVendedor(miBen) {
   }
 }
 
-
-
-
-
-
-
-
-
-
 function abrirModalCompartirTienda() {
   if (!vendorSession || !vendorSession.uid) {
     showTemporaryMessage('Inicia sesión para compartir tu tienda.', 'error');
@@ -3788,14 +3208,11 @@ function abrirModalCompartirTienda() {
   const baseDir = window.location.href.substring(0, window.location.href.lastIndexOf('/') + 1);
   const shareUrl = `${baseDir}perfil-vendedor.html?vendedor=${encodeURIComponent(vendorSession.uid)}`;
 
-  // --- Función interna para obtener la descripción del negocio ---
   function obtenerDescripcionNegocio() {
-    // 1. Intentar con la categoría guardada en la sesión
     if (vendorSession.categoria && vendorSession.categoria.trim() !== '') {
       return `productos de ${vendorSession.categoria}`;
     }
 
-    // 2. Si hay productos cargados, extraer categorías únicas
     if (window._vendorProducts && window._vendorProducts.length > 0) {
       const categorias = window._vendorProducts
         .map(p => p.categoria)
@@ -3809,11 +3226,9 @@ function abrirModalCompartirTienda() {
       }
     }
 
-    // 3. Fallback genérico
     return 'productos y servicios';
   }
 
-  // Eliminar modal antiguo si existe
   const oldModal = document.getElementById('modal-compartir-tienda');
   if (oldModal) oldModal.remove();
 
@@ -3826,7 +3241,6 @@ function abrirModalCompartirTienda() {
         <h3 style="margin:0;font-size:1.1rem;font-weight:800;">${Icon('share')} Compartir tienda</h3>
         <button onclick="this.closest('#modal-compartir-tienda').remove()" style="background:none;border:none;font-size:24px;cursor:pointer;color:#888;">×</button>
       </div>
-      <!-- Contenedor del QR -->
       <div id="qr-code-styling-container" style="display:flex;justify-content:center;margin:10px 0 18px;"></div>
       <div style="display:flex;gap:8px;margin-bottom:10px;">
         <input type="text" id="share-url-input" value="${shareUrl}" readonly style="flex:1;padding:8px 12px;border:1px solid #ddd;border-radius:10px;font-size:.85rem;background:#f5f5f8;outline:none;">
@@ -3845,26 +3259,23 @@ function abrirModalCompartirTienda() {
   document.body.appendChild(modal);
   modal.addEventListener('click', (e) => { if (e.target === modal) modal.remove(); });
 
-  // --- Generar QR ---
 const qrContainer = document.getElementById('qr-code-styling-container');
 qrContainer.innerHTML = '';
 const qrCode = new QRCodeStyling({
   width: 180,
   height: 180,
   data: shareUrl,
-  dotsOptions: { color: "#000000", type: "rounded" },      // puntos negros
+  dotsOptions: { color: "#000000", type: "rounded" },
   backgroundOptions: { color: "#ffffff" },
-  cornersSquareOptions: { color: "#000000", type: "dot" }, // esquinas negras
-  cornersDotOptions: { color: "#000000", type: "dot" }     // punto central negro
+  cornersSquareOptions: { color: "#000000", type: "dot" },
+  cornersDotOptions: { color: "#000000", type: "dot" }
 });
   qrCode.append(qrContainer);
 
-  // --- Construir el texto dinámico una sola vez ---
   const nombreVendedor = vendorSession.nombre || 'Mi tienda';
   const descripcion = obtenerDescripcionNegocio();
   const textoPublicacion = `🛍️ ¡Visita mi perfil ${nombreVendedor} en Z&R! Tenemos ${descripcion}. Haz tu pedido y apoya el comercio local. 📲\n\n👉 Visita mi catálogo:\n${shareUrl}\n\n#ZR #TiendaLocal #Comunidad`;
 
-  // --- Botón Copiar enlace (cierra modal) ---
   document.getElementById('share-copy-btn')?.addEventListener('click', () => {
     navigator.clipboard.writeText(shareUrl)
       .then(() => showTemporaryMessage('Enlace copiado', 'success'))
@@ -3877,13 +3288,11 @@ const qrCode = new QRCodeStyling({
     modal.remove();
   });
 
-  // --- Botón Descargar QR (cierra modal) ---
   document.getElementById('download-qr-btn')?.addEventListener('click', () => {
     qrCode.download({ name: "qr-mi-tienda", extension: "png" });
     modal.remove();
   });
 
-  // --- Botón Copiar publicación para Facebook (cierra modal) ---
   document.getElementById('share-text-copy-btn')?.addEventListener('click', () => {
     navigator.clipboard.writeText(textoPublicacion)
       .then(() => showTemporaryMessage('Texto copiado', 'success'))
@@ -3894,7 +3303,7 @@ const qrCode = new QRCodeStyling({
 document.getElementById('share-facebook-btn')?.addEventListener('click', () => {
   navigator.clipboard.writeText(textoPublicacion)
     .then(() => showTemporaryMessage('Texto copiado. Pégalo en tu publicación si no aparece.', 'success'))
-    .catch(() => {}); // Silencioso si falla
+    .catch(() => {});
 
   const url = encodeURIComponent(shareUrl);
   const quote = encodeURIComponent(`🛍️ ¡Visita mi perfil ${nombreVendedor} en Z&R! Tenemos ${descripcion}.`);
@@ -3904,12 +3313,6 @@ document.getElementById('share-facebook-btn')?.addEventListener('click', () => {
 });
 }
 
-
-// ── Checklist de primeros pasos (vendedor nuevo) ────────────────────────────
-// Se calcula 100% de lo que ya trae vendorSession (login + refrescos ya
-// existentes) — no requiere ninguna llamada nueva a GAS. No incluye "sube tu
-// logo" a propósito: es exclusivo del plan Plus y todos los vendedores
-// inician en Free.
 function renderChecklistVendedor() {
   const cont = document.getElementById('checklist-vendedor');
   if (!cont || !vendorSession) return;
@@ -3972,8 +3375,4 @@ function renderChecklistVendedor() {
     </div>`;
 }
 
-
-
-
-
-})(); // fin IIFE
+})();
