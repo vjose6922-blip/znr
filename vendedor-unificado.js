@@ -813,43 +813,43 @@ function renderVendorPlanPanel() {
 
   const planBadge = esPlus
     ? `<span style="background:linear-gradient(135deg,#7c3aed,#a855f7);color:#fff;font-size:11px;font-weight:700;padding:3px 10px;border-radius:999px;">PLUS</span>`
-    : `<span style="background:#eee;color:#999;font-size:11px;font-weight:700;padding:3px 10px;border-radius:999px;">FREE</span>`;
+    : `<span style="background:#eee;color:#666;font-size:11px;font-weight:700;padding:3px 10px;border-radius:999px;">FREE</span>`;
 
   let renovacionHTML = '';
-if (esPlus && diasRestantes != null && diasRestantes <= 7) {
-  renovacionHTML = `
-    <div style="margin-top:8px;background:#fff8e1;color:#92702a;font-size:12px;border-radius:10px;padding:8px 12px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
-      <span>Tu plan Plus vence en ${diasRestantes} día${diasRestantes === 1 ? '' : 's'}. Renueva para no perder tu visibilidad.</span>
-      <button onclick="location.href='plan-plus.html'" style="padding:6px 14px;border:none;border-radius:20px;background:linear-gradient(135deg,#7c3aed,#a855f7);color:#fff;font-weight:700;font-size:12px;cursor:pointer;">
-        Renovar
-      </button>
-    </div>
-  `;
-}
+  if (esPlus && diasRestantes != null && diasRestantes <= 7) {
+    renovacionHTML = `
+      <div style="margin-top:8px;background:#fff8e1;color:#92702a;font-size:12px;border-radius:10px;padding:8px 12px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+        <span>Tu plan Plus vence en ${diasRestantes} día${diasRestantes === 1 ? '' : 's'}. Renueva para no perder tu visibilidad.</span>
+        <button onclick="location.href='plan-plus.html'" style="padding:6px 14px;border:none;border-radius:20px;background:linear-gradient(135deg,#7c3aed,#a855f7);color:#fff;font-weight:700;font-size:12px;cursor:pointer;">
+          Renovar
+        </button>
+      </div>
+    `;
+  }
 
   const statusOpciones = [
-  { status: 'todos',     label: 'Todos' },
-  { status: 'aprobado',  label: 'Aprobados' },
-  { status: 'pendiente', label: 'Pendientes' },
-  { status: 'rechazado', label: 'Rechazados' },
-];
-const statusFilterHTML = `
-  <div class="vendor-status-filter" style="display:flex; gap:8px; margin-top:14px; flex-wrap:wrap;">
-    ${statusOpciones.map(({ status, label }) => {
-      const activo = (window.currentStatusFilter || 'todos') === status;
-      const clase = activo ? 'filter-status-btn active' : 'filter-status-btn';
-      const bg = activo ? 'var(--color-accent-solid)' : 'transparent';
-      const color = activo ? '#fff' : 'var(--color-text-muted)';
-      const borderColor = activo ? 'var(--color-accent-solid)' : 'var(--color-border-subtle)';
-      return `<button class="${clase}" data-status="${status}" style="padding:4px 12px; border-radius:20px; border:1.5px solid ${borderColor}; background:${bg}; color:${color}; font-size:11px; font-weight:600; cursor:pointer; transition:all .15s;">${label}</button>`;
-    }).join('')}
-  </div>
-`;
+    { status: 'todos',     label: 'Todos' },
+    { status: 'aprobado',  label: 'Aprobados' },
+    { status: 'pendiente', label: 'Pendientes' },
+    { status: 'rechazado', label: 'Rechazados' },
+  ];
+  const statusFilterHTML = `
+    <div class="vendor-status-filter" style="display:flex; gap:8px; margin-top:14px; flex-wrap:wrap;">
+      ${statusOpciones.map(({ status, label }) => {
+        const activo = (window.currentStatusFilter || 'todos') === status;
+        const clase = activo ? 'filter-status-btn active' : 'filter-status-btn';
+        const bg = activo ? 'var(--color-accent-solid)' : 'transparent';
+        const color = activo ? '#fff' : '#000';
+        const borderColor = activo ? 'var(--color-accent-solid)' : '#ccc';
+        return `<button class="${clase}" data-status="${status}" style="padding:4px 12px; border-radius:20px; border:1.5px solid ${borderColor}; background:${bg}; color:${color}; font-size:11px; font-weight:600; cursor:pointer; transition:all .15s;">${label}</button>`;
+      }).join('')}
+    </div>
+  `;
 
   el.innerHTML = `
-    <div style="background:#f8f8fc;border-radius:14px;padding:12px 14px;">
+    <div style="background:#f8f8fc;border-radius:14px;padding:12px 14px;color:#000;">
       <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
-        <div style="font-size:13px;font-weight:600;">${actuales}/${limite} productos usados</div>
+        <div style="font-size:13px;font-weight:600;color:#000;">${actuales}/${limite} productos usados</div>
         ${planBadge}
       </div>
       <div style="background:#e6e6ee;border-radius:999px;height:6px;margin-top:8px;overflow:hidden;">
@@ -865,8 +865,8 @@ const statusFilterHTML = `
       el.querySelectorAll('.filter-status-btn').forEach(b => {
         b.classList.remove('active');
         b.style.background = 'transparent';
-        b.style.color = 'var(--color-text-muted)';
-        b.style.borderColor = 'var(--color-border-subtle)';
+        b.style.color = '#000';
+        b.style.borderColor = '#ccc';
       });
       this.classList.add('active');
       this.style.background = 'var(--color-accent-solid)';
@@ -880,7 +880,7 @@ const statusFilterHTML = `
 }
 
 window.currentStatusFilter = window.currentStatusFilter || 'todos';
-
+  
 function applyVendorStatusFilter(status) {
   window.currentStatusFilter = status;
   loadMyProducts(true, 1);
