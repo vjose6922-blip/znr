@@ -443,6 +443,86 @@
       display: none;
     }
 
+    /* ── Filtros de productos (buscar / ordenar / disponibilidad) ── */
+    .profile-products-header {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 10px;
+    }
+    .profile-products-toolbar {
+      margin: 14px 0 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .profile-products-search-row {
+      display: flex;
+      gap: 8px;
+    }
+    .profile-product-search {
+      flex: 1;
+      min-width: 0;
+      padding: 10px 14px;
+      border-radius: 12px;
+      border: 1.5px solid var(--color-border-subtle);
+      background: var(--color-surface-2);
+      color: var(--color-text-main);
+      font-size: 14px;
+      box-sizing: border-box;
+    }
+    .profile-product-sort {
+      flex-shrink: 0;
+      max-width: 46%;
+      padding: 10px 8px;
+      border-radius: 12px;
+      border: 1.5px solid var(--color-border-subtle);
+      background: var(--color-surface-2);
+      color: var(--color-text-main);
+      font-size: 12.5px;
+    }
+    .profile-products-toggles {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .profile-toggle-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 7px 13px;
+      border-radius: 30px;
+      border: 1.5px solid var(--color-border-subtle);
+      background: var(--color-surface-2);
+      color: var(--color-text-main);
+      font-size: 12.5px;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+      user-select: none;
+      transition: background 0.2s, color 0.2s, border-color 0.2s;
+    }
+    .profile-toggle-chip input {
+      accent-color: var(--color-accent-solid, #ff4f81);
+      cursor: pointer;
+    }
+    .profile-toggle-chip.is-active {
+      background: linear-gradient(135deg, #7c3aed, #a855f7);
+      border-color: transparent;
+      color: #fff;
+    }
+    .profile-clear-filters-btn {
+      margin-top: 10px;
+      padding: 8px 18px;
+      border-radius: 30px;
+      border: 1.5px solid var(--color-border-subtle);
+      background: var(--color-surface-2);
+      color: var(--color-text-main);
+      font-weight: 600;
+      font-size: 12.5px;
+      cursor: pointer;
+    }
+
     .back-link {
       display: inline-flex;
       align-items: center;
@@ -932,46 +1012,26 @@
           ? `<div class="profile-social">${socialHtml}</div>`
           : `<div class="acc-empty">Este vendedor no vinculó redes sociales.</div>`;
 
-        // Productos
-        let productsHtml = '';
-        if (productos.length === 0) {
-          productsHtml = `<div class="empty-products">Este vendedor aún no tiene productos publicados.</div>`;
-        } else {
-          productsHtml = productos.map((p, idx) => {
-            const img = p.imagen1 ? optimizeDriveUrl(p.imagen1, 200) : 'https://placehold.co/200x200/3b1f5f/white?text=Sin+Imagen';
-            const stock = Number(p.stock || 0);
-            const hasStock = stock > 0;
-            const talla = p.talla || '';
-            const esConfiable = p.confiable === true || p.confiable === 'true';
-            const esDonativo = p.donado === true || p.donado === 'TRUE' || p.donado === 'true';
-            const hiddenClass = idx >= PRODUCTS_PAGE_SIZE ? ' profile-product-hidden' : '';
-            // Las primeras 6 cargan de inmediato; el resto usa lazy load via data-src
-            const imgAttr = idx < 6
-              ? `src="${esc(img)}" loading="lazy"`
-              : `data-src="${esc(img)}" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'/%3E"`;
-            return `
-              <div class="profile-product-card${hiddenClass}" data-id="${esc(p.id)}" style="animation-delay:${Math.min(idx % PRODUCTS_PAGE_SIZE, 8) * 0.04}s">
-                ${p.badge ? `<span class="product-badge">${esc(p.badge)}</span>` : ''}
-                ${esConfiable ? `<span class="profile-confiable-badge">${Icon('check')}</span>` : ''}
-                ${esDonativo ? `<span class="product-badge" style="background:linear-gradient(135deg,#f97316,#ef4444);">Donativo</span>` : ''}
-                <img ${imgAttr} alt="${esc(p.nombre)}" onerror="this.src='https://placehold.co/200x200/3b1f5f/white?text=Error'">
-                <div class="profile-product-info">
-                  <div class="profile-product-name" title="${esc(p.nombre)}">${esc(p.nombre)}</div>
-                  <div class="profile-product-price">${formatCurrency(p.precio)}</div>
-                  ${talla ? `<div class="profile-product-talla">Info: ${esc(talla)}</div>` : ''}
-                  <button class="profile-product-add" data-id="${esc(p.id)}" data-nombre="${esc(p.nombre)}" data-precio="${p.precio}" data-img="${esc(p.imagen1 || '')}" data-talla="${esc(p.talla || '')}" data-donado="${esDonativo}" data-benid="${esDonativo ? esc(p.beneficiario_id || '') : ''}" ${!hasStock ? 'disabled' : ''}>
-                    ${hasStock ? 'Añadir' : 'Sin stock'}
-                  </button>
-                </div>
-              </div>
-            `;
-          }).join('');
-        }
-
-        const remaining = productos.length - PRODUCTS_PAGE_SIZE;
-        const loadMoreHtml = remaining > 0
-          ? `<div class="profile-load-more-wrap"><button id="profile-load-more-btn" class="primary-button">Mostrar ${Math.min(remaining, PRODUCTS_PAGE_SIZE)} más</button></div>`
-          : '';
+        // Productos: ¿hay suficientes como para mostrar la barra de filtros?
+        const hasDonativos = productos.some(p => p.donado === true || p.donado === 'TRUE' || p.donado === 'true');
+        const showProductToolbar = productos.length > 4;
+        const productToolbarHtml = showProductToolbar ? `
+          <div class="profile-products-toolbar">
+            <div class="profile-products-search-row">
+              <input type="text" id="profile-product-search" class="profile-product-search" placeholder="Buscar en sus productos..." autocomplete="off">
+              <select id="profile-product-sort" class="profile-product-sort">
+                <option value="relevancia">Más relevantes</option>
+                <option value="precio-asc">Precio: menor a mayor</option>
+                <option value="precio-desc">Precio: mayor a menor</option>
+                <option value="nombre-asc">Nombre A-Z</option>
+              </select>
+            </div>
+            <div class="profile-products-toggles">
+              <label class="profile-toggle-chip" id="profile-stock-chip"><input type="checkbox" id="profile-only-stock"> Solo disponibles</label>
+              ${hasDonativos ? `<label class="profile-toggle-chip" id="profile-donativo-chip"><input type="checkbox" id="profile-only-donativo"> Donativos</label>` : ''}
+            </div>
+          </div>
+        ` : '';
 
         // Construir HTML del perfil
         container.innerHTML = `
@@ -1005,11 +1065,12 @@
             </div>
 
             <div class="profile-products">
-              <h2>Productos (${productos.length})</h2>
-              <div class="profile-products-grid">
-                ${productsHtml}
+              <div class="profile-products-header">
+                <h2>Productos <span id="profile-products-count">(${productos.length})</span></h2>
               </div>
-              ${loadMoreHtml}
+              ${productToolbarHtml}
+              <div class="profile-products-grid" id="profile-products-grid"></div>
+              <div class="profile-load-more-wrap" id="profile-load-more-wrap"></div>
             </div>
           </div>
         `;
@@ -1039,88 +1100,225 @@
           });
         });
 
-        // Paginación de productos ("Mostrar más")
-        const loadMoreBtn = document.getElementById('profile-load-more-btn');
-        if (loadMoreBtn) {
-          let shown = PRODUCTS_PAGE_SIZE;
-          loadMoreBtn.addEventListener('click', function() {
-            const hidden = Array.from(container.querySelectorAll('.profile-product-hidden'));
-            hidden.slice(0, PRODUCTS_PAGE_SIZE).forEach(card => card.classList.remove('profile-product-hidden'));
-            shown += PRODUCTS_PAGE_SIZE;
-            const left = productos.length - shown;
-            if (left > 0) {
-              loadMoreBtn.textContent = `Mostrar ${Math.min(left, PRODUCTS_PAGE_SIZE)} más`;
-            } else {
-              loadMoreBtn.parentElement.remove();
-            }
-          });
+        // ── Filtros, orden y paginación de productos ──
+        let productsShown = PRODUCTS_PAGE_SIZE;
+        const productFilterState = { search: '', sort: 'relevancia', onlyStock: false, onlyDonativo: false };
+
+        function normalizeText(s) {
+          return String(s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
         }
 
-        // Eventos para los botones "Añadir"
-        container.querySelectorAll('.profile-product-add:not(:disabled)').forEach(btn => {
-          btn.addEventListener('click', async function(e) {
-            e.stopPropagation();
-            const id = this.dataset.id;
-            const nombre = this.dataset.nombre;
-            const precio = parseFloat(this.dataset.precio);
-            const img = this.dataset.img;
-            const talla = this.dataset.talla;
-            const esDonado = this.dataset.donado === 'true';
-            const benId = this.dataset.benid || '';
+        function getFilteredProducts() {
+          let list = productos.slice();
+          const q = normalizeText(productFilterState.search.trim());
+          if (q) list = list.filter(p => normalizeText(p.nombre).includes(q));
+          if (productFilterState.onlyStock) list = list.filter(p => Number(p.stock || 0) > 0);
+          if (productFilterState.onlyDonativo) {
+            list = list.filter(p => p.donado === true || p.donado === 'TRUE' || p.donado === 'true');
+          }
+          if (productFilterState.sort === 'precio-asc') {
+            list.sort((a, b) => Number(a.precio || 0) - Number(b.precio || 0));
+          } else if (productFilterState.sort === 'precio-desc') {
+            list.sort((a, b) => Number(b.precio || 0) - Number(a.precio || 0));
+          } else if (productFilterState.sort === 'nombre-asc') {
+            list.sort((a, b) => String(a.nombre || '').localeCompare(String(b.nombre || ''), 'es'));
+          }
+          return list;
+        }
 
-            if (typeof addToCart !== 'function') {
-              alert('Función addToCart no disponible. Recarga la página.');
-              return;
-            }
+        function buildProductCardHtml(p, idx) {
+          const img = p.imagen1 ? optimizeDriveUrl(p.imagen1, 200) : 'https://placehold.co/200x200/3b1f5f/white?text=Sin+Imagen';
+          const stock = Number(p.stock || 0);
+          const hasStock = stock > 0;
+          const talla = p.talla || '';
+          const esConfiable = p.confiable === true || p.confiable === 'true';
+          const esDonativo = p.donado === true || p.donado === 'TRUE' || p.donado === 'true';
+          // Las primeras 6 cargan de inmediato; el resto usa lazy load via data-src
+          const imgAttr = idx < 6
+            ? `src="${esc(img)}" loading="lazy"`
+            : `data-src="${esc(img)}" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'/%3E"`;
+          return `
+            <div class="profile-product-card" data-id="${esc(p.id)}" style="animation-delay:${Math.min(idx % PRODUCTS_PAGE_SIZE, 8) * 0.04}s">
+              ${p.badge ? `<span class="product-badge">${esc(p.badge)}</span>` : ''}
+              ${esConfiable ? `<span class="profile-confiable-badge">${Icon('check')}</span>` : ''}
+              ${esDonativo ? `<span class="product-badge" style="background:linear-gradient(135deg,#f97316,#ef4444);">Donativo</span>` : ''}
+              <img ${imgAttr} alt="${esc(p.nombre)}" onerror="this.src='https://placehold.co/200x200/3b1f5f/white?text=Error'">
+              <div class="profile-product-info">
+                <div class="profile-product-name" title="${esc(p.nombre)}">${esc(p.nombre)}</div>
+                <div class="profile-product-price">${formatCurrency(p.precio)}</div>
+                ${talla ? `<div class="profile-product-talla">Info: ${esc(talla)}</div>` : ''}
+                <button class="profile-product-add" data-id="${esc(p.id)}" data-nombre="${esc(p.nombre)}" data-precio="${p.precio}" data-img="${esc(p.imagen1 || '')}" data-talla="${esc(p.talla || '')}" data-donado="${esDonativo}" data-benid="${esDonativo ? esc(p.beneficiario_id || '') : ''}" ${!hasStock ? 'disabled' : ''}>
+                  ${hasStock ? 'Añadir' : 'Sin stock'}
+                </button>
+              </div>
+            </div>
+          `;
+        }
 
-            let beneficiario = null;
-            if (esDonado && benId) {
-              try {
-                const benRes = await fetch(`https://beneficiarios-api-1038143238323.us-central1.run.app?action=obtenerBeneficiario&id=${encodeURIComponent(benId)}`).then(r => r.json());
-                if (benRes.ok && benRes.beneficiario) {
-                  beneficiario = { id: benId, nombre: benRes.beneficiario.nombre || '', cuenta_bancaria: benRes.beneficiario.cuenta_bancaria || '' };
-                }
-              } catch (_) {}
-              if (!beneficiario) beneficiario = { id: benId, nombre: '', cuenta_bancaria: '' };
-            }
+        // Eventos para los botones "Añadir" y lazy loading — se reconectan
+        // cada vez que se vuelve a pintar la grilla (filtro, orden, "mostrar más")
+        function wireProductCardEvents(gridEl) {
+          gridEl.querySelectorAll('.profile-product-add:not(:disabled)').forEach(btn => {
+            btn.addEventListener('click', async function(e) {
+              e.stopPropagation();
+              const id = this.dataset.id;
+              const nombre = this.dataset.nombre;
+              const precio = parseFloat(this.dataset.precio);
+              const img = this.dataset.img;
+              const talla = this.dataset.talla;
+              const esDonado = this.dataset.donado === 'true';
+              const benId = this.dataset.benid || '';
 
-            addToCart({
-              ID: id,
-              Nombre: nombre,
-              Precio: precio,
-              Imagen1: img,
-              Talla: talla,
-              _comunidad: true,
-              _vendedor: v.nombre || '',
-              _vendorTel: waNumber,
-              _vendorLogo: v.logo || '',
-              _vendorPlan: v.plan || '',
-              _vendorUid: getVendorUid() || '',
-              _donacion: esDonado,
-              _beneficiario: beneficiario
+              if (typeof addToCart !== 'function') {
+                alert('Función addToCart no disponible. Recarga la página.');
+                return;
+              }
+
+              let beneficiario = null;
+              if (esDonado && benId) {
+                try {
+                  const benRes = await fetch(`https://beneficiarios-api-1038143238323.us-central1.run.app?action=obtenerBeneficiario&id=${encodeURIComponent(benId)}`).then(r => r.json());
+                  if (benRes.ok && benRes.beneficiario) {
+                    beneficiario = { id: benId, nombre: benRes.beneficiario.nombre || '', cuenta_bancaria: benRes.beneficiario.cuenta_bancaria || '' };
+                  }
+                } catch (_) {}
+                if (!beneficiario) beneficiario = { id: benId, nombre: '', cuenta_bancaria: '' };
+              }
+
+              addToCart({
+                ID: id,
+                Nombre: nombre,
+                Precio: precio,
+                Imagen1: img,
+                Talla: talla,
+                _comunidad: true,
+                _vendedor: v.nombre || '',
+                _vendorTel: waNumber,
+                _vendorLogo: v.logo || '',
+                _vendorPlan: v.plan || '',
+                _vendorUid: getVendorUid() || '',
+                _donacion: esDonado,
+                _beneficiario: beneficiario
+              });
             });
           });
+
+          const lazyImgs = gridEl.querySelectorAll('img[data-src]');
+          if (lazyImgs.length > 0) {
+            const imgObserver = new IntersectionObserver((entries) => {
+              entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                  const img = entry.target;
+                  img.src = img.dataset.src;
+                  img.removeAttribute('data-src');
+                  imgObserver.unobserve(img);
+                }
+              });
+            }, { rootMargin: '200px' });
+            lazyImgs.forEach(img => imgObserver.observe(img));
+          }
+        }
+
+        function renderProductsGrid() {
+          const gridEl = document.getElementById('profile-products-grid');
+          const loadMoreWrap = document.getElementById('profile-load-more-wrap');
+          const countEl = document.getElementById('profile-products-count');
+          if (!gridEl) return;
+
+          if (productos.length === 0) {
+            gridEl.innerHTML = `<div class="empty-products">Este vendedor aún no tiene productos publicados.</div>`;
+            if (loadMoreWrap) loadMoreWrap.innerHTML = '';
+            return;
+          }
+
+          const filtered = getFilteredProducts();
+          if (countEl) {
+            countEl.textContent = filtered.length === productos.length
+              ? `(${productos.length})`
+              : `(${filtered.length} de ${productos.length})`;
+          }
+
+          if (filtered.length === 0) {
+            gridEl.innerHTML = `<div class="empty-products">No encontramos productos con esos filtros.<br><button type="button" id="profile-clear-filters" class="profile-clear-filters-btn">Quitar filtros</button></div>`;
+            if (loadMoreWrap) loadMoreWrap.innerHTML = '';
+            const clearBtn = document.getElementById('profile-clear-filters');
+            if (clearBtn) clearBtn.addEventListener('click', resetProductFilters);
+            return;
+          }
+
+          const visible = filtered.slice(0, productsShown);
+          gridEl.innerHTML = visible.map((p, idx) => buildProductCardHtml(p, idx)).join('');
+
+          if (loadMoreWrap) {
+            const remaining = filtered.length - productsShown;
+            loadMoreWrap.innerHTML = remaining > 0
+              ? `<button id="profile-load-more-btn" class="primary-button">Mostrar ${Math.min(remaining, PRODUCTS_PAGE_SIZE)} más</button>`
+              : '';
+            const loadMoreBtn = document.getElementById('profile-load-more-btn');
+            if (loadMoreBtn) {
+              loadMoreBtn.addEventListener('click', function() {
+                productsShown += PRODUCTS_PAGE_SIZE;
+                renderProductsGrid();
+              });
+            }
+          }
+
+          wireProductCardEvents(gridEl);
+        }
+
+        function resetProductFilters() {
+          productFilterState.search = '';
+          productFilterState.sort = 'relevancia';
+          productFilterState.onlyStock = false;
+          productFilterState.onlyDonativo = false;
+          productsShown = PRODUCTS_PAGE_SIZE;
+          const searchInput = document.getElementById('profile-product-search');
+          const sortSelect = document.getElementById('profile-product-sort');
+          const stockChk = document.getElementById('profile-only-stock');
+          const donativoChk = document.getElementById('profile-only-donativo');
+          if (searchInput) searchInput.value = '';
+          if (sortSelect) sortSelect.value = 'relevancia';
+          if (stockChk) stockChk.checked = false;
+          if (donativoChk) donativoChk.checked = false;
+          document.getElementById('profile-stock-chip')?.classList.remove('is-active');
+          document.getElementById('profile-donativo-chip')?.classList.remove('is-active');
+          renderProductsGrid();
+        }
+
+        // Conectar la barra de filtros (si el vendedor tiene suficientes productos)
+        let productSearchDebounce = null;
+        document.getElementById('profile-product-search')?.addEventListener('input', function() {
+          clearTimeout(productSearchDebounce);
+          const val = this.value;
+          productSearchDebounce = setTimeout(() => {
+            productFilterState.search = val;
+            productsShown = PRODUCTS_PAGE_SIZE;
+            renderProductsGrid();
+          }, 250);
         });
+        document.getElementById('profile-product-sort')?.addEventListener('change', function() {
+          productFilterState.sort = this.value;
+          productsShown = PRODUCTS_PAGE_SIZE;
+          renderProductsGrid();
+        });
+        document.getElementById('profile-only-stock')?.addEventListener('change', function() {
+          productFilterState.onlyStock = this.checked;
+          document.getElementById('profile-stock-chip')?.classList.toggle('is-active', this.checked);
+          productsShown = PRODUCTS_PAGE_SIZE;
+          renderProductsGrid();
+        });
+        document.getElementById('profile-only-donativo')?.addEventListener('change', function() {
+          productFilterState.onlyDonativo = this.checked;
+          document.getElementById('profile-donativo-chip')?.classList.toggle('is-active', this.checked);
+          productsShown = PRODUCTS_PAGE_SIZE;
+          renderProductsGrid();
+        });
+
+        renderProductsGrid();
 
         // Actualizar subtítulo del header
         const sub = document.getElementById('profile-subtitle');
         if (sub) sub.textContent = v.nombre || 'Vendedor';
-
-        // Lazy loading de imágenes con IntersectionObserver
-        const lazyImgs = container.querySelectorAll('img[data-src]');
-        if (lazyImgs.length > 0) {
-          const imgObserver = new IntersectionObserver((entries) => {
-            entries.forEach(entry => {
-              if (entry.isIntersecting) {
-                const img = entry.target;
-                img.src = img.dataset.src;
-                img.removeAttribute('data-src');
-                imgObserver.unobserve(img);
-              }
-            });
-          }, { rootMargin: '200px' });
-          lazyImgs.forEach(img => imgObserver.observe(img));
-        }
 
         hideLoader();
       }
