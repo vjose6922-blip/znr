@@ -522,6 +522,25 @@
       font-size: 12.5px;
       cursor: pointer;
     }
+    .profile-clear-filters-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      align-self: flex-start;
+      margin-top: 2px;
+      border: none;
+      background: none;
+      padding: 4px 2px;
+      color: var(--color-accent-solid, #ff4f81);
+      font-weight: 700;
+      font-size: 12.5px;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+    .profile-clear-filters-link svg {
+      width: 13px;
+      height: 13px;
+    }
 
     .back-link {
       display: inline-flex;
@@ -1030,6 +1049,7 @@
               <label class="profile-toggle-chip" id="profile-stock-chip"><input type="checkbox" id="profile-only-stock"> Solo disponibles</label>
               ${hasDonativos ? `<label class="profile-toggle-chip" id="profile-donativo-chip"><input type="checkbox" id="profile-only-donativo"> Donativos</label>` : ''}
             </div>
+            <button type="button" id="profile-clear-filters-active" class="profile-clear-filters-link" style="display:none;">${Icon('x')} Quitar filtros</button>
           </div>
         ` : '';
 
@@ -1238,6 +1258,13 @@
               : `(${filtered.length} de ${productos.length})`;
           }
 
+          const filtersActive = productFilterState.search.trim() !== ''
+            || productFilterState.sort !== 'relevancia'
+            || productFilterState.onlyStock
+            || productFilterState.onlyDonativo;
+          const clearActiveBtn = document.getElementById('profile-clear-filters-active');
+          if (clearActiveBtn) clearActiveBtn.style.display = filtersActive ? '' : 'none';
+
           if (filtered.length === 0) {
             gridEl.innerHTML = `<div class="empty-products">No encontramos productos con esos filtros.<br><button type="button" id="profile-clear-filters" class="profile-clear-filters-btn">Quitar filtros</button></div>`;
             if (loadMoreWrap) loadMoreWrap.innerHTML = '';
@@ -1286,6 +1313,7 @@
         }
 
         // Conectar la barra de filtros (si el vendedor tiene suficientes productos)
+        document.getElementById('profile-clear-filters-active')?.addEventListener('click', resetProductFilters);
         let productSearchDebounce = null;
         document.getElementById('profile-product-search')?.addEventListener('input', function() {
           clearTimeout(productSearchDebounce);
