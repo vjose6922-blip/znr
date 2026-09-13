@@ -380,6 +380,11 @@
       object-fit: contain;
       background: var(--color-surface-2);
       padding: 6px;
+      display: block;
+    }
+    .profile-product-img-wrap {
+      position: relative;
+      cursor: pointer;
     }
     .profile-product-info {
       padding: 10px 12px 14px;
@@ -403,8 +408,33 @@
       color: var(--color-text-soft);
       margin-top: 2px;
     }
+    .profile-product-stockline {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 5px;
+      margin-top: 4px;
+      font-size: 11px;
+    }
+    .profile-stock-ok {
+      color: var(--color-success, #22c55e);
+      font-weight: 600;
+    }
+    .profile-stock-out {
+      color: var(--color-error, #ef4444);
+      font-weight: 600;
+    }
+    .profile-product-cat {
+      color: var(--color-text-soft);
+    }
+    .profile-product-actions {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 8px;
+    }
     .profile-product-add {
-      width: 100%;
+      flex: 1;
       padding: 6px;
       border: none;
       border-radius: 30px;
@@ -414,7 +444,6 @@
       font-size: 12px;
       cursor: pointer;
       transition: background 0.2s;
-      margin-top: 8px;
     }
     .profile-product-add:hover {
       background: #ff6b8a;
@@ -422,6 +451,24 @@
     .profile-product-add:disabled {
       opacity: 0.4;
       cursor: not-allowed;
+    }
+    .profile-product-icon-btn {
+      flex-shrink: 0;
+      width: 30px;
+      height: 30px;
+      border: none;
+      border-radius: 50%;
+      background: var(--color-surface-3);
+      color: var(--color-text-muted);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      padding: 0;
+    }
+    .profile-product-icon-btn svg {
+      width: 14px;
+      height: 14px;
     }
 
     .empty-products {
@@ -760,6 +807,8 @@
 
   <!-- Overlay para cerrar modales -->
   <div class="overlay" id="overlay"></div>
+  <!-- Modal de detalle de producto (mismo que usa comunidad.html) -->
+  <div class="image-modal" id="image-modal"></div>
 
 
 
@@ -1151,32 +1200,144 @@
           const stock = Number(p.stock || 0);
           const hasStock = stock > 0;
           const talla = p.talla || '';
+          const categoria = p.categoria || '';
           const esConfiable = p.confiable === true || p.confiable === 'true';
           const esDonativo = p.donado === true || p.donado === 'TRUE' || p.donado === 'true';
           // Las primeras 6 cargan de inmediato; el resto usa lazy load via data-src
           const imgAttr = idx < 6
             ? `src="${esc(img)}" loading="lazy"`
             : `data-src="${esc(img)}" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'/%3E"`;
+          const stockLineHtml = `
+            <div class="profile-product-stockline">
+              ${hasStock ? `<span class="profile-stock-ok">Stock: ${stock}</span>` : `<span class="profile-stock-out">Sin stock</span>`}
+              ${categoria ? `<span class="profile-product-cat">· ${esc(categoria)}</span>` : ''}
+            </div>`;
           return `
             <div class="profile-product-card" data-id="${esc(p.id)}" style="animation-delay:${Math.min(idx % PRODUCTS_PAGE_SIZE, 8) * 0.04}s">
-              ${p.badge ? `<span class="product-badge">${esc(p.badge)}</span>` : ''}
-              ${esConfiable ? `<span class="profile-confiable-badge">${Icon('check')}</span>` : ''}
-              ${esDonativo ? `<span class="product-badge" style="background:linear-gradient(135deg,#f97316,#ef4444);">Donativo</span>` : ''}
-              <img ${imgAttr} alt="${esc(p.nombre)}" onerror="this.src='https://placehold.co/200x200/3b1f5f/white?text=Error'">
+              <div class="profile-product-img-wrap" data-id="${esc(p.id)}">
+                ${p.badge ? `<span class="product-badge">${esc(p.badge)}</span>` : ''}
+                ${esConfiable ? `<span class="profile-confiable-badge">${Icon('check')}</span>` : ''}
+                ${esDonativo ? `<span class="product-badge" style="background:linear-gradient(135deg,#f97316,#ef4444);">Donativo</span>` : ''}
+                <img ${imgAttr} alt="${esc(p.nombre)}" onerror="this.src='https://placehold.co/200x200/3b1f5f/white?text=Error'">
+              </div>
               <div class="profile-product-info">
                 <div class="profile-product-name" title="${esc(p.nombre)}">${esc(p.nombre)}</div>
                 <div class="profile-product-price">${formatCurrency(p.precio)}</div>
                 ${talla ? `<div class="profile-product-talla">Info: ${esc(talla)}</div>` : ''}
-                <button class="profile-product-add" data-id="${esc(p.id)}" data-nombre="${esc(p.nombre)}" data-precio="${p.precio}" data-img="${esc(p.imagen1 || '')}" data-talla="${esc(p.talla || '')}" data-donado="${esDonativo}" data-benid="${esDonativo ? esc(p.beneficiario_id || '') : ''}" ${!hasStock ? 'disabled' : ''}>
-                  ${hasStock ? 'Añadir' : 'Sin stock'}
-                </button>
+                ${stockLineHtml}
+                <div class="profile-product-actions">
+                  <button class="profile-product-add" data-id="${esc(p.id)}" data-nombre="${esc(p.nombre)}" data-precio="${p.precio}" data-img="${esc(p.imagen1 || '')}" data-talla="${esc(p.talla || '')}" data-donado="${esDonativo}" data-benid="${esDonativo ? esc(p.beneficiario_id || '') : ''}" ${!hasStock ? 'disabled' : ''}>
+                    ${hasStock ? 'Añadir' : 'Sin stock'}
+                  </button>
+                  <button type="button" class="profile-product-icon-btn profile-product-report" data-id="${esc(p.id)}" title="Reportar">${Icon('flag')}</button>
+                  <button type="button" class="profile-product-icon-btn profile-product-share" data-id="${esc(p.id)}" data-nombre="${esc(p.nombre)}" data-precio="${p.precio}" title="Compartir">${Icon('share')}</button>
+                </div>
               </div>
             </div>
           `;
         }
 
-        // Eventos para los botones "Añadir" y lazy loading — se reconectan
-        // cada vez que se vuelve a pintar la grilla (filtro, orden, "mostrar más")
+        // Reporte de producto (mismo endpoint que usa comunidad.html)
+        function showReportDialog(product) {
+          const modal = document.createElement('div');
+          modal.className = 'custom-alert-modal';
+          modal.style.zIndex = '100000';
+          modal.innerHTML = `
+            <div class="custom-alert-content" style="max-width:380px; width:90%;">
+              <div class="custom-alert-header"><h3>Reportar producto</h3></div>
+              <div class="custom-alert-body">
+                <p style="font-weight:600; margin-bottom:12px; color:var(--color-text-primary,#1a1a2e);">"${esc(product.nombre)}"</p>
+                <p style="margin-bottom:12px; font-size:13px; color:var(--color-text-muted,#666);">Selecciona el motivo del reporte:</p>
+                <div style="display:flex; flex-direction:column; gap:8px;">
+                  <label style="display:flex; align-items:center; gap:10px; cursor:pointer; padding:10px 12px; border-radius:10px; border:1.5px solid #e0e0e0;">
+                    <input type="radio" name="report-reason" value="Producto inapropiado" style="accent-color:#ff4f81;">
+                    <span style="font-size:13px;">Producto inapropiado</span>
+                  </label>
+                  <label style="display:flex; align-items:center; gap:10px; cursor:pointer; padding:10px 12px; border-radius:10px; border:1.5px solid #e0e0e0;">
+                    <input type="radio" name="report-reason" value="Información falsa o engañosa" style="accent-color:#ff4f81;">
+                    <span style="font-size:13px;">Información falsa / engañosa</span>
+                  </label>
+                  <label style="display:flex; align-items:center; gap:10px; cursor:pointer; padding:10px 12px; border-radius:10px; border:1.5px solid #e0e0e0;">
+                    <input type="radio" name="report-reason" value="Otro" style="accent-color:#ff4f81;" id="report-radio-otro">
+                    <span style="font-size:13px;">Otro (especificar)</span>
+                  </label>
+                  <div id="report-otro-field" style="display:none; margin-top:4px;">
+                    <input type="text" id="report-otro-text" placeholder="Describe el problema..." maxlength="200"
+                      style="width:100%; padding:10px 12px; border-radius:10px; border:1.5px solid #e0e0e0; font-size:13px; box-sizing:border-box; background:var(--color-input-bg,#f9f9ff);">
+                  </div>
+                </div>
+              </div>
+              <div class="custom-alert-footer">
+                <button class="custom-alert-btn cancel" id="report-cancel-btn">${Icon('x')} Cancelar</button>
+                <button class="custom-alert-btn confirm" id="report-confirm-btn" style="background:linear-gradient(135deg,#ff4f81,#ff7a4f);">${Icon('flag')} Enviar reporte</button>
+              </div>
+            </div>
+          `;
+          document.body.appendChild(modal);
+          const radioOtro = modal.querySelector('#report-radio-otro');
+          const otroField = modal.querySelector('#report-otro-field');
+          modal.querySelectorAll('input[name="report-reason"]').forEach(radio => {
+            radio.addEventListener('change', () => { otroField.style.display = radioOtro.checked ? 'block' : 'none'; });
+          });
+          const close = () => {
+            modal.classList.add('closing');
+            setTimeout(() => { if (modal.parentNode) modal.remove(); }, 150);
+          };
+          modal.querySelector('#report-cancel-btn')?.addEventListener('click', close);
+          modal.addEventListener('click', (e) => { if (e.target === modal) close(); });
+          modal.querySelector('#report-confirm-btn')?.addEventListener('click', async () => {
+            const selected = modal.querySelector('input[name="report-reason"]:checked');
+            if (!selected) {
+              if (typeof showTemporaryMessage === 'function') showTemporaryMessage('Selecciona un motivo', 'error');
+              return;
+            }
+            let motivo = selected.value;
+            if (motivo === 'Otro') {
+              const otroText = (modal.querySelector('#report-otro-text').value || '').trim();
+              if (!otroText) {
+                if (typeof showTemporaryMessage === 'function') showTemporaryMessage('Describe el motivo', 'error');
+                return;
+              }
+              motivo = 'Otro: ' + otroText;
+            }
+            const confirmBtn = modal.querySelector('#report-confirm-btn');
+            const doSend = () => sendReport(product, motivo);
+            const ok = typeof window.withButtonLoading === 'function'
+              ? await window.withButtonLoading(confirmBtn, doSend, 'Enviando…')
+              : await doSend();
+            if (ok) close();
+          });
+        }
+
+        async function sendReport(product, motivo) {
+          try {
+            const telefonoUsuario = localStorage.getItem('client_phone') || '';
+            const params = new URLSearchParams({
+              action: 'reportarProducto',
+              productId: String(product.id),
+              nombreProducto: product.nombre || '',
+              motivo: motivo,
+              telefonoUsuario: telefonoUsuario,
+              fecha: new Date().toISOString()
+            });
+            const res = await fetch('https://catalogo-api-1038143238323.us-central1.run.app', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+              body: params.toString()
+            });
+            const data = await res.json();
+            if (!data.ok) throw new Error(data.error || 'Error al enviar reporte');
+            if (typeof showTemporaryMessage === 'function') showTemporaryMessage('Reporte enviado. ¡Gracias por ayudarnos a mejorar la comunidad!', 'success');
+            return true;
+          } catch (err) {
+            console.error('Error enviando reporte:', err);
+            if (typeof showTemporaryMessage === 'function') showTemporaryMessage('No se pudo enviar el reporte. Inténtalo de nuevo.', 'error');
+            return false;
+          }
+        }
+
+        // Eventos para "Añadir", reportar, compartir, abrir modal y lazy loading —
+        // se reconectan cada vez que se vuelve a pintar la grilla (filtro, orden, "mostrar más")
         function wireProductCardEvents(gridEl) {
           gridEl.querySelectorAll('.profile-product-add:not(:disabled)').forEach(btn => {
             btn.addEventListener('click', async function(e) {
@@ -1223,6 +1384,59 @@
             });
           });
 
+          // Reportar producto
+          gridEl.querySelectorAll('.profile-product-report').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+              e.stopPropagation();
+              const prod = productos.find(pp => String(pp.id) === btn.dataset.id);
+              if (prod) showReportDialog(prod);
+            });
+          });
+
+          // Compartir producto (reutiliza shareProduct global de common.js)
+          gridEl.querySelectorAll('.profile-product-share').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+              e.stopPropagation();
+              if (typeof window.shareProduct === 'function') {
+                window.shareProduct(btn.dataset.id, btn.dataset.nombre, Number(btn.dataset.precio));
+              }
+            });
+          });
+
+          // Click en la imagen → abrir el modal de detalle (solo con productos de este vendedor)
+          gridEl.querySelectorAll('.profile-product-img-wrap').forEach(wrap => {
+            wrap.addEventListener('click', () => {
+              if (typeof window.openImageModal !== 'function') return;
+              const p = productos.find(pp => String(pp.id) === wrap.dataset.id);
+              if (!p) return;
+              const esDonado = p.donado === true || p.donado === 'TRUE' || p.donado === 'true';
+              const imgUrl = p.imagen1 ? optimizeDriveUrl(p.imagen1, 800) : 'https://placehold.co/600x600/3b1f5f/white?text=Sin+Imagen';
+              const allImages = [p.imagen1, p.imagen2, p.imagen3].filter(Boolean).map(u => optimizeDriveUrl(u, 800));
+              const productData = {
+                ID: p.id,
+                Nombre: p.nombre || '',
+                Precio: p.precio || 0,
+                Categoria: p.categoria || '',
+                Talla: p.talla || '',
+                Descripcion: p.descripcion || '',
+                Stock: p.stock !== undefined ? Number(p.stock) : -1,
+                Badge: p.badge || '',
+                Imagen1: p.imagen1 || '',
+                Imagen2: p.imagen2 || '',
+                Imagen3: p.imagen3 || '',
+                _comunidad: true,
+                _vendedorNombre: v.nombre || '',
+                _vendedorUid: getVendorUid() || '',
+                _vendedorTel: waNumber,
+                _vendedorLogo: v.logo || '',
+                _vendedorPlan: v.plan || '',
+                _donado: esDonado,
+                _beneficiarioId: p.beneficiario_id || '',
+              };
+              window.openImageModal(imgUrl, p.id, allImages, productData);
+            });
+          });
+
           const lazyImgs = gridEl.querySelectorAll('img[data-src]');
           if (lazyImgs.length > 0) {
             const imgObserver = new IntersectionObserver((entries) => {
@@ -1238,6 +1452,19 @@
             lazyImgs.forEach(img => imgObserver.observe(img));
           }
         }
+
+        // Acota el panel de "relacionados" del modal a solo los productos de
+        // este vendedor (en vez de toda la comunidad): _renderMagazinePanel en
+        // common.js lee de window.allCommunityProductsIndexed cuando el
+        // producto abierto es "_comunidad", así que aquí lo llenamos solo con
+        // el catálogo de este perfil.
+        window.allCommunityProductsIndexed = productos.map(p => ({
+          ...p,
+          vendedor_nombre: v.nombre || '',
+          vendedor_uid: getVendorUid() || '',
+          vendedor_logo: v.logo || '',
+          vendedor_plan: v.plan || ''
+        }));
 
         function renderProductsGrid() {
           const gridEl = document.getElementById('profile-products-grid');
