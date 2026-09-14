@@ -306,9 +306,6 @@ Para solicitar eliminación de datos en nuestros registros escríbenos a
 document.body.appendChild(overlay);
 document.body.appendChild(panel);
 attachPanelEvents(panel);
-document.body.appendChild(overlay);
-document.body.appendChild(panel);
-attachPanelEvents(panel);
 
 if (typeof window.applyLayoutGlobal === 'function') {
   window.applyLayoutGlobal(localStorage.getItem('products_layout') || 'grid');
@@ -317,10 +314,6 @@ if (typeof window.applyLayoutGlobal === 'function') {
 requestAnimationFrame(()=>{
   overlay.classList.add('visible');
   panel.classList.add('visible');
-});
-requestAnimationFrame(()=>{
-overlay.classList.add('visible');
-panel.classList.add('visible');
 });
 }
 // ── Notificaciones del dispositivo (tab Privacidad) ────────────────────────
