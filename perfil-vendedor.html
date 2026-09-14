@@ -983,13 +983,14 @@
           panelsList.appendChild(panel);
 
           btn.addEventListener('click', function() {
+            const willOpen = !this.classList.contains('is-active');
             tabsList.querySelectorAll('.acc-tab-btn').forEach(b => {
-              const active = b === this;
+              const active = willOpen && b === this;
               b.classList.toggle('is-active', active);
               b.setAttribute('aria-selected', active ? 'true' : 'false');
             });
             panelsList.querySelectorAll('.acc-panel').forEach(p => {
-              p.classList.toggle('is-active', p.dataset.panel === 'fundacion');
+              p.classList.toggle('is-active', willOpen && p.dataset.panel === 'fundacion');
             });
           });
         } catch (e) { /* silencioso: si falla, simplemente no se muestra la pestaña */ }
@@ -1122,12 +1123,12 @@
 
             <div class="profile-accordion">
               <div class="acc-tabs" role="tablist" id="acc-tabs-list">
-                <button type="button" class="acc-tab-btn is-active" data-target="info" role="tab" aria-selected="true">Información</button>
+                <button type="button" class="acc-tab-btn" data-target="info" role="tab" aria-selected="false">Información</button>
                 <button type="button" class="acc-tab-btn" data-target="contacto" role="tab" aria-selected="false">Contacto</button>
                 <button type="button" class="acc-tab-btn" data-target="social" role="tab" aria-selected="false">Redes sociales</button>
               </div>
               <div class="acc-panels" id="acc-panels-list">
-                <div class="acc-panel is-active" data-panel="info">${infoBodyHtml}</div>
+                <div class="acc-panel" data-panel="info">${infoBodyHtml}</div>
                 <div class="acc-panel" data-panel="contacto">${contactoBodyHtml}</div>
                 <div class="acc-panel" data-panel="social">${socialBodyHtml}</div>
               </div>
@@ -1154,17 +1155,20 @@
         cargarCalificacionVendedor(v.uid);
         cargarPestanaFundacion(v);
 
-        // Pestañas (Información / Contacto / Redes sociales)
+        // Pestañas (Información / Contacto / Redes sociales): colapsadas por
+        // defecto para no ocupar espacio antes de llegar a los productos.
+        // Tocar una pestaña la abre; tocarla de nuevo la vuelve a cerrar.
         container.querySelectorAll('.acc-tab-btn').forEach(btn => {
           btn.addEventListener('click', function() {
             const target = this.dataset.target;
+            const willOpen = !this.classList.contains('is-active');
             container.querySelectorAll('.acc-tab-btn').forEach(b => {
-              const active = b === this;
+              const active = willOpen && b === this;
               b.classList.toggle('is-active', active);
               b.setAttribute('aria-selected', active ? 'true' : 'false');
             });
             container.querySelectorAll('.acc-panel').forEach(p => {
-              p.classList.toggle('is-active', p.dataset.panel === target);
+              p.classList.toggle('is-active', willOpen && p.dataset.panel === target);
             });
           });
         });
