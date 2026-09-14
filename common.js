@@ -3017,10 +3017,10 @@ deferTask(() => loadProductsInBackground());
 });
 });
 function initTheme() {
-const savedTheme = localStorage.getItem('theme') || 'dark';
+const savedTheme = localStorage.getItem('theme') || 'light';
 document.documentElement.setAttribute('data-theme', savedTheme);
 updateThemeIcon(savedTheme);
-const savedLayout = localStorage.getItem('products_layout') || 'list';
+const savedLayout = localStorage.getItem('products_layout') || 'grid';
 applyLayoutGlobal(savedLayout);
 }
 function updateThemeIcon(theme) {
