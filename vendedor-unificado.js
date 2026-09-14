@@ -1197,6 +1197,7 @@ vendorSession.logo = url;
 localStorage.setItem('vendor_session', JSON.stringify(vendorSession));
 return url;
 }
+window.uploadVendorLogo = uploadVendorLogo; // openSettingsModal vive fuera de initVendorPanel y la necesita
 
 window.editProduct = function(id) {
 const p = (window._vendorProducts || []).find(x => String(x.id) === String(id));
