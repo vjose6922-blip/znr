@@ -195,7 +195,7 @@ const prefs = loadPrefs();
 const theme = currentTheme();
 const savedPhone = localStorage.getItem('client_phone')||'';
 const savedAddress = localStorage.getItem('client_address')||'';
-const layout = localStorage.getItem('products_layout')||'list';
+const layout = localStorage.getItem('products_layout')||'grid';
 const overlay = document.createElement('div');
 overlay.id = 'up-overlay';
 overlay.addEventListener('click', closePanel);
@@ -306,6 +306,18 @@ Para solicitar eliminación de datos en nuestros registros escríbenos a
 document.body.appendChild(overlay);
 document.body.appendChild(panel);
 attachPanelEvents(panel);
+document.body.appendChild(overlay);
+document.body.appendChild(panel);
+attachPanelEvents(panel);
+
+if (typeof window.applyLayoutGlobal === 'function') {
+  window.applyLayoutGlobal(localStorage.getItem('products_layout') || 'grid');
+}
+
+requestAnimationFrame(()=>{
+  overlay.classList.add('visible');
+  panel.classList.add('visible');
+});
 requestAnimationFrame(()=>{
 overlay.classList.add('visible');
 panel.classList.add('visible');
