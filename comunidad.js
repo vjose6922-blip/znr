@@ -1734,13 +1734,24 @@ window.openBeneficiarioRegister = function(modoEdicion, idBeneficiario, datosAct
     if (!vendor || !vendor.token) {
       showMsg('Debes iniciar sesión como vendedor para registrarte como beneficiario. Ve a "Mi cuenta de vendedor".', false);
       // Opcional: agregar un enlace para ir a vendedor.html
-      const link = document.createElement('a');
+            const link = document.createElement('a');
       link.href = 'vendedor.html';
-      link.textContent = ' Ir a mi cuenta de vendedor';
-      link.style.display = 'block';
-      link.style.marginTop = '8px';
+      link.innerHTML = 'Ir a mi cuenta de vendedor <span style="font-size:1em;">→</span>';
+      link.style.display = 'inline-flex';
+      link.style.alignItems = 'center';
+      link.style.gap = '6px';
+      link.style.marginTop = '10px';
+      link.style.padding = '8px 16px';
+      link.style.borderRadius = '999px';
+      link.style.background = '#ffffff';
       link.style.color = '#ff4f81';
-      link.style.textDecoration = 'underline';
+      link.style.fontWeight = '700';
+      link.style.fontSize = '.82rem';
+      link.style.textDecoration = 'none';
+      link.style.boxShadow = '0 1px 3px rgba(0,0,0,.12)';
+      link.style.transition = 'background .15s, color .15s';
+      link.addEventListener('mouseenter', () => { link.style.background = '#ff4f81'; link.style.color = '#ffffff'; });
+      link.addEventListener('mouseleave', () => { link.style.background = '#ffffff'; link.style.color = '#ff4f81'; });
       document.getElementById('ben-reg-msg').appendChild(link);
       return;
     }
