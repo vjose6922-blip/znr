@@ -42,6 +42,7 @@ const MAPA_ACCIONES_MIGRADAS = {
   cambiarPasswordVendedor: VENDEDORES_API_URL,
   solicitarResetPasswordVendedor: VENDEDORES_API_URL,
   actualizarPerfilVendedor: VENDEDORES_API_URL,
+  marcarChecklistDescartado: VENDEDORES_API_URL,
   actualizarPortadaVendedor: VENDEDORES_API_URL,
   actualizarLogoVendedor: VENDEDORES_API_URL,
   marcarVendedorConfiable: VENDEDORES_API_URL,
@@ -410,6 +411,12 @@ facebook: res.facebook || '',
 twitter: res.twitter || '',
 instagram: res.instagram || '',
 tiktok: res.tiktok || '',
+horario: res.horario || '',
+puntoEntrega: res.puntoEntrega || '',
+puntoEntregaLat: (res.puntoEntregaLat === null || res.puntoEntregaLat === undefined) ? null : res.puntoEntregaLat,
+puntoEntregaLng: (res.puntoEntregaLng === null || res.puntoEntregaLng === undefined) ? null : res.puntoEntregaLng,
+montoMinimoEnvio: (res.montoMinimoEnvio === null || res.montoMinimoEnvio === undefined) ? null : res.montoMinimoEnvio,
+checklistDismissed: !!res.checklistDismissed,
 fechaRegistro: res.fechaRegistro || '',
 coverBg: res.coverBg || '',
 coverIcons: res.coverIcons || '',
@@ -3319,12 +3326,27 @@ document.getElementById('share-facebook-btn')?.addEventListener('click', () => {
 });
 }
 
+window.descartarChecklistVendedor = function() {
+  if (!vendorSession) return;
+  const uid = vendorSession.uid;
+
+  // Ocultar de inmediato (optimista) y dejar respaldo local por si falla la llamada.
+  const cont = document.getElementById('checklist-vendedor');
+  if (cont) cont.style.display = 'none';
+  vendorSession.checklistDismissed = true;
+  try { localStorage.setItem('zr_checklist_dismissed_' + uid, 'true'); } catch (e) {}
+  try { localStorage.setItem('vendor_session', JSON.stringify(vendorSession)); } catch (e) {}
+
+  apiCall({ action: 'marcarChecklistDescartado', vendorToken: vendorSession.token })
+    .catch(() => {});
+};
+
 function renderChecklistVendedor() {
   const cont = document.getElementById('checklist-vendedor');
   if (!cont || !vendorSession) return;
 
   const uid = vendorSession.uid;
-  if (localStorage.getItem('zr_checklist_dismissed_' + uid) === 'true') {
+  if (vendorSession.checklistDismissed || localStorage.getItem('zr_checklist_dismissed_' + uid) === 'true') {
     cont.style.display = 'none';
     return;
   }
@@ -3359,7 +3381,7 @@ function renderChecklistVendedor() {
     cont.innerHTML = `
       <div style="background:#ecfdf5;border:1px solid #a7f3d0;border-radius:14px;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:14px;">
         <span style="font-size:.85rem;color:#065f46;font-weight:700;">🎉 ¡Perfil completo! Ya tienes todo listo para vender.</span>
-        <button onclick="localStorage.setItem('zr_checklist_dismissed_${uid}','true'); document.getElementById('checklist-vendedor').style.display='none';" style="background:none;border:none;font-size:16px;cursor:pointer;color:#065f46;">×</button>
+        <button onclick="descartarChecklistVendedor()" style="background:none;border:none;font-size:16px;cursor:pointer;color:#065f46;">×</button>
       </div>`;
     return;
   }
@@ -3369,7 +3391,7 @@ function renderChecklistVendedor() {
     <div style="background:#fff;border:1px solid #eee;border-radius:16px;padding:16px;margin-bottom:14px;">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
         <p style="margin:0;font-size:.85rem;font-weight:800;color:#333;">Primeros pasos (${completados}/${total})</p>
-        <button onclick="localStorage.setItem('zr_checklist_dismissed_${uid}','true'); document.getElementById('checklist-vendedor').style.display='none';" style="background:none;border:none;font-size:16px;cursor:pointer;color:#999;">×</button>
+        <button onclick="descartarChecklistVendedor()" style="background:none;border:none;font-size:16px;cursor:pointer;color:#999;">×</button>
       </div>
       <div style="background:#f0f0f5;border-radius:20px;height:8px;overflow:hidden;margin-bottom:12px;">
         <div style="background:linear-gradient(90deg,#7c3aed,#a78bfa);height:100%;width:${pct}%;transition:width .3s;"></div>
