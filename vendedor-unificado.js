@@ -606,6 +606,7 @@ if (headerName) {
   });
   headerName.appendChild(shareBtn);
 }
+applyLayoutGlobal(localStorage.getItem('products_layout') || 'grid');
 
 loadMyProducts();
 renderVendorPlanPanel();
@@ -1106,8 +1107,8 @@ function applyMyProducts(myProducts, container, total = null, currentPage = 1, t
     });
   }
 
-  const savedLayout = localStorage.getItem('products_layout') || 'list';
-  applyLayoutGlobal(savedLayout);
+  const savedLayout = localStorage.getItem('products_layout') || 'grid';
+applyLayoutGlobal(savedLayout);
 
   renderPagination(container, currentPage, totalPages, realTotal);
 }
