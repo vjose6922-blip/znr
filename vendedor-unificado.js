@@ -1145,6 +1145,7 @@ if (!p) return;
 document.getElementById('edit-product-id').value = id;
 document.getElementById('pNombre').value = p.nombre || '';
 document.getElementById('pPrecio').value = p.precio || '';
+document.getElementById('pPrecioOriginal').value = p.precio_original || '';
 document.getElementById('pStock').value = p.stock || '';
 document.getElementById('pCategoria').value = p.categoria || '';
 document.getElementById('pTalla').value = p.talla || '';
@@ -1206,7 +1207,7 @@ switchTab('products');
 window.cancelEdit = cancelEdit;
 
 function resetForm() {
-['pNombre','pPrecio','pStock','pTalla','pDescripcion'].forEach(id => {
+['pNombre','pPrecio','pPrecioOriginal','pStock','pTalla','pDescripcion'].forEach(id => {
 const el = document.getElementById(id);
 if (el) el.value = '';
 });
@@ -1472,6 +1473,7 @@ console.log(" Estado final de uploadedImages:", uploadedImages);
 const productData = {
 Nombre: document.getElementById('pNombre')?.value.trim(),
 Precio: Number(document.getElementById('pPrecio')?.value),
+PrecioOriginal: Number(document.getElementById('pPrecioOriginal')?.value) || 0,
 Stock: Number(document.getElementById('pStock')?.value),
 Descripcion: document.getElementById('pDescripcion')?.value.trim() || '',
 Talla: document.getElementById('pTalla')?.value.trim() || '',

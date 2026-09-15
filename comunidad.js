@@ -541,7 +541,7 @@ async function loadComunidadPageAlgolia(page, filters, opts = {}) {
       filteredProducts     = [...allCommunityProducts];
       window.allCommunityProductsIndexed = allCommunityProducts;
 
-      if (page === 1) setComunidadCache(allCommunityProducts);
+      if (page === 1) { setComunidadCache(allCommunityProducts); renderOfertasCarousel(communityRandomOrder); }
 
     } else {
       // ── Con filtros/búsqueda/orden activos: paginado normal vía Algolia ──
@@ -716,6 +716,22 @@ function updateComunidadChips(filters) {
     });
   });
 }
+// ── Carrusel de ofertas: productos con precio_original > precio, top 10 por % de descuento ──
+function renderOfertasCarousel(products) {
+  const wrap = document.getElementById('comunidad-ofertas-wrap');
+  const track = document.getElementById('comunidad-ofertas-track');
+  if (!wrap || !track) return;
+  const ofertas = (products || [])
+    .filter(p => (Number(p.precio_original) || 0) > (Number(p.precio) || 0))
+    .sort((a, b) => (1 - a.precio / a.precio_original) < (1 - b.precio / b.precio_original) ? 1 : -1)
+    .slice(0, 10);
+  if (!ofertas.length) { wrap.style.display = 'none'; return; }
+  wrap.style.display = '';
+  track.innerHTML = '';
+  ofertas.forEach(p => { const card = createCommunityCard(p); if (card) { card.style.minWidth = '180px'; card.style.maxWidth = '180px'; track.appendChild(card); } });
+  initLazyImages();
+}
+
 function renderProducts() {
 if (!gridContainer) return;
 try {
@@ -938,6 +954,11 @@ const vendorName = safeString(product.vendedor_nombre);
 const vendorTel  = safeString(product.vendedor_tel);
 const vendorLogo = safeString(product.vendedor_logo || '');
 const esVendorPlus = product.vendedor_plan === 'plus';
+const precioOriginal = Number(product.precio_original) || 0;
+const tieneDescuento = precioOriginal > Number(product.precio || 0);
+const pctDescuento = tieneDescuento ? Math.round((1 - (product.precio / precioOriginal)) * 100) : 0;
+const montoMinEnvio = Number(product.vendedor_monto_minimo_envio) || 0;
+const califica_entrega = montoMinEnvio > 0 && Number(product.precio || 0) >= montoMinEnvio;
 const vendorInitials = vendorName ? vendorName.trim().split(/\s+/).map(w => w[0]).slice(0,2).join('').toUpperCase() : '?';
 const vendorAvatarHtml = (esVendorPlus && vendorLogo)
   ? `<img src="${esc(vendorLogo)}" alt="${esc(vendorName)}" style="width:18px;height:18px;border-radius:50%;object-fit:cover;flex-shrink:0;border:1px solid #a855f744;" onerror="this.style.display='none'">`
@@ -953,8 +974,12 @@ style="width:100%;height:100%;object-fit:contain;display:block;background:var(--
 <div class="product-info" style="padding:12px;">
 <div class="product-title-row">
 <h3 class="product-name" style="font-size:14px;" title="${esc(safeString(product.nombre))}">${esc(safeString(product.nombre))}</h3>
-<div class="product-price" style="font-size:16px;">${fmtCurr(product.precio)}</div>
+<div style="text-align:right;">
+${tieneDescuento ? `<div style="font-size:11px;color:var(--color-text-muted,#888);text-decoration:line-through;">${fmtCurr(precioOriginal)}</div>` : ''}
+<div class="product-price" style="font-size:16px;">${fmtCurr(product.precio)}${tieneDescuento ? ` <span style="font-size:10px;font-weight:800;color:#22c55e;">-${pctDescuento}%</span>` : ''}</div>
 </div>
+</div>
+${califica_entrega ? `<div style="display:flex;align-items:center;gap:4px;font-size:10.5px;color:#16a34a;font-weight:600;margin-top:2px;"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 3h15v13H1z"/><path d="M16 8h4l3 3v5h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg> Entrega a domicilio disponible</div>` : ''}
 ${vendorName ? `<div style="font-size:11px;color:var(--color-text-muted,#888);margin-top:2px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:4px;">
 <span style="display:flex;align-items:center;gap:5px;">
   ${vendorAvatarHtml}
