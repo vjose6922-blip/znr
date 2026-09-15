@@ -146,6 +146,8 @@
               <button class="btn-suspend" onclick="AdminComunidad.suspenderVendedor('${_escapeHtml(v.uid)}','${_escapeHtml(v.nombre)}')"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" aria-hidden="true"><use href="#ic-suspend"/></svg> Suspender</button>
               <button class="btn-stats"   onclick="AdminComunidad.verEstadisticas('${_escapeHtml(v.uid)}','${_escapeHtml(v.nombre)}')"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" aria-hidden="true"><use href="#ic-stats"/></svg> Stats</button>
               <button class="${v.resetSolicitado ? 'btn-approve' : 'btn-stats'}" onclick="AdminComunidad.resetPasswordVendedor('${_escapeHtml(v.uid)}', this)"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" aria-hidden="true"><use href="#ic-lock"/></svg> Nueva contraseña</button>
+              ${v.telefonoPendiente ? `
+              <button class="btn-stats" onclick="AdminComunidad.contactarPorTelefonoPendiente('${_escapeHtml(v.telefonoPendiente)}','${_escapeHtml(v.nombre)}')"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" aria-hidden="true"><use href="#ic-whatsapp"/></svg> Contactar por WhatsApp</button>` : ''}
               ${v.telefonoPendiente && !v.resetSolicitado ? `
               <button class="btn-approve" onclick="AdminComunidad.aprobarCambioTelefono('${_escapeHtml(v.uid)}', this)"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" aria-hidden="true"><use href="#ic-check"/></svg> Aprobar número</button>
               <button class="btn-reject" onclick="AdminComunidad.rechazarCambioTelefono('${_escapeHtml(v.uid)}', this)"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" aria-hidden="true"><use href="#ic-x"/></svg> Rechazar número</button>` : ''}` : ''}
@@ -252,6 +254,18 @@
     };
     if (btn && window.withButtonLoading) await window.withButtonLoading(btn, runFn, 'Generando…');
     else await runFn();
+  }
+
+  function contactarPorTelefonoPendiente(telefono, nombre) {
+    const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+    const mensaje =
+      `Hola ${nombre}, somos de Z&R. Vimos tu solicitud para cambiar el número de tu cuenta ` +
+      `a este WhatsApp. Antes de aprobarla, ¿nos confirmas algunos datos de tu cuenta para verificar que eres tú?`;
+    if (isMobile) {
+      window.location.href = `whatsapp://send?phone=52${telefono}&text=${encodeURIComponent(mensaje)}`;
+    } else {
+      window.open(`https://wa.me/52${telefono}?text=${encodeURIComponent(mensaje)}`, '_blank');
+    }
   }
 
   async function suspenderVendedor(uid, nombre) {
@@ -493,6 +507,7 @@
     aprobarVendedor,
     rechazarVendedor,
     resetPasswordVendedor,
+    contactarPorTelefonoPendiente,
     aprobarCambioTelefono,
     rechazarCambioTelefono,
     aprobarProducto,

@@ -29,7 +29,9 @@
     plus_aprobado:          { grupo: 'cuenta',  icono: Icon('star') },
     plus_rechazado:         { grupo: 'cuenta',  icono: Icon('star') },
     donacion_recibida:      { grupo: 'cuenta',  icono: Icon('gift') },
-    donacion_retirada:      { grupo: 'cuenta',  icono: Icon('send') }
+    donacion_retirada:      { grupo: 'cuenta',  icono: Icon('send') },
+    telefono_actualizado:   { grupo: 'cuenta',  icono: Icon('lock') },
+    telefono_rechazado:     { grupo: 'cuenta',  icono: Icon('lock') }
   };
 
   function getIdentity() {

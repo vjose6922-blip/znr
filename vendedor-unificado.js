@@ -38,6 +38,8 @@ const MAPA_ACCIONES_MIGRADAS = {
   webauthnPasoElevadoOpciones: VENDEDORES_API_URL,
   solicitarCambioTelefono: VENDEDORES_API_URL,
   cerrarSesionesRemotas: VENDEDORES_API_URL,
+  configurarPreguntaSecreta: VENDEDORES_API_URL,
+  obtenerPreguntaSecreta: VENDEDORES_API_URL,
   mpConectarUrl: VENDEDORES_API_URL,
   mpEstadoConexion: VENDEDORES_API_URL,
   mpDesconectar: VENDEDORES_API_URL,
@@ -1834,6 +1836,20 @@ function openSettingsModal(expandirPlan) {
   }
   const sesionesMsgEl = document.getElementById('settings-sesiones-msg');
   if (sesionesMsgEl) sesionesMsgEl.textContent = '';
+  const sesionesPwdInput = document.getElementById('settings-sesiones-pwd');
+  if (sesionesPwdInput) sesionesPwdInput.value = '';
+
+  const pregPreguntaInput = document.getElementById('settings-preg-pregunta');
+  if (pregPreguntaInput) pregPreguntaInput.value = '';
+  const pregRespuestaInput = document.getElementById('settings-preg-respuesta');
+  if (pregRespuestaInput) pregRespuestaInput.value = '';
+  const pregPwdInput = document.getElementById('settings-preg-pwd');
+  if (pregPwdInput) pregPwdInput.value = '';
+  const pregMsgEl = document.getElementById('settings-preg-msg');
+  if (pregMsgEl) pregMsgEl.textContent = '';
+  const telPregRespuestaInput = document.getElementById('settings-tel-preg-respuesta');
+  if (telPregRespuestaInput) telPregRespuestaInput.value = '';
+  _actualizarEstadoPreguntaYTelefono();
 
   const esPlus = vendorSession.plan === 'plus';
 
@@ -1961,20 +1977,33 @@ function initForgotPasswordModal() {
   const modal = document.getElementById('forgot-password-modal');
   if (modal) modal.addEventListener('click', (e) => { if (e.target === modal) closeForgotPasswordModal(); });
 
+  const continueBtn = document.getElementById('forgot-password-continue-btn');
+  if (continueBtn) continueBtn.addEventListener('click', continuarForgotPassword);
+
   const submitBtn = document.getElementById('forgot-password-submit-btn');
   if (submitBtn) submitBtn.addEventListener('click', submitForgotPassword);
 
   const phoneInput = document.getElementById('forgot-password-phone');
-  if (phoneInput) phoneInput.addEventListener('keypress', e => { if (e.key === 'Enter') submitForgotPassword(); });
+  if (phoneInput) phoneInput.addEventListener('keypress', e => { if (e.key === 'Enter') continuarForgotPassword(); });
 }
+
+let _forgotPasswordTelefono = '';
 
 function openForgotPasswordModal() {
   const modal = document.getElementById('forgot-password-modal');
   if (!modal) return;
+  _forgotPasswordTelefono = '';
   document.getElementById('forgot-password-phone').value = '';
   const nuevoTelInput = document.getElementById('forgot-password-nuevo-tel');
   if (nuevoTelInput) nuevoTelInput.value = '';
+  const respuestaInput = document.getElementById('forgot-password-respuesta');
+  if (respuestaInput) respuestaInput.value = '';
   document.getElementById('forgot-password-msg').textContent = '';
+  const msg2 = document.getElementById('forgot-password-msg2');
+  if (msg2) msg2.textContent = '';
+  document.getElementById('forgot-password-step1').style.display = 'block';
+  document.getElementById('forgot-password-step2').style.display = 'none';
+  document.getElementById('forgot-password-bloqueo').style.display = 'none';
   modal.style.display = 'flex';
   document.body.style.overflow = 'hidden';
 }
@@ -1985,14 +2014,43 @@ function closeForgotPasswordModal() {
   document.body.style.overflow = '';
 }
 
-async function submitForgotPassword() {
+async function continuarForgotPassword() {
   const phone = document.getElementById('forgot-password-phone')?.value.trim().replace(/\D/g, '');
-  const nuevoTelefono = document.getElementById('forgot-password-nuevo-tel')?.value.trim().replace(/\D/g, '') || '';
   const msgEl = document.getElementById('forgot-password-msg');
-  const btn   = document.getElementById('forgot-password-submit-btn');
+  const btn   = document.getElementById('forgot-password-continue-btn');
 
   if (!phone || phone.length !== 10) {
     if (msgEl) { msgEl.textContent = 'Escribe un teléfono válido de 10 dígitos'; msgEl.style.color = '#ef4444'; }
+    return;
+  }
+
+  if (btn) { btn.disabled = true; btn.textContent = 'Verificando...'; }
+  try {
+    const res = await apiFetch({ action: 'obtenerPreguntaSecreta', telefono: phone });
+    _forgotPasswordTelefono = phone;
+    if (res.ok && res.tienePregunta) {
+      document.getElementById('forgot-password-step1').style.display = 'none';
+      document.getElementById('forgot-password-pregunta').textContent = res.pregunta;
+      document.getElementById('forgot-password-step2').style.display = 'block';
+    } else {
+      document.getElementById('forgot-password-step1').style.display = 'none';
+      document.getElementById('forgot-password-bloqueo').style.display = 'block';
+    }
+  } catch (err) {
+    if (msgEl) { msgEl.textContent = 'Error de red, intenta de nuevo'; msgEl.style.color = '#ef4444'; }
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = 'Continuar'; }
+  }
+}
+
+async function submitForgotPassword() {
+  const respuestaSecreta = document.getElementById('forgot-password-respuesta')?.value.trim() || '';
+  const nuevoTelefono = document.getElementById('forgot-password-nuevo-tel')?.value.trim().replace(/\D/g, '') || '';
+  const msgEl = document.getElementById('forgot-password-msg2');
+  const btn   = document.getElementById('forgot-password-submit-btn');
+
+  if (!respuestaSecreta) {
+    if (msgEl) { msgEl.textContent = 'Responde tu pregunta de seguridad'; msgEl.style.color = '#ef4444'; }
     return;
   }
   if (nuevoTelefono && nuevoTelefono.length !== 10) {
@@ -2002,11 +2060,11 @@ async function submitForgotPassword() {
 
   if (btn) { btn.disabled = true; btn.textContent = 'Enviando...'; }
   try {
-    const res = await apiFetch({ action: 'solicitarResetPasswordVendedor', telefono: phone, nuevoTelefono });
+    const res = await apiFetch({ action: 'solicitarResetPasswordVendedor', telefono: _forgotPasswordTelefono, respuestaSecreta, nuevoTelefono });
     if (!res.ok) throw new Error(res.error || 'No se pudo enviar la solicitud');
     if (msgEl) {
       msgEl.style.color = '#16a34a';
-      msgEl.textContent = 'Si tu cuenta existe, un administrador te contactará por WhatsApp con tu nueva contraseña.';
+      msgEl.textContent = 'Si tu respuesta es correcta, un administrador te contactará por WhatsApp con tu nueva contraseña.';
     }
     setTimeout(closeForgotPasswordModal, 2500);
   } catch (err) {
@@ -2241,15 +2299,66 @@ btn.disabled = false; btn.textContent = 'Cambiar contraseña';
 }
 }
 
+function _actualizarEstadoPreguntaYTelefono() {
+  const estadoEl = document.getElementById('settings-preg-estado');
+  const bloqueoEl = document.getElementById('settings-tel-bloqueo');
+  const formEl = document.getElementById('settings-tel-form');
+  const labelEl = document.getElementById('settings-tel-preg-label');
+  if (vendorSession.preguntaSecreta) {
+    if (estadoEl) estadoEl.textContent = `Ya tienes una configurada: "${vendorSession.preguntaSecreta}". Guarda otra abajo para reemplazarla.`;
+    if (bloqueoEl) bloqueoEl.style.display = 'none';
+    if (formEl) formEl.style.display = 'block';
+    if (labelEl) labelEl.textContent = `Respuesta a: "${vendorSession.preguntaSecreta}"`;
+  } else {
+    if (estadoEl) estadoEl.textContent = 'No tienes una configurada. Es obligatoria para poder cambiar tu número o recuperar tu cuenta si pierdes el celular.';
+    if (bloqueoEl) bloqueoEl.style.display = 'block';
+    if (formEl) formEl.style.display = 'none';
+  }
+}
+
+async function guardarPreguntaSecreta() {
+  const btn = document.getElementById('btn-guardar-pregunta');
+  const msg = document.getElementById('settings-preg-msg');
+  const pregunta = document.getElementById('settings-preg-pregunta').value.trim();
+  const respuesta = document.getElementById('settings-preg-respuesta').value.trim();
+  const password = document.getElementById('settings-preg-pwd').value;
+
+  msg.textContent = '';
+  if (pregunta.length < 5) { msg.style.color = '#dc2626'; msg.textContent = 'Escribe una pregunta más específica.'; return; }
+  if (respuesta.length < 2) { msg.style.color = '#dc2626'; msg.textContent = 'Escribe una respuesta válida.'; return; }
+  if (!password) { msg.style.color = '#dc2626'; msg.textContent = 'Escribe tu contraseña actual.'; return; }
+
+  btn.disabled = true; btn.textContent = 'Guardando...';
+  try {
+    const res = await apiCall({ action: 'configurarPreguntaSecreta', vendorToken: vendorSession.token, pregunta, respuesta, password });
+    if (!res.ok) { msg.style.color = '#dc2626'; msg.textContent = res.error || 'No se pudo guardar.'; return; }
+
+    vendorSession.preguntaSecreta = pregunta;
+    try { localStorage.setItem('vendor_session', JSON.stringify(vendorSession)); } catch(e) {}
+    msg.style.color = '#16a34a';
+    msg.textContent = 'Pregunta de seguridad guardada.';
+    document.getElementById('settings-preg-pwd').value = '';
+    document.getElementById('settings-preg-respuesta').value = '';
+    document.getElementById('settings-preg-pregunta').value = '';
+    _actualizarEstadoPreguntaYTelefono();
+  } catch (err) {
+    msg.style.color = '#dc2626'; msg.textContent = 'Error de red.';
+  } finally {
+    btn.disabled = false; btn.textContent = 'Guardar pregunta de seguridad';
+  }
+}
+
 async function solicitarCambioTelefono() {
   const btn = document.getElementById('btn-solicitar-tel');
   const msg = document.getElementById('settings-tel-msg');
   const nuevoTelefono = document.getElementById('settings-tel-nuevo').value.trim().replace(/\D/g, '');
   const password = document.getElementById('settings-tel-pwd').value;
+  const respuestaSecreta = document.getElementById('settings-tel-preg-respuesta').value;
 
   msg.textContent = '';
   if (!nuevoTelefono || nuevoTelefono.length !== 10) { msg.style.color = '#dc2626'; msg.textContent = 'Escribe un número válido de 10 dígitos.'; return; }
   if (!password) { msg.style.color = '#dc2626'; msg.textContent = 'Escribe tu contraseña actual.'; return; }
+  if (!respuestaSecreta) { msg.style.color = '#dc2626'; msg.textContent = 'Responde tu pregunta de seguridad.'; return; }
 
   btn.disabled = true; btn.textContent = 'Verificando...';
   try {
@@ -2266,7 +2375,7 @@ async function solicitarCambioTelefono() {
     }
 
     btn.textContent = 'Enviando...';
-    const res = await apiCall({ action: 'solicitarCambioTelefono', vendorToken: vendorSession.token, password, nuevoTelefono, credential });
+    const res = await apiCall({ action: 'solicitarCambioTelefono', vendorToken: vendorSession.token, password, nuevoTelefono, respuestaSecreta, credential });
     if (!res.ok) { msg.style.color = '#dc2626'; msg.textContent = res.error || 'No se pudo enviar la solicitud.'; return; }
 
     vendorSession.telefonoPendiente = nuevoTelefono;
@@ -2274,6 +2383,7 @@ async function solicitarCambioTelefono() {
     msg.style.color = '#16a34a';
     msg.textContent = 'Solicitud enviada, espera la aprobación del administrador.';
     document.getElementById('settings-tel-pwd').value = '';
+    document.getElementById('settings-tel-preg-respuesta').value = '';
   } catch (err) {
     if (err && err.name === 'NotAllowedError') { msg.style.color = '#dc2626'; msg.textContent = 'Verificación de huella cancelada.'; }
     else { msg.style.color = '#dc2626'; msg.textContent = err.message || 'Error de red.'; }
@@ -2282,20 +2392,46 @@ async function solicitarCambioTelefono() {
   }
 }
 
+// A propósito NO usa vendorToken: si iniciaste sesión en otro
+// dispositivo DESPUÉS que este, el token de este dispositivo ya quedó
+// obsoleto y el backend respondería "No autorizado" justo cuando más
+// se necesita. Por eso se identifica con teléfono+contraseña, que el
+// vendedor siempre trae consigo (el teléfono se autocompleta con el
+// de su sesión guardada).
 async function cerrarSesionesRemotas() {
   const btn = document.getElementById('btn-cerrar-sesiones-remotas');
   const msg = document.getElementById('settings-sesiones-msg');
+  const password = document.getElementById('settings-sesiones-pwd').value;
+
   msg.textContent = '';
-  btn.disabled = true; btn.textContent = 'Cerrando...';
+  if (!password) { msg.style.color = '#dc2626'; msg.textContent = 'Escribe tu contraseña.'; return; }
+
+  btn.disabled = true; btn.textContent = 'Verificando...';
   try {
-    const res = await apiCall({ action: 'cerrarSesionesRemotas', vendorToken: vendorSession.token });
+    let credential = '';
+    const paso = await apiCall({ action: 'webauthnPasoElevadoOpciones', telefono: vendorSession.telefono, password });
+    if (paso.ok && paso.activo) {
+      if (typeof window.webauthnSupported !== 'function' || !window.webauthnSupported()) {
+        msg.style.color = '#dc2626'; msg.textContent = 'Este dispositivo no soporta huella y tu cuenta la tiene activada.';
+        return;
+      }
+      btn.textContent = 'Confirma con tu huella...';
+      const cred = await window.webauthnStartAuthentication(paso.options);
+      credential = JSON.stringify(cred);
+    }
+
+    btn.textContent = 'Cerrando...';
+    const res = await apiCall({ action: 'cerrarSesionesRemotas', telefono: vendorSession.telefono, password, credential });
     if (!res.ok) { msg.style.color = '#dc2626'; msg.textContent = res.error || 'No se pudo cerrar sesión en otros dispositivos.'; return; }
+
     vendorSession.token = res.token;
     try { localStorage.setItem('vendor_session', JSON.stringify(vendorSession)); } catch(e) {}
     msg.style.color = '#16a34a';
     msg.textContent = 'Listo, los demás dispositivos quedaron sin sesión.';
+    document.getElementById('settings-sesiones-pwd').value = '';
   } catch (err) {
-    msg.style.color = '#dc2626'; msg.textContent = 'Error de red.';
+    if (err && err.name === 'NotAllowedError') { msg.style.color = '#dc2626'; msg.textContent = 'Verificación de huella cancelada.'; }
+    else { msg.style.color = '#dc2626'; msg.textContent = 'Error de red.'; }
   } finally {
     btn.disabled = false; btn.textContent = 'Cerrar sesión en otros dispositivos';
   }
@@ -2303,6 +2439,8 @@ async function cerrarSesionesRemotas() {
 
 window.solicitarCambioTelefono = function() { solicitarCambioTelefono(); };
 window.cerrarSesionesRemotas   = function() { cerrarSesionesRemotas(); };
+window.guardarPreguntaSecreta  = function() { guardarPreguntaSecreta(); };
+window.continuarForgotPassword = function() { continuarForgotPassword(); };
 
 async function cargarSeccionHuella() {
   const wrap = document.getElementById('settings-webauthn');
