@@ -56,6 +56,8 @@
     rechazarVendedor: VENDEDORES_API_URL_COMUNIDAD,
     vendedoresAdmin: VENDEDORES_API_URL_COMUNIDAD,
     resetPasswordVendedor: VENDEDORES_API_URL_COMUNIDAD,
+    aprobarCambioTelefono: VENDEDORES_API_URL_COMUNIDAD,
+    rechazarCambioTelefono: VENDEDORES_API_URL_COMUNIDAD,
     suspenderVendedor: VENDEDORES_API_URL_COMUNIDAD,
     reactivarVendedor: VENDEDORES_API_URL_COMUNIDAD,
     productosPendientes: CATALOGO_API_URL_COMUNIDAD,
@@ -133,7 +135,8 @@
             <span class="vest-${_escapeHtml(v.estado)}">${_escapeHtml(v.estado)}</span>
             <span style="font-size:11px;color:#aaa;margin-left:8px">${v.fecha ? new Date(v.fecha).toLocaleDateString() : ''}</span>
             ${v.productos != null ? `<span style="font-size:11px;color:#888;margin-left:8px"> ${v.productos} productos</span>` : ''}
-            ${v.resetSolicitado ? `<div style="margin-top:6px;padding:6px 10px;background:#fef9c3;border:1px solid #fde047;border-radius:8px;font-size:11.5px;color:#854d0e;display:flex;align-items:center;gap:5px;"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" aria-hidden="true"><use href="#ic-lock"/></svg> Solicitó recuperar su contraseña</div>` : ''}
+            ${v.resetSolicitado ? `<div style="margin-top:6px;padding:6px 10px;background:#fef9c3;border:1px solid #fde047;border-radius:8px;font-size:11.5px;color:#854d0e;display:flex;align-items:center;gap:5px;"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" aria-hidden="true"><use href="#ic-lock"/></svg> Solicitó recuperar su contraseña${v.telefonoPendiente ? ` y cambiar su número a ${_escapeHtml(v.telefonoPendiente)}` : ''}</div>` : ''}
+            ${v.telefonoPendiente && !v.resetSolicitado ? `<div style="margin-top:6px;padding:6px 10px;background:#e0f2fe;border:1px solid #7dd3fc;border-radius:8px;font-size:11.5px;color:#075985;display:flex;align-items:center;gap:5px;"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" aria-hidden="true"><use href="#ic-lock"/></svg> Solicitó cambiar su número a ${_escapeHtml(v.telefonoPendiente)}</div>` : ''}
           </div>
           <div class="actions" style="flex-wrap:wrap;gap:6px;">
             ${v.estado === 'pendiente' ? `
@@ -142,14 +145,17 @@
             ${v.estado === 'activo' ? `
               <button class="btn-suspend" onclick="AdminComunidad.suspenderVendedor('${_escapeHtml(v.uid)}','${_escapeHtml(v.nombre)}')"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" aria-hidden="true"><use href="#ic-suspend"/></svg> Suspender</button>
               <button class="btn-stats"   onclick="AdminComunidad.verEstadisticas('${_escapeHtml(v.uid)}','${_escapeHtml(v.nombre)}')"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" aria-hidden="true"><use href="#ic-stats"/></svg> Stats</button>
-              <button class="${v.resetSolicitado ? 'btn-approve' : 'btn-stats'}" onclick="AdminComunidad.resetPasswordVendedor('${_escapeHtml(v.uid)}', this)"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" aria-hidden="true"><use href="#ic-lock"/></svg> Nueva contraseña</button>` : ''}
+              <button class="${v.resetSolicitado ? 'btn-approve' : 'btn-stats'}" onclick="AdminComunidad.resetPasswordVendedor('${_escapeHtml(v.uid)}', this)"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" aria-hidden="true"><use href="#ic-lock"/></svg> Nueva contraseña</button>
+              ${v.telefonoPendiente && !v.resetSolicitado ? `
+              <button class="btn-approve" onclick="AdminComunidad.aprobarCambioTelefono('${_escapeHtml(v.uid)}', this)"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" aria-hidden="true"><use href="#ic-check"/></svg> Aprobar número</button>
+              <button class="btn-reject" onclick="AdminComunidad.rechazarCambioTelefono('${_escapeHtml(v.uid)}', this)"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" aria-hidden="true"><use href="#ic-x"/></svg> Rechazar número</button>` : ''}` : ''}
             ${v.estado === 'rechazado' ? `
               <button class="btn-approve" onclick="AdminComunidad.aprobarVendedor('${_escapeHtml(v.uid)}', this)"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.348a1.125 1.125 0 010 1.971l-11.54 6.347a1.125 1.125 0 01-1.667-.985V5.653z"/></svg> Activar</button>` : ''}
             ${v.estado === 'suspendido' ? `
               <button class="btn-approve" onclick="AdminComunidad.reactivarVendedor('${_escapeHtml(v.uid)}', this)"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.348a1.125 1.125 0 010 1.971l-11.54 6.347a1.125 1.125 0 01-1.667-.985V5.653z"/></svg> Reactivar</button>` : ''}
           </div>
         </div>`).join('');
-      const pending = vendors.filter(v => v.estado === 'pendiente' || v.resetSolicitado).length;
+      const pending = vendors.filter(v => v.estado === 'pendiente' || v.resetSolicitado || v.telefonoPendiente).length;
       if (typeof window._updateNotifTabBadge === 'function') window._updateNotifTabBadge('vendors', pending);
     } catch (err) {
       container.innerHTML = `<p style="color:#ef4444">Error: ${_escapeHtml(err.message)}</p>`;
@@ -159,6 +165,8 @@
   async function aprobarVendedor(uid, btn) { await _vendorAction(uid, 'aprobarVendedor', ' Vendedor aprobado', btn, 'Aprobando…'); }
   async function rechazarVendedor(uid, btn) { await _vendorAction(uid, 'rechazarVendedor', ' Vendedor rechazado', btn, 'Rechazando…'); }
   async function reactivarVendedor(uid, btn) { await _vendorAction(uid, 'reactivarVendedor', ' Vendedor reactivado', btn, 'Reactivando…'); }
+  async function aprobarCambioTelefono(uid, btn) { await _vendorAction(uid, 'aprobarCambioTelefono', ' Número actualizado', btn, 'Aprobando…'); }
+  async function rechazarCambioTelefono(uid, btn) { await _vendorAction(uid, 'rechazarCambioTelefono', ' Solicitud rechazada', btn, 'Rechazando…'); }
 
   async function _vendorAction(uid, action, msg, btn, loadingText) {
     const runFn = async () => {
@@ -485,6 +493,8 @@
     aprobarVendedor,
     rechazarVendedor,
     resetPasswordVendedor,
+    aprobarCambioTelefono,
+    rechazarCambioTelefono,
     aprobarProducto,
     rechazarProducto,
     suspenderVendedor,

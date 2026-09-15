@@ -792,6 +792,38 @@ document.addEventListener('DOMContentLoaded', () => {
             <p id="settings-pwd-msg" style="text-align:center;font-size:.8rem;margin:8px 0 0;min-height:18px;"></p>
           </div>
 
+          <div style="margin-top:16px;padding-top:16px;border-top:1px solid #eee;">
+            <label style="font-size:.8rem;color:#555;display:block;margin-bottom:4px;">Número de cuenta actual</label>
+            <p id="settings-tel-actual" style="margin:0 0 10px;font-size:.9rem;font-weight:700;color:#111;">—</p>
+            <div id="settings-tel-pendiente-aviso" style="display:none;margin-bottom:10px;padding:8px 10px;background:#e0f2fe;border:1px solid #7dd3fc;border-radius:8px;font-size:.78rem;color:#075985;"></div>
+
+            <label style="font-size:.8rem;color:#555;display:block;margin-bottom:4px;">Nuevo número</label>
+            <input id="settings-tel-nuevo" type="tel" maxlength="10" placeholder="8671234567"
+              style="width:100%;box-sizing:border-box;padding:9px 12px;border-radius:10px;border:1px solid #ddd;font-size:.9rem;margin-bottom:10px;outline:none;">
+
+            <label style="font-size:.8rem;color:#555;display:block;margin-bottom:4px;">Confirma tu contraseña</label>
+            <input id="settings-tel-pwd" type="password" placeholder="••••••"
+              style="width:100%;box-sizing:border-box;padding:9px 12px;border-radius:10px;border:1px solid #ddd;font-size:.9rem;margin-bottom:12px;outline:none;">
+
+            <p style="margin:0 0 12px;font-size:.73rem;color:#aaa;">Si tienes huella activada en este dispositivo, te la pediremos también. El cambio se aplica hasta que el administrador lo apruebe.</p>
+
+            <button onclick="solicitarCambioTelefono()" id="btn-solicitar-tel"
+              style="width:100%;padding:11px;border-radius:10px;border:1px solid #7c3aed;background:#fff;color:#7c3aed;font-size:.9rem;font-weight:700;cursor:pointer;">
+              Solicitar cambio de número
+            </button>
+            <p id="settings-tel-msg" style="text-align:center;font-size:.8rem;margin:8px 0 0;min-height:18px;"></p>
+          </div>
+
+          <div style="margin-top:16px;padding-top:16px;border-top:1px solid #eee;">
+            <label style="font-size:.8rem;color:#555;display:block;margin-bottom:8px;">Sesiones</label>
+            <p style="margin:0 0 10px;font-size:.78rem;color:#888;">Si iniciaste sesión en otro celular o navegador y ya no lo usas, ciérrala aquí. Este dispositivo seguirá con tu sesión activa.</p>
+            <button onclick="cerrarSesionesRemotas()" id="btn-cerrar-sesiones-remotas"
+              style="width:100%;padding:11px;border-radius:10px;border:1.5px solid #dc2626;background:#fef2f2;color:#dc2626;font-size:.9rem;font-weight:700;cursor:pointer;">
+              Cerrar sesión en otros dispositivos
+            </button>
+            <p id="settings-sesiones-msg" style="text-align:center;font-size:.8rem;margin:8px 0 0;min-height:18px;"></p>
+          </div>
+
           <div id="settings-webauthn" style="display:none;margin-top:16px;padding-top:16px;border-top:1px solid #eee;">
             <label style="font-size:.8rem;color:#555;display:flex;align-items:center;gap:6px;margin-bottom:8px;">
   <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" aria-hidden="true"><use href="#ic-fingerprint"/></svg>
@@ -960,6 +992,10 @@ document.addEventListener('DOMContentLoaded', () => {
       <label style="font-size:.8rem;color:#555;display:block;margin-bottom:4px;">Teléfono (10 dígitos)</label>
       <input type="tel" id="forgot-password-phone" placeholder="8671234567" maxlength="10"
         style="width:100%;box-sizing:border-box;padding:9px 12px;border-radius:10px;border:1px solid #ddd;font-size:.9rem;margin-bottom:14px;outline:none;">
+      <label style="font-size:.8rem;color:#555;display:block;margin-bottom:4px;">¿Ya tienes otro número? <span style="color:#aaa;">(opcional)</span></label>
+      <input type="tel" id="forgot-password-nuevo-tel" placeholder="8671234567" maxlength="10"
+        style="width:100%;box-sizing:border-box;padding:9px 12px;border-radius:10px;border:1px solid #ddd;font-size:.9rem;margin-bottom:14px;outline:none;">
+      <p style="margin:0 0 12px;font-size:.73rem;color:#aaa;">Llénalo solo si cambiaste o perdiste el celular anterior. El administrador también lo actualizará al aprobar tu solicitud.</p>
       <p id="forgot-password-msg" style="min-height:16px;font-size:.8rem;margin:0 0 12px;"></p>
       <button id="forgot-password-submit-btn" class="btn-primary" style="width:100%;">Enviar solicitud</button>
     </div>

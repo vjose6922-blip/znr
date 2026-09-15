@@ -35,6 +35,9 @@ const MAPA_ACCIONES_MIGRADAS = {
   webauthnRegistroVerificar: VENDEDORES_API_URL,
   webauthnListarDispositivos: VENDEDORES_API_URL,
   webauthnEliminarDispositivo: VENDEDORES_API_URL,
+  webauthnPasoElevadoOpciones: VENDEDORES_API_URL,
+  solicitarCambioTelefono: VENDEDORES_API_URL,
+  cerrarSesionesRemotas: VENDEDORES_API_URL,
   mpConectarUrl: VENDEDORES_API_URL,
   mpEstadoConexion: VENDEDORES_API_URL,
   mpDesconectar: VENDEDORES_API_URL,
@@ -1601,6 +1604,7 @@ sessionStorage.removeItem('vendor_session');
 if (stored) {
 try {
 vendorSession = JSON.parse(stored);
+if (vendorSession.telefono) localStorage.setItem('client_phone', vendorSession.telefono);
 showPanel();
 apiFetch({ action: 'misProductosComunidad', vendorToken: vendorSession.token, limit: 1 }, 'GET').then(resp => {
   if (!resp.ok) {
@@ -1811,6 +1815,26 @@ function openSettingsModal(expandirPlan) {
   document.getElementById('settings-perfil-msg').textContent = '';
   document.getElementById('settings-pwd-msg').textContent    = '';
 
+  const telActualEl = document.getElementById('settings-tel-actual');
+  if (telActualEl) telActualEl.textContent = vendorSession.telefono || '—';
+  const telNuevoInput = document.getElementById('settings-tel-nuevo');
+  if (telNuevoInput) telNuevoInput.value = '';
+  const telPwdInput = document.getElementById('settings-tel-pwd');
+  if (telPwdInput) telPwdInput.value = '';
+  const telMsgEl = document.getElementById('settings-tel-msg');
+  if (telMsgEl) telMsgEl.textContent = '';
+  const telPendienteAviso = document.getElementById('settings-tel-pendiente-aviso');
+  if (telPendienteAviso) {
+    if (vendorSession.telefonoPendiente) {
+      telPendienteAviso.style.display = 'block';
+      telPendienteAviso.textContent = `Ya tienes una solicitud pendiente de aprobación para cambiar a: ${vendorSession.telefonoPendiente}`;
+    } else {
+      telPendienteAviso.style.display = 'none';
+    }
+  }
+  const sesionesMsgEl = document.getElementById('settings-sesiones-msg');
+  if (sesionesMsgEl) sesionesMsgEl.textContent = '';
+
   const esPlus = vendorSession.plan === 'plus';
 
   const placeholderEl = document.getElementById('settings-avatar-placeholder');
@@ -1948,6 +1972,8 @@ function openForgotPasswordModal() {
   const modal = document.getElementById('forgot-password-modal');
   if (!modal) return;
   document.getElementById('forgot-password-phone').value = '';
+  const nuevoTelInput = document.getElementById('forgot-password-nuevo-tel');
+  if (nuevoTelInput) nuevoTelInput.value = '';
   document.getElementById('forgot-password-msg').textContent = '';
   modal.style.display = 'flex';
   document.body.style.overflow = 'hidden';
@@ -1961,6 +1987,7 @@ function closeForgotPasswordModal() {
 
 async function submitForgotPassword() {
   const phone = document.getElementById('forgot-password-phone')?.value.trim().replace(/\D/g, '');
+  const nuevoTelefono = document.getElementById('forgot-password-nuevo-tel')?.value.trim().replace(/\D/g, '') || '';
   const msgEl = document.getElementById('forgot-password-msg');
   const btn   = document.getElementById('forgot-password-submit-btn');
 
@@ -1968,10 +1995,14 @@ async function submitForgotPassword() {
     if (msgEl) { msgEl.textContent = 'Escribe un teléfono válido de 10 dígitos'; msgEl.style.color = '#ef4444'; }
     return;
   }
+  if (nuevoTelefono && nuevoTelefono.length !== 10) {
+    if (msgEl) { msgEl.textContent = 'El número nuevo debe tener 10 dígitos'; msgEl.style.color = '#ef4444'; }
+    return;
+  }
 
   if (btn) { btn.disabled = true; btn.textContent = 'Enviando...'; }
   try {
-    const res = await apiFetch({ action: 'solicitarResetPasswordVendedor', telefono: phone });
+    const res = await apiFetch({ action: 'solicitarResetPasswordVendedor', telefono: phone, nuevoTelefono });
     if (!res.ok) throw new Error(res.error || 'No se pudo enviar la solicitud');
     if (msgEl) {
       msgEl.style.color = '#16a34a';
@@ -2209,6 +2240,69 @@ msg.style.color = '#dc2626'; msg.textContent = 'Error de red.';
 btn.disabled = false; btn.textContent = 'Cambiar contraseña';
 }
 }
+
+async function solicitarCambioTelefono() {
+  const btn = document.getElementById('btn-solicitar-tel');
+  const msg = document.getElementById('settings-tel-msg');
+  const nuevoTelefono = document.getElementById('settings-tel-nuevo').value.trim().replace(/\D/g, '');
+  const password = document.getElementById('settings-tel-pwd').value;
+
+  msg.textContent = '';
+  if (!nuevoTelefono || nuevoTelefono.length !== 10) { msg.style.color = '#dc2626'; msg.textContent = 'Escribe un número válido de 10 dígitos.'; return; }
+  if (!password) { msg.style.color = '#dc2626'; msg.textContent = 'Escribe tu contraseña actual.'; return; }
+
+  btn.disabled = true; btn.textContent = 'Verificando...';
+  try {
+    let credential = '';
+    const paso = await apiCall({ action: 'webauthnPasoElevadoOpciones', vendorToken: vendorSession.token });
+    if (paso.ok && paso.activo) {
+      if (typeof window.webauthnSupported !== 'function' || !window.webauthnSupported()) {
+        msg.style.color = '#dc2626'; msg.textContent = 'Este dispositivo no soporta huella y tu cuenta la tiene activada.';
+        return;
+      }
+      btn.textContent = 'Confirma con tu huella...';
+      const cred = await window.webauthnStartAuthentication(paso.options);
+      credential = JSON.stringify(cred);
+    }
+
+    btn.textContent = 'Enviando...';
+    const res = await apiCall({ action: 'solicitarCambioTelefono', vendorToken: vendorSession.token, password, nuevoTelefono, credential });
+    if (!res.ok) { msg.style.color = '#dc2626'; msg.textContent = res.error || 'No se pudo enviar la solicitud.'; return; }
+
+    vendorSession.telefonoPendiente = nuevoTelefono;
+    try { localStorage.setItem('vendor_session', JSON.stringify(vendorSession)); } catch(e) {}
+    msg.style.color = '#16a34a';
+    msg.textContent = 'Solicitud enviada, espera la aprobación del administrador.';
+    document.getElementById('settings-tel-pwd').value = '';
+  } catch (err) {
+    if (err && err.name === 'NotAllowedError') { msg.style.color = '#dc2626'; msg.textContent = 'Verificación de huella cancelada.'; }
+    else { msg.style.color = '#dc2626'; msg.textContent = err.message || 'Error de red.'; }
+  } finally {
+    btn.disabled = false; btn.textContent = 'Solicitar cambio de número';
+  }
+}
+
+async function cerrarSesionesRemotas() {
+  const btn = document.getElementById('btn-cerrar-sesiones-remotas');
+  const msg = document.getElementById('settings-sesiones-msg');
+  msg.textContent = '';
+  btn.disabled = true; btn.textContent = 'Cerrando...';
+  try {
+    const res = await apiCall({ action: 'cerrarSesionesRemotas', vendorToken: vendorSession.token });
+    if (!res.ok) { msg.style.color = '#dc2626'; msg.textContent = res.error || 'No se pudo cerrar sesión en otros dispositivos.'; return; }
+    vendorSession.token = res.token;
+    try { localStorage.setItem('vendor_session', JSON.stringify(vendorSession)); } catch(e) {}
+    msg.style.color = '#16a34a';
+    msg.textContent = 'Listo, los demás dispositivos quedaron sin sesión.';
+  } catch (err) {
+    msg.style.color = '#dc2626'; msg.textContent = 'Error de red.';
+  } finally {
+    btn.disabled = false; btn.textContent = 'Cerrar sesión en otros dispositivos';
+  }
+}
+
+window.solicitarCambioTelefono = function() { solicitarCambioTelefono(); };
+window.cerrarSesionesRemotas   = function() { cerrarSesionesRemotas(); };
 
 async function cargarSeccionHuella() {
   const wrap = document.getElementById('settings-webauthn');
