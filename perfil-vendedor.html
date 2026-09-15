@@ -44,6 +44,41 @@
       background: var(--page-bg-linear);
       min-height: 100vh;
       padding-bottom: 80px;
+      perspective: 1400px; /* necesario para que el volteo 3D del perfil se vea con profundidad */
+    }
+    /* ── Animación de apertura al entrar por QR o NFC ──
+       #profile-container se queda invisible un instante (profile-pre-entrada)
+       y luego gira hacia el usuario, como si la página misma fuera una carta
+       o la portada de una revista abriéndose. Se activa desde renderProfile(). */
+    #profile-container.profile-pre-entrada {
+      opacity: 0;
+    }
+    #profile-container.entrar-carta {
+      transform-style: preserve-3d;
+      backface-visibility: hidden;
+      animation: znr-flip-carta .8s cubic-bezier(.3,.1,.2,1) forwards;
+    }
+    @keyframes znr-flip-carta {
+      0%   { transform: rotateY(-100deg) scale(.94); opacity: 0; }
+      45%  { opacity: 1; }
+      100% { transform: rotateY(0deg) scale(1); opacity: 1; }
+    }
+    #profile-container.entrar-revista {
+      transform-style: preserve-3d;
+      backface-visibility: hidden;
+      transform-origin: left center;
+      animation: znr-flip-revista .95s cubic-bezier(.22,.1,.2,1) forwards;
+    }
+    @keyframes znr-flip-revista {
+      0%   { transform: rotateY(-125deg); opacity: 0; box-shadow: -30px 6px 50px rgba(0,0,0,.35); }
+      60%  { opacity: 1; }
+      100% { transform: rotateY(0deg); opacity: 1; box-shadow: none; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      #profile-container.entrar-carta,
+      #profile-container.entrar-revista {
+        animation: none; opacity: 1; transform: none;
+      }
     }
     /* Wrap sin overflow:hidden: el avatar y el chip "volver" viven aquí,
        así nunca se recortan aunque se monten sobre el borde del header. */
@@ -851,6 +886,14 @@
         return params.get('vendedor') || params.get('uid');
       }
 
+      // Detecta si se llegó aquí escaneando el QR o tocando el NFC del
+      // vendedor, para reproducir la animación de apertura de página.
+      // Requiere que el link/QR/tag incluya ?src=qr o ?src=nfc.
+      function getOrigenEntrada() {
+        const origen = new URLSearchParams(window.location.search).get('src');
+        return (origen === 'qr' || origen === 'nfc') ? origen : null;
+      }
+
       // Mostrar loader
       function showLoader(text) {
         const loader = document.getElementById('global-loader');
@@ -999,6 +1042,11 @@
       function renderProfile(data) {
         const container = document.getElementById('profile-container');
         if (!container) return;
+
+        const origenEntrada = getOrigenEntrada();
+        if (origenEntrada) {
+          container.classList.add('profile-pre-entrada');
+        }
 
         const v = data.vendedor;
         const productos = data.productos || [];
@@ -1578,6 +1626,18 @@
         // Actualizar subtítulo del header
         const sub = document.getElementById('profile-subtitle');
         if (sub) sub.textContent = v.nombre || 'Vendedor';
+
+        // Si se entró por QR o NFC, voltear la página completa para revelar
+        // el perfil ya cargado. requestAnimationFrame asegura que el navegador
+        // pinte primero el estado invisible (profile-pre-entrada) antes de
+        // arrancar el giro, o si no a veces se salta la animación.
+        if (origenEntrada) {
+          const efecto = origenEntrada === 'qr' ? 'entrar-carta' : 'entrar-revista';
+          requestAnimationFrame(() => {
+            container.classList.remove('profile-pre-entrada');
+            container.classList.add(efecto);
+          });
+        }
 
         hideLoader();
       }
