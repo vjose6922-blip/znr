@@ -152,79 +152,6 @@ window.apiFetch = async function(data, method = 'POST') {
   return checkTokenInvalid(JSON.parse(text));
 };
 
-window.debugPanel = {
-  ensure() {
-    let box = document.getElementById('debug-panel-top');
-    if (box) return box;
-
-    box = document.createElement('div');
-    box.id = 'debug-panel-top';
-    box.style.cssText = `
-      position:fixed;
-      top:0;
-      left:0;
-      right:0;
-      z-index:2147483647;
-      background:#111;
-      color:#fff;
-      font:12px/1.45 monospace;
-      max-height:42vh;
-      overflow:auto;
-      box-shadow:0 8px 24px rgba(0,0,0,.35);
-      border-bottom:2px solid #f97316;
-    `;
-
-    box.innerHTML = `
-      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 10px;background:#1a1a1a;border-bottom:1px solid rgba(255,255,255,.12);position:sticky;top:0;">
-        <div style="font-weight:700;color:#f97316;">DEBUG PANEL</div>
-        <div style="display:flex;gap:8px;">
-          <button id="debug-panel-clear" style="border:none;border-radius:8px;padding:6px 10px;cursor:pointer;background:#333;color:#fff;">Limpiar</button>
-          <button id="debug-panel-close" style="border:none;border-radius:8px;padding:6px 10px;cursor:pointer;background:#ef4444;color:#fff;">Cerrar</button>
-        </div>
-      </div>
-      <div id="debug-panel-body" style="padding:10px;"></div>
-    `;
-
-    document.body.appendChild(box);
-
-    document.getElementById('debug-panel-clear').onclick = () => {
-      const body = document.getElementById('debug-panel-body');
-      if (body) body.innerHTML = '';
-    };
-    document.getElementById('debug-panel-close').onclick = () => box.remove();
-
-    return box;
-  },
-
-  log(title, value = '') {
-    const box = this.ensure();
-    const body = document.getElementById('debug-panel-body');
-    if (!body) return;
-
-    const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({
-      '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
-    }[c]));
-
-    const row = document.createElement('div');
-    row.style.cssText = `
-      border:1px solid rgba(255,255,255,.12);
-      border-radius:10px;
-      padding:8px 10px;
-      margin-bottom:8px;
-      background:rgba(255,255,255,.04);
-      white-space:pre-wrap;
-      word-break:break-word;
-    `;
-
-    row.innerHTML = `
-      <div style="color:#f97316;font-weight:700;margin-bottom:4px;">${esc(title)}</div>
-      <div>${esc(value)}</div>
-    `;
-
-    body.appendChild(row);
-    box.scrollTop = box.scrollHeight;
-  }
-};
 
 function injectStyles(id, css) {
 if (document.getElementById(id)) return;
@@ -2993,24 +2920,17 @@ if (prod.imagen1) {
   } else {
     const selEl = document.getElementById('donar-ben-select');
    const cargarBeneficiarios = async () => {
-  window.debugPanel.log('DEBUG 1', 'Entró a cargarBeneficiarios()');
-
   selEl.innerHTML = '<option value="">Cargando beneficiarios…</option>';
   try {
-    window.debugPanel.log('DEBUG 2', 'Antes de llamar apiFetch()');
-
 let benData = window.znrFirestore ? await window.znrFirestore.getBeneficiariosAprobados() : { ok:false };
     if (!benData.ok) benData = await window.apiFetch({ action:'obtenerBeneficiariosAprobados' }, 'GET');
-    window.debugPanel.log('DEBUG 3 - respuesta apiFetch', JSON.stringify(benData, null, 2));
 
     if (!benData.ok) {
-      window.debugPanel.log('DEBUG 4', 'benData.ok = false');
       selEl.innerHTML = '<option value="">' + Icon('error') + ' No se pudo cargar — toca para reintentar</option>';
       return;
     }
 
     const beneficiarios = benData.beneficiarios || [];
-    window.debugPanel.log('DEBUG 5 - cantidad beneficiarios', String(beneficiarios.length));
 
     if (beneficiarios.length === 0) {
       selEl.innerHTML = '<option value="">No hay beneficiarios aprobados aún</option>';
@@ -3020,10 +2940,8 @@ let benData = window.znrFirestore ? await window.znrFirestore.getBeneficiariosAp
         beneficiarios.map(b =>
           `<option value="${esc(b.id)}">${esc(b.nombre)}${b.organizacion ? ' — ' + esc(b.organizacion) : ''}</option>`
         ).join('');
-      window.debugPanel.log('DEBUG 6', 'Select llenado correctamente');
     }
   } catch (e) {
-    window.debugPanel.log('DEBUG ERROR', String(e && e.message ? e.message : e));
     selEl.innerHTML = '<option value="">' + Icon('error') + ' Error de conexión — toca para reintentar</option>';
   }
 };
@@ -3036,12 +2954,10 @@ let benData = window.znrFirestore ? await window.znrFirestore.getBeneficiariosAp
       btn.disabled = true; btn.textContent = 'Guardando…';
       try {
         const payload = { action:'asignarDonacion', producto_id: String(productoId), beneficiario_id: benId, vendor_token: vendorSession.token };
-        window.debugPanel && window.debugPanel.log('DEBUG PAYLOAD', JSON.stringify(payload));
         const data = await apiFetch(payload);
         if (data.ok) { showMsg('Donación asignada correctamente', true); window.invalidateVendorProductsCache(); loadMyProducts(true); setTimeout(() => modal.remove(), 1400); }
         else { showMsg((data.error||'Error'), false); btn.disabled = false; btn.innerHTML = Icon('heart-fill') + ' Asignar donación'; }
       } catch(e) {
-        window.debugPanel && window.debugPanel.log('DEBUG ERROR', e.message || String(e));
         showMsg('Error de conexión: ' + (e.message||''), false);
         btn.disabled = false; btn.innerHTML = Icon('heart-fill') + ' Asignar donación';
       }
