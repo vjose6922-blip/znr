@@ -5,30 +5,35 @@ return String(str)
 .replace(/&/g,'&amp;').replace(/</g,'&lt;')
 .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
-async function refreshOrderStatuses() {
-try {
-const orders = loadOrders();
-if (!orders.length) return;
-const toCheck = orders.filter(o => o.status === 'pendiente' || o.status === 'pending');
-if (!toCheck.length) return;
-const ids = toCheck.map(o => o.requestId);
-const res  = await fetch(`${API_URL}?action=checkRequestStatusBatch&requestIds=${encodeURIComponent(JSON.stringify(ids))}`);
-const data = await res.json();
-if (!data.ok || !data.statuses) return;
-const map = { pending:'pendiente', approved:'confirmado', cancelled:'cancelled', rejected:'rejected' };
-const all = loadOrders();
-let changed = false;
-toCheck.forEach(o => {
-const entry = data.statuses[o.requestId];
-if (!entry) return;
-const newStatus = map[entry.status] || entry.status;
-if (newStatus !== o.status) {
-  const idx = all.findIndex(x => x.requestId === o.requestId);
-  if (idx !== -1) { all[idx].status = newStatus; changed = true; }
-}
-});
-if (changed) saveOrders(all);
-} catch {}
+// Estado de paginación del historial de pedidos (Firestore, no localStorage
+// — así funciona igual sin importar en qué dispositivo haya iniciado el
+// comprador). Se reinicia cada vez que se abre la pestaña "Pedidos".
+let _pedidosCargados = [];
+let _pedidosCursor = null;
+let _pedidosHasMore = false;
+let _pedidosLoading = false;
+async function loadPedidosPage(reset = false) {
+  const phone = localStorage.getItem('client_phone') || '';
+  if (!phone) { _pedidosCargados = []; _pedidosHasMore = false; return; }
+  if (reset) { _pedidosCargados = []; _pedidosCursor = null; _pedidosHasMore = false; }
+  if (_pedidosLoading) return;
+  _pedidosLoading = true;
+  try {
+    const res = await fetch(window.TIENDA_ZNR_API_URL, {
+      method: 'POST',
+      body: JSON.stringify({ action: 'listarPedidosCliente', phone, cursor: _pedidosCursor, limit: 20 })
+    });
+    const data = await res.json();
+    if (data && data.ok) {
+      _pedidosCargados = _pedidosCargados.concat(data.pedidos || []);
+      _pedidosHasMore = !!data.hasMore;
+      _pedidosCursor = data.nextCursor || null;
+    }
+  } catch (_) {
+    // Sin conexión o error del servidor: se deja lo que ya estaba cargado.
+  } finally {
+    _pedidosLoading = false;
+  }
 }
 function currentTheme() {
 return localStorage.getItem('theme') || document.documentElement.getAttribute('data-theme') || 'dark';
@@ -42,7 +47,14 @@ updateThemeIcon(theme);
 window.dispatchEvent(new CustomEvent('themeChanged', { detail: { theme } }));
 }
 function renderOrders() {
-const orders = loadOrders();
+const orders = _pedidosCargados;
+if (!localStorage.getItem('client_phone')) return `
+<div class="up-empty-state">
+<div class="up-empty-icon"></div>
+<p>Aún no tienes pedidos registrados.<br>
+<small>Tus compras aparecerán aquí una vez que las solicites.</small>
+</p>
+</div>`;
 if (!orders.length) return `
 <div class="up-empty-state">
 <div class="up-empty-icon"></div>
@@ -50,7 +62,7 @@ if (!orders.length) return `
 <small>Tus compras aparecerán aquí una vez que las solicites.</small>
 </p>
 </div>`;
-return orders.map(o=>{
+const cardsHtml = orders.map(o=>{
 const date = new Date(o.timestamp||Date.now()).toLocaleDateString('es-MX',{day:'2-digit',month:'short',year:'numeric'});
 const items = (o.items||[]).map(i=>`
 <div class="up-order-item">
@@ -92,6 +104,10 @@ ${st.icon} ${st.label}
 ${actionBtn}
 </div>`;
 }).join('');
+const loadMoreHtml = _pedidosHasMore
+  ? `<button class="up-save-btn" id="up-load-more-orders-btn" style="background:rgba(255,255,255,.07);margin-top:6px;">Cargar más pedidos</button>`
+  : '';
+return cardsHtml + loadMoreHtml;
 }
 async function clientCancelOrder(requestId) {
   const phone = localStorage.getItem('client_phone') || '';
@@ -110,17 +126,17 @@ async function clientCancelOrder(requestId) {
       try {
         showLoader('Cancelando pedido...');
 
-        const orders = loadOrders();
-        const idx = orders.findIndex(o => o.requestId === requestId);
-        const prevStatus = idx !== -1 ? orders[idx].status : null;
-        if (idx !== -1) { orders[idx].status = 'cancelled'; saveOrders(orders); }
+        const idx = _pedidosCargados.findIndex(o => o.requestId === requestId);
+        const prevStatus = idx !== -1 ? _pedidosCargados[idx].status : null;
+        if (idx !== -1) { _pedidosCargados[idx].status = 'cancelled'; }
         const list = document.getElementById('up-orders-list');
         if (list) list.innerHTML = renderOrders();
         attachOrderCancelListeners();
+        attachLoadMoreListener();
 
         let gasOk = false;
         try {
-          const res = await fetch(API_URL, {
+          const res = await fetch(window.TIENDA_ZNR_API_URL, {
   method: 'POST',
   body: JSON.stringify({ action: 'clientCancelRequest', requestId, phone })
 });
@@ -143,11 +159,11 @@ async function clientCancelOrder(requestId) {
           } else if (data && data.ok && data.alreadyConfirmed) {
 
             if (idx !== -1 && prevStatus) {
-              const all = loadOrders();
-              const i2 = all.findIndex(o => o.requestId === requestId);
-              if (i2 !== -1) { all[i2].status = 'confirmado'; saveOrders(all); }
+              const i2 = _pedidosCargados.findIndex(o => o.requestId === requestId);
+              if (i2 !== -1) { _pedidosCargados[i2].status = 'confirmado'; }
               if (list) list.innerHTML = renderOrders();
               attachOrderCancelListeners();
+              attachLoadMoreListener();
             }
             hideLoader();
             showTemporaryMessage('Tu pedido ya fue confirmado. Usa el botón de WhatsApp para solicitar la cancelación al admin.', 'warning', 6000);
@@ -160,11 +176,11 @@ async function clientCancelOrder(requestId) {
         } catch (fetchErr) {
 
           if (idx !== -1 && prevStatus) {
-            const all = loadOrders();
-            const i2 = all.findIndex(o => o.requestId === requestId);
-            if (i2 !== -1) { all[i2].status = prevStatus; saveOrders(all); }
+            const i2 = _pedidosCargados.findIndex(o => o.requestId === requestId);
+            if (i2 !== -1) { _pedidosCargados[i2].status = prevStatus; }
             if (list) list.innerHTML = renderOrders();
             attachOrderCancelListeners();
+            attachLoadMoreListener();
           }
           hideLoader();
           showTemporaryMessage('Error al cancelar: ' + fetchErr.message, 'error');
@@ -189,13 +205,26 @@ function attachOrderCancelListeners() {
     });
   });
 }
+function attachLoadMoreListener() {
+  const btn = document.getElementById('up-load-more-orders-btn');
+  if (!btn) return;
+  btn.addEventListener('click', async () => {
+    btn.disabled = true;
+    btn.textContent = 'Cargando…';
+    await loadPedidosPage(false);
+    const list = document.getElementById('up-orders-list');
+    if (list) list.innerHTML = renderOrders();
+    attachOrderCancelListeners();
+    attachLoadMoreListener();
+  });
+}
 function buildPanel() {
 if (document.getElementById('up-panel')) return;
 const prefs = loadPrefs();
 const theme = currentTheme();
 const savedPhone = localStorage.getItem('client_phone')||'';
 const savedAddress = localStorage.getItem('client_address')||'';
-const layout = localStorage.getItem('products_layout')||'grid';
+const layout = localStorage.getItem('products_layout')||'list';
 const overlay = document.createElement('div');
 overlay.id = 'up-overlay';
 overlay.addEventListener('click', closePanel);
@@ -306,14 +335,9 @@ Para solicitar eliminación de datos en nuestros registros escríbenos a
 document.body.appendChild(overlay);
 document.body.appendChild(panel);
 attachPanelEvents(panel);
-
-if (typeof window.applyLayoutGlobal === 'function') {
-  window.applyLayoutGlobal(localStorage.getItem('products_layout') || 'grid');
-}
-
 requestAnimationFrame(()=>{
-  overlay.classList.add('visible');
-  panel.classList.add('visible');
+overlay.classList.add('visible');
+panel.classList.add('visible');
 });
 }
 // ── Notificaciones del dispositivo (tab Privacidad) ────────────────────────
@@ -339,11 +363,12 @@ if (tab.dataset.tab === 'pedidos') {
   const list = document.getElementById('up-orders-list');
   if (list) {
     list.innerHTML = `<p style="text-align:center;color:var(--color-text-muted);padding:20px;font-size:13px;">${Icon('clock')} Actualizando pedidos...</p>`;
-    refreshOrderStatuses()
+    loadPedidosPage(true)
       .catch(() => {})
       .finally(() => {
         list.innerHTML = renderOrders();
         attachOrderCancelListeners();
+        attachLoadMoreListener();
       });
   }
 }
@@ -351,6 +376,7 @@ if (tab.dataset.tab === 'pedidos') {
 });
 
 attachOrderCancelListeners();
+attachLoadMoreListener();
 const enableNotifBtn = panel.querySelector('#up-enable-notif-btn');
 if (enableNotifBtn) {
 enableNotifBtn.addEventListener('click', async () => {
@@ -522,11 +548,12 @@ function _buildAndActivateTab(tabName) {
       if (!list) return;
       list.innerHTML = `<p style="text-align:center;color:var(--color-text-muted);padding:20px;font-size:13px;">${Icon('clock')} Actualizando pedidos...</p>`;
 
-      refreshOrderStatuses()
+      loadPedidosPage(true)
         .catch(() => {})
         .finally(() => {
           list.innerHTML = renderOrders();
           attachOrderCancelListeners();
+          attachLoadMoreListener();
         });
     }
   });
