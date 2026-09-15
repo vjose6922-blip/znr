@@ -1964,6 +1964,10 @@ function closeSettingsModal() {
 const modal = document.getElementById('settings-modal');
 if (modal) modal.style.display = 'none';
 document.body.style.overflow = '';
+document.querySelectorAll('.settings-section-toggle.open').forEach(btn => {
+  btn.classList.remove('open');
+  if (btn.nextElementSibling) btn.nextElementSibling.style.display = 'none';
+});
 }
 
 document.getElementById('settings-modal')?.addEventListener('click', function(e) {
@@ -2901,8 +2905,15 @@ async function apiCall(data) {
 
 window.toggleSettingsSection = function(btn) {
   const body = btn.nextElementSibling;
-  const open = btn.classList.toggle('open');
-  body.style.display = open ? 'block' : 'none';
+  const willOpen = !btn.classList.contains('open');
+  document.querySelectorAll('.settings-section-toggle.open').forEach(other => {
+    if (other !== btn) {
+      other.classList.remove('open');
+      if (other.nextElementSibling) other.nextElementSibling.style.display = 'none';
+    }
+  });
+  btn.classList.toggle('open', willOpen);
+  body.style.display = willOpen ? 'block' : 'none';
 };
 
 window.openDonarProductosModal = async function(productoId) {
@@ -3194,7 +3205,9 @@ window.openEntregasLiveModal = async function() {
 
     lista.style.padding = '14px 20px 0';
     lista.style.textAlign = '';
-    lista.innerHTML = lives.map(l => {
+
+    const PAGE_SIZE = 10;
+    const renderLive = l => {
       const total = l.grupos.length;
       const entregados = l.grupos.filter(g => g.estado === 'entregado').length;
       const url = `entregas-live.html?id=${encodeURIComponent(l.liveId)}`;
@@ -3210,7 +3223,33 @@ window.openEntregasLiveModal = async function() {
           Ver / actualizar entregas ${Icon('arrow-right',{size:13})}
         </a>
       </div>`;
-    }).join('');
+    };
+
+    let mostrados = 0;
+    const pintarPagina = () => {
+      const siguienteLote = lives.slice(mostrados, mostrados + PAGE_SIZE);
+      const contenedor = document.createElement('div');
+      contenedor.innerHTML = siguienteLote.map(renderLive).join('');
+      lista.insertBefore(contenedor, document.getElementById('entregas-live-ver-mas')?.parentElement || null);
+      mostrados += siguienteLote.length;
+
+      const btnWrap = document.getElementById('entregas-live-ver-mas-wrap');
+      if (btnWrap) {
+        if (mostrados >= lives.length) btnWrap.remove();
+        else btnWrap.querySelector('span').textContent = `Ver más (${lives.length - mostrados} restantes)`;
+      }
+    };
+
+    lista.innerHTML = '';
+    if (lives.length > PAGE_SIZE) {
+      const btnWrap = document.createElement('div');
+      btnWrap.id = 'entregas-live-ver-mas-wrap';
+      btnWrap.style.cssText = 'padding:14px 0;text-align:center;';
+      btnWrap.innerHTML = `<button id="entregas-live-ver-mas" style="padding:9px 18px;border-radius:9px;border:1.5px solid #ddd;background:#fff;color:#555;font-size:.82rem;font-weight:700;cursor:pointer;"><span>Ver más</span></button>`;
+      lista.appendChild(btnWrap);
+      document.getElementById('entregas-live-ver-mas').onclick = pintarPagina;
+    }
+    pintarPagina();
   } catch (err) {
     lista.textContent = 'Error de conexión al cargar tus entregas.';
   }
