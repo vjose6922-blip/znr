@@ -438,6 +438,33 @@
       color: var(--color-accent-solid);
       margin-top: 4px;
     }
+    .profile-product-price-original {
+      font-size: 11px;
+      color: var(--color-text-soft);
+      text-decoration: line-through;
+      margin-top: 4px;
+    }
+    .profile-product-pct {
+      font-size: 10.5px;
+      font-weight: 800;
+      color: #22c55e;
+    }
+    .profile-product-entrega {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 10.5px;
+      font-weight: 600;
+      color: #16a34a;
+      margin-top: 2px;
+    }
+    .profile-product-entrega svg {
+      width: 12px;
+      height: 12px;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 2;
+    }
     .profile-product-talla {
       font-size: 11px;
       color: var(--color-text-soft);
@@ -1255,6 +1282,11 @@
           const categoria = p.categoria || '';
           const esConfiable = p.confiable === true || p.confiable === 'true';
           const esDonativo = p.donado === true || p.donado === 'TRUE' || p.donado === 'true';
+          const precioOriginal = Number(p.precio_original) || 0;
+          const tieneDescuento = precioOriginal > Number(p.precio || 0);
+          const pctDescuento = tieneDescuento ? Math.round((1 - p.precio / precioOriginal) * 100) : 0;
+          const calificaEntrega = montoMinimoEnvio !== null && Number(p.precio || 0) >= montoMinimoEnvio;
+          const entregaHtml = calificaEntrega ? `<div class="profile-product-entrega">${icoTruck} Entrega a domicilio</div>` : '';
           // Las primeras 6 cargan de inmediato; el resto usa lazy load via data-src
           const imgAttr = idx < 6
             ? `src="${esc(img)}" loading="lazy"`
@@ -1274,7 +1306,9 @@
               </div>
               <div class="profile-product-info">
                 <div class="profile-product-name" title="${esc(p.nombre)}">${esc(p.nombre)}</div>
-                <div class="profile-product-price">${formatCurrency(p.precio)}</div>
+                ${tieneDescuento ? `<div class="profile-product-price-original">${formatCurrency(precioOriginal)}</div>` : ''}
+                <div class="profile-product-price">${formatCurrency(p.precio)}${tieneDescuento ? ` <span class="profile-product-pct">-${pctDescuento}%</span>` : ''}</div>
+                ${entregaHtml}
                 ${talla ? `<div class="profile-product-talla">Info: ${esc(talla)}</div>` : ''}
                 ${stockLineHtml}
                 <div class="profile-product-actions">

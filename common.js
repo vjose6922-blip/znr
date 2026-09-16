@@ -987,9 +987,13 @@ const desc  = p.Descripcion || p.descripcion || '';
 const categoria = p.Categoria || p.categoria || '';
 const stock  = Number(p.Stock ?? p.stock ?? -1);
 const badge  = p.Badge  || p.badge  || '';
-const fmtPrecio = typeof formatCurrency === 'function'
-? formatCurrency(precio)
-: `$${Number(precio).toLocaleString()}`;
+const precioOriginal = Number(p.PrecioOriginal ?? p.precio_original ?? 0);
+const tieneDescuento = precioOriginal > Number(precio);
+const pctDescuento = tieneDescuento ? Math.round((1 - precio / precioOriginal) * 100) : 0;
+const montoMinEnvio = Number(p._montoMinimoEnvio ?? p.vendedor_monto_minimo_envio ?? 0);
+const califica_entrega = montoMinEnvio > 0 && Number(precio) >= montoMinEnvio;
+const fmt = v => typeof formatCurrency === 'function' ? formatCurrency(v) : `$${Number(v).toLocaleString()}`;
+const fmtPrecio = fmt(precio);
 const stockHtml = stock < 0 ? '' :
 stock === 0
 ? `<span class="im-info-stock out">Sin stock</span>`
@@ -997,7 +1001,10 @@ stock === 0
 const badgeHtml  = badge  ? `<span class="im-info-badge">${escapeHtml(badge)}</span>` : '';
 const catHtml  = categoria ? `<span class="im-info-cat">${escapeHtml(categoria)}</span>` : '';
 const tallaHtml  = talla  ? `<div class="im-info-talla">${p.vendedor_uid ? 'Info' : 'Talla'}: <strong>${escapeHtml(talla)}</strong></div>` : '';
-const descHtml  = desc  ? `<p class="im-info-desc">${escapeHtml(desc)}</p>` : '';
+const DESC_LIMIT = 140;
+const descLarga = desc.length > DESC_LIMIT;
+const descHtml  = desc ? `<p class="im-info-desc"${descLarga ? ' id="im-desc-text" data-full="' + escapeAttr(desc) + '" data-short="' + escapeAttr(desc.slice(0, DESC_LIMIT).trim() + '…') + '"' : ''}>${escapeHtml(descLarga ? desc.slice(0, DESC_LIMIT).trim() + '…' : desc)}</p>${descLarga ? '<button type="button" id="im-desc-toggle" class="im-desc-toggle">Ver más</button>' : ''}` : '';
+const entregaHtml = califica_entrega ? `<div class="im-info-entrega"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 3h15v13H1z"/><path d="M16 8h4l3 3v5h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg> Entrega a domicilio disponible</div>` : '';
 const sinStock = stock === 0;
 const buyBtnHtml = `
 <button class="im-buy-btn"${sinStock ? ' disabled' : ''} id="im-buy-btn">
@@ -1009,8 +1016,12 @@ el.style.display = '';
 el.innerHTML = `
 <div class="im-info-top">
 <div class="im-info-name">${escapeHtml(nombre)}</div>
-<div class="im-info-price">${fmtPrecio}</div>
+<div style="text-align:right;">
+${tieneDescuento ? `<div class="im-info-price-original">${fmt(precioOriginal)}</div>` : ''}
+<div class="im-info-price">${fmtPrecio}${tieneDescuento ? ` <span class="im-info-pct">-${pctDescuento}%</span>` : ''}</div>
 </div>
+</div>
+${entregaHtml}
 <div class="im-info-meta">
 ${catHtml}${badgeHtml}${stockHtml}
 </div>
@@ -1018,6 +1029,17 @@ ${tallaHtml}
 ${descHtml}
 ${buyBtnHtml}
 `;
+const descToggle = el.querySelector('#im-desc-toggle');
+if (descToggle) {
+descToggle.addEventListener('click', (e) => {
+e.stopPropagation();
+const textEl = el.querySelector('#im-desc-text');
+const expanded = descToggle.dataset.expanded === '1';
+textEl.textContent = expanded ? textEl.dataset.short : textEl.dataset.full;
+descToggle.textContent = expanded ? 'Ver más' : 'Ver menos';
+descToggle.dataset.expanded = expanded ? '0' : '1';
+});
+}
 const buyBtn = el.querySelector('#im-buy-btn');
 if (buyBtn && !sinStock) {
 buyBtn.addEventListener('click', (e) => {
@@ -1114,7 +1136,9 @@ function _renderMagazinePanel(modal) {
   const isComunidad = current && (current._comunidad === true);
   let rawPool;
   if (isComunidad) {
-    rawPool = window.allCommunityProductsIndexed || [];
+    rawPool = (window.communityRandomOrder && window.communityRandomOrder.length)
+      ? window.communityRandomOrder
+      : (window.allCommunityProductsIndexed || []);
   } else {
     rawPool = (typeof allProductsIndexed !== 'undefined' ? allProductsIndexed : []);
   }
@@ -1138,6 +1162,8 @@ function _renderMagazinePanel(modal) {
     _vendedorPlan: p.vendedor_plan || p._vendedorPlan || '',
     _donado: p.donado === true || p.donado === 'TRUE' || p.donado === 'true',
     _beneficiarioId: p.beneficiario_id || p._beneficiarioId || '',
+    _precioOriginal: p.precio_original || p.PrecioOriginal || 0,
+    _montoMinimoEnvio: p.vendedor_monto_minimo_envio || p._montoMinimoEnvio || 0,
   }));
   const currentId  = current ? String(current.ID || current.id || '') : '';
   const currentCat = current ? (current.Categoria || current.categoria || '') : '';
@@ -1200,6 +1226,8 @@ function _renderMagazinePanel(modal) {
       const safeVendPlan  = escapeAttr(p._vendedorPlan  || '');
       const safeDonado  = p._donado ? '1' : '0';
       const safeBenId  = escapeAttr(p._beneficiarioId || '');
+      const safePrecioOriginal = escapeAttr(String(p._precioOriginal || 0));
+      const safeMontoMinimo = escapeAttr(String(p._montoMinimoEnvio || 0));
       return `
         <button class="im-related-card"
           data-id="${safeId}"
@@ -1222,6 +1250,8 @@ function _renderMagazinePanel(modal) {
           data-vendedor-plan="${safeVendPlan}"
           data-donado="${safeDonado}"
           data-ben-id="${safeBenId}"
+          data-precio-original="${safePrecioOriginal}"
+          data-monto-minimo="${safeMontoMinimo}"
           aria-label="Ver ${safeName}">
           <div class="im-related-img-wrap">
             <img src="${safeImg}" alt="${safeName}" loading="lazy" />
@@ -1256,6 +1286,8 @@ function _renderMagazinePanel(modal) {
         _vendedorPlan: btn.dataset.vendedorPlan || '',
         _donado: btn.dataset.donado === '1',
         _beneficiarioId: btn.dataset.benId || '',
+        precio_original: Number(btn.dataset.precioOriginal || 0),
+        _montoMinimoEnvio: Number(btn.dataset.montoMinimo || 0),
       };
       _modalImages  = [img1, ...allImgs.filter(u => u && u !== img1)];
       _modalIndex  = 0;
@@ -1611,6 +1643,35 @@ function initImageModalControls() {
   gap: 6px;
   flex-wrap: wrap;
 }
+.im-info-price-original {
+  font-size: 12px;
+  color: rgba(255,255,255,.45);
+  text-decoration: line-through;
+  text-align: right;
+}
+.im-info-pct {
+  font-size: 11px;
+  font-weight: 800;
+  color: #22c55e;
+}
+.im-info-entrega {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #16a34a;
+}
+.im-desc-toggle {
+  background: none;
+  border: none;
+  color: #ff4f81;
+  font-size: 12.5px;
+  font-weight: 700;
+  padding: 0;
+  margin-top: -4px;
+  cursor: pointer;
+}
 .im-info-cat {
   background: rgba(255,255,255,.08);
   color: rgba(255,255,255,.7);
@@ -1757,6 +1818,7 @@ function initImageModalControls() {
 [data-theme="light"] .im-info-talla { color: #666; }
 [data-theme="light"] .im-info-talla strong { color: #222; }
 [data-theme="light"] .im-info-desc { color: #777; }
+[data-theme="light"] .im-info-price-original { color: rgba(0,0,0,.35); }
 [data-theme="light"] .im-buy-btn:disabled { background: rgba(0,0,0,.07); color: rgba(0,0,0,.35); }
 [data-theme="light"] .im-magazine-panel { background: #ffffff; border-top-color: rgba(0,0,0,.08); }
 [data-theme="light"] .im-related-card { color: #111318; border-right-color: rgba(0,0,0,.08); }
