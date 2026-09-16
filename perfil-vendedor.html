@@ -44,6 +44,8 @@
       background: var(--page-bg-linear);
       min-height: 100vh;
       padding-bottom: 80px;
+    }
+    .profile-perspective-wrap {
       perspective: 1400px; /* necesario para que el volteo 3D del perfil se vea con profundidad */
     }
     /* ── Animación de apertura al entrar por QR o NFC ──
@@ -792,6 +794,7 @@
     </div>
   </header>
 
+  <div class="profile-perspective-wrap">
   <main class="profile-container" id="profile-container">
     <!-- El contenido se inyectará aquí con JavaScript -->
     <div style="text-align:center; padding:60px 20px; color: var(--color-text-muted);">
@@ -799,6 +802,7 @@
       <p>Cargando perfil...</p>
     </div>
   </main>
+  </div>
 
 
 

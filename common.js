@@ -1027,8 +1027,18 @@ ${catHtml}${badgeHtml}${stockHtml}
 </div>
 ${tallaHtml}
 ${descHtml}
-${buyBtnHtml}
 `;
+const buySlot = modal.querySelector('#im-buy-slot');
+if (buySlot) {
+buySlot.innerHTML = buyBtnHtml;
+const buyBtn = buySlot.querySelector('#im-buy-btn');
+if (buyBtn && !sinStock) {
+buyBtn.addEventListener('click', (e) => {
+e.stopPropagation();
+_handleModalBuyClick(p);
+});
+}
+}
 const descToggle = el.querySelector('#im-desc-toggle');
 if (descToggle) {
 descToggle.addEventListener('click', (e) => {
@@ -1038,13 +1048,6 @@ const expanded = descToggle.dataset.expanded === '1';
 textEl.textContent = expanded ? textEl.dataset.short : textEl.dataset.full;
 descToggle.textContent = expanded ? 'Ver más' : 'Ver menos';
 descToggle.dataset.expanded = expanded ? '0' : '1';
-});
-}
-const buyBtn = el.querySelector('#im-buy-btn');
-if (buyBtn && !sinStock) {
-buyBtn.addEventListener('click', (e) => {
-e.stopPropagation();
-_handleModalBuyClick(p);
 });
 }
 }
@@ -1368,6 +1371,7 @@ function initImageModalControls() {
         </div>
         <button class="im-next" aria-label="Siguiente">›</button>
         <div class="im-dots"></div>
+        <div class="im-buy-slot" id="im-buy-slot"></div>
       </div>
 
       <!-- Franja de detalles del producto -->
@@ -1715,27 +1719,32 @@ function initImageModalControls() {
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
+.im-buy-slot {
+  position: absolute;
+  right: 10px;
+  bottom: 10px;
+  z-index: 5;
+}
 .im-buy-btn {
+  display: flex;
   align-items: center;
   justify-content: center;
   gap: 6px;
-  width: auto;
-  margin: -40px 10px 0 auto;
-  padding: 8px;
+  padding: 10px 16px;
   font-size: 13px;
   font-weight: 800;
   color: #fff;
   background: linear-gradient(135deg,#ff4f81,#a855f7);
   border: none;
-  border-radius: 12px;
+  border-radius: 24px;
   cursor: pointer;
   transition: transform .15s ease, box-shadow .15s ease;
-  box-shadow: 0 6px 18px rgba(255,79,129,.25);
+  box-shadow: 0 6px 18px rgba(0,0,0,.4);
 }
-.im-buy-btn:hover { transform: translateY(-1px); box-shadow: 0 8px 22px rgba(255,79,129,.35); }
+.im-buy-btn:hover { transform: translateY(-1px); box-shadow: 0 8px 22px rgba(0,0,0,.5); }
 .im-buy-btn:active { transform: translateY(0); }
 .im-buy-btn:disabled {
-  background: rgba(255,255,255,.08);
+  background: rgba(20,20,20,.7);
   color: rgba(255,255,255,.4);
   cursor: not-allowed;
   box-shadow: none;
