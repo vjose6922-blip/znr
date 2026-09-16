@@ -718,6 +718,8 @@ function updateComunidadChips(filters) {
 }
 // ── Carrusel de ofertas: productos con precio_original > precio, top 10 por % de descuento ──
 function renderOfertasCarousel(products) {
+  const esc = window.escapeHtml || (s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])));
+  const fmtCurr = window.formatCurrency || (v => '$' + Number(v).toLocaleString('es-MX'));
   const wrap = document.getElementById('comunidad-ofertas-wrap');
   const track = document.getElementById('comunidad-ofertas-track');
   if (!wrap || !track) return;
