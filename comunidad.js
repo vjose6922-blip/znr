@@ -728,7 +728,37 @@ function renderOfertasCarousel(products) {
   if (!ofertas.length) { wrap.style.display = 'none'; return; }
   wrap.style.display = '';
   track.innerHTML = '';
-  ofertas.forEach(p => { const card = createCommunityCard(p); if (card) { card.style.minWidth = '180px'; card.style.maxWidth = '180px'; track.appendChild(card); } });
+  ofertas.forEach(p => {
+    const original = Number(p.precio_original) || 0;
+    const pct = original > 0 ? Math.round((1 - p.precio / original) * 100) : 0;
+    const img = (p.imagen1 && p.imagen1.trim()) ? p.imagen1 : 'placeholder.svg';
+    const mini = document.createElement('div');
+    mini.className = 'product-card';
+    mini.style.cssText = 'min-width:130px;max-width:130px;cursor:pointer;';
+    mini.innerHTML = `
+      <div style="width:100%;aspect-ratio:1;border-radius:10px;overflow:hidden;background:var(--color-surface-2,#f5f5f8);position:relative;">
+        <img src="${esc(img)}" alt="${esc(safeString(p.nombre))}" loading="lazy" style="width:100%;height:100%;object-fit:cover;" onerror="this.onerror=null;this.src='placeholder.svg'">
+        <span style="position:absolute;top:6px;left:6px;background:#ef4444;color:#fff;font-size:10px;font-weight:800;padding:2px 6px;border-radius:10px;">-${pct}%</span>
+      </div>
+      <div style="padding:6px 2px 0;">
+        <div style="font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(safeString(p.nombre))}</div>
+        <div style="font-size:11px;color:var(--color-text-muted,#888);text-decoration:line-through;">${fmtCurr(original)}</div>
+        <div style="font-size:15px;font-weight:800;">${fmtCurr(p.precio)}</div>
+      </div>`;
+    mini.onclick = () => {
+      if (!window.openImageModal) return;
+      const allImages = [p.imagen1, p.imagen2, p.imagen3].filter(Boolean);
+      window.openImageModal(img, p.id, allImages, {
+        ID: p.id, Nombre: p.nombre || '', Precio: p.precio || 0, Categoria: p.categoria || '',
+        Talla: p.talla || '', Descripcion: p.descripcion || '', Stock: p.stock !== undefined ? Number(p.stock) : -1,
+        Badge: p.badge || '', Imagen1: p.imagen1 || '', Imagen2: p.imagen2 || '', Imagen3: p.imagen3 || '',
+        _comunidad: true, _vendedorNombre: p.vendedor_nombre || '', _vendedorUid: p.vendedor_uid || '',
+        _vendedorTel: p.vendedor_tel || '', _vendedorLogo: p.vendedor_logo || '', _vendedorPlan: p.vendedor_plan || '',
+        _donado: !!p.donado, _beneficiarioId: p.beneficiario_id || '',
+      });
+    };
+    track.appendChild(mini);
+  });
   initLazyImages();
 }
 
@@ -972,12 +1002,10 @@ ${(inspectorMode && !product.es_znr) ? `<span style="position:absolute;top:8px;r
 style="width:100%;height:100%;object-fit:contain;display:block;background:var(--color-surface-2,#f5f5f8);" onerror="this.onerror=null;this.src='placeholder.svg'">
 </div>
 <div class="product-info" style="padding:12px;">
+${tieneDescuento ? `<div style="text-align:right;font-size:11px;color:var(--color-text-muted,#888);text-decoration:line-through;">${fmtCurr(precioOriginal)}</div>` : ''}
 <div class="product-title-row">
 <h3 class="product-name" style="font-size:14px;" title="${esc(safeString(product.nombre))}">${esc(safeString(product.nombre))}</h3>
-<div style="text-align:right;">
-${tieneDescuento ? `<div style="font-size:11px;color:var(--color-text-muted,#888);text-decoration:line-through;">${fmtCurr(precioOriginal)}</div>` : ''}
 <div class="product-price" style="font-size:16px;">${fmtCurr(product.precio)}${tieneDescuento ? ` <span style="font-size:10px;font-weight:800;color:#22c55e;">-${pctDescuento}%</span>` : ''}</div>
-</div>
 </div>
 ${califica_entrega ? `<div style="display:flex;align-items:center;gap:4px;font-size:10.5px;color:#16a34a;font-weight:600;margin-top:2px;"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 3h15v13H1z"/><path d="M16 8h4l3 3v5h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg> Entrega a domicilio disponible</div>` : ''}
 ${vendorName ? `<div style="font-size:11px;color:var(--color-text-muted,#888);margin-top:2px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:4px;">
