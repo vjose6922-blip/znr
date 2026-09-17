@@ -2167,10 +2167,10 @@ window.ajustarDiasPlus = async function(uid, nombre, diasActuales) {
   if (!api) { if (window.showTemporaryMessage) window.showTemporaryMessage('API no disponible', 'error'); return; }
   if (!token) { if (window.showTemporaryMessage) window.showTemporaryMessage('Token no encontrado. Re-inicia sesión.', 'error'); return; }
 
-  const input = prompt(`Nuevo total de días de Plus para "${nombre}" contados desde hoy (actualmente le quedan ${diasActuales}):`, String(diasActuales));
+  const input = prompt(`"${nombre}" tiene ${diasActuales} días de Plus restantes.\n¿Cuántos días quieres agregar? (usa un número negativo para restar, ej. -5)`, '30');
   if (input === null) return; // cancelado
-  const parsed = parseInt(input, 10);
-  if (!Number.isFinite(parsed) || parsed <= 0) {
+  const delta = parseInt(input, 10);
+  if (!Number.isFinite(delta) || delta === 0) {
     if (window.showTemporaryMessage) window.showTemporaryMessage('Número de días inválido.', 'error');
     else alert('Número de días inválido.');
     return;
@@ -2179,10 +2179,9 @@ window.ajustarDiasPlus = async function(uid, nombre, diasActuales) {
   try {
     if (window.showLoader) window.showLoader('Ajustando días de Plus...');
     const params = new URLSearchParams();
-    params.append('action', 'marcarVendedorPlan');
+    params.append('action', 'ajustarDiasPlanPlus');
     params.append('uid', uid);
-    params.append('plan', 'plus');
-    params.append('dias', String(parsed));
+    params.append('dias', String(delta));
     params.append('token', token);
 
     const res = await fetch(api, {
@@ -2193,7 +2192,9 @@ window.ajustarDiasPlus = async function(uid, nombre, diasActuales) {
     const data = await res.json();
     if (!data.ok) throw new Error(data.error || 'Error del servidor');
 
-    const mensaje = `Plan Plus de ${nombre} ajustado a ${parsed} días desde hoy`;
+    const mensaje = data.plan === 'plus'
+      ? `Plan Plus de ${nombre} ${delta > 0 ? 'extendido' : 'acortado'} (${delta > 0 ? '+' : ''}${delta} días).`
+      : `El ajuste dejó el plan de ${nombre} vencido — volvió a Free.`;
     if (window.showTemporaryMessage) window.showTemporaryMessage(mensaje, 'success');
     else alert(mensaje);
 
