@@ -33,21 +33,25 @@ function setComunidadCache(products) {
 }
 
 const CATEGORIAS_VISTAS_KEY = 'zr_categorias_vistas';
+const MAX_CATEGORIAS_VISTAS = 10;
 function registrarCategoriaVista(categoria) {
   if (!categoria) return;
   try {
-    const hist = JSON.parse(localStorage.getItem(CATEGORIAS_VISTAS_KEY) || '{}');
-    hist[categoria] = (hist[categoria] || 0) + 1;
+    let hist = JSON.parse(localStorage.getItem(CATEGORIAS_VISTAS_KEY) || '[]');
+    if (!Array.isArray(hist)) hist = []; // formato viejo (contador) — se descarta
+    hist.push(categoria);
+    if (hist.length > MAX_CATEGORIAS_VISTAS) hist = hist.slice(-MAX_CATEGORIAS_VISTAS);
     localStorage.setItem(CATEGORIAS_VISTAS_KEY, JSON.stringify(hist));
   } catch (e) {}
 }
-function obtenerCategoriaPreferida() {
+function obtenerCategoriasPreferidas() {
   try {
-    const hist = JSON.parse(localStorage.getItem(CATEGORIAS_VISTAS_KEY) || '{}');
-    const entries = Object.entries(hist);
-    if (!entries.length) return null;
-    return entries.sort((a, b) => b[1] - a[1])[0][0];
-  } catch (e) { return null; }
+    const hist = JSON.parse(localStorage.getItem(CATEGORIAS_VISTAS_KEY) || '[]');
+    if (!Array.isArray(hist) || !hist.length) return [];
+    const conteo = {};
+    hist.forEach(c => { conteo[c] = (conteo[c] || 0) + 1; });
+    return Object.entries(conteo).sort((a, b) => b[1] - a[1]).map(e => e[0]);
+  } catch (e) { return []; }
 }
 function abrirDetalleComunidad(img, id, images, productData) {
   registrarCategoriaVista(productData && productData.Categoria);
@@ -776,6 +780,23 @@ function crearMiniCardComunidad(p, badgeHtml) {
   return mini;
 }
 
+// ── Auto-scroll suave para carruseles horizontales; se pausa unos segundos si el usuario interactúa ──
+function iniciarAutoScrollCarrusel(track) {
+  if (!track || track.dataset.autoScroll === '1') return;
+  track.dataset.autoScroll = '1';
+  let pausadoHasta = 0;
+  const pausar = () => { pausadoHasta = Date.now() + 3000; };
+  track.addEventListener('pointerdown', pausar, { passive: true });
+  track.addEventListener('wheel', pausar, { passive: true });
+  setInterval(() => {
+    if (Date.now() < pausadoHasta) return;
+    const maxScroll = track.scrollWidth - track.clientWidth;
+    if (maxScroll <= 1) return;
+    track.scrollLeft += 0.6;
+    if (track.scrollLeft >= maxScroll) track.scrollLeft = 0;
+  }, 30);
+}
+
 function renderOfertasCarousel(products) {
   const wrap = document.getElementById('comunidad-ofertas-wrap');
   const track = document.getElementById('comunidad-ofertas-track');
@@ -793,6 +814,7 @@ function renderOfertasCarousel(products) {
     track.appendChild(crearMiniCardComunidad(p, badge));
   });
   initLazyImages();
+  iniciarAutoScrollCarrusel(track);
 }
 
 // ── Recomendado para ti: según la categoría más vista por este dispositivo; sin historial, cae a vendedores Plus ──
@@ -800,23 +822,26 @@ function renderRecomendadoParaTi(products) {
   const wrap = document.getElementById('comunidad-recomendado-wrap');
   const track = document.getElementById('comunidad-recomendado-track');
   if (!wrap || !track) return;
-  const categoriaPreferida = obtenerCategoriaPreferida();
-  let recomendados;
-  let titulo;
-  if (categoriaPreferida) {
-    recomendados = (products || []).filter(p => p.categoria === categoriaPreferida).slice(0, 10);
-    titulo = `Más de ${categoriaPreferida}`;
+  const categorias = obtenerCategoriasPreferidas();
+  let recomendados = [];
+  if (categorias.length) {
+    // Un balde por categoría preferida (más vista primero), barajado internamente
+    const baldes = categorias.map(cat => shuffleArray((products || []).filter(p => p.categoria === cat)));
+    let i = 0;
+    while (recomendados.length < 10 && baldes.some(b => b.length)) {
+      const balde = baldes[i % baldes.length];
+      if (balde.length) recomendados.push(balde.shift());
+      i++;
+    }
   } else {
     recomendados = (products || []).filter(p => p.vendedor_plan === 'plus').slice(0, 10);
-    titulo = 'Recomendado para ti';
   }
   if (!recomendados.length) { wrap.style.display = 'none'; return; }
   wrap.style.display = '';
-  const h2 = wrap.querySelector('h2');
-  if (h2) h2.textContent = `✨ ${titulo}`;
   track.innerHTML = '';
   recomendados.forEach(p => track.appendChild(crearMiniCardComunidad(p, '')));
   initLazyImages();
+  iniciarAutoScrollCarrusel(track);
 }
 
 function renderProducts() {
