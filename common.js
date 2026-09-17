@@ -557,13 +557,13 @@ function optimizeDriveUrl(url, size = 400) {
 
   const lh3Match = url.match(/lh3\.googleusercontent\.com\/d\/([-\w]{25,})/);
   if (lh3Match) {
-    return `https://lh3.googleusercontent.com/d/${lh3Match[1]}=w${actualSize}-h${actualSize}-rw`;
+    return `https://lh3.googleusercontent.com/d/${lh3Match[1]}=w${actualSize}`;
   }
 
   const match = url.match(/[-\w]{25,}/);
   if (match) {
     const id = match[0];
-    return `https://lh3.googleusercontent.com/d/${id}=w${actualSize}-h${actualSize}-rw`;
+    return `https://lh3.googleusercontent.com/d/${id}=w${actualSize}`;
   }
 
   return url;
