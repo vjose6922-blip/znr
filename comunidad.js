@@ -1057,8 +1057,14 @@ const card = document.createElement('div');
 card.className = 'product-card';
 card.id = `producto-${product.id}`;
 card.setAttribute('data-id', product.id);
-const imgUrl  = product.imagen1 ? optUrl(product.imagen1, 400) : 'https://placehold.co/400x400/3b1f5f/white?text=Sin+Imagen';
-const allImages = [product.imagen1, product.imagen2, product.imagen3].filter(Boolean).map(u => optUrl(u, 800));
+const driveThumb = (url, size) => {
+  if (!url) return '';
+  const m = String(url).match(/[-\w]{25,}/);
+  if (!m) return url;
+  return `https://drive.google.com/thumbnail?id=${m[0]}&sz=w${size || 400}`;
+};
+const imgUrl  = product.imagen1 ? driveThumb(product.imagen1, 400) : 'https://placehold.co/400x400/3b1f5f/white?text=Sin+Imagen';
+const allImages = [product.imagen1, product.imagen2, product.imagen3].filter(Boolean).map(u => driveThumb(u, 800));
 const stockNum  = Number(product.stock) || 0;
 const hasStock  = stockNum > 0;
 const esDonativo = product.donado === true || product.donado === 'TRUE' || product.donado === 'true';
