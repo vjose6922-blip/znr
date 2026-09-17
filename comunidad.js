@@ -756,7 +756,7 @@ function crearMiniCardComunidad(p, badgeHtml) {
   mini.style.cssText = 'min-width:130px;max-width:130px;cursor:pointer;';
   mini.innerHTML = `
     <div style="width:100%;aspect-ratio:1;border-radius:10px;overflow:hidden;background:var(--color-surface-2,#f5f5f8);position:relative;">
-      <img src="${esc(img)}" alt="${esc(safeString(p.nombre))}" loading="lazy" style="width:100%;height:100%;object-fit:cover;" onerror="this.onerror=null;this.src='placeholder.svg'">
+      <img src="${esc(img)}" alt="${esc(safeString(p.nombre))}" loading="lazy" style="width:100%;height:100%;object-fit:contain;display:block;background:var(--color-surface-2,#f5f5f8);" onerror="this.onerror=null;this.src='placeholder.svg'">
       ${badgeHtml || ''}
     </div>
     <div style="padding:6px 2px 0;">
