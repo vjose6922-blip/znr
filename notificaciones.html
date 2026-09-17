@@ -517,7 +517,7 @@ if (section === 'beneficiarios' && typeof loadSolicitudesBeneficiario === 'funct
 
  window.addEventListener('DOMContentLoaded', () => {
  const hash = window.location.hash.replace('#','');
- if (['vendors','pending','reportes','reportes_live','plus'].includes(hash)) {
+ if (['solicitudes','vendors','pending','reportes','reportes_live','plus','beneficiarios'].includes(hash)) {
  const btn = document.querySelector(`.notif-tab[data-section="${hash}"]`);
  if (btn) switchNotifTab(hash, btn);
  }

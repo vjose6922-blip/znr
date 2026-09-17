@@ -848,6 +848,11 @@
  <span class="amc-label">Reportes de comunidad</span>
  <span class="amc-badge" id="notif-panel-reportes-count">—</span>
  </a>
+ <a href="notificaciones.html#reportes_live" class="admin-mini-card" id="npi-reportes-live">
+ <span class="amc-icon"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" aria-hidden="true"><use href="#ic-tv"/></svg></span>
+ <span class="amc-label">Reportes Live</span>
+ <span class="amc-badge" id="notif-panel-reportes-live-count">—</span>
+ </a>
  <a href="notificaciones.html#plus" class="admin-mini-card" id="npi-plus">
  <span class="amc-icon"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" aria-hidden="true"><use href="#ic-star"/></svg></span>
  <span class="amc-label">Solicitudes Plan Plus</span>
@@ -1929,7 +1934,21 @@ window.openVendorStatsGlobal = async function() {
       <div style="background:#fff;border-radius:22px;padding:28px;max-width:500px;width:93%;max-height:85vh;overflow-y:auto;position:relative;box-shadow:0 24px 64px rgba(0,0,0,.3);">
         <button onclick="document.getElementById('global-vendor-stats-modal').style.display='none'" style="position:absolute;top:14px;right:14px;background:#f0f0f5;border:none;width:36px;height:36px;border-radius:50%;font-size:17px;cursor:pointer;color:#666;">${Icon('x')}</button>
         <h3 style="margin:0 0 18px;font-size:19px;">${Icon('stats')} Estadísticas de Vendedores</h3>
-        <div id="gvs-summary" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:20px;"></div>
+        <div id="gvs-summary" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:16px;"></div>
+        <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;">
+          <input id="gvs-search" type="text" placeholder="Buscar por nombre o teléfono..." style="flex:2;min-width:160px;padding:9px 12px;border-radius:10px;border:1px solid #ddd;font-size:13px;">
+          <select id="gvs-filter-estado" style="flex:1;min-width:110px;padding:9px 8px;border-radius:10px;border:1px solid #ddd;font-size:13px;">
+            <option value="">Todos los estados</option>
+            <option value="activo">Activos</option>
+            <option value="pendiente">Pendientes</option>
+            <option value="suspendido">Suspendidos/Rechazados</option>
+          </select>
+          <select id="gvs-filter-plan" style="flex:1;min-width:90px;padding:9px 8px;border-radius:10px;border:1px solid #ddd;font-size:13px;">
+            <option value="">Free y Plus</option>
+            <option value="plus">Solo Plus</option>
+            <option value="free">Solo Free</option>
+          </select>
+        </div>
         <div id="gvs-list"></div>
       </div>`;
     document.body.appendChild(modal);
@@ -1961,9 +1980,55 @@ window.openVendorStatsGlobal = async function() {
         <div style="font-size:24px;font-weight:800;color:#c62828;">${suspendidos}</div>
         <div style="font-size:11px;color:#555;text-transform:uppercase;">Suspendidos</div>
       </div>`;
-    const listEl = document.getElementById('gvs-list');
-    if (!vendors.length) { listEl.innerHTML = '<p style="color:#aaa;text-align:center;">Sin vendedores</p>'; return; }
-    listEl.innerHTML = vendors.map(v => {
+
+    // Guardamos los datos crudos para poder re-filtrar sin volver a pedirlos.
+    window._gvsData = { vendors, products };
+
+    const searchEl = document.getElementById('gvs-search');
+    const estadoEl = document.getElementById('gvs-filter-estado');
+    const planEl   = document.getElementById('gvs-filter-plan');
+    searchEl.oninput = () => window._renderVendorStatsList();
+    estadoEl.onchange = () => window._renderVendorStatsList();
+    planEl.onchange   = () => window._renderVendorStatsList();
+
+    window._renderVendorStatsList();
+  } catch(e) {
+    document.getElementById('gvs-summary').innerHTML = `<p style="color:#ef4444;grid-column:span 3;">Error: ${escapeHtml(e.message)}</p>`;
+  }
+};
+
+window._renderVendorStatsList = function() {
+  const { vendors, products } = window._gvsData || { vendors: [], products: [] };
+  const listEl = document.getElementById('gvs-list');
+  if (!listEl) return;
+  if (!vendors.length) { listEl.innerHTML = '<p style="color:#aaa;text-align:center;">Sin vendedores</p>'; return; }
+
+  const q = (document.getElementById('gvs-search')?.value || '').trim().toLowerCase();
+  const filtroEstado = document.getElementById('gvs-filter-estado')?.value || '';
+  const filtroPlan   = document.getElementById('gvs-filter-plan')?.value || '';
+
+  const filtrados = vendors.filter(v => {
+    if (q) {
+      const nombre = String(v.nombre||'').toLowerCase();
+      const tel    = String(v.telefono||'').toLowerCase();
+      if (!nombre.includes(q) && !tel.includes(q)) return false;
+    }
+    if (filtroEstado) {
+      if (filtroEstado === 'suspendido') {
+        if (v.estado !== 'suspendido' && v.estado !== 'rechazado') return false;
+      } else if (v.estado !== filtroEstado) return false;
+    }
+    if (filtroPlan) {
+      const esPlus = v.plan === 'plus';
+      if (filtroPlan === 'plus' && !esPlus) return false;
+      if (filtroPlan === 'free' && esPlus) return false;
+    }
+    return true;
+  });
+
+  if (!filtrados.length) { listEl.innerHTML = '<p style="color:#aaa;text-align:center;padding:16px 0;">Ningún vendedor coincide con el filtro.</p>'; return; }
+
+  listEl.innerHTML = filtrados.map(v => {
       const myProds = products.filter(p=>p.vendedor_uid===v.uid);
       const aprobados = myProds.filter(p=>p.estado==='aprobado').length;
       const pendProd  = myProds.filter(p=>p.estado==='pendiente').length;
@@ -1990,6 +2055,7 @@ window.openVendorStatsGlobal = async function() {
         </div>
         <div style="display:flex;gap:6px;flex-shrink:0;flex-wrap:wrap;justify-content:flex-end;">
           <button class="btn-toggle-plan" data-uid="${v.uid}" data-plan="${v.plan||'free'}" data-nombre="${escapeHtml(v.nombre||'')}" style="background:${esPlus?'#f3e8ff':'#ede9fe'};color:#7c3aed;border:none;border-radius:10px;padding:6px 10px;font-size:11px;font-weight:700;cursor:pointer;">${esPlus?'Quitar Plus':'Activar Plus'}</button>
+          ${esPlus ? `<button class="btn-adjust-plan" data-uid="${v.uid}" data-nombre="${escapeHtml(v.nombre||'')}" data-dias="${diasRestantes != null ? diasRestantes : 0}" style="background:#ede9fe;color:#7c3aed;border:none;border-radius:10px;padding:6px 10px;font-size:11px;font-weight:700;cursor:pointer;">Ajustar días</button>` : ''}
           ${v.estado==='activo' && typeof AdminComunidad!=='undefined' ? `<button onclick="AdminComunidad.suspenderVendedor('${v.uid}','${escapeHtml(v.nombre)}')" class="btn-suspend" style="background:var(--color-surface-3);border:1px solid var(--color-border-subtle);color:var(--color-text-muted);border-radius:10px;padding:6px 10px;font-size:11px;font-weight:600;cursor:pointer;">${Icon('suspend',{size:14})}</button>` : ''}
           <button onclick="window.eliminarCuentaVendedorAdmin('${v.uid}','${escapeHtml(v.nombre)}')" class="btn-delete-account" title="Eliminar cuenta por completo" style="background:#fef2f2;border:1px solid #fecaca;color:#dc2626;border-radius:10px;padding:6px 10px;font-size:11px;font-weight:700;cursor:pointer;">${Icon('trash',{size:14})}</button>
         </div>
@@ -2005,9 +2071,15 @@ window.openVendorStatsGlobal = async function() {
         window.togglePlanVendedor(uid, nombre, currentPlan);
       });
     });
-  } catch(e) {
-    document.getElementById('gvs-summary').innerHTML = `<p style="color:#ef4444;grid-column:span 3;">Error: ${escapeHtml(e.message)}</p>`;
-  }
+    listEl.querySelectorAll('.btn-adjust-plan').forEach(btn => {
+      btn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        const uid = this.dataset.uid;
+        const nombre = this.dataset.nombre;
+        const diasActuales = Number(this.dataset.dias) || 0;
+        window.ajustarDiasPlus(uid, nombre, diasActuales);
+      });
+    });
 };
 
 window.togglePlanVendedor = async function(uid, nombre, currentPlan) {
@@ -2027,7 +2099,15 @@ window.togglePlanVendedor = async function(uid, nombre, currentPlan) {
   let dias = 20;
 
   if (nuevoPlan === 'plus') {
-
+    const input = prompt(`¿Por cuántos días activar el plan Plus para "${nombre}"?`, '30');
+    if (input === null) return; // cancelado
+    const parsed = parseInt(input, 10);
+    if (!Number.isFinite(parsed) || parsed <= 0) {
+      if (window.showTemporaryMessage) window.showTemporaryMessage('Número de días inválido.', 'error');
+      else alert('Número de días inválido.');
+      return;
+    }
+    dias = parsed;
   } else {
 
     if (!confirm(`¿Quitar el plan Plus a "${nombre}"? Se ocultarán productos si excede el límite.`)) {
@@ -2069,11 +2149,54 @@ window.togglePlanVendedor = async function(uid, nombre, currentPlan) {
   }
 };
 
-window.eliminarCuentaVendedorAdmin = async function(uid, nombre) {
+window.ajustarDiasPlus = async function(uid, nombre, diasActuales) {
   const token = sessionStorage.getItem('admin_token') || '';
   const api   = "https://vendedores-api-1038143238323.us-central1.run.app";
 
-  if (!api)   { if (window.showTemporaryMessage) window.showTemporaryMessage('API no disponible', 'error'); return; }
+  if (!api) { if (window.showTemporaryMessage) window.showTemporaryMessage('API no disponible', 'error'); return; }
+  if (!token) { if (window.showTemporaryMessage) window.showTemporaryMessage('Token no encontrado. Re-inicia sesión.', 'error'); return; }
+
+  const input = prompt(`Nuevo total de días de Plus para "${nombre}" contados desde hoy (actualmente le quedan ${diasActuales}):`, String(diasActuales));
+  if (input === null) return; // cancelado
+  const parsed = parseInt(input, 10);
+  if (!Number.isFinite(parsed) || parsed <= 0) {
+    if (window.showTemporaryMessage) window.showTemporaryMessage('Número de días inválido.', 'error');
+    else alert('Número de días inválido.');
+    return;
+  }
+
+  try {
+    if (window.showLoader) window.showLoader('Ajustando días de Plus...');
+    const params = new URLSearchParams();
+    params.append('action', 'marcarVendedorPlan');
+    params.append('uid', uid);
+    params.append('plan', 'plus');
+    params.append('dias', String(parsed));
+    params.append('token', token);
+
+    const res = await fetch(api, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: params.toString()
+    });
+    const data = await res.json();
+    if (!data.ok) throw new Error(data.error || 'Error del servidor');
+
+    const mensaje = `Plan Plus de ${nombre} ajustado a ${parsed} días desde hoy`;
+    if (window.showTemporaryMessage) window.showTemporaryMessage(mensaje, 'success');
+    else alert(mensaje);
+
+    window.openVendorStatsGlobal();
+  } catch (err) {
+    if (window.showTemporaryMessage) window.showTemporaryMessage(err.message, 'error');
+    else alert('Error: ' + err.message);
+  } finally {
+    if (window.hideLoader) window.hideLoader();
+  }
+};
+
+window.eliminarCuentaVendedorAdmin = async function(uid, nombre) {
+  const token = sessionStorage.getItem('admin_token') || '';
   if (!token) { if (window.showTemporaryMessage) window.showTemporaryMessage('Token no encontrado. Re-inicia sesión.', 'error'); return; }
 
   if (!confirm(`Esto borrará TODO de "${nombre}": productos, sesiones en vivo, entregas y su cuenta. Es irreversible. ¿Continuar?`)) return;

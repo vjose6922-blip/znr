@@ -764,6 +764,8 @@ window.loadBeneficiarios = async function(force) {
     const data  = await res.json();
     if (!data.ok) { list.innerHTML = `<p style="color:#ef4444;text-align:center;padding:16px;">Error: ${data.error}</p>`; return; }
     const bens  = data.beneficiarios || [];
+    window._benCache = window._benCache || {};
+    bens.forEach(b => { window._benCache[b.id] = b; });
     if (typeof window._updateNotifTabBadge === 'function') {
       window._updateNotifTabBadge('beneficiarios', bens.length);
     } else {
@@ -797,6 +799,63 @@ window.loadBeneficiarios = async function(force) {
   } catch(err) {
     list.innerHTML = '<p style="color:#ef4444;text-align:center;padding:16px;">Error de conexión.</p>';
   }
+};
+
+// Modal de detalle: muestra la información completa de la solicitud de
+// beneficiario (antes el botón "Ver" no hacía nada porque esta función
+// no existía).
+window.openBeneficiarioModal = function(id) {
+  const b = (window._benCache || {})[id];
+  const old = document.getElementById('ben-detail-modal');
+  if (old) old.remove();
+  const esc = s => String(s||'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+  const modal = document.createElement('div');
+  modal.id = 'ben-detail-modal';
+  modal.style.cssText = 'display:flex;position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,.75);align-items:center;justify-content:center;padding:16px;';
+
+  if (!b) {
+    modal.innerHTML = `<div style="background:#1e1e2e;border-radius:14px;padding:24px;max-width:380px;width:100%;color:#fff;text-align:center;border:1px solid rgba(249,115,22,.4);">
+      <p style="color:#f87171;margin:0 0 14px;">No se encontró la información de esta solicitud. Refresca la lista e intenta de nuevo.</p>
+      <button onclick="document.getElementById('ben-detail-modal').remove()" style="padding:8px 16px;border-radius:8px;border:1px solid #555;background:transparent;color:#aaa;cursor:pointer;">Cerrar</button>
+    </div>`;
+    document.body.appendChild(modal);
+    return;
+  }
+
+  const fotos = [b.imagen1, b.imagen2, b.imagen3].filter(Boolean);
+  modal.innerHTML = `
+    <div style="background:#1e1e2e;border-radius:14px;padding:22px;max-width:440px;width:100%;max-height:88vh;overflow-y:auto;border:1px solid rgba(249,115,22,.4);color:#fff;">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;">
+        <h3 style="margin:0;color:#f97316;font-size:1.05rem;">${esc(b.nombre)}</h3>
+        <button onclick="document.getElementById('ben-detail-modal').remove()" style="background:none;border:none;font-size:20px;color:#888;cursor:pointer;line-height:1;">×</button>
+      </div>
+      ${b.organizacion ? `<p style="color:#aaa;font-size:.82rem;margin:2px 0 0;">${esc(b.organizacion)}</p>` : ''}
+      <div style="margin-top:14px;font-size:.82rem;color:#ccc;line-height:1.7;">
+        <div><strong style="color:#fff;">Ubicación:</strong> ${esc(b.ubicacion) || '—'}</div>
+        <div><strong style="color:#fff;">Teléfono:</strong> ${esc(b.telefono) || '—'}</div>
+        ${b.cuenta_bancaria ? `<div><strong style="color:#fff;">Cuenta bancaria:</strong> ${esc(b.cuenta_bancaria)}</div>` : ''}
+        ${b.facebook ? `<div><strong style="color:#fff;">Facebook:</strong> <a href="${esc(b.facebook)}" target="_blank" rel="noopener" style="color:#1877f2;">${esc(b.facebook)}</a></div>` : ''}
+        <div><strong style="color:#fff;">Solicitado:</strong> ${b.fecha_registro ? new Date(b.fecha_registro).toLocaleDateString('es-MX') : '—'}</div>
+      </div>
+      <div style="margin-top:14px;">
+        <div style="font-size:.72rem;color:#888;text-transform:uppercase;margin-bottom:4px;">Historia</div>
+        <p style="font-size:.85rem;color:#ddd;line-height:1.6;white-space:pre-wrap;margin:0;">${esc(b.historia) || '—'}</p>
+      </div>
+      ${fotos.length ? `
+      <div style="margin-top:14px;">
+        <div style="font-size:.72rem;color:#888;text-transform:uppercase;margin-bottom:6px;">Fotos</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          ${fotos.map(url => `<img src="${esc(url)}" loading="lazy" style="width:88px;height:88px;object-fit:cover;border-radius:10px;border:1px solid rgba(255,255,255,.1);cursor:pointer;" onclick="window.open('${esc(url)}','_blank')">`).join('')}
+        </div>
+      </div>` : ''}
+      <div style="display:flex;gap:8px;margin-top:18px;">
+        <button onclick="adminRechazarBeneficiario('${esc(b.id)}', this); document.getElementById('ben-detail-modal').remove();" style="flex:1;padding:9px;border:none;border-radius:8px;background:#fee2e2;color:#b91c1c;font-weight:700;font-size:.8rem;cursor:pointer;">${_icX} Rechazar</button>
+        <button onclick="adminAprobarBeneficiario('${esc(b.id)}', this); document.getElementById('ben-detail-modal').remove();" style="flex:1;padding:9px;border:none;border-radius:8px;background:#22c55e;color:#fff;font-weight:700;font-size:.8rem;cursor:pointer;">${_icCheck} Aprobar</button>
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+  modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
 };
 
 window.adminAprobarBeneficiario = async function(id, btn) {
