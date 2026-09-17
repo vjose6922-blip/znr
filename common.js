@@ -457,6 +457,72 @@ return String(str)
 .replace(/\n/g, '&#10;')
 .replace(/\r/g, '&#13;');
 }
+
+// ── Mini-slider de imágenes reutilizable para tarjetas de producto (Comunidad, perfil-vendedor) ──
+// Igual patrón que las tarjetas del catálogo propio: swipe/drag manual, sin temporizador propio.
+// Además: auto-avance lento, pero SOLO mientras la tarjeta está visible en pantalla (IntersectionObserver),
+// para no gastar timers de fondo en tarjetas fuera de vista.
+function crearSliderImagenesHTML(images, alt) {
+  const safeAlt = escapeAttr(alt || '');
+  const imgs = (images && images.length) ? images : ['placeholder.svg'];
+  const slides = imgs.map((url, i) => `<div class="mini-slider-slide"><img src="${escapeAttr(url)}" alt="${safeAlt}" loading="lazy" style="width:100%;height:100%;object-fit:contain;display:block;background:var(--color-surface-2,#f5f5f8);" onerror="this.onerror=null;this.src='placeholder.svg'"></div>`).join('');
+  const dots = imgs.length > 1
+    ? `<div class="mini-slider-dots">${imgs.map((_, i) => `<span class="mini-slider-dot${i === 0 ? ' active' : ''}"></span>`).join('')}</div>`
+    : '';
+  return `<div class="mini-slider"><div class="mini-slider-track">${slides}</div>${dots}</div>`;
+}
+function activarMiniSlider(container) {
+  if (!container || container.dataset.miniSliderReady === '1') return;
+  const track = container.querySelector('.mini-slider-track');
+  const dots = container.querySelectorAll('.mini-slider-dot');
+  const total = dots.length;
+  if (!track || total <= 1) return; // una sola imagen: nada que deslizar
+  container.dataset.miniSliderReady = '1';
+  let index = 0, startX = 0, deltaX = 0, dragging = false, pausadoHasta = 0;
+  const ir = (i) => {
+    index = ((i % total) + total) % total;
+    track.style.transform = `translateX(-${index * 100}%)`;
+    dots.forEach((d, j) => d.classList.toggle('active', j === index));
+  };
+  const pausar = () => { pausadoHasta = Date.now() + 4000; };
+  const onStart = (x) => { dragging = true; startX = x; deltaX = 0; };
+  const onMove = (x) => { if (dragging) deltaX = x - startX; };
+  const onEnd = () => {
+    if (!dragging) return;
+    dragging = false;
+    if (Math.abs(deltaX) > 30) {
+      ir(index + (deltaX < 0 ? 1 : -1));
+      pausar();
+      container.dataset.dragged = '1';
+      setTimeout(() => { container.dataset.dragged = ''; }, 50);
+    }
+  };
+  container.addEventListener('touchstart', (e) => onStart(e.touches[0].clientX), { passive: true });
+  container.addEventListener('touchmove', (e) => onMove(e.touches[0].clientX), { passive: true });
+  container.addEventListener('touchend', onEnd);
+  container.addEventListener('mousedown', (e) => onStart(e.clientX));
+  container.addEventListener('mousemove', (e) => { if (dragging) onMove(e.clientX); });
+  container.addEventListener('mouseup', onEnd);
+  container.addEventListener('mouseleave', () => { if (dragging) onEnd(); });
+  dots.forEach((d, i) => d.addEventListener('click', (e) => { e.stopPropagation(); ir(i); pausar(); }));
+  let autoTimer = null;
+  const obs = new IntersectionObserver((entries) => {
+    entries.forEach((entry) => {
+      if (entry.isIntersecting) {
+        if (!autoTimer) autoTimer = setInterval(() => { if (Date.now() >= pausadoHasta) ir(index + 1); }, 3000);
+      } else if (autoTimer) {
+        clearInterval(autoTimer);
+        autoTimer = null;
+      }
+    });
+  }, { threshold: 0.4 });
+  obs.observe(container);
+}
+window.crearSliderImagenesHTML = crearSliderImagenesHTML;
+window.activarMiniSlider = activarMiniSlider;
+const _miniSliderSt = document.createElement('style');
+_miniSliderSt.textContent = '.mini-slider{position:relative;width:100%;height:100%;overflow:hidden;touch-action:pan-y;}.mini-slider-track{display:flex;width:100%;height:100%;transition:transform .3s ease;}.mini-slider-slide{min-width:100%;height:100%;flex-shrink:0;}.mini-slider-dots{position:absolute;bottom:6px;left:50%;transform:translateX(-50%);display:flex;gap:4px;z-index:2;}.mini-slider-dot{width:5px;height:5px;border-radius:50%;background:rgba(255,255,255,.6);box-shadow:0 0 2px rgba(0,0,0,.4);transition:all .2s;}.mini-slider-dot.active{background:#ff4f81;width:12px;border-radius:3px;}';
+document.head.appendChild(_miniSliderSt);
 function safeHtml(strings, ...values) {
 return strings.reduce((result, string, i) => {
 const value = values[i];
