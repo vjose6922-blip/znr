@@ -2160,14 +2160,76 @@ window.togglePlanVendedor = async function(uid, nombre, currentPlan) {
   }
 };
 
+// Modal propio de texto+número, para no depender de prompt()/alert()
+// nativos (en algunos entornos — WebView, PWA instalada, etc. — esos
+// diálogos del navegador no se muestran encima del resto de la página).
+// z-index más alto que el de #global-vendor-stats-modal (19999) para
+// que nunca quede tapado detrás de él.
+function customPromptModal(mensaje, valorInicial) {
+  return new Promise(resolve => {
+    const old = document.getElementById('custom-input-modal');
+    if (old) old.remove();
+    const modal = document.createElement('div');
+    modal.id = 'custom-input-modal';
+    modal.style.cssText = 'position:fixed;inset:0;z-index:100000;background:rgba(0,0,0,.65);display:flex;align-items:center;justify-content:center;padding:16px;';
+    const msgHtml = String(mensaje).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');
+    modal.innerHTML = `
+      <div style="background:#fff;border-radius:16px;padding:22px;max-width:340px;width:100%;box-shadow:0 20px 50px rgba(0,0,0,.35);">
+        <p style="margin:0 0 14px;font-size:.85rem;color:#333;line-height:1.5;">${msgHtml}</p>
+        <input id="custom-input-field" type="text" inputmode="numeric" value="${String(valorInicial).replace(/"/g,'&quot;')}" style="width:100%;padding:10px 12px;border:1px solid #ccc;border-radius:8px;font-size:15px;box-sizing:border-box;margin-bottom:14px;">
+        <div style="display:flex;gap:8px;justify-content:flex-end;">
+          <button id="custom-input-cancel" style="padding:9px 14px;border-radius:8px;border:1px solid #ccc;background:#fff;color:#555;font-weight:600;cursor:pointer;">Cancelar</button>
+          <button id="custom-input-ok" style="padding:9px 14px;border-radius:8px;border:none;background:#7c3aed;color:#fff;font-weight:700;cursor:pointer;">Aceptar</button>
+        </div>
+      </div>`;
+    document.body.appendChild(modal);
+    const field = document.getElementById('custom-input-field');
+    field.focus();
+    field.select();
+    const cleanup = (result) => { modal.remove(); resolve(result); };
+    document.getElementById('custom-input-ok').addEventListener('click', () => cleanup(field.value));
+    document.getElementById('custom-input-cancel').addEventListener('click', () => cleanup(null));
+    modal.addEventListener('click', e => { if (e.target === modal) cleanup(null); });
+    field.addEventListener('keydown', e => {
+      if (e.key === 'Enter') cleanup(field.value);
+      if (e.key === 'Escape') cleanup(null);
+    });
+  });
+}
+
+// Modal propio de solo-aviso, mismo motivo que customPromptModal.
+function customAlertModal(mensaje) {
+  return new Promise(resolve => {
+    const old = document.getElementById('custom-alert-modal');
+    if (old) old.remove();
+    const modal = document.createElement('div');
+    modal.id = 'custom-alert-modal';
+    modal.style.cssText = 'position:fixed;inset:0;z-index:100000;background:rgba(0,0,0,.65);display:flex;align-items:center;justify-content:center;padding:16px;';
+    const msgHtml = String(mensaje).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');
+    modal.innerHTML = `
+      <div style="background:#fff;border-radius:16px;padding:22px;max-width:340px;width:100%;box-shadow:0 20px 50px rgba(0,0,0,.35);">
+        <p style="margin:0 0 16px;font-size:.85rem;color:#333;line-height:1.5;">${msgHtml}</p>
+        <div style="display:flex;justify-content:flex-end;">
+          <button id="custom-alert-ok" style="padding:9px 16px;border-radius:8px;border:none;background:#7c3aed;color:#fff;font-weight:700;cursor:pointer;">OK</button>
+        </div>
+      </div>`;
+    document.body.appendChild(modal);
+    const ok = document.getElementById('custom-alert-ok');
+    ok.focus();
+    const cleanup = () => { modal.remove(); resolve(); };
+    ok.addEventListener('click', cleanup);
+    modal.addEventListener('click', e => { if (e.target === modal) cleanup(); });
+  });
+}
+
 window.ajustarDiasPlus = async function(uid, nombre, diasActuales) {
   const token = sessionStorage.getItem('admin_token') || '';
   const api   = "https://vendedores-api-1038143238323.us-central1.run.app";
 
-  if (!api) { if (window.showTemporaryMessage) window.showTemporaryMessage('API no disponible', 'error'); return; }
-  if (!token) { if (window.showTemporaryMessage) window.showTemporaryMessage('Token no encontrado. Re-inicia sesión.', 'error'); return; }
+  if (!api) { await customAlertModal('API no disponible'); return; }
+  if (!token) { await customAlertModal('Token no encontrado. Re-inicia sesión.'); return; }
 
-  const input = prompt(`"${nombre}" tiene ${diasActuales} días de Plus restantes.\n¿Cuántos días quieres agregar? (usa un número negativo para restar, ej. -5)`, '30');
+  const input = await customPromptModal(`"${nombre}" tiene ${diasActuales} días de Plus restantes.\n¿Cuántos días quieres agregar? (usa un número negativo para restar, ej. -5)`, '30');
   if (input === null) return; // cancelado
   // Normaliza guiones "tipográficos" (–, —, −) que a veces quedan al
   // copiar texto desde un chat o documento, para que sigan
@@ -2175,7 +2237,7 @@ window.ajustarDiasPlus = async function(uid, nombre, diasActuales) {
   const cleanInput = String(input).trim().replace(/[\u2010-\u2015\u2212]/g, '-');
   const delta = parseInt(cleanInput, 10);
   if (!Number.isFinite(delta) || delta === 0) {
-    alert('Número de días inválido: "' + input + '". Usa solo dígitos, opcionalmente con un signo "-" al inicio (ej. 30 o -5).');
+    await customAlertModal('Número de días inválido: "' + input + '". Usa solo dígitos, opcionalmente con un signo "-" al inicio (ej. 30 o -5).');
     return;
   }
 
@@ -2198,11 +2260,11 @@ window.ajustarDiasPlus = async function(uid, nombre, diasActuales) {
     const mensaje = data.plan === 'plus'
       ? `Plan Plus de ${nombre} ${delta > 0 ? 'extendido' : 'acortado'} (${delta > 0 ? '+' : ''}${delta} días).`
       : `El ajuste dejó el plan de ${nombre} vencido — volvió a Free.`;
-    alert(mensaje);
+    await customAlertModal(mensaje);
 
     window.openVendorStatsGlobal();
   } catch (err) {
-    alert('Error: ' + err.message);
+    await customAlertModal('Error: ' + err.message);
   } finally {
     if (window.hideLoader) window.hideLoader();
   }
