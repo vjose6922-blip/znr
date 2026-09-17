@@ -1,5 +1,5 @@
-const CACHE_NAME    = 'zr-cache-v82';
-const DYNAMIC_CACHE = 'zr-dynamic-v16';
+const CACHE_NAME    = 'zr-cache-v84';
+const DYNAMIC_CACHE = 'zr-dynamic-v17';
 const OFFLINE_URL   = '/znr/offline.html';
 
 const STATIC_ASSETS = [
