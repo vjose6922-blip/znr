@@ -2169,10 +2169,13 @@ window.ajustarDiasPlus = async function(uid, nombre, diasActuales) {
 
   const input = prompt(`"${nombre}" tiene ${diasActuales} días de Plus restantes.\n¿Cuántos días quieres agregar? (usa un número negativo para restar, ej. -5)`, '30');
   if (input === null) return; // cancelado
-  const delta = parseInt(input, 10);
+  // Normaliza guiones "tipográficos" (–, —, −) que a veces quedan al
+  // copiar texto desde un chat o documento, para que sigan
+  // reconociéndose como signo negativo.
+  const cleanInput = String(input).trim().replace(/[\u2010-\u2015\u2212]/g, '-');
+  const delta = parseInt(cleanInput, 10);
   if (!Number.isFinite(delta) || delta === 0) {
-    if (window.showTemporaryMessage) window.showTemporaryMessage('Número de días inválido.', 'error');
-    else alert('Número de días inválido.');
+    alert('Número de días inválido: "' + input + '". Usa solo dígitos, opcionalmente con un signo "-" al inicio (ej. 30 o -5).');
     return;
   }
 
@@ -2195,13 +2198,11 @@ window.ajustarDiasPlus = async function(uid, nombre, diasActuales) {
     const mensaje = data.plan === 'plus'
       ? `Plan Plus de ${nombre} ${delta > 0 ? 'extendido' : 'acortado'} (${delta > 0 ? '+' : ''}${delta} días).`
       : `El ajuste dejó el plan de ${nombre} vencido — volvió a Free.`;
-    if (window.showTemporaryMessage) window.showTemporaryMessage(mensaje, 'success');
-    else alert(mensaje);
+    alert(mensaje);
 
     window.openVendorStatsGlobal();
   } catch (err) {
-    if (window.showTemporaryMessage) window.showTemporaryMessage(err.message, 'error');
-    else alert('Error: ' + err.message);
+    alert('Error: ' + err.message);
   } finally {
     if (window.hideLoader) window.hideLoader();
   }
