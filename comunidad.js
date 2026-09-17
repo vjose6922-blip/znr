@@ -1086,7 +1086,7 @@ card.innerHTML = `
 ${product.vendedor_plan === 'plus' ? `<span style="position:absolute;top:8px;right:8px;font-size:9px;padding:2px 8px; background: linear-gradient(135deg, #f7c948, #f0962f);color:#fff;border-radius:20px;font-weight:800;z-index:1;">${Icon('check')}</span>` : ''}
 ${esDonativo ? '<span style="position:absolute;top:' + (product.vendedor_plan === 'plus' ? '8px' : '8px') + ';left:8px;font-size:11px;padding:2px 8px;background:linear-gradient(135deg,#f97316,#ef4444);color:#fff;border-radius:20px;font-weight:800;z-index:1;">Donativo</span>' : ''}
 ${(inspectorMode && !product.es_znr) ? `<span style="position:absolute;top:8px;right:8px;z-index:2;"><button class="btn-inspector-delete" title="Eliminar (Admin)" aria-label="Eliminar producto" style="background:var(--color-error,#ef4444);color:#fff;border:none;border-radius:50%;width:30px;height:30px;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.3);"><svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" aria-hidden="true"><use href="#ic-trash"/></svg></button></span>` : ''}
-${(window.crearSliderImagenesHTML ? window.crearSliderImagenesHTML(allImages.length ? allImages : [imgUrl], safeString(product.nombre)) : `<img class="product-img-main" src="${esc(imgUrl)}" alt="${esc(safeString(product.nombre))}" loading="lazy" style="width:100%;height:100%;object-fit:contain;display:block;background:var(--color-surface-2,#f5f5f8);" onerror="this.onerror=null;this.src='placeholder.svg'">`)}
+${(window.crearSliderImagenesHTML ? window.crearSliderImagenesHTML(allImages.length ? allImages : [imgUrl], safeString(product.nombre)) : `<img class="product-img-main" src="${esc(imgUrl)}" alt="${esc(safeString(product.nombre))}" loading="lazy" style="position:absolute;inset:0;width:100%;height:100%;object-fit:contain;display:block;background:var(--color-surface-2,#f5f5f8);" onerror="this.onerror=null;this.src='placeholder.svg'">`)}
 </div>
 <div class="product-info" style="padding:12px;">
 ${tieneDescuento ? `<div style="text-align:right;font-size:11px;color:var(--color-text-muted,#888);text-decoration:line-through;">${fmtCurr(precioOriginal)}</div>` : ''}
@@ -1364,11 +1364,40 @@ margin-top: 8px;
 display: flex;
 gap: 8px;
 }
+.product-slider { position: relative !important; }
 .product-slider > .mini-slider {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
+  position: absolute !important;
+  top: 0 !important; left: 0 !important;
+  width: 100% !important; height: 100% !important;
+}
+.product-slider .mini-slider-track {
+  display: flex !important;
+  width: 100% !important;
+  height: 100% !important;
+}
+.product-slider .mini-slider-slide {
+  flex: 0 0 100% !important;
+  min-width: 100% !important;
+  width: 100% !important;
+  height: 100% !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+.product-slider .mini-slider-slide img {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: contain !important;
+  object-position: center !important;
+  display: block !important;
+}
+.product-slider > img.product-img-main {
+  position: absolute !important;
+  inset: 0 !important;
+  width: 100% !important; height: 100% !important;
+  object-fit: contain !important;
+  object-position: center !important;
+  display: block !important;
 }
 .btn-report {
 flex: 1;
