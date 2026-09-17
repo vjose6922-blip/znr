@@ -237,7 +237,7 @@
 <script>
 async function apiCall(data) {
   const VENDEDORES_API_URL_PLUS = "https://vendedores-api-1038143238323.us-central1.run.app";
-  const ACCIONES_MIGRADAS_PLUS = new Set(['solicitarPlanPlus', 'getPlusSolicitudVendedor']);
+  const ACCIONES_MIGRADAS_PLUS = new Set(['solicitarPlanPlus', 'getPlusSolicitudVendedor', 'crearPreferenciaPlanPlus']);
   const API_BASE = ACCIONES_MIGRADAS_PLUS.has(data && data.action) ? VENDEDORES_API_URL_PLUS : window.API_URL;
   if (!API_BASE) throw new Error('API_URL no está disponible');
   const params = new URLSearchParams();
@@ -311,17 +311,15 @@ function renderDynamicArea(sol) {
     const dias = sol.dias || 30;
     document.getElementById('pp-price').innerHTML = `$${importe}<span> MXN / mes</span>`;
 
-    const mpBtn = sol.mp_link
-      ? `<a href="${sol.mp_link}" target="_blank" rel="noopener" class="pp-cta secondary">${Icon('credit-card')} Pagar $${importe} con Mercado Pago</a>`
-      : '';
+    const mpBtn = `<button class="pp-cta secondary" id="pp-btn-mp">${Icon('credit-card')} Pagar $${importe} con Mercado Pago</button>`;
 
     const waTexto = encodeURIComponent(`Hola, ya realicé mi pago del Plan Plus. Mi tienda: ${nombreTienda}. Teléfono: ${telVendedor}.`);
     const waConfirmUrl = waNum ? `https://wa.me/${waNum}?text=${waTexto}` : '#';
 
     const titulo = esRenovacion ? `${Icon('clock')} Tu Plan Plus vence pronto` : `${Icon('clock')} Solicitud enviada`;
     const texto  = esRenovacion
-      ? `Te quedan ${diasRestantes} día${diasRestantes === 1 ? '' : 's'}. Realiza el pago y avísanos por WhatsApp para extender tu vigencia.`
-      : 'Realiza tu pago y avísanos por WhatsApp. En cuanto confirmemos tu pago, activaremos tu Plan Plus.';
+      ? `Te quedan ${diasRestantes} día${diasRestantes === 1 ? '' : 's'}. Paga con Mercado Pago para renovar al instante, o por transferencia y avísanos por WhatsApp.`
+      : 'Paga con Mercado Pago para activarte al instante, o por transferencia y avísanos por WhatsApp.';
 
     area.innerHTML = `
       <div class="pp-status-card">
@@ -338,7 +336,7 @@ function renderDynamicArea(sol) {
         <div class="importe">Importe: $${importe} MXN · ${dias} días</div>
       </div>
       ${mpBtn}
-      <a href="${waConfirmUrl}" target="_blank" rel="noopener" class="pp-cta wa">${Icon('whatsapp')} Ya pagué, avisar por WhatsApp</a>
+      <a href="${waConfirmUrl}" target="_blank" rel="noopener" class="pp-cta wa">${Icon('whatsapp')} Ya pagué por transferencia, avisar por WhatsApp</a>
     `;
 
     const copyBtn = document.getElementById('pp-copy-clabe');
@@ -349,6 +347,28 @@ function renderDynamicArea(sol) {
           copyBtn.innerHTML = `${Icon('check')} Copiada`;
           setTimeout(() => { copyBtn.innerHTML = `${Icon('clipboard')} Copiar CLABE`; }, 1800);
         } catch (_) {}
+      });
+    }
+
+    const mpBtnEl = document.getElementById('pp-btn-mp');
+    if (mpBtnEl) {
+      mpBtnEl.addEventListener('click', async () => {
+        mpBtnEl.disabled = true;
+        mpBtnEl.textContent = 'Abriendo Mercado Pago…';
+        try {
+          const r = await apiCall({ action: 'crearPreferenciaPlanPlus', vendorToken: vendorSession.token });
+          if (r.ok) {
+            location.href = r.url;
+          } else {
+            alert(r.error || 'No se pudo iniciar el pago.');
+            mpBtnEl.disabled = false;
+            mpBtnEl.innerHTML = `${Icon('credit-card')} Pagar $${importe} con Mercado Pago`;
+          }
+        } catch (e) {
+          alert('Error de red. Intenta de nuevo.');
+          mpBtnEl.disabled = false;
+          mpBtnEl.innerHTML = `${Icon('credit-card')} Pagar $${importe} con Mercado Pago`;
+        }
       });
     }
     return;
