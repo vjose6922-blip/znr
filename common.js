@@ -1816,6 +1816,24 @@ function initImageModalControls() {
   box-shadow: none;
 }
 
+
+.mini-slider-slide {
+  min-width: 100%;
+  height: 100%;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-surface-2, #f5f5f8);
+}
+.mini-slider-slide img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: center;
+}
+
+
 .im-magazine-panel {
   flex: 0 0 auto;
   width: 100%;
