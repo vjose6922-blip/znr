@@ -111,20 +111,17 @@ const ACTION_TOOLS = {
 };
 
 function closeAllTools() {
+  toolObserver?.disconnect();
+  toolObserver = null;
   Object.values(EMBED_TOOLS).forEach(([id]) => document.getElementById(id)?.remove());
   document.getElementById('tools-content').innerHTML = '';
 }
 
 // Saca el "modal" del body, le quita el overlay/backdrop y su botón de cerrar,
 // y lo mete dentro del contenedor de la página.
-function claimModal(id, tries = 90) {
-  const el = document.getElementById(id);
-  if (!el) {
-    if (tries > 0) return void requestAnimationFrame(() => claimModal(id, tries - 1));
-    document.getElementById('tools-content').innerHTML =
-      '<p style="opacity:.7">No se pudo cargar esta herramienta. Revisa que tengas conexión/API activa e inténtalo de nuevo.</p>';
-    return;
-  }
+let toolObserver = null;
+
+function stripModal(el) {
   el.style.cssText = 'position:static;display:block;';
   const card = el.firstElementChild;
   if (card) Object.assign(card.style, {
@@ -139,7 +136,30 @@ function claimModal(id, tries = 90) {
     }
   });
   document.body.style.overflow = '';
-  document.getElementById('tools-content').appendChild(el);
+  const content = document.getElementById('tools-content');
+  if (el.parentElement !== content) content.appendChild(el);
+}
+
+// Además de "aplanar" el modal al abrirlo, deja un observador: si la propia
+// herramienta lo destruye y recrea (ej. al cambiar un filtro), se vuelve a aplanar sola.
+function claimModal(id, tries = 90) {
+  const existing = document.getElementById(id);
+  if (existing) {
+    stripModal(existing);
+  } else if (tries > 0) {
+    return void requestAnimationFrame(() => claimModal(id, tries - 1));
+  } else {
+    document.getElementById('tools-content').innerHTML =
+      '<p style="opacity:.7">No se pudo cargar esta herramienta. Revisa que tengas conexión/API activa e inténtalo de nuevo.</p>';
+    return;
+  }
+  toolObserver?.disconnect();
+  toolObserver = new MutationObserver(muts => {
+    for (const m of muts) for (const n of m.addedNodes) {
+      if (n.nodeType === 1 && n.id === id) stripModal(n);
+    }
+  });
+  toolObserver.observe(document.body, { childList: true });
 }
 
 function runTool(name, push = true) {
