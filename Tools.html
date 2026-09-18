@@ -35,6 +35,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <script>document.documentElement.dataset.theme = localStorage.getItem('theme') || 'light';</script>
 <link rel="stylesheet" href="styles.css" />
+<link rel="stylesheet" href="admin-shared.css" />
 <style>
 #tools-content { animation: toolsFadeIn .18s ease; }
 @keyframes toolsFadeIn { from { opacity:0; transform:translateY(4px); } to { opacity:1; transform:none; } }
@@ -116,9 +117,14 @@ function closeAllTools() {
 
 // Saca el "modal" del body, le quita el overlay/backdrop y su botón de cerrar,
 // y lo mete dentro del contenedor de la página.
-function claimModal(id, tries = 60) {
+function claimModal(id, tries = 90) {
   const el = document.getElementById(id);
-  if (!el) { if (tries > 0) requestAnimationFrame(() => claimModal(id, tries - 1)); return; }
+  if (!el) {
+    if (tries > 0) return void requestAnimationFrame(() => claimModal(id, tries - 1));
+    document.getElementById('tools-content').innerHTML =
+      '<p style="opacity:.7">No se pudo cargar esta herramienta. Revisa que tengas conexión/API activa e inténtalo de nuevo.</p>';
+    return;
+  }
   el.style.cssText = 'position:static;display:block;';
   const card = el.firstElementChild;
   if (card) Object.assign(card.style, { maxWidth: 'none', width: '100%', boxShadow: 'none', margin: '0' });
@@ -134,12 +140,17 @@ function runTool(name, push = true) {
   document.getElementById('tools-menu').hidden = !!EMBED_TOOLS[name];
   document.getElementById('tools-back').hidden = !EMBED_TOOLS[name];
 
-  if (EMBED_TOOLS[name]) {
-    const [modalId, fn] = EMBED_TOOLS[name];
-    fn();
-    claimModal(modalId);
-  } else if (ACTION_TOOLS[name]) {
-    ACTION_TOOLS[name]();
+  try {
+    if (EMBED_TOOLS[name]) {
+      const [modalId, fn] = EMBED_TOOLS[name];
+      fn();
+      claimModal(modalId);
+    } else if (ACTION_TOOLS[name]) {
+      ACTION_TOOLS[name]();
+    }
+  } catch (err) {
+    document.getElementById('tools-content').innerHTML =
+      '<p style="color:#e66">Error al abrir la herramienta: ' + (err?.message || err) + '</p>';
   }
 }
 
