@@ -68,6 +68,7 @@ const MAPA_ACCIONES_MIGRADAS = {
   desasignarDonacion: BENEFICIARIOS_API_URL,
   solicitarEdicionBeneficiario: BENEFICIARIOS_API_URL,
   solicitarEliminacionBeneficiario: BENEFICIARIOS_API_URL,
+  obtenerDonacionesRecibidas: BENEFICIARIOS_API_URL,
   obtenerEstadisticasVendedor: "https://ventas-api-1038143238323.us-central1.run.app",
   obtenerMisEntregasLive: LIVE_API_URL,
 };
@@ -3477,7 +3478,12 @@ const qrCode = new QRCodeStyling({
 
   const nombreVendedor = vendorSession.nombre || 'Mi tienda';
   const descripcion = obtenerDescripcionNegocio();
-  const textoPublicacion = `🛍️ ¡Visita mi perfil ${nombreVendedor} en Z&R! Tenemos ${descripcion}. Haz tu pedido y apoya el comercio local. 📲\n\n👉 Visita mi catálogo:\n${shareUrl}\n\n#ZR #TiendaLocal #Comunidad`;
+  const ubicacionTexto = vendorSession.ubicacion ? ` en ${vendorSession.ubicacion}` : '';
+  const textoPublicacion = `🛍️✨ ¡${nombreVendedor} ya está en Z&R${ubicacionTexto}!\n\n` +
+    `Tenemos ${descripcion} 🔥 Pedidos fáciles, atención directa y apoyo al comercio local de Nuevo Laredo. 🇲🇽📲\n\n` +
+    `👉 Mira el catálogo completo y haz tu pedido aquí:\n${shareUrl}\n\n` +
+    `¡Compártelo con alguien que le pueda interesar! 🙌\n\n` +
+    `#ZR #TiendaLocal #NuevoLaredo #ComercioLocal #ApoyaLoLocal`;
 
   document.getElementById('share-copy-btn')?.addEventListener('click', () => {
     navigator.clipboard.writeText(shareUrl)
@@ -3509,7 +3515,7 @@ document.getElementById('share-facebook-btn')?.addEventListener('click', () => {
     .catch(() => {});
 
   const url = encodeURIComponent(shareUrl);
-  const quote = encodeURIComponent(`🛍️ ¡Visita mi perfil ${nombreVendedor} en Z&R! Tenemos ${descripcion}.`);
+  const quote = encodeURIComponent(`🛍️✨ ¡${nombreVendedor} ya está en Z&R${ubicacionTexto}! Tenemos ${descripcion} 🔥`);
   const fbUrl = `https://www.facebook.com/sharer/sharer.php?u=${url}&quote=${quote}`;
   window.open(fbUrl, '_blank', 'width=600,height=400');
   modal.remove();
