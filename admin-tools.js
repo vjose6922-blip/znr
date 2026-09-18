@@ -731,6 +731,16 @@ document.head.insertAdjacentHTML('beforeend', `<style>
 }
 [data-theme="light"] .admin-header .app-title,
 [data-theme="light"] .admin-header .app-subtitle { color: #1a1a2e !important; }
+[data-theme="light"] .icon-button {
+  background: rgba(0, 0, 0, 0.06) !important;
+  color: #1a1a2e !important;
+}
+[data-theme="light"] .logo-touch-area,
+[data-theme="light"] .logo-touch-area * {
+  box-shadow: none !important;
+  filter: none !important;
+  text-shadow: none !important;
+}
 [data-theme="light"] .admin-main {
   background: linear-gradient(180deg, #f4f4f8 0%, #e9e7f0 100%);
 }
