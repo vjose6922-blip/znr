@@ -1,5 +1,19 @@
 // Estilos compartidos de admin.html / Tools.html / notificaciones.html (inyectados por JS para no usar un .css aparte)
 document.head.insertAdjacentHTML('beforeend', `<style>
+:root {
+  --modal-bg: #1a1a2e;
+  --modal-text: #fff;
+  --modal-border: rgba(255,255,255,.08);
+  --modal-muted: #999;
+  --modal-chip-bg: rgba(255,255,255,.08);
+}
+[data-theme="light"] {
+  --modal-bg: #fff;
+  --modal-text: #1a1a2e;
+  --modal-border: rgba(0,0,0,.1);
+  --modal-muted: #777;
+  --modal-chip-bg: #f0f0f5;
+}
  * {
  box-sizing: border-box;
  }
@@ -779,8 +793,8 @@ async function openDonacionesStatsModal() {
   const modal = document.createElement('div');
   modal.id = 'modal-donaciones-stats';
   modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:99999;display:flex;align-items:flex-end;justify-content:center;';
-  modal.innerHTML = `<div style="background:#1a1a2e;border-radius:20px 20px 0 0;width:100%;max-width:520px;max-height:88vh;overflow-y:auto;padding:0 0 32px;color:#fff;">
-    <div style="position:sticky;top:0;background:#1a1a2e;padding:18px 20px 14px;border-bottom:1px solid rgba(255,255,255,.08);display:flex;align-items:center;justify-content:space-between;">
+  modal.innerHTML = `<div style="background:var(--modal-bg);border-radius:20px 20px 0 0;width:100%;max-width:520px;max-height:88vh;overflow-y:auto;padding:0 0 32px;color:var(--modal-text);">
+    <div style="position:sticky;top:0;background:var(--modal-bg);padding:18px 20px 14px;border-bottom:1px solid var(--modal-border);display:flex;align-items:center;justify-content:space-between;">
       <h2 style="margin:0;font-size:1rem;font-weight:800;">${Icon('heart-fill')} Estadísticas de Donaciones</h2>
       <button id="btn-close-don-stats" style="background:none;border:none;font-size:22px;cursor:pointer;color:#888;">×</button>
     </div>
@@ -929,8 +943,8 @@ async function openAnalyticsModal(period, source) {
   const modal = document.createElement('div');
   modal.id = 'modal-analytics';
   modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:99999;display:flex;align-items:flex-end;justify-content:center;';
-  modal.innerHTML = `<div style="background:#1a1a2e;border-radius:20px 20px 0 0;width:100%;max-width:560px;max-height:88vh;overflow-y:auto;padding:0 0 32px;color:#fff;">
-    <div style="position:sticky;top:0;background:#1a1a2e;padding:18px 20px 14px;border-bottom:1px solid rgba(255,255,255,.08);display:flex;align-items:center;justify-content:space-between;gap:10px;z-index:2;">
+  modal.innerHTML = `<div style="background:var(--modal-bg);border-radius:20px 20px 0 0;width:100%;max-width:560px;max-height:88vh;overflow-y:auto;padding:0 0 32px;color:var(--modal-text);">
+    <div style="position:sticky;top:0;background:var(--modal-bg);padding:18px 20px 14px;border-bottom:1px solid var(--modal-border);display:flex;align-items:center;justify-content:space-between;gap:10px;z-index:2;">
       <h2 style="margin:0;font-size:1rem;font-weight:800;">${Icon('stats')} Gráficas y Estadísticas</h2>
       <button id="btn-close-analytics" style="background:none;border:none;font-size:22px;cursor:pointer;color:#888;">×</button>
     </div>
@@ -1205,8 +1219,8 @@ async function openPlanPlusResumenModal() {
   const modal = document.createElement('div');
   modal.id = 'modal-plan-plus-resumen';
   modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:99999;display:flex;align-items:flex-end;justify-content:center;';
-  modal.innerHTML = `<div style="background:#1a1a2e;border-radius:20px 20px 0 0;width:100%;max-width:560px;max-height:88vh;overflow-y:auto;padding:0 0 32px;color:#fff;">
-    <div style="position:sticky;top:0;background:#1a1a2e;padding:18px 20px 14px;border-bottom:1px solid rgba(255,255,255,.08);display:flex;align-items:center;justify-content:space-between;gap:10px;z-index:2;">
+  modal.innerHTML = `<div style="background:var(--modal-bg);border-radius:20px 20px 0 0;width:100%;max-width:560px;max-height:88vh;overflow-y:auto;padding:0 0 32px;color:var(--modal-text);">
+    <div style="position:sticky;top:0;background:var(--modal-bg);padding:18px 20px 14px;border-bottom:1px solid var(--modal-border);display:flex;align-items:center;justify-content:space-between;gap:10px;z-index:2;">
       <h2 style="margin:0;font-size:1rem;font-weight:800;">${Icon('star')} Resumen Plan Plus</h2>
       <button id="btn-close-plan-plus-resumen" style="background:none;border:none;font-size:22px;cursor:pointer;color:#888;">×</button>
     </div>
@@ -1270,8 +1284,8 @@ window.openSyncVendedorModal = function() {
     modal.id = 'sync-vendedor-modal';
     modal.style.cssText = 'display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);backdrop-filter:blur(5px);z-index:19999;align-items:center;justify-content:center;';
     modal.innerHTML = `
-      <div style="background:#fff;border-radius:22px;padding:28px;max-width:400px;width:90%;position:relative;box-shadow:0 24px 64px rgba(0,0,0,.3);">
-        <button onclick="document.getElementById('sync-vendedor-modal').style.display='none'" style="position:absolute;top:14px;right:14px;background:#f0f0f5;border:none;width:36px;height:36px;border-radius:50%;font-size:17px;cursor:pointer;color:#666;">${Icon('x')}</button>
+      <div style="background:var(--modal-bg);color:var(--modal-text);border-radius:22px;padding:28px;max-width:400px;width:90%;position:relative;box-shadow:0 24px 64px rgba(0,0,0,.3);">
+        <button onclick="document.getElementById('sync-vendedor-modal').style.display='none'" style="position:absolute;top:14px;right:14px;background:var(--modal-chip-bg);border:none;width:36px;height:36px;border-radius:50%;font-size:17px;cursor:pointer;color:var(--modal-muted);">${Icon('x')}</button>
         <h3 style="margin:0 0 8px;font-size:18px;">${Icon('refresh')} Sincronizar productos de vendedor</h3>
         <p style="margin:0 0 18px;font-size:13px;color:#666;">Vuelve a sincronizar todos los productos publicados de un vendedor, según su UID.</p>
         <label style="font-size:12px;font-weight:700;color:#444;display:block;margin-bottom:6px;">UID del vendedor</label>
@@ -1354,8 +1368,8 @@ function openErrorMonitorModal() {
   const modal = document.createElement('div');
   modal.id = 'modal-error-monitor';
   modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:99999;display:flex;align-items:flex-end;justify-content:center;';
-  modal.innerHTML = `<div style="background:#1a1a2e;border-radius:20px 20px 0 0;width:100%;max-width:560px;max-height:88vh;overflow-y:auto;padding:0 0 32px;color:#fff;">
-    <div style="position:sticky;top:0;background:#1a1a2e;padding:18px 20px 14px;border-bottom:1px solid rgba(255,255,255,.08);display:flex;align-items:center;justify-content:space-between;gap:10px;">
+  modal.innerHTML = `<div style="background:var(--modal-bg);border-radius:20px 20px 0 0;width:100%;max-width:560px;max-height:88vh;overflow-y:auto;padding:0 0 32px;color:var(--modal-text);">
+    <div style="position:sticky;top:0;background:var(--modal-bg);padding:18px 20px 14px;border-bottom:1px solid var(--modal-border);display:flex;align-items:center;justify-content:space-between;gap:10px;">
       <h2 style="margin:0;font-size:1rem;font-weight:800;display:flex;align-items:center;gap:8px;"><svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" aria-hidden="true"><use href="#ic-error"/></svg> Monitor de Errores <span id="em-badge" style="display:none;background:#ef4444;color:#fff;border-radius:20px;padding:1px 8px;font-size:11px;font-weight:700"></span></h2>
       <button id="btn-close-error-monitor" style="background:none;border:none;font-size:22px;cursor:pointer;color:#888;">×</button>
     </div>
@@ -1514,8 +1528,8 @@ async function openSugerenciasConfiableModal() {
   const modal = document.createElement('div');
   modal.id = 'modal-sugerencias-confiable';
   modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:99999;display:flex;align-items:flex-end;justify-content:center;';
-  modal.innerHTML = `<div style="background:#1a1a2e;border-radius:20px 20px 0 0;width:100%;max-width:560px;max-height:88vh;overflow-y:auto;padding:0 0 32px;color:#fff;">
-    <div style="position:sticky;top:0;background:#1a1a2e;padding:18px 20px 14px;border-bottom:1px solid rgba(255,255,255,.08);display:flex;align-items:center;justify-content:space-between;gap:10px;z-index:2;">
+  modal.innerHTML = `<div style="background:var(--modal-bg);border-radius:20px 20px 0 0;width:100%;max-width:560px;max-height:88vh;overflow-y:auto;padding:0 0 32px;color:var(--modal-text);">
+    <div style="position:sticky;top:0;background:var(--modal-bg);padding:18px 20px 14px;border-bottom:1px solid var(--modal-border);display:flex;align-items:center;justify-content:space-between;gap:10px;z-index:2;">
       <h2 style="margin:0;font-size:1rem;font-weight:800;">${Icon('lock')} Sugerencias: Vendedor confiable</h2>
       <button id="btn-close-sugerencias-confiable" style="background:none;border:none;font-size:22px;cursor:pointer;color:#888;">×</button>
     </div>
@@ -1632,8 +1646,8 @@ window.openVendorStatsGlobal = async function() {
     modal.id = 'global-vendor-stats-modal';
     modal.style.cssText = 'display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);backdrop-filter:blur(5px);z-index:19999;align-items:center;justify-content:center;';
     modal.innerHTML = `
-      <div style="background:#fff;border-radius:22px;padding:28px;max-width:500px;width:93%;max-height:85vh;overflow-y:auto;position:relative;box-shadow:0 24px 64px rgba(0,0,0,.3);">
-        <button onclick="document.getElementById('global-vendor-stats-modal').style.display='none'; const m=document.getElementById('gvs-action-menu'); if(m) m.style.display='none';" style="position:absolute;top:14px;right:14px;background:#f0f0f5;border:none;width:36px;height:36px;border-radius:50%;font-size:17px;cursor:pointer;color:#666;">${Icon('x')}</button>
+      <div style="background:var(--modal-bg);color:var(--modal-text);border-radius:22px;padding:28px;max-width:500px;width:93%;max-height:85vh;overflow-y:auto;position:relative;box-shadow:0 24px 64px rgba(0,0,0,.3);">
+        <button onclick="document.getElementById('global-vendor-stats-modal').style.display='none'; const m=document.getElementById('gvs-action-menu'); if(m) m.style.display='none';" style="position:absolute;top:14px;right:14px;background:var(--modal-chip-bg);border:none;width:36px;height:36px;border-radius:50%;font-size:17px;cursor:pointer;color:var(--modal-muted);">${Icon('x')}</button>
         <h3 style="margin:0 0 18px;font-size:19px;">${Icon('stats')} Estadísticas de Vendedores</h3>
         <div id="gvs-summary" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:16px;"></div>
         <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:14px;">
