@@ -37,7 +37,7 @@
  <link rel="preconnect" href="https://lh3.googleusercontent.com" crossorigin>
  <link rel="dns-prefetch" href="https://script.google.com">
  <link rel="dns-prefetch" href="https://lh3.googleusercontent.com">
- <script>document.documentElement.dataset.theme = localStorage.getItem('theme') || 'light';</script>
+ <script>document.documentElement.dataset.theme = localStorage.getItem('theme') || 'dark';</script>
 <link rel="preload" href="styles.css" as="style">
  <link rel="stylesheet" href="styles.css" />
 <link rel="manifest" href="/znr/manifest.json">
@@ -47,7 +47,6 @@
 <meta name="apple-mobile-web-app-title" content="Z&R">
 <link rel="apple-touch-icon" href="/znr/logo.svg">
 <meta name="mobile-web-app-capable" content="yes">
-<link rel="stylesheet" href="admin-shared.css" />
  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 </head>
 <body class="admin-body">
@@ -66,6 +65,10 @@
  </div>
  </div>
  <div class="header-right">
+ <button class="icon-button" id="theme-toggle" style="background: rgba(255,255,255,0.1);" title="Cambiar tema">
+   <svg class="icon-sun" xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+   <svg class="icon-moon" xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="currentColor"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79Z"/></svg>
+ </button>
  <a href="index.html" class="icon-button" style="text-decoration: none; display: inline-flex; align-items: center;" title="Inicio"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" aria-hidden="true"><use href="#ic-home"/></svg></a>
  <button class="icon-button" id="admin-refresh-btn" style="background: rgba(255,255,255,0.1);" title="Actualizar lista de productos"><svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" aria-hidden="true"><use href="#ic-refresh"/></svg></button>
  <button class="icon-button" id="admin-autostart-toggle" style="background: rgba(255,255,255,0.1);" title="Abrir siempre aquí al iniciar la app"><svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" aria-hidden="true"><use href="#ic-settings"/></svg></button>
@@ -355,7 +358,7 @@
  </section>
  </main>
 <script src="admin-tools.js" defer></script>
- <script src="api-config.js"></script>
+<script src="api-config.js"></script>
  <script type="module" src="fcm-init.js"></script>
  <script src="icons.js" defer></script>
  <script src="common.js" defer></script>
