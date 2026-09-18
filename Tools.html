@@ -79,6 +79,7 @@
       <button type="button" class="admin-mini-card" data-tool="algolia"><span class="amc-label">Resincronizar Comunidad con Algolia</span></button>
     </div>
   </section>
+  <button type="button" id="tools-back" hidden style="margin-bottom:14px;background:none;border:none;color:inherit;opacity:.7;cursor:pointer;font-size:14px;">&larr; Volver a herramientas</button>
   <div id="tools-content"></div>
 </main>
 
@@ -90,46 +91,63 @@
 // Guard: sin token de admin, de vuelta al login.
 if (!sessionStorage.getItem('admin_token')) location.href = 'admin.html';
 
-// Modales que las funciones de admin-tools.js crean (para poder cerrarlos al navegar "atrás").
-const TOOL_MODAL_IDS = {
-  confiable: 'modal-sugerencias-confiable',
-  vendorstats: 'global-vendor-stats-modal',
-  analytics: 'modal-analytics',
-  donaciones: 'modal-donaciones-stats',
-  planplus: 'modal-plan-plus-resumen',
-  errores: 'modal-error-monitor',
-  syncvendedor: 'sync-vendedor-modal'
+// Modales que las funciones de admin-tools.js crean; los "desmontamos" para que
+// vivan como contenido de la página en vez de overlay flotante.
+const EMBED_TOOLS = {
+  confiable: ['modal-sugerencias-confiable', window.openSugerenciasConfiableModal],
+  vendorstats: ['global-vendor-stats-modal', window.openVendorStatsGlobal],
+  analytics: ['modal-analytics', window.openAnalyticsModal],
+  donaciones: ['modal-donaciones-stats', window.openDonacionesStatsModal],
+  planplus: ['modal-plan-plus-resumen', window.openPlanPlusResumenModal],
+  errores: ['modal-error-monitor', window.openErrorMonitorModal],
+  syncvendedor: ['sync-vendedor-modal', window.openSyncVendedorModal]
+};
+// Acciones que no dejan contenido embebido (pestaña nueva o confirm/alert flotante).
+const ACTION_TOOLS = {
+  inspector: window.openInspectorMode,
+  reentrenar: window.reentrenarModeloIA,
+  algolia: window.resincronizarComunidadAlgoliaBtn
 };
 
 function closeAllTools() {
-  Object.values(TOOL_MODAL_IDS).forEach(id => document.getElementById(id)?.remove());
+  Object.values(EMBED_TOOLS).forEach(([id]) => document.getElementById(id)?.remove());
+  document.getElementById('tools-content').innerHTML = '';
+}
+
+// Saca el "modal" del body, le quita el overlay/backdrop y su botón de cerrar,
+// y lo mete dentro del contenedor de la página.
+function claimModal(id, tries = 60) {
+  const el = document.getElementById(id);
+  if (!el) { if (tries > 0) requestAnimationFrame(() => claimModal(id, tries - 1)); return; }
+  el.style.cssText = 'position:static;display:block;';
+  const card = el.firstElementChild;
+  if (card) Object.assign(card.style, { maxWidth: 'none', width: '100%', boxShadow: 'none', margin: '0' });
+  el.querySelectorAll('button').forEach(b => {
+    if ((b.id || '').startsWith('btn-close') || (b.getAttribute('onclick') || '').includes("display='none'")) b.remove();
+  });
+  document.getElementById('tools-content').appendChild(el);
 }
 
 function runTool(name, push = true) {
   closeAllTools();
   if (push) history.pushState({ tool: name }, '', name ? `Tools.html?tool=${name}` : 'Tools.html');
-  const content = document.getElementById('tools-content');
-  content.className = ''; void content.offsetWidth; content.className = ''; // reinicia animación
-  requestAnimationFrame(() => content.style.animation = 'none');
-  const fn = {
-    inspector: window.openInspectorMode,
-    confiable: window.openSugerenciasConfiableModal,
-    vendorstats: window.openVendorStatsGlobal,
-    analytics: window.openAnalyticsModal,
-    donaciones: window.openDonacionesStatsModal,
-    planplus: window.openPlanPlusResumenModal,
-    errores: window.openErrorMonitorModal,
-    reentrenar: window.reentrenarModeloIA,
-    syncvendedor: window.openSyncVendedorModal,
-    algolia: window.resincronizarComunidadAlgoliaBtn
-  }[name];
-  if (typeof fn === 'function') fn();
+  document.getElementById('tools-menu').hidden = !!EMBED_TOOLS[name];
+  document.getElementById('tools-back').hidden = !EMBED_TOOLS[name];
+
+  if (EMBED_TOOLS[name]) {
+    const [modalId, fn] = EMBED_TOOLS[name];
+    fn();
+    claimModal(modalId);
+  } else if (ACTION_TOOLS[name]) {
+    ACTION_TOOLS[name]();
+  }
 }
 
 document.getElementById('tools-menu').addEventListener('click', e => {
   const name = e.target.closest('[data-tool]')?.dataset.tool;
   if (name) runTool(name);
 });
+document.getElementById('tools-back').addEventListener('click', () => runTool(''));
 
 window.addEventListener('popstate', e => runTool(e.state?.tool || new URLSearchParams(location.search).get('tool') || '', false));
 
