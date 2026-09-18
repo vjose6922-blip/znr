@@ -1325,6 +1325,12 @@ const slot = document.getElementById(`slot-${n}`);
 if (!slot) return;
 const previewContainer = slot.querySelector('.slot-preview');
 if (previewContainer) previewContainer.remove();
+// uploadImagesInQueue (common.js) mete un <img> suelto directo en el slot
+// (no dentro de .slot-preview) al elegir el archivo; hay que quitarlo
+// también o la miniatura se queda pegada aunque uploadedImages[n] ya sea null.
+slot.querySelectorAll('img').forEach(img => img.remove());
+const progress = document.getElementById(`progress-image-upload-${n}`);
+if (progress) progress.style.width = '0%';
 slot.classList.remove('has-img');
 }
 
