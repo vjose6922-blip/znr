@@ -80,7 +80,7 @@
       <button type="button" class="admin-mini-card" data-tool="algolia"><span class="amc-label">Resincronizar Comunidad con Algolia</span></button>
     </div>
   </section>
-  <button type="button" id="tools-back" hidden style="margin-bottom:14px;background:none;border:none;color:inherit;opacity:.7;cursor:pointer;font-size:14px;">&larr; Volver a herramientas</button>
+  <button type="button" id="tools-back" hidden style="margin-bottom:14px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);color:inherit;cursor:pointer;font-size:13px;padding:8px 16px;border-radius:20px;">&larr; Volver a herramientas</button>
   <div id="tools-content"></div>
 </main>
 
@@ -127,10 +127,18 @@ function claimModal(id, tries = 90) {
   }
   el.style.cssText = 'position:static;display:block;';
   const card = el.firstElementChild;
-  if (card) Object.assign(card.style, { maxWidth: 'none', width: '100%', boxShadow: 'none', margin: '0' });
-  el.querySelectorAll('button').forEach(b => {
-    if ((b.id || '').startsWith('btn-close') || (b.getAttribute('onclick') || '').includes("display='none'")) b.remove();
+  if (card) Object.assign(card.style, {
+    maxWidth: 'none', width: '100%', boxShadow: 'none', margin: '0',
+    maxHeight: 'none', overflowY: 'visible', borderRadius: '16px'
   });
+  el.querySelectorAll('button').forEach(b => {
+    if ((b.id || '').startsWith('btn-close') || (b.getAttribute('onclick') || '').includes("display='none'")) {
+      b.removeAttribute('onclick');
+      b.onclick = () => runTool('');
+      b.title = 'Volver a herramientas';
+    }
+  });
+  document.body.style.overflow = '';
   document.getElementById('tools-content').appendChild(el);
 }
 
