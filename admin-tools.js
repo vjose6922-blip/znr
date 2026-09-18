@@ -1,3 +1,760 @@
+// Estilos compartidos de admin.html / Tools.html / notificaciones.html (inyectados por JS para no usar un .css aparte)
+document.head.insertAdjacentHTML('beforeend', `<style>
+ * {
+ box-sizing: border-box;
+ }
+  .admin-header {
+ background: rgba(5, 3, 10, 0.95) !important;
+ backdrop-filter: blur(18px) !important;
+ border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
+ }
+.app-header {
+ flex-wrap: nowrap;  
+}
+.header-left {
+ flex-shrink: 1;  
+ min-width: 0;  
+}
+.header-right {
+ flex-shrink: 0;  
+ flex-wrap: nowrap;  
+}
+ .admin-header .app-title,
+ .admin-header .app-subtitle {
+ color: white !important;
+ }
+ .admin-main {
+ background: linear-gradient(180deg, #0b0714 0%, #1a1528 100%);
+ min-height: calc(100vh - 64px);
+ padding: 12px;
+ width: 100%;
+ }
+ @media (min-width: 768px) {
+ .admin-main {
+ max-width: 1200px;
+ margin: 0 auto;
+ padding: 20px;
+ }
+ }
+ .admin-card {
+ background: rgba(255, 255, 255, 0.98);
+ border-radius: 16px;
+ box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+ margin-bottom: 16px;
+ overflow: hidden;
+ width: 100%;
+ }
+ .admin-card-header {
+ padding: 14px 16px;
+ background: linear-gradient(135deg, #3b1f5f, #5a3b8a);
+ color: white !important;
+ display: flex;
+ justify-content: space-between;
+ align-items: center;
+ flex-wrap: wrap;
+ gap: 8px;
+ }
+ .admin-card-header h2 {
+ color: white !important;
+ font-size: 18px;
+ margin: 0;
+ }
+ .admin-card-header .text-button {
+ color: white !important;
+ background: rgba(255,255,255,0.2);
+ padding: 6px 12px;
+ border-radius: 20px;
+ font-size: 12px;
+ border: none;
+ cursor: pointer;
+ }
+ .admin-stats-grid {
+ display: grid;
+ grid-template-columns: repeat(3, 1fr);
+ gap: 8px;
+ margin-bottom: 16px;
+ width: 100%;
+ }
+ .admin-stat-card {
+ background: linear-gradient(135deg, #3b1f5f, #5a3b8a);
+ border-radius: 12px;
+ padding: 10px 4px;
+ text-align: center;
+ color: white !important;
+ width: 100%;
+ min-width: 0; 
+ }
+ .admin-stat-card * {
+ color: white !important;
+ }
+ .admin-stat-value {
+ font-size: 18px;
+ font-weight: 800;
+ display: block;
+ margin-bottom: 4px;
+ color: white !important;
+ white-space: nowrap;
+ overflow: hidden;
+ text-overflow: ellipsis;
+ }
+ .admin-stat-label {
+ font-size: 9px;
+ opacity: 0.9;
+ text-transform: uppercase;
+ letter-spacing: 0.3px;
+ color: white !important;
+ display: block;
+ white-space: nowrap;
+ overflow: hidden;
+ text-overflow: ellipsis;
+ }
+ @media (min-width: 480px) {
+ .admin-stats-grid {
+ gap: 12px;
+ margin-bottom: 20px;
+ }
+ .admin-stat-card {
+ padding: 12px 8px;
+ }
+ .admin-stat-value {
+ font-size: 22px;
+ }
+ .admin-stat-label {
+ font-size: 10px;
+ }
+ }
+ @media (min-width: 768px) {
+ .admin-stats-grid {
+ gap: 16px;
+ margin-bottom: 24px;
+ }
+ .admin-stat-card {
+ padding: 20px;
+ }
+ .admin-stat-value {
+ font-size: 28px;
+ margin-bottom: 8px;
+ }
+ .admin-stat-label {
+ font-size: 12px;
+ }
+ }
+ .admin-section {
+ margin-bottom: 20px;
+ }
+ .admin-section-header {
+ display: flex;
+ align-items: center;
+ justify-content: space-between;
+ gap: 10px;
+ margin-bottom: 10px;
+ padding: 0 2px;
+ }
+ .admin-section-header h2 {
+ margin: 0;
+ font-size: 15px;
+ font-weight: 800;
+ color: #fff;
+ display: flex;
+ align-items: center;
+ gap: 8px;
+ }
+ .admin-section-header .ash-icon {
+ display: inline-flex;
+ color: #ff4f81;
+ }
+ .admin-cards-grid {
+ display: grid;
+ grid-template-columns: repeat(3, 1fr);
+ gap: 10px;
+ }
+ .admin-cards-grid.admin-cards-grid-compact {
+ grid-template-columns: repeat(3, 1fr);
+ }
+ @media (max-width: 640px) {
+ .admin-cards-grid {
+ grid-template-columns: repeat(2, 1fr);
+ }
+ }
+ @media (max-width: 340px) {
+ .admin-cards-grid,
+ .admin-cards-grid.admin-cards-grid-compact {
+ grid-template-columns: 1fr;
+ }
+ }
+ .admin-mini-card {
+ background: rgba(255, 255, 255, 0.98);
+ border-radius: 14px;
+ padding: 14px 12px;
+ display: flex;
+ flex-direction: column;
+ gap: 6px;
+ text-decoration: none;
+ color: #2a2140;
+ cursor: pointer;
+ border: none;
+ box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+ transition: transform 0.15s ease, box-shadow 0.15s ease;
+ position: relative;
+ min-height: 78px;
+ font-family: inherit;
+ text-align: left;
+ }
+ .admin-mini-card:hover {
+ transform: translateY(-2px);
+ box-shadow: 0 6px 18px rgba(0,0,0,0.22);
+ }
+ .admin-mini-card .amc-icon {
+ font-size: 18px;
+ line-height: 1;
+ color: #7a4fc9;
+ }
+ .admin-mini-card .amc-label {
+ font-size: 12px;
+ font-weight: 700;
+ line-height: 1.25;
+ padding-right: 30px;
+ }
+ .admin-mini-card .amc-badge {
+ position: absolute;
+ top: 10px;
+ right: 10px;
+ background: #ff4f81;
+ color: #fff;
+ border-radius: 50px;
+ min-width: 20px;
+ height: 20px;
+ padding: 0 6px;
+ font-size: 11px;
+ font-weight: 800;
+ display: flex;
+ align-items: center;
+ justify-content: center;
+ }
+ .admin-mini-card .amc-badge.zero {
+ background: rgba(0,0,0,0.08);
+ color: #999;
+ }
+ .admin-cta-bar {
+ display: block;
+ margin-top: 10px;
+ padding: 12px;
+ background: linear-gradient(135deg, #ff4f81, #ff7a4f);
+ color: #fff;
+ font-weight: 700;
+ font-size: 13px;
+ border-radius: 12px;
+ text-align: center;
+ text-decoration: none;
+ }
+ /* Tiles: Crear Producto / Lista de Productos.
+    Colapsados: tarjeta compacta igual a las mini-cards de Notificaciones/Herramientas.
+    Expandidos: su formulario/lista se abre en un panel a pantalla completa. */
+ .grid-tile:not(.expanded) {
+ background: transparent;
+ box-shadow: none;
+ border-radius: 14px;
+ }
+ .grid-tile .tile-header {
+ cursor: pointer;
+ }
+ .grid-tile:not(.expanded) .admin-card-header.tile-header {
+ flex-direction: column;
+ align-items: flex-start;
+ justify-content: center;
+ text-align: left;
+ gap: 6px;
+ min-height: 78px;
+ padding: 14px 12px;
+ background: rgba(255, 255, 255, 0.98);
+ border-radius: 14px;
+ box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+ transition: transform 0.15s ease, box-shadow 0.15s ease;
+ }
+ .grid-tile:not(.expanded) .admin-card-header.tile-header:hover {
+ transform: translateY(-2px);
+ box-shadow: 0 6px 18px rgba(0,0,0,0.22);
+ }
+ .grid-tile:not(.expanded) .tile-title,
+ .grid-tile:not(.expanded) .tile-icon {
+ color: #2a2140 !important;
+ }
+ .grid-tile:not(.expanded) .tile-icon svg {
+ color: #7a4fc9;
+ }
+ .grid-tile:not(.expanded) .tile-header .tile-actions {
+ display: none;
+ }
+ .grid-tile.expanded .tile-icon,
+ .grid-tile.expanded .tile-subtitle {
+ display: none;
+ }
+ .grid-tile.expanded .admin-card-header.tile-header {
+ flex-direction: row;
+ align-items: center;
+ justify-content: space-between;
+ text-align: left;
+ border-radius: 0;
+ }
+ /* Ninguna sección del panel de admin (ni el formulario de crear/editar
+ producto, ni el listado en modo lista o cuadrícula) debe quedar fija en
+ pantalla — todo se mueve junto con el contenido al hacer scroll. */
+ .grid-tile.expanded {
+ position: fixed;
+ inset: 0;
+ z-index: 9500;
+ margin: 0;
+ border-radius: 0;
+ overflow-y: auto;
+ -webkit-overflow-scrolling: touch;
+ background: #f4f1fa;
+ animation: fs-panel-in 0.18s ease;
+ }
+ @keyframes fs-panel-in {
+ from { opacity: 0; }
+ to { opacity: 1; }
+ }
+ .tile-icon {
+ font-size: 22px;
+ line-height: 1;
+ }
+ .tile-title {
+ font-size: 14px !important;
+ margin: 0 !important;
+ }
+ .tile-subtitle {
+ font-size: 11px;
+ font-weight: 500;
+ opacity: 0.85;
+ }
+ .tile-actions {
+ display: flex;
+ align-items: center;
+ gap: 10px;
+ }
+ .tile-close-btn {
+ display: inline-flex;
+ align-items: center;
+ justify-content: center;
+ width: 30px;
+ height: 30px;
+ border-radius: 50%;
+ border: none;
+ background: rgba(255,255,255,0.2);
+ color: #fff;
+ font-size: 15px;
+ line-height: 1;
+ cursor: pointer;
+ flex-shrink: 0;
+ }
+ .tile-close-btn:hover {
+ background: rgba(255,255,255,0.32);
+ }
+ #notif-badge {
+ min-width: 18px;
+ height: 18px;
+ padding: 0 5px;
+ border-radius: 50px;
+ background: rgba(255,255,255,0.18);
+ color: rgba(255,255,255,0.6);
+ display: inline-flex;
+ align-items: center;
+ justify-content: center;
+ font-size: 11px;
+ font-weight: 800;
+ transition: background 0.4s ease, color 0.3s ease;
+ flex-shrink: 0;
+ }
+ #notif-badge.has-notifs {
+ background: #ff4f81;
+ color: #fff;
+ box-shadow: 0 0 0 0 rgba(255,79,129,0.7);
+ animation: notif-pulse 1.8s ease-in-out infinite;
+ }
+ @keyframes notif-pulse {
+ 0%  { box-shadow: 0 0 0 0 rgba(255,79,129,0.7); }
+ 70% { box-shadow: 0 0 0 7px rgba(255,79,129,0); }
+ 100%{ box-shadow: 0 0 0 0 rgba(255,79,129,0); }
+ }
+ .form-vertical {
+ display: flex;
+ flex-direction: column;
+ gap: 12px;
+ padding: 16px;
+ width: 100%;
+ }
+ .form-row {
+ display: flex;
+ flex-direction: column;
+ gap: 6px;
+ width: 100%;
+ }
+ .form-row label {
+ font-weight: 600;
+ font-size: 13px;
+ color: #3b1f5f;
+ }
+ .form-row input,
+ .form-row select,
+ .form-row textarea {
+ padding: 10px 12px;
+ border: 2px solid #e0e0e0;
+ border-radius: 12px;
+ font-size: 14px;
+ transition: all 0.2s;
+ width: 100%;
+ box-sizing: border-box;
+ }
+ .form-row input:focus,
+ .form-row select:focus,
+ .form-row textarea:focus {
+ outline: none;
+ border-color: #ff4f81;
+ box-shadow: 0 0 0 3px rgba(255, 79, 129, 0.1);
+ }
+ @media (min-width: 768px) {
+ .form-vertical {
+ display: grid;
+ grid-template-columns: repeat(2, 1fr);
+ gap: 16px;
+ padding: 24px;
+ }
+ .form-row-full {
+ grid-column: span 2;
+ }
+ }
+ .image-upload-area {
+ display: flex;
+ flex-direction: column;
+ gap: 8px;
+ }
+ .image-preview-container {
+ display: flex;
+ gap: 8px;
+ align-items: center;
+ flex-wrap: wrap;
+ }
+ .image-preview {
+ max-width: 50px;
+ max-height: 50px;
+ border-radius: 8px;
+ border: 2px solid #e0e0e0;
+ object-fit: cover;
+ }
+ @media (min-width: 768px) {
+ .image-preview {
+ max-width: 80px;
+ max-height: 80px;
+ }
+ }
+ .image-url-input {
+ flex: 1;
+ padding: 8px 10px;
+ border: 2px solid #e0e0e0;
+ border-radius: 10px;
+ font-size: 11px;
+ background: #f5f5f8;
+ }
+ .progress-bar {
+ height: 3px;
+ background: #e0e0e0;
+ border-radius: 3px;
+ margin-top: 6px;
+ overflow: hidden;
+ }
+ .upload-progress {
+ width: 0%;
+ height: 100%;
+ background: linear-gradient(90deg, #ff4f81, #ff7a4f);
+ transition: width 0.3s;
+ }
+ .primary-button {
+ background: linear-gradient(135deg, #ff4f81, #ff7a4f);
+ border: none;
+ border-radius: 50px;
+ padding: 12px 20px;
+ color: white;
+ font-weight: 600;
+ font-size: 14px;
+ cursor: pointer;
+ transition: all 0.2s;
+ width: 100%;
+ }
+ .primary-button:hover {
+ transform: translateY(-2px);
+ box-shadow: 0 6px 20px rgba(255, 79, 129, 0.4);
+ }
+ .admin-controls {
+ display: flex;
+ flex-direction: column;
+ gap: 10px;
+ padding: 16px;
+ }
+ @media (min-width: 768px) {
+ .admin-controls {
+ flex-direction: row;
+ padding: 20px;
+ }
+ }
+ .admin-search, .admin-filter-select {
+ padding: 10px 12px;
+ background: white;
+ border: 2px solid #e0e0e0;
+ border-radius: 12px;
+ font-size: 14px;
+ width: 100%;
+ }
+ @media (min-width: 768px) {
+ .admin-search {
+ flex: 1;
+ }
+ .admin-filter-select {
+ width: auto;
+ }
+ }
+ .admin-products-header {
+ display: none;
+ }
+ .admin-product-row {
+ display: flex;
+ flex-wrap: wrap;
+ gap: 6px;
+ padding: 10px 12px;
+ background: white;
+ border-bottom: 1px solid #e0e0e0;
+ align-items: center;
+ }
+ .admin-product-id {
+ font-family: monospace;
+ font-size: 10px;
+ background: #f0f0f0;
+ padding: 2px 8px;
+ border-radius: 20px;
+ color: #666;
+ }
+ .admin-product-name {
+ flex: 1;
+ font-size: 13px;
+ font-weight: 500;
+ color: #333;
+ }
+ .admin-product-price {
+ font-size: 13px;
+ font-weight: 700;
+ color: #ff4f81;
+ }
+ .admin-product-stock {
+ font-size: 11px;
+ padding: 2px 8px;
+ border-radius: 20px;
+ }
+ .admin-product-stock.in-stock {
+ background: #e8f5e9;
+ color: #2e7d32;
+ }
+ .admin-product-stock.low-stock {
+ background: #fff3e0;
+ color: #f97316;
+ }
+ .admin-product-stock.out-stock {
+ background: #ffebee;
+ color: #c62828;
+ }
+ .admin-product-actions {
+ display: flex;
+ gap: 8px;
+ width: 100%;
+ margin-top: 6px;
+ }
+ .admin-product-actions button {
+ flex: 1;
+ padding: 6px 12px;
+ font-size: 12px;
+ border: none;
+ border-radius: 8px;
+ cursor: pointer;
+ }
+ .admin-product-actions button:first-child {
+ background: #e8e8ff;
+ color: #3b1f5f;
+ }
+ .admin-product-actions button:first-child:hover {
+ background: #3b1f5f;
+ color: white;
+ }
+ .admin-product-actions button:last-child {
+ background: #ffe8e8;
+ color: #d32f2f;
+ }
+ .admin-product-actions button:last-child:hover {
+ background: #d32f2f;
+ color: white;
+ }
+ @media (min-width: 768px) {
+ .admin-products-header {
+ display: grid;
+ grid-template-columns: 80px 1fr 100px 100px 120px;
+ gap: 12px;
+ padding: 12px 16px;
+ background: linear-gradient(135deg, #3b1f5f, #5a3b8a);
+ border-radius: 12px;
+ font-weight: 600;
+ font-size: 13px;
+ color: white !important;
+ margin-bottom: 12px;
+ }
+ .admin-product-row {
+ display: grid;
+ grid-template-columns: 80px 1fr 100px 100px 120px;
+ gap: 12px;
+ padding: 12px 16px;
+ }
+ .admin-product-id {
+ background: none;
+ padding: 0;
+ font-size: 12px;
+ }
+ .admin-product-actions {
+ width: auto;
+ margin-top: 0;
+ }
+ }
+ .admin-pagination {
+ display: flex;
+ justify-content: center;
+ gap: 6px;
+ padding: 16px;
+ flex-wrap: wrap;
+ }
+ .admin-pagination button {
+ padding: 6px 12px;
+ border: 2px solid #e0e0e0;
+ background: white;
+ border-radius: 8px;
+ cursor: pointer;
+ font-size: 12px;
+ }
+ .admin-pagination button:hover {
+ background: #3b1f5f;
+ color: white;
+ border-color: #3b1f5f;
+ }
+ .admin-pagination button.active-page {
+ background: #ff4f81;
+ color: white;
+ border-color: #ff4f81;
+ }
+ .global-loader {
+ position: fixed;
+ top: 0;
+ left: 0;
+ width: 100%;
+ height: 100%;
+ background: rgba(0,0,0,0.8);
+ display: flex;
+ flex-direction: column;
+ justify-content: center;
+ align-items: center;
+ z-index: 9999;
+ }
+ .global-loader.hidden {
+ display: none;
+ }
+ .loader-spinner {
+ width: 40px;
+ height: 40px;
+ border: 4px solid #f3f3f3;
+ border-top: 4px solid #ff4f81;
+ border-radius: 50%;
+ animation: spin 1s linear infinite;
+ }
+ @keyframes spin {
+ 0% { transform: rotate(0deg); }
+ 100% { transform: rotate(360deg); }
+ }
+ .loader-text {
+ color: white;
+ margin-top: 12px;
+ font-size: 14px;
+ }
+ .header-right {
+ display: flex;
+ gap: 8px;
+ align-items: center;
+ }
+ .icon-button {
+ background: rgba(255,255,255,0.1);
+ border: none;
+ padding: 8px 12px;
+ border-radius: 30px;
+ color: white;
+ cursor: pointer;
+ font-size: 16px;
+ }
+ .header-left {
+ display: flex;
+ align-items: center;
+ gap: 10px;
+ }
+ .logo-touch-area {
+ width: 40px;
+ height: 40px;
+ background: linear-gradient(135deg, #ff4f81, #3b1f5f);
+ border-radius: 12px;
+ display: flex;
+ align-items: center;
+ justify-content: center;
+ font-weight: bold;
+ color: white;
+ }
+ .app-title {
+ margin: 0;
+ font-size: 18px;
+ color: white;
+ }
+ .app-subtitle {
+ margin: 0;
+ font-size: 12px;
+ color: rgba(255,255,255,0.7);
+ }
+.npi-badge{background:#ff4f81;color:#fff;border-radius:50px;padding:2px 10px;font-size:12px;font-weight:800;min-width:24px;text-align:center;}
+.npi-badge.zero{background:rgba(255,255,255,.12);color:#888;}
+/* Botón de tema: muestra sol u luna según el tema activo */
+#theme-toggle .icon-moon { display: none; }
+[data-theme="light"] #theme-toggle .icon-sun { display: none; }
+[data-theme="light"] #theme-toggle .icon-moon { display: inline; }
+
+/* ===== admin.html / Tools.html: son oscuros por defecto, esto los aclara ===== */
+[data-theme="light"] .admin-header {
+  background: rgba(255, 255, 255, 0.95) !important;
+  border-bottom-color: rgba(0, 0, 0, 0.08) !important;
+}
+[data-theme="light"] .admin-header .app-title,
+[data-theme="light"] .admin-header .app-subtitle { color: #1a1a2e !important; }
+[data-theme="light"] .admin-main {
+  background: linear-gradient(180deg, #f4f4f8 0%, #e9e7f0 100%);
+}
+[data-theme="light"] .admin-section-header h2 { color: #1a1a2e; }
+[data-theme="light"] #tools-back {
+  background: rgba(0, 0, 0, 0.05);
+  border-color: rgba(0, 0, 0, 0.12);
+  color: #1a1a2e;
+}
+
+/* ===== notificaciones.html: es claro por defecto, esto lo oscurece ===== */
+[data-theme="dark"] body { background: #0b0714; color: #eee; }
+[data-theme="dark"] .notif-section-header { background: linear-gradient(135deg, #1a1030, #2a1b4a); }
+[data-theme="dark"] .request-card,
+[data-theme="dark"] .request-summary,
+[data-theme="dark"] .notifications-filters,
+[data-theme="dark"] .skeleton-notif,
+[data-theme="dark"] .zr-skel-card {
+  background: #181428 !important;
+  border-color: rgba(255, 255, 255, 0.08) !important;
+  color: #eee;
+}
+</style>`);
+
 
 async function openDonacionesStatsModal() {
   const old = document.getElementById('modal-donaciones-stats');
@@ -1275,3 +2032,10 @@ window.eliminarCuentaVendedorAdmin = async function(uid, nombre) {
     if (window.hideLoader) window.hideLoader();
   }
 };
+
+// Toggle de tema claro/oscuro (botón #theme-toggle en admin.html, Tools.html y notificaciones.html)
+document.getElementById('theme-toggle')?.addEventListener('click', () => {
+  const next = document.documentElement.dataset.theme === 'light' ? 'dark' : 'light';
+  document.documentElement.dataset.theme = next;
+  localStorage.setItem('theme', next);
+});
