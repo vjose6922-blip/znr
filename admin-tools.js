@@ -699,6 +699,7 @@ document.head.insertAdjacentHTML('beforeend', `<style>
  .logo-touch-area {
  width: 40px;
  height: 40px;
+ flex-shrink: 0;
  background: linear-gradient(135deg, #ff4f81, #3b1f5f);
  border-radius: 12px;
  display: flex;
