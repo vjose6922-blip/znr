@@ -95,19 +95,19 @@ if (!sessionStorage.getItem('admin_token')) location.href = 'admin.html';
 // Modales que las funciones de admin-tools.js crean; los "desmontamos" para que
 // vivan como contenido de la página en vez de overlay flotante.
 const EMBED_TOOLS = {
-  confiable: ['modal-sugerencias-confiable', window.openSugerenciasConfiableModal],
-  vendorstats: ['global-vendor-stats-modal', window.openVendorStatsGlobal],
-  analytics: ['modal-analytics', window.openAnalyticsModal],
-  donaciones: ['modal-donaciones-stats', window.openDonacionesStatsModal],
-  planplus: ['modal-plan-plus-resumen', window.openPlanPlusResumenModal],
-  errores: ['modal-error-monitor', window.openErrorMonitorModal],
-  syncvendedor: ['sync-vendedor-modal', window.openSyncVendedorModal]
+  confiable: ['modal-sugerencias-confiable', () => window.openSugerenciasConfiableModal()],
+  vendorstats: ['global-vendor-stats-modal', () => window.openVendorStatsGlobal()],
+  analytics: ['modal-analytics', () => window.openAnalyticsModal()],
+  donaciones: ['modal-donaciones-stats', () => window.openDonacionesStatsModal()],
+  planplus: ['modal-plan-plus-resumen', () => window.openPlanPlusResumenModal()],
+  errores: ['modal-error-monitor', () => window.openErrorMonitorModal()],
+  syncvendedor: ['sync-vendedor-modal', () => window.openSyncVendedorModal()]
 };
 // Acciones que no dejan contenido embebido (pestaña nueva o confirm/alert flotante).
 const ACTION_TOOLS = {
-  inspector: window.openInspectorMode,
-  reentrenar: window.reentrenarModeloIA,
-  algolia: window.resincronizarComunidadAlgoliaBtn
+  inspector: () => window.openInspectorMode(),
+  reentrenar: () => window.reentrenarModeloIA(),
+  algolia: () => window.resincronizarComunidadAlgoliaBtn()
 };
 
 function closeAllTools() {
