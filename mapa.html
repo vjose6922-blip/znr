@@ -441,5 +441,6 @@ document.getElementById('btn-recenter').addEventListener('click', () => {
   map.easeTo({ center: pos, zoom: 16, duration: 500 });
 });
 </script>
+<script>if('serviceWorker' in navigator) navigator.serviceWorker.register('/znr/sw.js', { scope: '/znr/' });</script>
 </body>
 </html>

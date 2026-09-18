@@ -1,4 +1,4 @@
-const CACHE_NAME    = 'zr-cache-v84';
+const CACHE_NAME    = 'zr-cache-v85';
 const DYNAMIC_CACHE = 'zr-dynamic-v17';
 const OFFLINE_URL   = '/znr/offline.html';
 
@@ -13,6 +13,17 @@ const STATIC_ASSETS = [
   '/znr/vendedor.html',
   '/znr/admin.html',
   '/znr/notificaciones.html',
+  '/znr/terminos.html',
+  '/znr/privacidad.html',
+  '/znr/mapa.html',
+  '/znr/lives.html',
+  '/znr/entregas-live.html',
+  '/znr/plan-plus.html',
+  '/znr/mp-callback.html',
+  '/znr/vendedor-live.html',
+  '/znr/seguimiento-entrega.html',
+  '/znr/feed-actividad.html',
+  '/znr/comprador-live.html',
   '/znr/offline.html',
   '/znr/styles.css',
   '/znr/api-config.js',

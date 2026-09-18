@@ -3066,8 +3066,7 @@ async function checkIfOfflineMode() {
 if (!('serviceWorker' in navigator)) return false;
 try {
 const registration = await navigator.serviceWorker.ready;
-const cache = await caches.open('zr-cache-v1');
-const cachedResponse = await cache.match(window.location.href);
+const cachedResponse = await caches.match(window.location.href);
 if (cachedResponse && !navigator.onLine) {
 showOfflineBanner();
 return true;

@@ -206,5 +206,6 @@ function withTimeout(promise, ms) {
   pollTimer = setInterval(cargar, 20000);
 })();
 </script>
+<script>if('serviceWorker' in navigator) navigator.serviceWorker.register('/znr/sw.js', { scope: '/znr/' });</script>
 </body>
 </html>
