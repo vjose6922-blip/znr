@@ -43,7 +43,8 @@
  <title>Panel Vendedor — Z&R Comunidad</title>
  <link rel="manifest" href="/znr/manifest.json">
  <meta name="theme-color" content="#3b1f5f">
- <link rel="preload" href="styles.css" as="style">
+ <script>document.documentElement.dataset.theme = localStorage.getItem('theme') || 'light';</script>
+<link rel="preload" href="styles.css" as="style">
  <link rel="stylesheet" href="styles.css">
  <style>
  .vendor-wrap  { max-width: 640px; margin: 0 auto; padding: 0; }

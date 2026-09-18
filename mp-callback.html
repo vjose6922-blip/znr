@@ -11,16 +11,18 @@
   img-src 'self';
 ">
 <title>Conectando con Mercado Pago...</title>
+<script>document.documentElement.dataset.theme = localStorage.getItem('theme') || 'light';</script>
+<link rel="stylesheet" href="styles.css">
 <style>
   body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;
-       background:#0f0f1a;color:#fff;font-family:system-ui,-apple-system,sans-serif;text-align:center;padding:24px;}
+       background:var(--color-bg);color:var(--color-text-main);font-family:system-ui,-apple-system,sans-serif;text-align:center;padding:24px;}
   .card{max-width:340px;}
-  .spinner{width:36px;height:36px;border:3px solid rgba(255,255,255,.2);border-top-color:#facc15;
+  .spinner{width:36px;height:36px;border:3px solid var(--color-border-subtle);border-top-color:#facc15;
            border-radius:50%;margin:0 auto 18px;animation:spin 0.8s linear infinite;}
   @keyframes spin{to{transform:rotate(360deg);}}
   h2{font-size:1.1rem;margin:0 0 8px;}
-  p{color:#aaa;font-size:.9rem;margin:0;}
-  .error{color:#f87171;}
+  p{color:var(--color-text-muted);font-size:.9rem;margin:0;}
+  .error{color:var(--color-error);}
 </style>
 </head>
 <body>
