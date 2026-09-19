@@ -888,24 +888,63 @@ window.restaurarBusquedaNormalComunidad = function () {
   if (typeof applyFilters === 'function') applyFilters();
 };
 
-function handleInitialHashComunidad() {
-if (initialHashHandledComunidad) return;
-const hash = window.location.hash;
-if (!hash || !hash.startsWith('#producto-')) return;
-initialHashHandledComunidad = true;
-const id = hash.replace('#producto-', '');
-// Con paginación de backend el producto puede estar en cualquier página.
-// Reintenta hasta 5s por si la tarjeta aún no terminó de renderizar
-// (caché->live, fetch en curso, etc). Si no aparece, el usuario puede
-// navegar con los botones de paginación.
-if (typeof window.waitForElementAndHighlight === 'function') {
-  window.waitForElementAndHighlight('producto-' + id);
-} else {
-  setTimeout(() => {
-    const el = document.getElementById('producto-' + id);
-    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-  }, 400);
+// Busca el producto compartido en cualquiera de los arreglos que ya
+// tengamos en memoria (no depende del grid ni de en qué página quedó).
+function buscarProductoComunidadPorId(id) {
+  const fuentes = [communityRandomOrder, allCommunityProducts, filteredProducts];
+  for (const arr of fuentes) {
+    if (!Array.isArray(arr)) continue;
+    const p = arr.find(x => String(x.id) === String(id));
+    if (p) return p;
+  }
+  return null;
 }
+
+// Abre directo el modal de detalle del producto compartido, en vez de
+// buscar/iluminar su tarjeta en el grid: así no importa si aún no
+// renderizó, en qué página está, o si el grid se reconstruye después.
+function handleInitialHashComunidad(intentos = 0) {
+  if (initialHashHandledComunidad) return;
+  const hash = window.location.hash;
+  if (!hash || !hash.startsWith('#producto-')) return;
+  const id = hash.replace('#producto-', '');
+  const product = buscarProductoComunidadPorId(id);
+  if (!product) {
+    if (intentos < 20) setTimeout(() => handleInitialHashComunidad(intentos + 1), 300);
+    return;
+  }
+  initialHashHandledComunidad = true;
+  const driveThumb = (url, size) => {
+    if (!url) return '';
+    const m = String(url).match(/[-\w]{25,}/);
+    return m ? `https://drive.google.com/thumbnail?id=${m[0]}&sz=w${size || 400}` : url;
+  };
+  const imgUrl = product.imagen1 ? driveThumb(product.imagen1, 400) : 'https://placehold.co/400x400/3b1f5f/white?text=Sin+Imagen';
+  const allImages = [product.imagen1, product.imagen2, product.imagen3].filter(Boolean).map(u => driveThumb(u, 800));
+  const productData = {
+    ID: product.id,
+    Nombre: product.nombre || '',
+    Precio: product.precio || 0,
+    Categoria: product.categoria || '',
+    Talla: product.talla || '',
+    Descripcion: product.descripcion || '',
+    Stock: product.stock !== undefined ? Number(product.stock) : -1,
+    Badge: product.badge || '',
+    Imagen1: product.imagen1 || '',
+    Imagen2: product.imagen2 || '',
+    Imagen3: product.imagen3 || '',
+    _comunidad: true,
+    _vendedorNombre: product.vendedor_nombre || '',
+    _vendedorUid: product.vendedor_uid || '',
+    _vendedorTel: product.vendedor_tel || '',
+    _vendedorLogo: product.vendedor_logo || '',
+    _vendedorPlan: product.vendedor_plan || '',
+    _donado: product.donado === true || product.donado === 'TRUE' || product.donado === 'true',
+    _beneficiarioId: product.beneficiario_id || '',
+    precio_original: product.precio_original || 0,
+    _montoMinimoEnvio: product.vendedor_monto_minimo_envio || 0,
+  };
+  abrirDetalleComunidad(imgUrl, product.id, allImages, productData);
 }
 async function deleteProductInspector(productId, productName, cardElement) {
 const token = sessionStorage.getItem('admin_token') || '';
