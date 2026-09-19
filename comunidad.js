@@ -889,20 +889,18 @@ window.restaurarBusquedaNormalComunidad = function () {
 };
 
 function handleInitialHashComunidad() {
-if (initialHashHandledComunidad) return;
-const hash = window.location.hash;
-if (!hash || !hash.startsWith('#producto-')) return;
-initialHashHandledComunidad = true;
-const id = hash.replace('#producto-', '');
-// Con paginación de backend el producto puede estar en cualquier página.
-// Solo hacemos scroll si ya está renderizado en la página actual.
-// (Si no está visible, el usuario puede navegar con los botones de paginación)
-setTimeout(() => {
-const el = document.getElementById('producto-' + id);
-if (!el) return;
-if (typeof window.highlightSharedElement === 'function') window.highlightSharedElement(el);
-else el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-}, 400);
+  if (initialHashHandledComunidad) return;
+  const hash = window.location.hash;
+  if (!hash || !hash.startsWith('#producto-')) return;
+  initialHashHandledComunidad = true;
+  const id = hash.replace('#producto-', '');
+  requestAnimationFrame(() => {
+    const el = document.getElementById('producto-' + id);
+    if (!el) return;
+    const img = el.querySelector('img');
+    const go = () => window.highlightSharedElement ? window.highlightSharedElement(el) : el.scrollIntoView({behavior:'smooth', block:'center'});
+    (img && !img.complete) ? img.addEventListener('load', go, { once: true }) : go();
+  });
 }
 async function deleteProductInspector(productId, productName, cardElement) {
 const token = sessionStorage.getItem('admin_token') || '';
