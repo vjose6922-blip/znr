@@ -983,12 +983,11 @@ function handleInitialHashLooks() {
           // del card objetivo.
           images.forEach(img => {
             const dataSrc = img.dataset?.src;
-
-            if (
-              dataSrc &&
-              (!img.src || img.src === window.location.href)
-            ) {
+            if (dataSrc) {
               img.src = dataSrc;
+              img.removeAttribute('data-src');
+              img.classList.add('loaded');
+              lazyImageObserver?.unobserve(img);
             }
           });
         }
