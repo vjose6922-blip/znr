@@ -1,0 +1,1924 @@
+﻿
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta http-equiv="Content-Security-Policy" content="
+ default-src 'self';
+ script-src 'self' 'unsafe-inline' https://www.gstatic.com;
+ style-src 'self' 'unsafe-inline';
+ img-src 'self' data: blob: https://lh3.googleusercontent.com https://drive.google.com https://placehold.co https://via.placeholder.com https://firebasestorage.googleapis.com ;
+ connect-src 'self' https://script.google.com https://script.googleusercontent.com https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://wttr.in https://www.gstatic.com https://firebaseinstallations.googleapis.com https://fcmregistrations.googleapis.com https://registrar-token-fcm-1038143238323.us-central1.run.app https://ventas-api-1038143238323.us-central1.run.app https://vendedores-api-1038143238323.us-central1.run.app https://catalogo-api-1038143238323.us-central1.run.app https://auth-api-1038143238323.us-central1.run.app https://firebase.googleapis.com https://znr-live-default-rtdb.firebaseio.com https://nominatim.openstreetmap.org https://admin-api-1038143238323.us-central1.run.app https://beneficiarios-api-1038143238323.us-central1.run.app https://tienda-znr-api-1038143238323.us-central1.run.app ;
+ font-src 'self';
+ frame-src 'none';
+ frame-ancestors 'none';
+ object-src 'none';
+ base-uri 'self';
+ worker-src 'self' blob:;
+ child-src 'self' blob:;
+">
+ <script src="error-bootstrap.js"></script>
+
+  <title>Perfil de Vendedor - Z&R</title>
+  <link rel="preconnect" href="https://script.google.com" crossorigin>
+  <link rel="preconnect" href="https://lh3.googleusercontent.com" crossorigin>
+  <link rel="dns-prefetch" href="https://lh3.googleusercontent.com">
+  <script>document.documentElement.dataset.theme = localStorage.getItem('theme') || 'light';</script>
+<link rel="preload" href="styles.css" as="style">
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#1e2128">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Z&R">
+  <link rel="apple-touch-icon" sizes="152x152" href="icons/icon-152x152.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="icons/icon-32x32.png">
+  <style>
+    /* E0000 */
+    :root {
+      --profile-header-height: 150px;
+      --avatar-size: 100px;
+      --avatar-overlap: 32px;
+    }
+    .profile-page {
+      background: var(--page-bg-linear);
+      min-height: 100vh;
+      padding-bottom: 80px;
+    }
+    .profile-perspective-wrap {
+      perspective: 1400px; /* necesario para que el volteo 3D del perfil se vea con profundidad */
+    }
+    /* ── Animación de apertura al entrar por QR o NFC ──
+       #profile-container se queda invisible un instante (profile-pre-entrada)
+       y luego gira hacia el usuario, como si la página misma fuera una carta
+       o la portada de una revista abriéndose. Se activa desde renderProfile(). */
+    #profile-container.profile-pre-entrada {
+      opacity: 0;
+    }
+    #profile-container.entrar-carta {
+      transform-style: preserve-3d;
+      backface-visibility: hidden;
+      animation: znr-flip-carta .8s cubic-bezier(.3,.1,.2,1) forwards;
+    }
+    @keyframes znr-flip-carta {
+      0%   { transform: rotateY(-100deg) scale(.94); opacity: 0; }
+      45%  { opacity: 1; }
+      100% { transform: rotateY(0deg) scale(1); opacity: 1; }
+    }
+    #profile-container.entrar-revista {
+      transform-style: preserve-3d;
+      backface-visibility: hidden;
+      transform-origin: left center;
+      animation: znr-flip-revista .95s cubic-bezier(.22,.1,.2,1) forwards;
+    }
+    @keyframes znr-flip-revista {
+      0%   { transform: rotateY(-125deg); opacity: 0; box-shadow: -30px 6px 50px rgba(0,0,0,.35); }
+      60%  { opacity: 1; }
+      100% { transform: rotateY(0deg); opacity: 1; box-shadow: none; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      #profile-container.entrar-carta,
+      #profile-container.entrar-revista {
+        animation: none; opacity: 1; transform: none;
+      }
+    }
+    /* Wrap sin overflow:hidden: el avatar y el chip "volver" viven aquí,
+       así nunca se recortan aunque se monten sobre el borde del header. */
+    .profile-header-wrap {
+      position: relative;
+    }
+    .profile-header {
+      position: relative;
+      height: var(--profile-header-height);
+      background: linear-gradient(135deg, #3b1f5f, #7c3aed);
+      overflow: hidden;
+      border-radius: 0 0 28px 28px;
+    }
+.profile-header::after {
+  content: "Z&R";
+  position: absolute;
+  bottom: 20px;
+  right: 30px;
+  font-size: 60px;
+  font-weight: 900;
+  color: rgba(255,255,255,0.08);
+  letter-spacing: 10px;
+  pointer-events: none;
+}
+    .profile-avatar {
+      position: absolute;
+      bottom: calc(-1 * var(--avatar-overlap));
+      left: 20px;
+      width: var(--avatar-size);
+      height: var(--avatar-size);
+      border-radius: 50%;
+      border: 4px solid var(--color-surface, #fff);
+      background: var(--color-surface-2);
+      overflow: hidden;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+      z-index: 2;
+    }
+    .profile-avatar img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    .profile-avatar .initials {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 40px;
+      font-weight: 700;
+      color: #fff;
+      background: linear-gradient(135deg, #ff4f81, #ff7a4f);
+    }
+    .profile-info {
+      padding: calc(var(--avatar-overlap) + 16px) 20px 20px;
+      position: relative;
+    }
+    .profile-name-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 8px;
+    }
+    .profile-name {
+      font-size: 24px;
+      font-weight: 700;
+      margin: 0;
+      color: var(--color-text-main);
+    }
+    .profile-plan-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 4px 11px;
+      border-radius: 30px;
+      background: linear-gradient(135deg, #f7c948, #f0962f);
+      color: #3a2400;
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.3px;
+      text-transform: uppercase;
+      box-shadow: 0 2px 8px rgba(240,150,47,0.35);
+      white-space: nowrap;
+    }
+    .profile-category-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 13px;
+      border-radius: 30px;
+      background: var(--color-surface-3);
+      color: var(--color-text-muted);
+      font-size: 12px;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+    .profile-description {
+      font-size: 14px;
+      color: var(--color-text-muted);
+      line-height: 1.6;
+      margin: 12px 0;
+      max-width: 600px;
+    }
+    .profile-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin: 16px 0 20px;
+      font-size: 13px;
+      color: var(--color-text-soft);
+    }
+    .profile-meta-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 7px 13px;
+      border-radius: 30px;
+      background: var(--color-surface-3);
+      color: var(--color-text-main);
+      text-decoration: none;
+      font-size: 13px;
+      font-weight: 500;
+      transition: background 0.2s, color 0.2s;
+    }
+    a.profile-meta-item:hover {
+      background: var(--color-accent-soft);
+      color: var(--color-accent);
+    }
+    .profile-meta-item.is-static {
+      color: var(--color-text-soft);
+      cursor: default;
+    }
+    .profile-meta-item svg {
+      width: 15px;
+      height: 15px;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 2;
+      flex-shrink: 0;
+    }
+    /* ── Secciones tipo pestañas en fila (Información / Contacto / Redes) ── */
+    .profile-accordion {
+      margin: 18px 0 24px;
+      border-radius: 16px;
+      overflow: hidden;
+      border: 1px solid var(--color-border-subtle);
+      background: var(--color-surface);
+    }
+    .acc-tabs {
+      display: flex;
+    }
+    .acc-tab-btn {
+      flex: 1;
+      min-width: 0;
+      padding: 14px 8px;
+      background: none;
+      border: none;
+      border-bottom: 3px solid transparent;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--color-text-muted);
+      font-family: inherit;
+      text-align: center;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      transition: color 0.2s, border-color 0.2s, background 0.2s;
+    }
+    .acc-tab-btn + .acc-tab-btn {
+      border-left: 1px solid var(--color-border-subtle);
+    }
+    .acc-tab-btn.is-active {
+      color: var(--color-accent-solid, #ff4f81);
+      border-bottom-color: var(--color-accent-solid, #ff4f81);
+      background: var(--color-accent-soft, rgba(255,79,129,0.08));
+    }
+    .acc-panels {
+      border-top: 1px solid var(--color-border-subtle);
+    }
+    .acc-panel {
+      display: none;
+      padding: 16px 18px 20px;
+    }
+    .acc-panel.is-active {
+      display: block;
+    }
+    .acc-body-row {
+      font-size: 13px;
+      color: var(--color-text-soft);
+      margin-bottom: 8px;
+    }
+    .acc-panel .profile-category-chip,
+    .acc-panel .profile-description {
+      margin: 0 0 10px;
+    }
+    .acc-panel .profile-meta,
+    .acc-panel .profile-social {
+      margin: 0;
+    }
+    .acc-empty {
+      padding: 2px 0;
+      color: var(--color-text-soft);
+      font-size: 13px;
+    }
+    @media (max-width: 380px) {
+      .acc-tab-btn { font-size: 12px; padding: 12px 4px; }
+    }
+    .profile-social {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin: 16px 0 24px;
+    }
+    .profile-social a {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 14px;
+      border-radius: 30px;
+      background: var(--color-surface-3);
+      color: var(--color-text-main);
+      text-decoration: none;
+      font-size: 13px;
+      font-weight: 500;
+      transition: background 0.2s;
+    }
+    .profile-social a:hover {
+      background: var(--color-accent-soft);
+      color: var(--color-accent);
+    }
+    .profile-social a svg {
+      width: 16px;
+      height: 16px;
+      fill: currentColor;
+    }
+
+    .profile-wa-fab {
+      position: fixed;
+      right: 16px;
+      bottom: 86px;
+      z-index: 40;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 13px 20px;
+      border-radius: 30px;
+      background: #25D366;
+      color: #fff;
+      font-weight: 700;
+      font-size: 14px;
+      text-decoration: none;
+      box-shadow: 0 8px 24px rgba(37,211,102,0.45);
+      opacity: 0;
+      transform: translateY(12px);
+      pointer-events: none;
+      transition: opacity 0.25s, transform 0.25s;
+    }
+    .profile-wa-fab.is-visible {
+      opacity: 1;
+      transform: translateY(0);
+      pointer-events: auto;
+    }
+    .profile-wa-fab svg {
+      width: 20px;
+      height: 20px;
+      fill: currentColor;
+      flex-shrink: 0;
+    }
+    @media (max-width: 480px) {
+      .profile-wa-fab span { display: none; }
+      .profile-wa-fab { padding: 14px; border-radius: 50%; }
+    }
+
+    .profile-products {
+      margin-top: 28px;
+    }
+    .profile-products h2 {
+      font-size: 18px;
+      font-weight: 700;
+      margin-bottom: 16px;
+      color: var(--color-text-main);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .profile-products-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+      gap: 14px;
+    }
+    .profile-product-card {
+      position: relative;
+      background: var(--color-surface);
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: var(--shadow-soft);
+      transition: transform 0.2s, box-shadow 0.2s;
+      border: 1px solid var(--color-border-subtle);
+      opacity: 0;
+      transform: translateY(20px);
+      animation: card-in 0.35s ease forwards;
+    }
+    .profile-confiable-badge {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+      padding: 3px 8px;
+      border-radius: 30px;
+      background: linear-gradient(135deg, #f7c948, #f0962f);
+      color: #3a2400;
+
+      font-size: 10px;
+      font-weight: 700;
+      z-index: 2;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+    }
+    .profile-confiable-badge svg {
+      width: 10px;
+      height: 10px;
+      fill: currentColor;
+    }
+    .profile-product-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+    }
+    .profile-product-img-wrap {
+  position: relative;
+  cursor: pointer;
+  aspect-ratio: 1 / 1;
+  overflow: hidden;
+  background: var(--color-surface-2);   /* el fondo va en el wrapper */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.profile-product-img-wrap > img,
+.profile-product-img-wrap .mini-slider,
+.profile-product-img-wrap .mini-slider-slide,
+.profile-product-img-wrap .mini-slider-slide img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;                  /* contain garantiza que no haya zoom */
+  object-position: center;
+  display: block;
+  background: transparent;
+}
+    .profile-product-info {
+      padding: 10px 12px 14px;
+    }
+    .profile-product-name {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--color-text-main);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .profile-product-price {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--color-accent-solid);
+      margin-top: 4px;
+    }
+    .profile-product-price-original {
+      font-size: 11px;
+      color: var(--color-text-soft);
+      text-decoration: line-through;
+      margin-top: 4px;
+    }
+    .profile-product-pct {
+      font-size: 10.5px;
+      font-weight: 800;
+      color: #22c55e;
+    }
+    .profile-product-entrega {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 10.5px;
+      font-weight: 600;
+      color: #16a34a;
+      margin-top: 2px;
+    }
+    .profile-product-entrega svg {
+      width: 12px;
+      height: 12px;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 2;
+    }
+    .profile-product-talla {
+      font-size: 11px;
+      color: var(--color-text-soft);
+      margin-top: 2px;
+    }
+    .profile-product-stockline {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 5px;
+      margin-top: 4px;
+      font-size: 11px;
+    }
+    .profile-stock-ok {
+      color: var(--color-success, #22c55e);
+      font-weight: 600;
+    }
+    .profile-stock-out {
+      color: var(--color-error, #ef4444);
+      font-weight: 600;
+    }
+    .profile-product-cat {
+      color: var(--color-text-soft);
+    }
+    .profile-product-actions {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 8px;
+    }
+    .profile-product-add {
+      flex: 1;
+      padding: 6px;
+      border: none;
+      border-radius: 30px;
+      background: var(--color-accent-solid);
+      color: #fff;
+      font-weight: 600;
+      font-size: 12px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .profile-product-add:hover {
+      background: #ff6b8a;
+    }
+    .profile-product-add:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+    .profile-product-icon-btn {
+      flex-shrink: 0;
+      width: 30px;
+      height: 30px;
+      border: none;
+      border-radius: 50%;
+      background: var(--color-surface-3);
+      color: var(--color-text-muted);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      padding: 0;
+    }
+    .profile-product-icon-btn svg {
+      width: 14px;
+      height: 14px;
+    }
+
+    .empty-products {
+      text-align: center;
+      padding: 40px;
+      color: var(--color-text-muted);
+      grid-column: 1 / -1;
+    }
+
+    .profile-load-more-wrap {
+      text-align: center;
+      margin-top: 18px;
+    }
+    .profile-load-more-wrap .primary-button {
+      padding: 10px 28px;
+      font-size: 13px;
+    }
+    .profile-product-hidden {
+      display: none;
+    }
+
+    /* ── Filtros de productos (buscar / ordenar / disponibilidad) ── */
+    .profile-products-header {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 10px;
+    }
+    .profile-products-toolbar {
+      margin: 14px 0 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .profile-products-search-row {
+      display: flex;
+      gap: 8px;
+    }
+    .profile-product-search {
+      flex: 1;
+      min-width: 0;
+      padding: 10px 14px;
+      border-radius: 12px;
+      border: 1.5px solid var(--color-border-subtle);
+      background: var(--color-surface-2);
+      color: var(--color-text-main);
+      font-size: 14px;
+      box-sizing: border-box;
+    }
+    .profile-product-sort {
+      flex-shrink: 0;
+      max-width: 46%;
+      padding: 10px 8px;
+      border-radius: 12px;
+      border: 1.5px solid var(--color-border-subtle);
+      background: var(--color-surface-2);
+      color: var(--color-text-main);
+      font-size: 12.5px;
+    }
+    .profile-products-toggles {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .profile-toggle-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 7px 13px;
+      border-radius: 30px;
+      border: 1.5px solid var(--color-border-subtle);
+      background: var(--color-surface-2);
+      color: var(--color-text-main);
+      font-size: 12.5px;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+      user-select: none;
+      transition: background 0.2s, color 0.2s, border-color 0.2s;
+    }
+    .profile-toggle-chip input {
+      accent-color: var(--color-accent-solid, #ff4f81);
+      cursor: pointer;
+    }
+    .profile-toggle-chip.is-active {
+      background: linear-gradient(135deg, #7c3aed, #a855f7);
+      border-color: transparent;
+      color: #fff;
+    }
+    .profile-clear-filters-btn {
+      margin-top: 10px;
+      padding: 8px 18px;
+      border-radius: 30px;
+      border: 1.5px solid var(--color-border-subtle);
+      background: var(--color-surface-2);
+      color: var(--color-text-main);
+      font-weight: 600;
+      font-size: 12.5px;
+      cursor: pointer;
+    }
+    .profile-clear-filters-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      align-self: flex-start;
+      margin-top: 2px;
+      border: none;
+      background: none;
+      padding: 4px 2px;
+      color: var(--color-accent-solid, #ff4f81);
+      font-weight: 700;
+      font-size: 12.5px;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+    .profile-clear-filters-link svg {
+      width: 13px;
+      height: 13px;
+    }
+
+    .back-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 16px;
+      border-radius: 30px;
+      background: var(--color-surface-3);
+      color: var(--color-text-main);
+      text-decoration: none;
+      font-size: 14px;
+      font-weight: 500;
+      margin-bottom: 16px;
+      transition: background 0.2s;
+    }
+    .back-link:hover {
+      background: var(--color-surface-2);
+    }
+
+    /* ── Skeleton ── */
+    @keyframes shimmer {
+      0%   { background-position: -400px 0; }
+      100% { background-position:  400px 0; }
+    }
+    .skeleton {
+      background: linear-gradient(90deg,
+        var(--color-surface-2) 25%,
+        var(--color-surface-3) 50%,
+        var(--color-surface-2) 75%
+      );
+      background-size: 800px 100%;
+      animation: shimmer 1.4s infinite linear;
+      border-radius: 8px;
+    }
+    .profile-skeleton-wrap { padding: 0 0 40px; }
+    .profile-skeleton-header { height: 120px; border-radius: 0; }
+    .profile-skeleton-body { padding: 16px 20px 0; }
+    .profile-skeleton-avatar {
+      width: var(--avatar-size, 90px);
+      height: var(--avatar-size, 90px);
+      border-radius: 50%;
+      margin-top: calc(var(--avatar-overlap, 32px) * -1);
+      margin-bottom: 12px;
+    }
+    .profile-skeleton-name   { height: 22px; width: 55%; margin-bottom: 10px; }
+    .profile-skeleton-cat    { height: 16px; width: 35%; margin-bottom: 14px; border-radius: 30px; }
+    .profile-skeleton-desc   { height: 14px; width: 90%; margin-bottom: 6px; }
+    .profile-skeleton-desc2  { height: 14px; width: 70%; margin-bottom: 20px; }
+    .profile-skeleton-btn    { height: 42px; width: 200px; border-radius: 40px; margin-bottom: 24px; }
+    .profile-skeleton-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+      gap: 14px;
+      margin-top: 8px;
+    }
+    .profile-skeleton-card { border-radius: 16px; overflow: hidden; background: var(--color-surface); }
+    .profile-skeleton-card-img  { height: 150px; }
+    .profile-skeleton-card-body { padding: 10px 12px 14px; }
+    .profile-skeleton-card-name { height: 13px; width: 80%; margin-bottom: 8px; border-radius: 4px; }
+    .profile-skeleton-card-price{ height: 15px; width: 50%; margin-bottom: 10px; border-radius: 4px; }
+    .profile-skeleton-card-btn  { height: 28px; border-radius: 30px; }
+    @media (max-width: 480px) {
+      .profile-skeleton-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+    }
+
+    @media (max-width: 480px) {
+      :root {
+        --avatar-size: 80px;
+        --avatar-overlap: 26px;
+      }
+      .profile-avatar {
+        left: 16px;
+      }
+      .profile-name {
+        font-size: 20px;
+      }
+      .profile-products-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 10px;
+      }
+    }
+
+    /* ── Error de carga con retry ── */
+    .profile-error-box {
+      text-align: center;
+      padding: 40px 20px;
+      color: var(--color-error, #ef4444);
+    }
+    .profile-error-actions {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      margin-top: 18px;
+    }
+    .profile-retry-btn {
+      padding: 10px 28px;
+      border: none;
+      border-radius: 30px;
+      background: var(--color-accent-solid, #ff4f81);
+      color: #fff;
+      font-weight: 700;
+      font-size: 13px;
+      cursor: pointer;
+      transition: background 0.2s, opacity 0.2s;
+    }
+    .profile-retry-btn:hover {
+      background: #ff6b8a;
+    }
+    .profile-retry-btn:disabled {
+      opacity: 0.6;
+      cursor: default;
+    }
+    .profile-error-hint {
+      font-size: 12px;
+      color: var(--color-text-soft);
+      margin-top: 4px;
+    }
+  </style>
+</head>
+<body class="theme-aeromexico profile-page">
+
+  <div id="global-loader" class="global-loader hidden">
+    <div class="loader-spinner"></div>
+    <div class="loader-text">Cargando perfil...</div>
+  </div>
+
+  <header class="app-header">
+    <div class="header-left">
+      <div class="logo-touch-area" id="secret-logo" onclick="location.href='index.html'" style="cursor:pointer;">
+        <span class="logo-mark">Z&R</span>
+      </div>
+      <div class="header-text">
+        <h1 class="app-title">Perfil</h1>
+        <p class="app-subtitle" id="profile-subtitle">Vendedor</p>
+      </div>
+    </div>
+    <div class="header-right">
+      <button class="icon-button" id="notif-bell-btn" aria-label="Notificaciones" title="Notificaciones"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" aria-hidden="true"><use href="#ic-bell"/></svg></button>
+    </div>
+  </header>
+
+  <div class="profile-perspective-wrap">
+  <main class="profile-container" id="profile-container">
+    <!-- El contenido se inyectará aquí con JavaScript -->
+    <div style="text-align:center; padding:60px 20px; color: var(--color-text-muted);">
+      <div class="loader-spinner" style="margin:0 auto 20px;"></div>
+      <p>Cargando perfil...</p>
+    </div>
+  </main>
+  </div>
+
+
+
+
+
+<nav class="bottom-nav">
+   <button class="bottom-nav-item active" data-page="comunidad" id="nav-comunidad">
+    <span class="nav-icon"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" aria-hidden="true"><use href="#ic-community"/></svg></span>
+    <span>Comunidad</span>
+  </button>
+
+  <button class="bottom-nav-item" data-page="vendedor" id="nav-vendedor">
+    <span class="nav-icon"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" aria-hidden="true"><use href="#ic-vendor"/></svg></span>
+    <span>Vendedor</span>
+  </button>
+
+  <button class="bottom-nav-item" id="nav-cart">
+    <div class="badge-wrapper">
+      <span class="nav-icon"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" aria-hidden="true"><use href="#ic-cart"/></svg></span>
+      <span class="bottom-nav-badge" id="bottom-cart-count">0</span>
+    </div>
+    <span>Carrito</span>
+  </button>
+</nav>
+
+
+
+
+
+
+
+<aside class="cart-drawer" id="cart-drawer" aria-hidden="true">
+    <div class="cart-header">
+      <h2>Tu carrito</h2>
+      <button class="icon-button" id="close-cart-btn" aria-label="Cerrar carrito"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" aria-hidden="true"><use href="#ic-x"/></svg></button>
+    </div>
+    <div class="cart-body" id="cart-items-container"></div>
+    <div class="cart-footer">
+      <div class="cart-summary-row"><span>Subtotal</span><span id="cart-subtotal">$0</span></div>
+      <div class="cart-summary-row total"><span>Total</span><span id="cart-total">$0</span></div>
+      <div id="saved-phone-container" style="display:none;">
+        <div class="cart-info-row">
+          <span> <span id="saved-phone-display"></span></span>
+          <button id="change-phone-btn" class="cart-link-btn">Cambiar</button>
+        </div>
+      </div>
+      <div class="cart-delivery-block" id="cart-delivery-block">
+        <div class="cart-delivery-header">
+          <span class="cart-delivery-icon"></span>
+          <div class="cart-delivery-text">
+            <strong id="cart-delivery-title">Dirección de entrega</strong>
+            <span id="cart-delivery-subtitle" class="cart-delivery-sub">Opcional — para envío a domicilio</span>
+          </div>
+          <button id="cart-add-address-btn" class="cart-link-btn">Añadir</button>
+        </div>
+        <div id="saved-address-container" style="display:none;">
+          <div class="cart-address-display">
+            <span id="saved-address-display"></span>
+            <button id="change-address-btn" class="cart-link-btn">Editar</button>
+          </div>
+        </div>
+        <div id="cart-shipping-status"></div>
+      </div>
+      <button id="request-purchase-btn" class="primary-button full-width" style="background: linear-gradient(135deg, #25D366, #128C7E); margin-top: 8px;">Solicitar compra</button>
+      <button id="view-orders-btn" onclick="if(typeof openPanelOnTab==='function')openPanelOnTab('pedidos')" style="width:100%;margin-top:8px;padding:8px;border:none;background:transparent;color:var(--color-text-muted);font-size:12px;cursor:pointer;text-decoration:underline;">Ver mis pedidos</button>
+    </div>
+  </aside>
+
+  <!-- Overlay para cerrar modales -->
+  <div class="overlay" id="overlay"></div>
+  <!-- Modal de detalle de producto (mismo que usa comunidad.html) -->
+  <div class="image-modal" id="image-modal"></div>
+
+
+
+
+
+  <footer class="app-footer" style="margin-bottom:70px;">
+    <div class="footer-content">
+      <div class="footer-logo"><span class="logo-mark">Z&R</span></div>
+      <div class="footer-social"><a href="https://www.facebook.com/share/19AYtxxEWk/" target="_blank" class="social-link">Facebook</a></div>
+      <div class="footer-copyright">
+        <p>© 2026 Z&R - Todos los derechos reservados</p>
+        <a href="privacidad.html" style="color:#ff4f81; text-decoration:none;">Privacidad</a> ·
+        <a href="terminos.html" style="color:#ff4f81; text-decoration:none;">Términos</a>
+      </div>
+    </div>
+  </footer>
+
+  <script src="api-config.js" defer></script>
+  <script type="module" src="fcm-init.js"></script>
+  <script type="module" src="firestore-init.js"></script>
+  <script src="icons.js" defer></script>
+  <script src="common.js" defer></script>
+  <script src="cover-portada.js" defer></script>
+  <script src="znr-devconsole.js" defer></script>
+  <script src="notification-center.js" defer></script>
+  <script src="error-monitor.js" defer></script>
+  <script src="cache-manager.js" defer></script>
+
+
+
+
+
+
+  <script>
+    (function() {
+      'use strict';
+
+      function getVendorUid() {
+        const params = new URLSearchParams(window.location.search);
+        return params.get('vendedor') || params.get('uid');
+      }
+
+      // Detecta si se llegó aquí escaneando el QR o tocando el NFC del
+      // vendedor, para reproducir la animación de apertura de página.
+      // Requiere que el link/QR/tag incluya ?src=qr o ?src=nfc.
+      function getOrigenEntrada() {
+        const origen = new URLSearchParams(window.location.search).get('src');
+        return (origen === 'qr' || origen === 'nfc') ? origen : null;
+      }
+
+      // Mostrar loader
+      function showLoader(text) {
+        const loader = document.getElementById('global-loader');
+        if (loader) {
+          const txt = loader.querySelector('.loader-text');
+          if (txt) txt.textContent = text || 'Cargando...';
+          loader.classList.remove('hidden');
+        }
+      }
+
+      function hideLoader() {
+        const loader = document.getElementById('global-loader');
+        if (loader) loader.classList.add('hidden');
+      }
+
+      // Escapar HTML
+      function esc(str) {
+        if (!str) return '';
+        return String(str)
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;')
+          .replace(/'/g, '&#39;');
+      }
+
+      function formatCurrency(value) {
+        return '$' + Number(value).toLocaleString('es-MX', { minimumFractionDigits: 0 });
+      }
+
+      function optimizeDriveUrl(url, size) {
+        if (!url) return '';
+        const match = url.match(/[-\w]{25,}/);
+        if (match) {
+          const id = match[0];
+          const sz = size || 400;
+          return `https://drive.google.com/thumbnail?id=${id}&sz=w${sz}`;
+        }
+        return url;
+      }
+
+      function digitsOnly(str) {
+        return String(str || '').replace(/\D/g, '');
+      }
+
+      // Pausa auxiliar para el backoff entre reintentos
+      function sleep(ms) {
+        return new Promise(resolve => setTimeout(resolve, ms));
+      }
+
+      const PRODUCTS_PAGE_SIZE = 12;
+
+      async function cargarCalificacionVendedor(uid) {
+        const slot = document.getElementById('profile-rating-slot');
+        if (!slot || !uid || !window.API_URL) return;
+        try {
+          let data = null;
+          if (window.znrFirestore && window.znrFirestore.getCalificacionesVendedor) {
+            data = await window.znrFirestore.getCalificacionesVendedor(uid);
+          }
+          if (!data || !data.ok) {
+            const res = await fetch(`${window.API_URL}?${new URLSearchParams({ action: 'obtenerCalificacionesVendedor', vendedor_uid: uid })}`);
+            data = await res.json();
+          }
+          if (data.ok && data.total > 0) {
+            slot.innerHTML = `<span style="color:#f59e0b;">${Icon('star')} ${data.promedio}</span> · ${data.total} calificación${data.total === 1 ? '' : 'es'}`;
+          }
+        } catch (e) { /* silencioso */ }
+      }
+
+      // ── Pestaña "Fundación": solo aparece si este vendedor también está
+      // registrado y aprobado como beneficiario. Se detecta cruzando su
+      // teléfono contra la lista pública de beneficiarios aprobados (no
+      // depende de ningún endpoint nuevo).
+      async function cargarPestanaFundacion(v) {
+        if (!window.API_URL || !v || !v.uid) return;
+        try {
+          
+          async function fsOrGasDonaciones() {
+            if (window.znrFirestore && window.znrFirestore.getDonacionesRecibidas) {
+              const r = await window.znrFirestore.getDonacionesRecibidas(v.uid);
+              if (r && r.ok) return r;
+            }
+            return fetch(`${window.API_URL}?${new URLSearchParams({ action: 'obtenerDonacionesRecibidas', vendor_uid: v.uid })}`).then(r => r.json()).catch(() => null);
+          }
+          async function fsOrGasBeneficiarios() {
+            if (window.znrFirestore && window.znrFirestore.getBeneficiariosAprobados) {
+              const r = await window.znrFirestore.getBeneficiariosAprobados();
+              if (r && r.ok) return r;
+            }
+            return fetch(`${window.API_URL}?${new URLSearchParams({ action: 'obtenerBeneficiariosAprobados' })}`).then(r => r.json()).catch(() => null);
+          }
+          const [donRes, benRes] = await Promise.all([fsOrGasDonaciones(), fsOrGasBeneficiarios()]);
+          
+          if (!donRes || !donRes.ok || !donRes.esBeneficiario) return;
+          if (!benRes || !benRes.ok) return;
+          const miTel = digitsOnly(v.telefono);
+          const ben = (benRes.beneficiarios || []).find(b => digitsOnly(b.telefono) === miTel && miTel);
+          if (!ben) return;
+
+          const tabsList = document.getElementById('acc-tabs-list');
+          const panelsList = document.getElementById('acc-panels-list');
+          if (!tabsList || !panelsList) return;
+
+          const imgs = [ben.imagen1, ben.imagen2, ben.imagen3].filter(Boolean);
+          const bodyHtml = `
+            ${imgs.length ? `<div style="display:flex;gap:8px;overflow-x:auto;margin-bottom:10px;">${imgs.map(u => `<img src="${esc(optimizeDriveUrl(u, 200))}" style="height:90px;border-radius:10px;object-fit:cover;flex-shrink:0;">`).join('')}</div>` : ''}
+            ${ben.organizacion ? `<p style="margin:0 0 6px;font-weight:700;">${esc(ben.organizacion)}</p>` : ''}
+            ${ben.ubicacion ? `<div class="acc-body-row">${Icon('map-pin')} ${esc(ben.ubicacion)}</div>` : ''}
+            ${ben.historia ? `<p style="margin:8px 0;font-size:.85rem;line-height:1.6;">${esc(ben.historia)}</p>` : ''}
+            ${ben.cuenta_bancaria ? `<div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:10px;margin-top:8px;">
+                <div style="font-weight:700;font-size:.78rem;color:#166534;">${Icon('credit-card')} Donar directo</div>
+                <div style="font-family:monospace;font-size:.85rem;">${esc(ben.cuenta_bancaria)}</div>
+              </div>` : ''}
+          `;
+
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = 'acc-tab-btn';
+          btn.dataset.target = 'fundacion';
+          btn.setAttribute('role', 'tab');
+          btn.setAttribute('aria-selected', 'false');
+          btn.innerHTML = Icon('heart-fill') + ' Fundación';
+          tabsList.appendChild(btn);
+
+          const panel = document.createElement('div');
+          panel.className = 'acc-panel';
+          panel.dataset.panel = 'fundacion';
+          panel.innerHTML = bodyHtml;
+          panelsList.appendChild(panel);
+
+          btn.addEventListener('click', function() {
+            const willOpen = !this.classList.contains('is-active');
+            tabsList.querySelectorAll('.acc-tab-btn').forEach(b => {
+              const active = willOpen && b === this;
+              b.classList.toggle('is-active', active);
+              b.setAttribute('aria-selected', active ? 'true' : 'false');
+            });
+            panelsList.querySelectorAll('.acc-panel').forEach(p => {
+              p.classList.toggle('is-active', willOpen && p.dataset.panel === 'fundacion');
+            });
+          });
+        } catch (e) { /* silencioso: si falla, simplemente no se muestra la pestaña */ }
+      }
+
+      function renderProfile(data) {
+        const container = document.getElementById('profile-container');
+        if (!container) return;
+
+        const origenEntrada = getOrigenEntrada();
+        if (origenEntrada) {
+          container.classList.add('profile-pre-entrada');
+        }
+
+        const v = data.vendedor;
+        const productos = data.productos || [];
+
+        // Determinar iniciales
+        const initials = (v.nombre || '?')
+          .split(' ')
+          .map(w => w[0])
+          .slice(0, 2)
+          .join('')
+          .toUpperCase();
+
+        // Logo o iniciales
+        const avatarHtml = v.logo
+          ? `<img src="${esc(optimizeDriveUrl(v.logo, 200))}" alt="${esc(v.nombre)}" loading="lazy">`
+          : `<div class="initials">${esc(initials)}</div>`;
+
+        // Fecha de registro
+        let fechaRegistro = '';
+        if (v.fechaRegistro) {
+          const d = new Date(v.fechaRegistro);
+          if (!isNaN(d)) fechaRegistro = d.toLocaleDateString('es-MX', { year: 'numeric', month: 'long', day: 'numeric' });
+        }
+
+        // Redes sociales
+        const socials = [
+  { name: 'Facebook', url: v.facebook, icon: '<svg width="16" height="16" aria-hidden="true"><use href="#ic-facebook"/></svg>' },
+  { name: 'Twitter',  url: v.twitter,  icon: '<svg width="16" height="16" aria-hidden="true"><use href="#ic-twitter"/></svg>' },
+  { name: 'Instagram',url: v.instagram, icon: '<svg width="16" height="16" aria-hidden="true"><use href="#ic-instagram"/></svg>' },
+  { name: 'TikTok',   url: v.tiktok,   icon: '<svg width="16" height="16" aria-hidden="true"><use href="#ic-tiktok"/></svg>' }
+].map(s => ({ ...s, url: s.url != null ? String(s.url).trim() : '' })).filter(s => s.url !== '');
+
+       const socialHtml = socials.map(s => `
+  <a href="${esc(s.url)}" target="_blank" rel="noopener">
+    ${s.icon} ${s.name}
+  </a>
+`).join('');
+
+        // Contacto: WhatsApp del negocio si existe, si no, cae al teléfono de registro
+        const waNumber  = v.whatsapp || v.telefono || '';
+        const waDigits  = digitsOnly(waNumber);
+        const telDigits = digitsOnly(v.telefono);
+        const waLink  = waDigits  ? `https://wa.me/52${waDigits}?text=${encodeURIComponent('Hola ' + (v.nombre || '') + ', vi tu perfil en Z&R y me interesan tus productos.')}` : '';
+        const telLink = telDigits ? `tel:+52${telDigits}` : '';
+
+        const isPlus = (v.plan || 'free') === 'plus';
+        const planBadgeHtml = isPlus ? `<span class="profile-plan-badge">${Icon('check')}</span>` : '';
+        const confiableBadgeHtml = v.confiable ? `<span class="profile-plan-badge" style="background:#eff6ff;color:#2563eb;" title="Vendedor confiable">${Icon('hand-heart')} Confiable</span>` : '';
+        // Iconos (mismo lenguaje visual que el resto de la app: stroke, sin relleno)
+        const icoPhone = `<svg viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>`;
+        const icoChat   = `<svg viewBox="0 0 24 24"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>`;
+        const icoCal     = `<svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>`;
+        const icoClock   = `<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>`;
+        const icoCheck   = `<svg viewBox="0 0 24 24"><path d="M9 16.2 4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4z"/></svg>`;
+        const icoTruck   = `<svg viewBox="0 0 24 24"><path d="M1 3h13v13H1z"/><path d="M14 8h4l4 4v4h-8V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="17.5" cy="18.5" r="2.5"/></svg>`;
+        const montoMinimoEnvio = (v.montoMinimoEnvio !== null && v.montoMinimoEnvio !== undefined && v.montoMinimoEnvio !== '')
+          ? Number(v.montoMinimoEnvio) : null;
+
+        // ── Sección "Información" ──
+        const infoBits = [
+          v.categoria ? `<div class="profile-category-chip">${esc(v.categoria)}</div>` : '',
+          v.descripcion ? `<p class="profile-description">${esc(v.descripcion)}</p>` : '',
+          fechaRegistro ? `<div class="acc-body-row">Miembro desde ${esc(fechaRegistro)}</div>` : ''
+        ].filter(Boolean).join('');
+        const infoBodyHtml = infoBits || `<div class="acc-empty">Este vendedor aún no agregó información.</div>`;
+
+        // ── Sección "Contacto" (llamar / enviar mensaje) ──
+        const contactoBits = [
+          telLink ? `<a href="${telLink}" class="profile-meta-item">Llamar · ${esc(v.telefono)}</a>` : '',
+          waLink ? `<a href="${waLink}" target="_blank" rel="noopener" class="profile-meta-item">Enviar mensaje</a>` : '',
+          v.horario ? `<span class="profile-meta-item is-static">${esc(v.horario)}</span>` : '',
+          montoMinimoEnvio !== null ? `<span class="profile-meta-item is-static">${icoTruck} Envío a domicilio desde $${montoMinimoEnvio.toLocaleString()} MXN</span>` : ''
+        ].filter(Boolean).join('');
+        const contactoBodyHtml = contactoBits
+          ? `<div class="profile-meta">${contactoBits}</div>`
+          : `<div class="acc-empty">Este vendedor no agregó datos de contacto.</div>`;
+
+        // ── Sección "Redes sociales" ──
+        const socialBodyHtml = socialHtml
+          ? `<div class="profile-social">${socialHtml}</div>`
+          : `<div class="acc-empty">Este vendedor no vinculó redes sociales.</div>`;
+
+        // Productos: ¿hay suficientes como para mostrar la barra de filtros?
+        const hasDonativos = productos.some(p => p.donado === true || p.donado === 'TRUE' || p.donado === 'true');
+        const showProductToolbar = productos.length > 4;
+        const productToolbarHtml = showProductToolbar ? `
+          <div class="profile-products-toolbar">
+            <div class="profile-products-search-row">
+              <input type="text" id="profile-product-search" class="profile-product-search" placeholder="Buscar en sus productos..." autocomplete="off">
+              <select id="profile-product-sort" class="profile-product-sort">
+                <option value="relevancia">Más relevantes</option>
+                <option value="precio-asc">Precio: menor a mayor</option>
+                <option value="precio-desc">Precio: mayor a menor</option>
+                <option value="nombre-asc">Nombre A-Z</option>
+              </select>
+            </div>
+            <div class="profile-products-toggles">
+              <label class="profile-toggle-chip" id="profile-stock-chip"><input type="checkbox" id="profile-only-stock"> Solo disponibles</label>
+              ${hasDonativos ? `<label class="profile-toggle-chip" id="profile-donativo-chip"><input type="checkbox" id="profile-only-donativo"> Donativos</label>` : ''}
+            </div>
+            <button type="button" id="profile-clear-filters-active" class="profile-clear-filters-link" style="display:none;">${Icon('x')} Quitar filtros</button>
+          </div>
+        ` : '';
+
+        // Construir HTML del perfil
+        container.innerHTML = `
+          <div class="profile-header-wrap">
+            <div class="profile-header" id="profile-header-cover"></div>
+            <div class="profile-avatar">
+              ${avatarHtml}
+            </div>
+          </div>
+
+          <div class="profile-info">
+
+            <div class="profile-name-row">
+             <h1 class="profile-name">${esc(v.nombre || 'Vendedor')}</h1>
+              ${planBadgeHtml}
+              ${confiableBadgeHtml}
+            </div>
+            <div id="profile-rating-slot" style="margin:2px 0 6px;font-size:13px;color:#888;"></div>
+
+            <div class="profile-accordion">
+              <div class="acc-tabs" role="tablist" id="acc-tabs-list">
+                <button type="button" class="acc-tab-btn" data-target="info" role="tab" aria-selected="false">Información</button>
+                <button type="button" class="acc-tab-btn" data-target="contacto" role="tab" aria-selected="false">Contacto</button>
+                <button type="button" class="acc-tab-btn" data-target="social" role="tab" aria-selected="false">Redes sociales</button>
+              </div>
+              <div class="acc-panels" id="acc-panels-list">
+                <div class="acc-panel" data-panel="info">${infoBodyHtml}</div>
+                <div class="acc-panel" data-panel="contacto">${contactoBodyHtml}</div>
+                <div class="acc-panel" data-panel="social">${socialBodyHtml}</div>
+              </div>
+            </div>
+
+            <div class="profile-products">
+              <div class="profile-products-header">
+                <h2>Productos <span id="profile-products-count">(${productos.length})</span></h2>
+              </div>
+              ${productToolbarHtml}
+              <div class="profile-products-grid" id="profile-products-grid"></div>
+              <div class="profile-load-more-wrap" id="profile-load-more-wrap"></div>
+            </div>
+          </div>
+        `;
+
+        // Portada personalizada del vendedor (color + patrón de iconos)
+        if (typeof applyCoverBackground === 'function') {
+          const coverEl = document.getElementById('profile-header-cover');
+          const coverIcons = typeof parseCoverIcons === 'function' ? parseCoverIcons(v.cover_icons) : [];
+          applyCoverBackground(coverEl, v.cover_bg, coverIcons, v.cover_icon_color);
+        }
+
+        cargarCalificacionVendedor(v.uid);
+        cargarPestanaFundacion(v);
+
+        // Pestañas (Información / Contacto / Redes sociales): colapsadas por
+        // defecto para no ocupar espacio antes de llegar a los productos.
+        // Tocar una pestaña la abre; tocarla de nuevo la vuelve a cerrar.
+        container.querySelectorAll('.acc-tab-btn').forEach(btn => {
+          btn.addEventListener('click', function() {
+            const target = this.dataset.target;
+            const willOpen = !this.classList.contains('is-active');
+            container.querySelectorAll('.acc-tab-btn').forEach(b => {
+              const active = willOpen && b === this;
+              b.classList.toggle('is-active', active);
+              b.setAttribute('aria-selected', active ? 'true' : 'false');
+            });
+            container.querySelectorAll('.acc-panel').forEach(p => {
+              p.classList.toggle('is-active', willOpen && p.dataset.panel === target);
+            });
+          });
+        });
+
+        // ── Filtros, orden y paginación de productos ──
+        let productsShown = PRODUCTS_PAGE_SIZE;
+        const productFilterState = { search: '', sort: 'relevancia', onlyStock: false, onlyDonativo: false };
+
+        function normalizeText(s) {
+          return String(s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+        }
+
+        function getFilteredProducts() {
+          let list = productos.slice();
+          const q = normalizeText(productFilterState.search.trim());
+          if (q) list = list.filter(p => normalizeText(p.nombre).includes(q));
+          if (productFilterState.onlyStock) list = list.filter(p => Number(p.stock || 0) > 0);
+          if (productFilterState.onlyDonativo) {
+            list = list.filter(p => p.donado === true || p.donado === 'TRUE' || p.donado === 'true');
+          }
+          if (productFilterState.sort === 'precio-asc') {
+            list.sort((a, b) => Number(a.precio || 0) - Number(b.precio || 0));
+          } else if (productFilterState.sort === 'precio-desc') {
+            list.sort((a, b) => Number(b.precio || 0) - Number(a.precio || 0));
+          } else if (productFilterState.sort === 'nombre-asc') {
+            list.sort((a, b) => String(a.nombre || '').localeCompare(String(b.nombre || ''), 'es'));
+          }
+          return list;
+        }
+
+        function buildProductCardHtml(p, idx) {
+          const img = p.imagen1 ? optimizeDriveUrl(p.imagen1, 400) : 'https://placehold.co/200x200/3b1f5f/white?text=Sin+Imagen';
+          const allImages = [p.imagen1, p.imagen2, p.imagen3].filter(Boolean).map(u => optimizeDriveUrl(u, 400));
+          const stock = Number(p.stock || 0);
+          const hasStock = stock > 0;
+          const talla = p.talla || '';
+          const categoria = p.categoria || '';
+          const esConfiable = p.confiable === true || p.confiable === 'true';
+          const esDonativo = p.donado === true || p.donado === 'TRUE' || p.donado === 'true';
+          const precioOriginal = Number(p.precio_original) || 0;
+          const tieneDescuento = precioOriginal > Number(p.precio || 0);
+          const pctDescuento = tieneDescuento ? Math.round((1 - p.precio / precioOriginal) * 100) : 0;
+          const calificaEntrega = montoMinimoEnvio !== null && Number(p.precio || 0) >= montoMinimoEnvio;
+          const entregaHtml = calificaEntrega ? `<div class="profile-product-entrega">${icoTruck} Entrega a domicilio</div>` : '';
+          // Las primeras 6 cargan de inmediato; el resto usa lazy load via data-src
+          const imgAttr = idx < 6
+            ? `src="${esc(img)}" loading="lazy"`
+            : `data-src="${esc(img)}" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'/%3E"`;
+          const imgBlockHtml = allImages.length > 1
+            ? (window.crearSliderImagenesHTML ? window.crearSliderImagenesHTML(allImages, p.nombre) : `<img ${imgAttr} alt="${esc(p.nombre)}" onerror="this.src='https://placehold.co/400x400/3b1f5f/white?text=Error'">`)
+            : `<img ${imgAttr} alt="${esc(p.nombre)}" onerror="this.src='https://placehold.co/400x400/3b1f5f/white?text=Error'">`;
+          const stockLineHtml = `
+            <div class="profile-product-stockline">
+              ${hasStock ? `<span class="profile-stock-ok">Stock: ${stock}</span>` : `<span class="profile-stock-out">Sin stock</span>`}
+              ${categoria ? `<span class="profile-product-cat">· ${esc(categoria)}</span>` : ''}
+            </div>`;
+          return `
+            <div class="profile-product-card" data-id="${esc(p.id)}" style="animation-delay:${Math.min(idx % PRODUCTS_PAGE_SIZE, 8) * 0.04}s">
+              <div class="profile-product-img-wrap" data-id="${esc(p.id)}">
+                ${p.badge ? `<span class="product-badge">${esc(p.badge)}</span>` : ''}
+                ${esConfiable ? `<span class="profile-confiable-badge">${Icon('check')}</span>` : ''}
+                ${esDonativo ? `<span class="product-badge" style="background:linear-gradient(135deg,#f97316,#ef4444);">Donativo</span>` : ''}
+                ${imgBlockHtml}
+              </div>
+              <div class="profile-product-info">
+                <div class="profile-product-name" title="${esc(p.nombre)}">${esc(p.nombre)}</div>
+                ${tieneDescuento ? `<div class="profile-product-price-original">${formatCurrency(precioOriginal)}</div>` : ''}
+                <div class="profile-product-price">${formatCurrency(p.precio)}${tieneDescuento ? ` <span class="profile-product-pct">-${pctDescuento}%</span>` : ''}</div>
+                ${entregaHtml}
+                ${talla ? `<div class="profile-product-talla">Info: ${esc(talla)}</div>` : ''}
+                ${stockLineHtml}
+                <div class="profile-product-actions">
+                  <button class="profile-product-add" data-id="${esc(p.id)}" data-nombre="${esc(p.nombre)}" data-precio="${p.precio}" data-img="${esc(p.imagen1 || '')}" data-talla="${esc(p.talla || '')}" data-donado="${esDonativo}" data-benid="${esDonativo ? esc(p.beneficiario_id || '') : ''}" ${!hasStock ? 'disabled' : ''}>
+                    ${hasStock ? 'Añadir' : 'Sin stock'}
+                  </button>
+                  <button type="button" class="profile-product-icon-btn profile-product-report" data-id="${esc(p.id)}" title="Reportar">${Icon('flag')}</button>
+                  <button type="button" class="profile-product-icon-btn profile-product-share" data-id="${esc(p.id)}" data-nombre="${esc(p.nombre)}" data-precio="${p.precio}" title="Compartir">${Icon('share')}</button>
+                </div>
+              </div>
+            </div>
+          `;
+        }
+
+        // Reporte de producto (mismo endpoint que usa comunidad.html)
+        function showReportDialog(product) {
+          const modal = document.createElement('div');
+          modal.className = 'custom-alert-modal';
+          modal.style.zIndex = '100000';
+          modal.innerHTML = `
+            <div class="custom-alert-content" style="max-width:380px; width:90%;">
+              <div class="custom-alert-header"><h3>Reportar producto</h3></div>
+              <div class="custom-alert-body">
+                <p style="font-weight:600; margin-bottom:12px; color:var(--color-text-primary,#1a1a2e);">"${esc(product.nombre)}"</p>
+                <p style="margin-bottom:12px; font-size:13px; color:var(--color-text-muted,#666);">Selecciona el motivo del reporte:</p>
+                <div style="display:flex; flex-direction:column; gap:8px;">
+                  <label style="display:flex; align-items:center; gap:10px; cursor:pointer; padding:10px 12px; border-radius:10px; border:1.5px solid #e0e0e0;">
+                    <input type="radio" name="report-reason" value="Producto inapropiado" style="accent-color:#ff4f81;">
+                    <span style="font-size:13px;">Producto inapropiado</span>
+                  </label>
+                  <label style="display:flex; align-items:center; gap:10px; cursor:pointer; padding:10px 12px; border-radius:10px; border:1.5px solid #e0e0e0;">
+                    <input type="radio" name="report-reason" value="Información falsa o engañosa" style="accent-color:#ff4f81;">
+                    <span style="font-size:13px;">Información falsa / engañosa</span>
+                  </label>
+                  <label style="display:flex; align-items:center; gap:10px; cursor:pointer; padding:10px 12px; border-radius:10px; border:1.5px solid #e0e0e0;">
+                    <input type="radio" name="report-reason" value="Otro" style="accent-color:#ff4f81;" id="report-radio-otro">
+                    <span style="font-size:13px;">Otro (especificar)</span>
+                  </label>
+                  <div id="report-otro-field" style="display:none; margin-top:4px;">
+                    <input type="text" id="report-otro-text" placeholder="Describe el problema..." maxlength="200"
+                      style="width:100%; padding:10px 12px; border-radius:10px; border:1.5px solid #e0e0e0; font-size:13px; box-sizing:border-box; background:var(--color-input-bg,#f9f9ff);">
+                  </div>
+                </div>
+              </div>
+              <div class="custom-alert-footer">
+                <button class="custom-alert-btn cancel" id="report-cancel-btn">${Icon('x')} Cancelar</button>
+                <button class="custom-alert-btn confirm" id="report-confirm-btn" style="background:linear-gradient(135deg,#ff4f81,#ff7a4f);">${Icon('flag')} Enviar reporte</button>
+              </div>
+            </div>
+          `;
+          document.body.appendChild(modal);
+          const radioOtro = modal.querySelector('#report-radio-otro');
+          const otroField = modal.querySelector('#report-otro-field');
+          modal.querySelectorAll('input[name="report-reason"]').forEach(radio => {
+            radio.addEventListener('change', () => { otroField.style.display = radioOtro.checked ? 'block' : 'none'; });
+          });
+          const close = () => {
+            modal.classList.add('closing');
+            setTimeout(() => { if (modal.parentNode) modal.remove(); }, 150);
+          };
+          modal.querySelector('#report-cancel-btn')?.addEventListener('click', close);
+          modal.addEventListener('click', (e) => { if (e.target === modal) close(); });
+          modal.querySelector('#report-confirm-btn')?.addEventListener('click', async () => {
+            const selected = modal.querySelector('input[name="report-reason"]:checked');
+            if (!selected) {
+              if (typeof showTemporaryMessage === 'function') showTemporaryMessage('Selecciona un motivo', 'error');
+              return;
+            }
+            let motivo = selected.value;
+            if (motivo === 'Otro') {
+              const otroText = (modal.querySelector('#report-otro-text').value || '').trim();
+              if (!otroText) {
+                if (typeof showTemporaryMessage === 'function') showTemporaryMessage('Describe el motivo', 'error');
+                return;
+              }
+              motivo = 'Otro: ' + otroText;
+            }
+            const confirmBtn = modal.querySelector('#report-confirm-btn');
+            const doSend = () => sendReport(product, motivo);
+            const ok = typeof window.withButtonLoading === 'function'
+              ? await window.withButtonLoading(confirmBtn, doSend, 'Enviando…')
+              : await doSend();
+            if (ok) close();
+          });
+        }
+
+        async function sendReport(product, motivo) {
+          try {
+            const telefonoUsuario = localStorage.getItem('client_phone') || '';
+            const params = new URLSearchParams({
+              action: 'reportarProducto',
+              productId: String(product.id),
+              nombreProducto: product.nombre || '',
+              motivo: motivo,
+              telefonoUsuario: telefonoUsuario,
+              fecha: new Date().toISOString()
+            });
+            const res = await fetch('https://catalogo-api-1038143238323.us-central1.run.app', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+              body: params.toString()
+            });
+            const data = await res.json();
+            if (!data.ok) throw new Error(data.error || 'Error al enviar reporte');
+            if (typeof showTemporaryMessage === 'function') showTemporaryMessage('Reporte enviado. ¡Gracias por ayudarnos a mejorar la comunidad!', 'success');
+            return true;
+          } catch (err) {
+            console.error('Error enviando reporte:', err);
+            if (typeof showTemporaryMessage === 'function') showTemporaryMessage('No se pudo enviar el reporte. Inténtalo de nuevo.', 'error');
+            return false;
+          }
+        }
+
+        // Eventos para "Añadir", reportar, compartir, abrir modal y lazy loading —
+        // se reconectan cada vez que se vuelve a pintar la grilla (filtro, orden, "mostrar más")
+        function wireProductCardEvents(gridEl) {
+          gridEl.querySelectorAll('.profile-product-add:not(:disabled)').forEach(btn => {
+            btn.addEventListener('click', async function(e) {
+              e.stopPropagation();
+              const id = this.dataset.id;
+              const nombre = this.dataset.nombre;
+              const precio = parseFloat(this.dataset.precio);
+              const img = this.dataset.img;
+              const talla = this.dataset.talla;
+              const esDonado = this.dataset.donado === 'true';
+              const benId = this.dataset.benid || '';
+
+              if (typeof addToCart !== 'function') {
+                alert('Función addToCart no disponible. Recarga la página.');
+                return;
+              }
+
+              let beneficiario = null;
+              if (esDonado && benId) {
+                try {
+                  const benRes = await fetch(`https://beneficiarios-api-1038143238323.us-central1.run.app?action=obtenerBeneficiario&id=${encodeURIComponent(benId)}`).then(r => r.json());
+                  if (benRes.ok && benRes.beneficiario) {
+                    beneficiario = { id: benId, nombre: benRes.beneficiario.nombre || '', cuenta_bancaria: benRes.beneficiario.cuenta_bancaria || '' };
+                  }
+                } catch (_) {}
+                if (!beneficiario) beneficiario = { id: benId, nombre: '', cuenta_bancaria: '' };
+              }
+
+              addToCart({
+                ID: id,
+                Nombre: nombre,
+                Precio: precio,
+                Imagen1: img,
+                Talla: talla,
+                _comunidad: true,
+                _vendedor: v.nombre || '',
+                _vendorTel: waNumber,
+                _vendorLogo: v.logo || '',
+                _vendorPlan: v.plan || '',
+                _vendorUid: getVendorUid() || '',
+                _donacion: esDonado,
+                _beneficiario: beneficiario
+              });
+            });
+          });
+
+          // Reportar producto
+          gridEl.querySelectorAll('.profile-product-report').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+              e.stopPropagation();
+              const prod = productos.find(pp => String(pp.id) === btn.dataset.id);
+              if (prod) showReportDialog(prod);
+            });
+          });
+
+          // Compartir producto (reutiliza shareProduct global de common.js)
+          gridEl.querySelectorAll('.profile-product-share').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+              e.stopPropagation();
+              if (typeof window.shareProduct === 'function') {
+                window.shareProduct(btn.dataset.id, btn.dataset.nombre, Number(btn.dataset.precio));
+              }
+            });
+          });
+
+          // Click en la imagen → abrir el modal de detalle (solo con productos de este vendedor)
+          gridEl.querySelectorAll('.profile-product-img-wrap').forEach(wrap => {
+            window.activarMiniSlider?.(wrap);
+            wrap.addEventListener('click', (e) => {
+              if (wrap.dataset.dragged === '1') return;
+              if (typeof window.openImageModal !== 'function') return;
+              const p = productos.find(pp => String(pp.id) === wrap.dataset.id);
+              if (!p) return;
+              const esDonado = p.donado === true || p.donado === 'TRUE' || p.donado === 'true';
+              const imgUrl = p.imagen1 ? optimizeDriveUrl(p.imagen1, 800) : 'https://placehold.co/600x600/3b1f5f/white?text=Sin+Imagen';
+              const allImages = [p.imagen1, p.imagen2, p.imagen3].filter(Boolean).map(u => optimizeDriveUrl(u, 800));
+              const productData = {
+                ID: p.id,
+                Nombre: p.nombre || '',
+                Precio: p.precio || 0,
+                Categoria: p.categoria || '',
+                Talla: p.talla || '',
+                Descripcion: p.descripcion || '',
+                Stock: p.stock !== undefined ? Number(p.stock) : -1,
+                Badge: p.badge || '',
+                Imagen1: p.imagen1 || '',
+                Imagen2: p.imagen2 || '',
+                Imagen3: p.imagen3 || '',
+                _comunidad: true,
+                _vendedorNombre: v.nombre || '',
+                _vendedorUid: getVendorUid() || '',
+                _vendedorTel: waNumber,
+                _vendedorLogo: v.logo || '',
+                _vendedorPlan: v.plan || '',
+                _donado: esDonado,
+                _beneficiarioId: p.beneficiario_id || '',
+              };
+              window.openImageModal(imgUrl, p.id, allImages, productData);
+            });
+          });
+
+          const lazyImgs = gridEl.querySelectorAll('img[data-src]');
+          if (lazyImgs.length > 0) {
+            const imgObserver = new IntersectionObserver((entries) => {
+              entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                  const img = entry.target;
+                  img.src = img.dataset.src;
+                  img.removeAttribute('data-src');
+                  imgObserver.unobserve(img);
+                }
+              });
+            }, { rootMargin: '200px' });
+            lazyImgs.forEach(img => imgObserver.observe(img));
+          }
+        }
+
+        // Acota el panel de "relacionados" del modal a solo los productos de
+        // este vendedor (en vez de toda la comunidad): _renderMagazinePanel en
+        // common.js lee de window.allCommunityProductsIndexed cuando el
+        // producto abierto es "_comunidad", así que aquí lo llenamos solo con
+        // el catálogo de este perfil.
+        window.allCommunityProductsIndexed = productos.map(p => ({
+          ...p,
+          vendedor_nombre: v.nombre || '',
+          vendedor_uid: getVendorUid() || '',
+          vendedor_logo: v.logo || '',
+          vendedor_plan: v.plan || ''
+        }));
+
+        function renderProductsGrid() {
+          const gridEl = document.getElementById('profile-products-grid');
+          const loadMoreWrap = document.getElementById('profile-load-more-wrap');
+          const countEl = document.getElementById('profile-products-count');
+          if (!gridEl) return;
+
+          if (productos.length === 0) {
+            gridEl.innerHTML = `<div class="empty-products">Este vendedor aún no tiene productos publicados.</div>`;
+            if (loadMoreWrap) loadMoreWrap.innerHTML = '';
+            return;
+          }
+
+          const filtered = getFilteredProducts();
+          if (countEl) {
+            countEl.textContent = filtered.length === productos.length
+              ? `(${productos.length})`
+              : `(${filtered.length} de ${productos.length})`;
+          }
+
+          const filtersActive = productFilterState.search.trim() !== ''
+            || productFilterState.sort !== 'relevancia'
+            || productFilterState.onlyStock
+            || productFilterState.onlyDonativo;
+          const clearActiveBtn = document.getElementById('profile-clear-filters-active');
+          if (clearActiveBtn) clearActiveBtn.style.display = filtersActive ? '' : 'none';
+
+          if (filtered.length === 0) {
+            gridEl.innerHTML = `<div class="empty-products">No encontramos productos con esos filtros.<br><button type="button" id="profile-clear-filters" class="profile-clear-filters-btn">Quitar filtros</button></div>`;
+            if (loadMoreWrap) loadMoreWrap.innerHTML = '';
+            const clearBtn = document.getElementById('profile-clear-filters');
+            if (clearBtn) clearBtn.addEventListener('click', resetProductFilters);
+            return;
+          }
+
+          const visible = filtered.slice(0, productsShown);
+          gridEl.innerHTML = visible.map((p, idx) => buildProductCardHtml(p, idx)).join('');
+
+          if (loadMoreWrap) {
+            const remaining = filtered.length - productsShown;
+            loadMoreWrap.innerHTML = remaining > 0
+              ? `<button id="profile-load-more-btn" class="primary-button">Mostrar ${Math.min(remaining, PRODUCTS_PAGE_SIZE)} más</button>`
+              : '';
+            const loadMoreBtn = document.getElementById('profile-load-more-btn');
+            if (loadMoreBtn) {
+              loadMoreBtn.addEventListener('click', function() {
+                productsShown += PRODUCTS_PAGE_SIZE;
+                renderProductsGrid();
+              });
+            }
+          }
+
+          wireProductCardEvents(gridEl);
+        }
+
+        function resetProductFilters() {
+          productFilterState.search = '';
+          productFilterState.sort = 'relevancia';
+          productFilterState.onlyStock = false;
+          productFilterState.onlyDonativo = false;
+          productsShown = PRODUCTS_PAGE_SIZE;
+          const searchInput = document.getElementById('profile-product-search');
+          const sortSelect = document.getElementById('profile-product-sort');
+          const stockChk = document.getElementById('profile-only-stock');
+          const donativoChk = document.getElementById('profile-only-donativo');
+          if (searchInput) searchInput.value = '';
+          if (sortSelect) sortSelect.value = 'relevancia';
+          if (stockChk) stockChk.checked = false;
+          if (donativoChk) donativoChk.checked = false;
+          document.getElementById('profile-stock-chip')?.classList.remove('is-active');
+          document.getElementById('profile-donativo-chip')?.classList.remove('is-active');
+          renderProductsGrid();
+        }
+
+        // Conectar la barra de filtros (si el vendedor tiene suficientes productos)
+        document.getElementById('profile-clear-filters-active')?.addEventListener('click', resetProductFilters);
+        let productSearchDebounce = null;
+        document.getElementById('profile-product-search')?.addEventListener('input', function() {
+          clearTimeout(productSearchDebounce);
+          const val = this.value;
+          productSearchDebounce = setTimeout(() => {
+            productFilterState.search = val;
+            productsShown = PRODUCTS_PAGE_SIZE;
+            renderProductsGrid();
+          }, 250);
+        });
+        document.getElementById('profile-product-sort')?.addEventListener('change', function() {
+          productFilterState.sort = this.value;
+          productsShown = PRODUCTS_PAGE_SIZE;
+          renderProductsGrid();
+        });
+        document.getElementById('profile-only-stock')?.addEventListener('change', function() {
+          productFilterState.onlyStock = this.checked;
+          document.getElementById('profile-stock-chip')?.classList.toggle('is-active', this.checked);
+          productsShown = PRODUCTS_PAGE_SIZE;
+          renderProductsGrid();
+        });
+        document.getElementById('profile-only-donativo')?.addEventListener('change', function() {
+          productFilterState.onlyDonativo = this.checked;
+          document.getElementById('profile-donativo-chip')?.classList.toggle('is-active', this.checked);
+          productsShown = PRODUCTS_PAGE_SIZE;
+          renderProductsGrid();
+        });
+
+        renderProductsGrid();
+
+        // Actualizar subtítulo del header
+        const sub = document.getElementById('profile-subtitle');
+        if (sub) sub.textContent = v.nombre || 'Vendedor';
+
+        // Si se entró por QR o NFC, voltear la página completa para revelar
+        // el perfil ya cargado. requestAnimationFrame asegura que el navegador
+        // pinte primero el estado invisible (profile-pre-entrada) antes de
+        // arrancar el giro, o si no a veces se salta la animación.
+        if (origenEntrada) {
+          const efecto = origenEntrada === 'qr' ? 'entrar-carta' : 'entrar-revista';
+          requestAnimationFrame(() => {
+            container.classList.remove('profile-pre-entrada');
+            container.classList.add(efecto);
+          });
+        }
+
+        hideLoader();
+      }
+
+      // ── Caché de perfil por UID en localStorage ──
+      // Antes era sessionStorage + 5 min + revalidación en segundo plano
+      // (SWR), lo que seguía llamando a GAS en cada visita. Ahora es
+      // localStorage + 30 min sin revalidar: mientras el caché esté
+      // fresco, la página no toca el backend para nada.
+      const PROFILE_CACHE_PREFIX = 'zr_perfil_';
+      const PROFILE_CACHE_TTL    = 5 * 60 * 1000; // 5 min — corto a propósito: es caché por navegador individual, no se entera cuando el vendedor edita su perfil, así que se mantiene bajo para no mostrar info vieja por mucho tiempo a otros visitantes.
+
+      function getProfileCache(uid) {
+        try {
+          const raw = localStorage.getItem(PROFILE_CACHE_PREFIX + uid);
+          if (!raw) return null;
+          const { data, ts } = JSON.parse(raw);
+          if (Date.now() - ts > PROFILE_CACHE_TTL) return null;
+          return data;
+        } catch (e) {
+          return null;
+        }
+      }
+
+      function setProfileCache(uid, data) {
+        try {
+          localStorage.setItem(PROFILE_CACHE_PREFIX + uid, JSON.stringify({ data, ts: Date.now() }));
+        } catch (e) { /* localStorage lleno o deshabilitado: se ignora, no es crítico */ }
+      }
+
+     
+
+      // ── Skeleton inmediato mientras carga ──
+      function showProfileSkeleton(container, cardCount = 6) {
+        const cards = Array.from({ length: cardCount }, () => `
+          <div class="profile-skeleton-card">
+            <div class="skeleton profile-skeleton-card-img"></div>
+            <div class="profile-skeleton-card-body">
+              <div class="skeleton profile-skeleton-card-name"></div>
+              <div class="skeleton profile-skeleton-card-price"></div>
+              <div class="skeleton profile-skeleton-card-btn"></div>
+            </div>
+          </div>`).join('');
+
+        container.innerHTML = `
+          <div class="profile-skeleton-wrap">
+            <div class="skeleton profile-skeleton-header"></div>
+            <div class="profile-skeleton-body">
+              <div class="skeleton profile-skeleton-avatar"></div>
+              <div class="skeleton profile-skeleton-name"></div>
+              <div class="skeleton profile-skeleton-cat"></div>
+              <div class="skeleton profile-skeleton-desc"></div>
+              <div class="skeleton profile-skeleton-desc2"></div>
+              <div class="skeleton profile-skeleton-btn"></div>
+              <div class="profile-skeleton-grid">${cards}</div>
+            </div>
+          </div>`;
+      }
+
+      // ── Fetch del perfil con reintento automático (backoff) ──
+      // Antes: un solo intento; si la red fallaba un instante (cambio de
+      // WiFi/datos, señal débil), el usuario veía "Failed to fetch" de
+      // inmediato sin que la app volviera a intentarlo.
+      // Ahora: hasta 3 intentos (600ms, 1200ms de espera entre ellos)
+      // antes de mostrar el error. La mayoría de los cortes de red breves
+      // se resuelven solos dentro de ese margen.
+       const PROFILE_FETCH_MAX_RETRIES = 2; // 3 intentos en total
+      const PROFILE_FETCH_BASE_DELAY  = 600; // ms
+      async function fetchProfileWithRetry(apiUrl, uid) {
+        const url = `${apiUrl}?action=obtenerPerfilVendedor&uid=${encodeURIComponent(uid)}`;
+        let lastErr;
+        for (let attempt = 0; attempt <= PROFILE_FETCH_MAX_RETRIES; attempt++) {
+          try {
+            const response = await fetch(url);
+            const data = await response.json();
+            if (!data.ok) throw new Error(data.error || 'Error al obtener perfil');
+            return data;
+          } catch (err) {
+            lastErr = err;
+            if (attempt < PROFILE_FETCH_MAX_RETRIES) {
+              await sleep(PROFILE_FETCH_BASE_DELAY * Math.pow(2, attempt));
+            }
+          }
+        }
+        throw lastErr;
+      }
+
+      function showProfileError(container, uid, message) {
+        if (!container) return;
+        container.innerHTML = `
+          <div class="profile-error-box">
+            ${Icon('x')} Error al cargar el perfil: ${esc(message)}
+            <div class="profile-error-actions">
+              <button id="profile-retry-btn" class="profile-retry-btn">Reintentar</button>
+              <a href="comunidad.html" class="back-link">${Icon('arrow-left')} Volver a Comunidad</a>
+              <div class="profile-error-hint">Si el problema sigue, revisa tu conexión a internet.</div>
+            </div>
+          </div>
+        `;
+        const retryBtn = document.getElementById('profile-retry-btn');
+        if (retryBtn) {
+          retryBtn.addEventListener('click', function() {
+            retryBtn.disabled = true;
+            retryBtn.textContent = 'Reintentando...';
+            fetchProfile(uid);
+          });
+        }
+      }
+
+      async function fetchProfile(uid) {
+        if (!uid) {
+          const container = document.getElementById('profile-container');
+          if (container) {
+            container.innerHTML = `<div style="text-align:center;padding:40px;color:var(--color-error);">${Icon('x')} No se especificó el vendedor.</div>`;
+          }
+          hideLoader();
+          return;
+        }
+        const apiUrl = window.API_URL;
+        if (!apiUrl) {
+          if (typeof showTemporaryMessage === 'function') showTemporaryMessage('Error: API_URL no definida', 'error');
+          hideLoader();
+          return;
+        }
+        const container = document.getElementById('profile-container');
+
+        // Caché local corto (5 min): evita repetir la carga si vuelves a
+        // entrar al mismo perfil casi de inmediato. Complementa (no
+        // reemplaza) al caché de 30 min del lado de GAS para productos.
+        const cached = getProfileCache(uid);
+        if (cached) {
+          renderProfile(cached);
+          return;
+        }
+
+        if (container) showProfileSkeleton(container, 6);
+        try {
+          let data = null;
+
+          // 2a. Intentar Firestore primero (perfil) + GAS solo para productos
+          if (window.znrFirestore && window.znrFirestore.getPerfilVendedor) {
+            const perfilFs = await window.znrFirestore.getPerfilVendedor(uid);
+            if (perfilFs && perfilFs.ok) {
+              try {
+                const prodUrl = `https://catalogo-api-1038143238323.us-central1.run.app?${new URLSearchParams({ action: 'productosPorVendedor', vendedor_uid: uid, limit: '200' })}`;
+                const prodRes = await fetch(prodUrl);
+                const prodData = await prodRes.json();
+                data = { ok: true, vendedor: perfilFs.vendedor, productos: (prodData && prodData.ok) ? (prodData.products || []) : [] };
+              } catch (e) { /* si falla el listado de productos, cae al bloque de abajo */ }
+            }
+          }
+
+          // 2b. Si Firestore no está disponible o falló: GAS con reintento (igual que ya tenías)
+          if (!data) {
+            data = await fetchProfileWithRetry(apiUrl, uid);
+          }
+
+          setProfileCache(uid, data);
+          renderProfile(data);
+        } catch (err) {
+          console.error('Error cargando perfil:', err);
+          showProfileError(container, uid, err.message);
+          hideLoader();
+        }
+      }
+
+      // Inicio
+      document.addEventListener('DOMContentLoaded', function() {
+  const uid = getVendorUid();
+  if (uid) {
+    showLoader('Cargando perfil...');
+    fetchProfile(uid);
+  } else {
+    const container = document.getElementById('profile-container');
+    if (container) {
+      container.innerHTML = `
+        <div style="text-align:center;padding:60px 20px;color:var(--color-text-muted);">
+          <p style="font-size:20px;">${Icon('user', {size:20})}</p>
+          <p>No se encontró el vendedor.</p>
+          <a href="comunidad.html" class="back-link" style="margin-top:16px;">${Icon('arrow-left')} Volver a Comunidad</a>
+        </div>
+      `;
+    }
+    hideLoader();
+  }
+});
+
+    })();
+
+
+
+
+
+
+
+
+  // NAVEGACIÓN INFERIOR (global)
+    document.addEventListener('DOMContentLoaded', function() {
+      document.getElementById('nav-comunidad')?.addEventListener('click', () => {
+        window.location.href = 'comunidad.html';
+      });
+      document.getElementById('nav-vendedor')?.addEventListener('click', () => {
+        window.location.href = 'vendedor.html';
+      });
+      document.getElementById('nav-cart')?.addEventListener('click', (e) => {
+        e.preventDefault();
+        if (typeof window.openCartDrawer === 'function') {
+          window.openCartDrawer();
+        } else {
+          console.warn('openCartDrawer no está disponible');
+        }
+      });
+    });
+
+    // Actualizar badge del carrito
+    function updateCartBadge() {
+      const badge = document.getElementById('bottom-cart-count');
+      if (badge) {
+        const cart = JSON.parse(localStorage.getItem('cart') || '{}');
+        const total = Object.values(cart).reduce((s, i) => s + (i.quantity || 0), 0);
+        badge.textContent = total;
+        badge.style.display = total > 0 ? 'flex' : 'none';
+      }
+    }
+    window.addEventListener('cartUpdated', updateCartBadge);
+    window.addEventListener('storage', updateCartBadge);
+    document.addEventListener('DOMContentLoaded', updateCartBadge);
+  </script>
+</body>
+  </html>

@@ -1,0 +1,1327 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="Content-Security-Policy" content="
+ default-src 'self';
+ script-src 'self' 'unsafe-inline' https://www.gstatic.com https://apis.google.com https://connect.facebook.net https://*.firebaseio.com;
+ style-src 'self' 'unsafe-inline';
+ img-src 'self' data: blob: https://lh3.googleusercontent.com https://drive.google.com https://placehold.co https://via.placeholder.com https://*.fbcdn.net https://firebasestorage.googleapis.com ;
+ connect-src 'self' https://script.google.com https://catalogo-api-1038143238323.us-central1.run.app https://script.googleusercontent.com https://ventas-api-1038143238323.us-central1.run.app https://wttr.in https://www.gstatic.com https://apis.google.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firebaseinstallations.googleapis.com https://fcmregistrations.googleapis.com  https://registrar-token-fcm-1038143238323.us-central1.run.app https://ventas-api-1038143238323.us-central1.run.app https://auth-api-1038143238323.us-central1.run.app https://vendedores-api-1038143238323.us-central1.run.app https://live-api-1038143238323.us-central1.run.app https://firebase.googleapis.com https://znr-live-default-rtdb.firebaseio.com wss://znr-live-default-rtdb.firebaseio.com https://*.firebaseio.com wss://*.firebaseio.com https://nominatim.openstreetmap.org https://graph.facebook.com https://admin-api-1038143238323.us-central1.run.app https://tienda-znr-api-1038143238323.us-central1.run.app ;
+ font-src 'self';
+ frame-src https://www.facebook.com https://staticxx.facebook.com https://apis.google.com https://*.firebaseio.com https://www.youtube.com;
+ frame-ancestors 'none';
+ object-src 'none';
+ base-uri 'self';
+ worker-src 'self' blob:;
+ child-src 'self' blob:;
+">
+ <script src="error-bootstrap.js"></script>
+<script src="error-monitor.js"></script>
+
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Transmitir en vivo — Z&R</title>
+<link rel="manifest" href="/znr/manifest.json">
+<meta name="theme-color" content="#1e2128">
+<script>document.documentElement.dataset.theme = localStorage.getItem('theme') || 'light';</script>
+<link rel="preload" href="styles.css" as="style">
+<link rel="stylesheet" href="styles.css">
+<script src="api-config.js"></script>
+<script src="icons.js" defer></script>
+<style>
+  .live-wrap { max-width: 640px; margin: 0 auto; padding: 16px; padding-bottom: 100px; }
+
+  .live-card {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border-subtle);
+    border-radius: var(--radius-lg);
+    padding: 20px;
+    margin-bottom: 16px;
+  }
+
+  .live-card h2 { margin: 0 0 6px; font-size: 17px; color: var(--color-text-primary); }
+  .live-card p.hint { margin: 0 0 16px; font-size: 13px; color: var(--color-text-soft); line-height: 1.5; }
+
+  .field-group { margin-bottom: 14px; }
+  .field-group label {
+    display: block; font-size: 12px; font-weight: 600;
+    color: var(--color-text-soft); text-transform: uppercase;
+    letter-spacing: .05em; margin-bottom: 6px;
+  }
+  .field-group input, .field-group textarea {
+    width: 100%; box-sizing: border-box;
+    padding: 12px 14px; border-radius: var(--radius-md);
+    border: 1px solid var(--color-border-subtle);
+    background: var(--color-surface-2);
+    color: var(--color-text-primary);
+    font-size: 14px; font-family: inherit;
+  }
+  .field-group textarea { resize: vertical; min-height: 70px; }
+  .field-group input:focus, .field-group textarea:focus {
+    outline: none; border-color: var(--color-primary);
+  }
+
+  .tipo-options { display: flex; flex-direction: column; gap: 8px; }
+  .tipo-option {
+    border: 1px solid var(--color-border-subtle); border-radius: var(--radius-md);
+    padding: 12px 14px; background: var(--color-surface-2);
+  }
+  .tipo-option.selected { border-color: var(--color-accent-solid); background: rgba(var(--color-accent-rgb, 236,72,153), .08); }
+  .tipo-option-header { display: flex; align-items: flex-start; gap: 10px; cursor: pointer; }
+  .tipo-option-header input { width: auto; margin-top: 3px; flex-shrink: 0; }
+  .tipo-option .tipo-text strong { display: block; font-size: 13px; color: var(--color-text-primary); }
+  .tipo-option .badge-recomendado {
+    display: inline-block; font-size: 10px; font-weight: 700; color: #4ade80;
+    background: rgba(74,222,128,.15); padding: 2px 7px; border-radius: var(--radius-pill);
+    margin-left: 6px; vertical-align: middle;
+  }
+  .tipo-detalle { margin: 8px 0 0 26px; }
+  .tipo-detalle summary {
+    font-size: 11px; font-weight: 700; color: var(--color-accent-solid);
+    cursor: pointer; user-select: none;
+  }
+  .tipo-detalle p { margin: 6px 0 0; font-size: 12px; color: var(--color-text-soft); line-height: 1.4; }
+  .tipo-detalle ul { margin: 6px 0 0; padding-left: 18px; font-size: 12px; color: var(--color-text-soft); line-height: 1.5; }
+  .tipo-detalle.no-indent { margin-left: 0; }
+
+  .orient-options { display: flex; gap: 8px; }
+  .orient-chip {
+    flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px;
+    border: 1px solid var(--color-border-subtle); border-radius: var(--radius-md);
+    padding: 10px; font-size: 13px; font-weight: 600; color: var(--color-text-primary);
+    cursor: pointer; background: var(--color-surface-2);
+  }
+  .orient-chip input { width: auto; margin: 0; }
+  .orient-chip.selected { border-color: var(--color-accent-solid); background: rgba(var(--color-accent-rgb, 236,72,153), .08); }
+
+  .product-grid {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;
+    max-height: 260px; overflow-y: auto; padding: 4px 0;
+  }
+  .product-chip {
+    position: relative; border-radius: var(--radius-md); overflow: hidden;
+    border: 2px solid transparent; cursor: pointer; aspect-ratio: 1;
+    background: var(--color-surface-2);
+  }
+  .product-chip img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .product-chip.selected { border-color: var(--color-accent-solid); }
+  .product-chip.selected::after {
+    content: "✓"; position: absolute; top: 4px; right: 4px;
+    background: var(--color-accent-solid); color: #fff;
+    width: 20px; height: 20px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px; font-weight: 700;
+  }
+  .product-chip .chip-name {
+    position: absolute; bottom: 0; left: 0; right: 0;
+    background: linear-gradient(transparent, rgba(0,0,0,.75));
+    color: #fff; font-size: 10px; padding: 10px 6px 4px; line-height: 1.2;
+  }
+
+  .btn-live {
+    width: 100%; border: none; border-radius: var(--radius-pill);
+    padding: 14px; font-size: 15px; font-weight: 700; cursor: pointer;
+    transition: transform .15s ease, opacity .15s ease;
+  }
+  .btn-live:active { transform: scale(0.98); }
+  .btn-live:disabled { opacity: .5; cursor: not-allowed; }
+  .btn-live.primary { background: var(--gradient-accent); color: #fff; }
+  .btn-live.danger { background: #ef4444; color: #fff; }
+  .btn-live.ghost {
+    background: var(--color-surface-2); color: var(--color-text-primary);
+    border: 1px solid var(--color-border-subtle);
+  }
+
+  .status-badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 6px 12px; border-radius: var(--radius-pill);
+    font-size: 12px; font-weight: 700; letter-spacing: .03em;
+  }
+  .status-badge.live { background: rgba(239,68,68,.15); color: #f87171; }
+  .status-badge.scheduled { background: rgba(96,165,250,.15); color: #60a5fa; }
+  .status-dot {
+    width: 8px; height: 8px; border-radius: 50%; background: #f87171;
+    animation: pulse-dot 1.4s infinite;
+  }
+  @keyframes pulse-dot { 0%,100%{opacity:1;} 50%{opacity:.3;} }
+
+  .viewer-badge {
+    display: inline-flex; align-items: center; gap: 4px;
+    font-size: 12px; font-weight: 700; color: var(--color-text-primary);
+    background: var(--color-surface-2); border: 1px solid var(--color-border-subtle);
+    padding: 6px 12px; border-radius: var(--radius-pill);
+    margin-left: 6px; cursor: pointer;
+  }
+
+  .sheet-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,.7);
+    display: flex; align-items: flex-end; z-index: var(--z-modal, 300);
+  }
+  .sheet-panel {
+    background: var(--color-surface); border-radius: 20px 20px 0 0;
+    padding: 20px; width: 100%; box-sizing: border-box;
+    max-height: 70vh; overflow-y: auto;
+  }
+  .sheet-panel h2 { margin: 0 0 12px; color: var(--color-text-primary); font-size: 17px; }
+  .viewer-row {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 10px 4px; border-bottom: 1px solid var(--color-border-subtle);
+    font-size: 14px; color: var(--color-text-primary);
+  }
+  .viewer-row:last-child { border-bottom: none; }
+  .viewer-row .hace { font-size: 11px; color: var(--color-text-soft); }
+  .sheet-panel button.cerrar {
+    width: 100%; border: none; border-radius: var(--radius-pill);
+    padding: 12px; font-size: 14px; font-weight: 700; cursor: pointer;
+    background: var(--color-surface-2); color: var(--color-text-primary);
+    border: 1px solid var(--color-border-subtle); margin-top: 12px;
+  }
+
+  .video-box {
+    position: relative; width: 100%; aspect-ratio: 16/9; background: #000;
+    border-radius: var(--radius-lg); overflow: hidden; margin-bottom: 12px;
+  }
+  .video-box iframe { width: 100%; height: 100%; border: 0; display: block; }
+  .video-box .fb-video, .video-box .fb-video iframe { width: 100% !important; height: 100% !important; }
+  .sync-note {
+    font-size: 11px; color: var(--color-text-soft); text-align: center;
+    margin: -6px 0 14px;
+  }
+
+  .share-box {
+    display: flex; gap: 8px; align-items: center;
+    background: var(--color-surface-2); border-radius: var(--radius-md);
+    padding: 10px 12px; margin: 12px 0;
+  }
+  .share-box input {
+    flex: 1; background: none; border: none; color: var(--color-text-primary);
+    font-size: 12px; font-family: monospace;
+  }
+  .share-box button {
+    background: var(--color-primary); color: #fff; border: none;
+    border-radius: var(--radius-md); padding: 8px 12px; font-size: 12px;
+    font-weight: 600; cursor: pointer; white-space: nowrap;
+  }
+
+  .chat-panel {
+    background: var(--color-surface-2); border-radius: var(--radius-md);
+    height: 280px; display: flex; flex-direction: column; overflow: hidden;
+  }
+  .chat-messages { flex: 1; overflow-y: auto; padding: 12px; display: flex; flex-direction: column; gap: 8px; }
+  .chat-msg { font-size: 13px; line-height: 1.4; }
+  .chat-msg .author { font-weight: 700; color: var(--color-accent); margin-right: 6px; }
+  .chat-msg .text { color: var(--color-text-primary); }
+  .chat-msg.mine .author { color: var(--color-primary); }
+  .chat-empty { text-align: center; color: var(--color-text-soft); font-size: 12px; margin-top: auto; margin-bottom: auto; }
+  .chat-input-row { display: flex; gap: 8px; padding: 10px; border-top: 1px solid var(--color-border-subtle); flex-shrink: 0; }
+  .chat-input-row input {
+    flex: 1; min-width: 0; background: var(--color-surface); border: 1px solid var(--color-border-subtle);
+    border-radius: var(--radius-pill); padding: 9px 12px; color: var(--color-text-primary); font-size: 13px;
+  }
+  .chat-input-row button {
+    background: var(--gradient-accent); border: none; color: #fff;
+    border-radius: 50%; width: 38px; height: 38px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  }
+
+  .upsell-icon { font-size: 40px; text-align: center; margin-bottom: 10px; }
+  .center-text { text-align: center; }
+  .loading-spinner {
+    width: 28px; height: 28px; border-radius: 50%;
+    border: 3px solid var(--color-border-subtle); border-top-color: var(--color-accent-solid);
+    animation: spin 0.8s linear infinite; margin: 40px auto;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .error-msg { color: var(--color-error); font-size: 13px; margin-top: 8px; }
+
+  /* ── Layout fijo durante la transmisión: video+info arriba,
+     chat abajo, todo visible sin necesidad de hacer scroll ──
+     Usamos --app-vh (calculado en JS con window.innerHeight /
+     visualViewport) en vez de 100vh/100dvh, porque en varios
+     navegadores de Android (Samsung Internet, WebViews viejos)
+     100vh/100dvh miden más alto que lo realmente visible cuando
+     la barra de direcciones está presente, y como el body tiene
+     overflow:hidden, el contenido de abajo (botón de enviar,
+     última fila de productos) queda fuera de la vista sin poder
+     hacer scroll para alcanzarlo. ── */
+  body.live-active {
+    height: 100vh; height: 100dvh; height: var(--app-vh, 100dvh);
+    overflow: hidden;
+    display: flex; flex-direction: column;
+  }
+  body.live-active .app-header { flex-shrink: 0; }
+  body.live-active .live-wrap {
+    flex: 1; min-height: 0; display: flex; flex-direction: column;
+    padding: 0; overflow: hidden;
+  }
+
+  .live-top-fixed { flex-shrink: 0; }
+  .live-top-fixed .video-box { border-radius: 0; margin-bottom: 0; }
+  .live-middle-scroll { flex: 1; min-height: 0; overflow-y: auto; padding: 10px 12px; }
+  .live-bottom-fixed { flex-shrink: 0; padding: 0 12px 10px; }
+  .live-bottom-fixed .chat-panel { height: 30vh; min-height: 180px; max-height: 300px; }
+
+  /* ── Debajo del video: productos a la izquierda, chat a la
+     derecha, uno junto al otro para aprovechar mejor la pantalla ── */
+  .live-content-row { flex: 1; min-height: 0; display: flex; flex-direction: row; }
+  .live-products-col {
+    flex: 1 1 56%; min-width: 0; min-height: 0; overflow-y: auto; padding: 10px 6px 14px 12px;
+  }
+  .live-products-col h2 { font-size: 13px; margin: 0 0 4px; }
+  .live-products-col .hint { font-size: 11px; margin: 0 0 8px; }
+  .live-products-col .product-grid {
+    grid-template-columns: repeat(2, 1fr); gap: 6px;
+    max-height: none; overflow-y: visible;
+  }
+  .live-chat-col {
+    flex: 1 1 44%; min-width: 0; min-height: 0; display: flex; flex-direction: column;
+    border-left: 1px solid var(--color-border-subtle);
+  }
+  .live-chat-col .chat-panel { flex: 1; min-height: 0; height: auto; }
+
+  .live-info-row {
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 12px; background: var(--color-surface);
+    border-bottom: 1px solid var(--color-border-subtle);
+  }
+  .live-info-text { flex: 1; min-width: 0; }
+  .li-title-line { display: flex; align-items: center; gap: 6px; }
+  .li-title-line .status-dot { flex-shrink: 0; }
+  .li-title {
+    font-size: 13px; font-weight: 700; color: var(--color-text-primary);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .li-sub-line { display: flex; align-items: center; gap: 8px; margin-top: 2px; }
+  .li-desc {
+    font-size: 11px; color: var(--color-text-soft); flex: 1; min-width: 0;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .li-views {
+    font-size: 11px; font-weight: 700; color: var(--color-text-soft);
+    white-space: nowrap; flex-shrink: 0; background: none; border: none; cursor: pointer;
+    padding: 0;
+  }
+  .btn-copy-icon {
+    flex-shrink: 0; width: 34px; height: 34px; border-radius: 50%;
+    border: 1px solid var(--color-border-subtle); background: var(--color-surface-2);
+    color: var(--color-text-primary); font-size: 14px; cursor: pointer;
+  }
+
+  .chat-panel-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 8px 12px; font-size: 12px; font-weight: 700; color: var(--color-text-primary);
+    border-bottom: 1px solid var(--color-border-subtle); flex-shrink: 0;
+  }
+  .btn-finalizar-mini {
+    background: rgba(239,68,68,.15); color: #f87171; border: none;
+    border-radius: var(--radius-pill); padding: 5px 12px; font-size: 11px;
+    font-weight: 700; cursor: pointer;
+  }
+</style>
+</head>
+<body>
+<div id="fb-root"></div>
+
+<header class="app-header">
+  <div class="header-left">
+    <a href="vendedor.html" class="logo-touch-area" style="text-decoration:none;">
+      <span class="logo-mark"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" aria-hidden="true"><use href="#ic-arrow-left"/></svg></span>
+    </a>
+    <div class="header-text">
+      <h1 class="app-title">Transmitir en vivo</h1>
+      <p class="app-subtitle" id="header-subtitle">Panel de vendedor</p>
+    </div>
+  </div>
+</header>
+
+<main class="live-wrap" id="live-wrap">
+  <div class="loading-spinner"></div>
+</main>
+<script src="znr-devconsole.js" defer></script>
+
+<script>
+  // Alto real de la pantalla visible (evita el bug de 100vh/100dvh en
+  // navegadores Android que no lo calculan bien con la barra de
+  // direcciones/gestos presente). Se usa como var(--app-vh) en el CSS
+  // de body.live-active.
+  (function () {
+    function setAppVh() {
+      const h = (window.visualViewport && window.visualViewport.height)
+        ? window.visualViewport.height
+        : window.innerHeight;
+      document.documentElement.style.setProperty('--app-vh', h + 'px');
+    }
+    setAppVh();
+    window.addEventListener('resize', setAppVh);
+    window.addEventListener('orientationchange', setAppVh);
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', setAppVh);
+    }
+  })();
+</script>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-app.js";
+import { getDatabase, ref, push, onValue, query, limitToLast, update, get } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-database.js";
+import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-auth.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyAaOe_lxLdQtTFCtw2BDR8KZRSafEMkkes",
+  authDomain: "znr-live.firebaseapp.com",
+  databaseURL: "https://znr-live-default-rtdb.firebaseio.com",
+  projectId: "znr-live",
+  storageBucket: "znr-live.firebasestorage.app",
+  messagingSenderId: "1038143238323",
+  appId: "1:1038143238323:web:5171b9dd8823628086c0c6"
+};
+const fbApp = initializeApp(firebaseConfig);
+const db = getDatabase(fbApp);
+const auth = getAuth(fbApp);
+
+// ── Autenticación anónima + certificación de vendedor en RTDB ──
+let authUid = null;
+let authReadyResolve;
+const authReady = new Promise((resolve) => { authReadyResolve = resolve; });
+signInAnonymously(auth).catch(err => console.error('signInAnonymously falló:', err));
+auth.onAuthStateChanged((user) => {
+  if (user) {
+    authUid = user.uid;
+    authReadyResolve();
+  }
+});
+
+// Certifica ante el backend que este uid anónimo es el dueño real de
+// la liveId, para que las reglas de RTDB permitan isVendor:true / vendido:true.
+// Se llama UNA vez por sesión live, justo antes de iniciar el chat.
+const liveIdsCertificados = new Set();
+
+async function certificarVendedorEnLive(liveId) {
+  if (liveIdsCertificados.has(liveId)) return true;
+
+  try {
+    await authReady;
+  } catch (authErr) {
+    console.error('❌ authReady falló:', authErr);
+    return false;
+  }
+
+  if (!authUid) {
+    console.error('❌ authUid no definido');
+    return false;
+  }
+
+  try {
+    const resp = await apiFetch({
+      action: 'certificarVendedorLive',
+      vendorToken: vendorSession.token,
+      liveId,
+      uid: authUid
+    });
+
+    console.log('📦 Respuesta completa del servidor:', resp); // 👈 Agrega esto
+
+    if (resp.ok) {
+      liveIdsCertificados.add(liveId);
+      return true;
+    }
+    console.error('❌ certificarVendedorLive API falló:', resp);
+    return false;
+  } catch (err) {
+    console.error('❌ Error en apiFetch:', err);
+    return false;
+  }
+}
+
+// ── apiFetch mínimo, igual al de vendedor-unificado.js ──
+const CATALOGO_API_URL_VLIVE = "https://catalogo-api-1038143238323.us-central1.run.app";
+const LIVE_API_URL_VLIVE = "https://live-api-1038143238323.us-central1.run.app"; // TODO: pegar la URL real tras el deploy
+async function apiFetch(data, method = 'POST') {
+  const API_BASE = (data && data.action === 'misProductosComunidad') ? CATALOGO_API_URL_VLIVE : LIVE_API_URL_VLIVE;
+  const params = new URLSearchParams();
+  Object.entries(data || {}).forEach(([k, v]) => {
+    if (v !== undefined && v !== null) params.append(k, v);
+  });
+  let res;
+  if (method === 'GET') {
+    res = await fetch(`${API_BASE}?${params.toString()}`, { method: 'GET' });
+  } else {
+    res = await fetch(API_BASE, {
+      method: 'POST',
+      body: params
+    });
+  }
+  return JSON.parse(await res.text());
+}
+
+function withTimeout(promise, ms) {
+  return Promise.race([
+    promise,
+    new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), ms))
+  ]);
+}
+
+const wrap = document.getElementById('live-wrap');
+const subtitle = document.getElementById('header-subtitle');
+let vendorSession = null;
+let currentSesion = null;
+let selectedProductIds = new Set();
+let allProducts = [];
+let chatUnsub = null;
+let presenceUnsub = null;
+let lastViewers = [];
+let tipoSeleccionado = 'vivo'; // única opción disponible: transmisión en vivo real
+let orientacionSeleccionada = 'horizontal';
+
+function esc(s) {
+  const d = document.createElement('div');
+  d.textContent = s == null ? '' : String(s);
+  return d.innerHTML;
+}
+
+function getComprobadorUrl(id) {
+  return `${location.origin}${location.pathname.replace('vendedor-live.html','comprador-live.html')}?id=${id}`;
+}
+
+// ── Espectadores (presencia en tiempo real, vía Firebase) ──
+function setupContadorEspectadores(liveId) {
+  const countEl = document.getElementById('viewer-count');
+  presenceUnsub = onValue(ref(db, `presencia/${liveId}`), (snap) => {
+    const data = snap.val() || {};
+    lastViewers = Object.values(data).sort((a, b) => (b.ts || 0) - (a.ts || 0));
+    if (countEl) countEl.textContent = lastViewers.length;
+  }, (err) => console.error('setupContadorEspectadores falló (revisa las reglas de Firebase):', err));
+}
+
+function hace(ts) {
+  if (!ts) return '';
+  const seg = Math.max(0, Math.floor((Date.now() - ts) / 1000));
+  if (seg < 60) return 'justo ahora';
+  const min = Math.floor(seg / 60);
+  if (min < 60) return `hace ${min} min`;
+  const hr = Math.floor(min / 60);
+  return `hace ${hr} h`;
+}
+
+function mostrarEspectadores() {
+  const overlay = document.createElement('div');
+  overlay.className = 'sheet-overlay';
+  const filas = lastViewers.length
+    ? lastViewers.map(v => `<div class="viewer-row"><span>${Icon('user',{size:14})} ${esc(v.nombre || 'Invitado')}</span><span class="hace">${esc(hace(v.ts))}</span></div>`).join('')
+    : '<div class="chat-empty">Nadie te está viendo en este momento.</div>';
+  overlay.innerHTML = `
+    <div class="sheet-panel">
+      <h2>${Icon('eye')} Te están viendo (${lastViewers.length})</h2>
+      ${filas}
+      <button class="cerrar" id="btn-cerrar-espectadores">Cerrar</button>
+    </div>`;
+  document.body.appendChild(overlay);
+  document.getElementById('btn-cerrar-espectadores').addEventListener('click', () => document.body.removeChild(overlay));
+  overlay.addEventListener('click', (e) => { if (e.target === overlay) document.body.removeChild(overlay); });
+}
+
+// ── Reproductor de Facebook Video/Live (vista previa del vendedor) ──
+// Nota: el SDK de Facebook no expone una API de JS para forzar la
+// posición de reproducción, así que aquí solo mostramos el video/
+// live tal cual — sin el truco de sincronización que antes hacíamos
+// con YouTube.
+const FB_APP_ID = '1587883199599777';
+
+let fbSdkPromise = null;
+function loadFacebookSDK() {
+  if (fbSdkPromise) return fbSdkPromise;
+  fbSdkPromise = new Promise((resolve) => {
+    if (window.FB) { resolve(window.FB); return; }
+    const prevInit = window.fbAsyncInit;
+    window.fbAsyncInit = function () {
+      if (typeof prevInit === 'function') prevInit();
+      window.FB.init({ appId: FB_APP_ID, xfbml: false, version: 'v21.0' });
+      resolve(window.FB);
+    };
+    if (!document.querySelector('script[src*="connect.facebook.net"]')) {
+      const tag = document.createElement('script');
+      tag.src = 'https://connect.facebook.net/es_LA/sdk.js';
+      tag.async = true; tag.defer = true; tag.crossOrigin = 'anonymous';
+      document.body.appendChild(tag);
+    }
+  });
+  return fbSdkPromise;
+}
+
+// TODO: quitar el soporte de YouTube y volver a exigir solo Facebook
+// cuando FB ya no le pida seguidores al vendedor de prueba (agregado
+// temporalmente para poder probar lives sin depender de esa
+// restricción de FB).
+function _youtubeVideoId(url) {
+  const m = String(url || '').match(/(?:youtube\.com\/(?:watch\?v=|live\/|embed\/)|youtu\.be\/)([a-zA-Z0-9_-]{6,})/);
+  return m ? m[1] : null;
+}
+
+async function renderFacebookVideo(containerId, facebookUrl) {
+  const container = document.getElementById(containerId);
+  if (!container || !facebookUrl) return;
+  const ytId = _youtubeVideoId(facebookUrl);
+  if (ytId) {
+    container.innerHTML = `<iframe width="100%" height="100%" style="aspect-ratio:16/9;border:0;" src="https://www.youtube.com/embed/${ytId}?autoplay=1" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>`;
+    return;
+  }
+  container.innerHTML = `<div class="fb-video" data-href="${esc(facebookUrl)}" data-width="auto" data-show-text="false" data-autoplay="true" data-allowfullscreen="true"></div>`;
+  const FB = await loadFacebookSDK();
+  FB.XFBML.parse(container);
+}
+
+function detenerPlayerSincronizado() {
+  // El plugin de Facebook no expone un objeto "player" para destruir;
+  // basta con que el contenedor se reemplace al renderizar otro estado.
+}
+
+// ── Estados de render ──
+
+function renderNoSession() {
+  document.body.classList.remove('live-active');
+  wrap.innerHTML = `
+    <div class="live-card center-text">
+      <div class="upsell-icon"><svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" aria-hidden="true"><use href="#ic-lock"/></svg></div>
+      <h2>Necesitas iniciar sesión</h2>
+      <p class="hint">Entra a tu cuenta de vendedor para transmitir en vivo.</p>
+      <a href="vendedor.html" style="text-decoration:none;">
+        <button class="btn-live primary">Ir a iniciar sesión</button>
+      </a>
+    </div>`;
+}
+
+function renderNoPlus() {
+  document.body.classList.remove('live-active');
+  wrap.innerHTML = `
+    <div class="live-card center-text">
+      <div class="upsell-icon"><svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" aria-hidden="true"><use href="#ic-sparkles"/></svg></div>
+      <h2>Transmitir en vivo es Plan Plus</h2>
+      <p class="hint">Mejora tu cuenta a Plan Plus para poder transmitir en vivo a tus compradores, además de subir hasta 200 productos, logo de tienda y más.</p>
+      <a href="notificaciones.html" style="text-decoration:none;">
+        <button class="btn-live primary">Ver Plan Plus</button>
+      </a>
+    </div>`;
+}
+
+async function renderCreateForm() {
+  detenerPlayerSincronizado();
+  document.body.classList.remove('live-active');
+  subtitle.textContent = 'Nueva transmisión';
+  tipoSeleccionado = 'vivo';
+  orientacionSeleccionada = 'horizontal';
+
+  wrap.innerHTML = `
+    <div class="live-card">
+      <h2>Configura tu transmisión</h2>
+      <p class="hint">Muestra tus productos a tus compradores en tiempo real, con chat en vivo para que aparten lo que les guste.</p>
+
+      <div class="field-group">
+        <label><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" aria-hidden="true"><use href="#ic-signal"/></svg> Cómo transmitir en vivo</label>
+        <div class="tipo-detalle no-indent" style="margin-top:6px;">
+          <p style="margin:0 0 8px;">Sigue estos pasos <strong>antes</strong> de pegar tu link, o el video no se va a poder mostrar en Z&amp;R. <strong>Repítelos cada vez que vayas a transmitir</strong> — Facebook no guarda esta configuración de una transmisión a otra:</p>
+          <ul style="margin:0 0 10px;">
+            <li>Abre Chrome tú misma (el ícono de Chrome, no la app de Facebook).</li>
+            <li>Toca el botón de abajo para copiar el enlace, y pégalo en la barra de direcciones de Chrome.</li>
+            <li>Toca los tres puntos ⋮ y activa <strong>"Solicitar sitio para computadora"</strong>.</li>
+            <li>En "Configuración del stream", cambia la privacidad de <strong>"Solo yo"</strong> a <strong>"Público"</strong>.</li>
+            <li>Activa el interruptor <strong>"Insertar video en vivo"</strong> (aparece solo cuando ya es Público).</li>
+            <li>Transmite normal. Cuando quieras el link, toca los tres puntos de tu publicación en vivo y elige <strong>"Insertar"</strong> — copia ese link y pégalo aquí abajo.</li>
+          </ul>
+          <div style="display:flex; align-items:center; gap:8px; background:rgba(0,0,0,.15); border-radius:8px; padding:8px 10px;">
+            <code id="fb-producer-url" style="flex:1; font-size:12px; overflow-x:auto; white-space:nowrap; color:var(--color-text-secondary,inherit);">https://web.facebook.com/live/producer</code>
+            <button type="button" id="btn-copiar-fb-producer" style="flex-shrink:0; font-size:12px; font-weight:700; border:none; border-radius:6px; padding:6px 10px; background:var(--color-accent-solid); color:#fff; cursor:pointer;">Copiar</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="field-group">
+        <label>Título</label>
+        <input type="text" id="f-titulo" maxlength="60" placeholder="Ej. Liquidación de temporada 🔥">
+      </div>
+      <div class="field-group">
+        <label>Descripción (opcional)</label>
+        <textarea id="f-desc" maxlength="200" placeholder="¿Qué vas a mostrar hoy?"></textarea>
+      </div>
+      <div class="field-group">
+        <label>Link de tu transmisión en vivo</label>
+        <input type="text" id="f-facebook" placeholder="https://www.facebook.com/.../videos/... o /watch/live/?v=...">
+        <div class="error-msg" id="f-facebook-error" style="display:none;"></div>
+        <p class="hint" style="margin-top:6px;">Debe ser el link de "Insertar" que copiaste tras activar Público + Insertar video en vivo (ver pasos arriba). Si no hiciste esos pasos, tus compradores van a ver "Video no disponible".</p>
+      </div>
+      <div class="field-group">
+        <label>Orientación de tu video</label>
+        <div class="orient-options">
+          <label class="orient-chip selected" id="orient-h-label">
+            <input type="radio" name="orientacion" value="horizontal" checked>
+            <span><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" aria-hidden="true"><use href="#ic-landscape"/></svg> Horizontal</span>
+          </label>
+          <label class="orient-chip" id="orient-v-label">
+            <input type="radio" name="orientacion" value="vertical">
+            <span><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" aria-hidden="true"><use href="#ic-portrait"/></svg> Vertical</span>
+          </label>
+        </div>
+        <p class="hint" style="margin-top:6px;">Elige vertical si grabaste con el celular en modo retrato (como TikTok o Reels). Tus compradores van a ver el video más grande y el chat va a flotar encima con un fondo semitransparente.</p>
+      </div>
+      <div class="field-group">
+        <label>Productos que vas a mostrar</label>
+        <div class="product-grid" id="product-grid">
+          <div class="chat-empty">Cargando tu catálogo…</div>
+        </div>
+      </div>
+
+      <button class="btn-live primary" id="btn-crear-sesion">Crear transmisión</button>
+      <div class="error-msg" id="f-general-error" style="display:none;"></div>
+    </div>`;
+
+  const btnCopiarFbProducer = document.getElementById('btn-copiar-fb-producer');
+  if (btnCopiarFbProducer) {
+    btnCopiarFbProducer.addEventListener('click', async () => {
+      const url = document.getElementById('fb-producer-url').textContent;
+      try {
+        await navigator.clipboard.writeText(url);
+        btnCopiarFbProducer.textContent = '¡Copiado!';
+        setTimeout(() => { btnCopiarFbProducer.textContent = 'Copiar'; }, 1500);
+      } catch (e) {
+        alert('No se pudo copiar automáticamente. Copia este enlace manualmente:\n' + url);
+      }
+    });
+  }
+
+  document.querySelectorAll('input[name="orientacion"]').forEach(radio => {
+    radio.addEventListener('change', () => {
+      orientacionSeleccionada = radio.value;
+      document.getElementById('orient-h-label').classList.toggle('selected', orientacionSeleccionada === 'horizontal');
+      document.getElementById('orient-v-label').classList.toggle('selected', orientacionSeleccionada === 'vertical');
+    });
+  });
+
+  document.getElementById('btn-crear-sesion').addEventListener('click', crearSesion);
+  loadProductGrid();
+}
+
+async function fetchAllProducts() {
+  try {
+    const resp = await apiFetch({
+      action: 'misProductosComunidad',
+      vendorToken: vendorSession.token,
+      limit: 50
+    }, 'GET');
+    if (resp.ok && resp.products) allProducts = resp.products;
+  } catch (err) {
+    // se reintenta la próxima vez que se necesite
+  }
+}
+
+async function loadProductGrid() {
+  const grid = document.getElementById('product-grid');
+  try {
+    await fetchAllProducts();
+    if (!allProducts.length) {
+      grid.innerHTML = `<div class="chat-empty">Aún no tienes productos en tu catálogo de comunidad.</div>`;
+      return;
+    }
+    grid.innerHTML = allProducts.map(p => `
+      <div class="product-chip" data-id="${esc(p.id)}">
+        <img src="${esc(p.imagen1 || 'https://placehold.co/200x200')}" alt="${esc(p.nombre)}" loading="lazy">
+        <div class="chip-name">${esc(p.nombre)}</div>
+      </div>
+    `).join('');
+
+    grid.querySelectorAll('.product-chip').forEach(chip => {
+      chip.addEventListener('click', () => {
+        const id = chip.dataset.id;
+        if (selectedProductIds.has(id)) {
+          selectedProductIds.delete(id);
+          chip.classList.remove('selected');
+        } else {
+          selectedProductIds.add(id);
+          chip.classList.add('selected');
+        }
+      });
+    });
+  } catch (err) {
+    grid.innerHTML = `<div class="chat-empty">No se pudo cargar tu catálogo.</div>`;
+  }
+}
+
+async function crearSesion() {
+  const titulo = document.getElementById('f-titulo').value.trim();
+  const desc = document.getElementById('f-desc').value.trim();
+  const facebook = document.getElementById('f-facebook').value.trim();
+  const btn = document.getElementById('btn-crear-sesion');
+  const fbError = document.getElementById('f-facebook-error');
+  const genError = document.getElementById('f-general-error');
+  fbError.style.display = 'none';
+  genError.style.display = 'none';
+
+  if (!titulo) { genError.textContent = 'Ponle un título a tu transmisión.'; genError.style.display = 'block'; return; }
+  if (!facebook) { fbError.textContent = 'Pega el link de tu video o live de Facebook (o YouTube, temporalmente).'; fbError.style.display = 'block'; return; }
+  // TODO: quitar YouTube y volver a exigir solo Facebook cuando ya no haga falta para pruebas
+  if (!/facebook\.com|fb\.watch|youtube\.com|youtu\.be/i.test(facebook)) {
+    fbError.textContent = 'Ese link no parece ser de Facebook ni de YouTube. Revisa que lo hayas copiado bien.';
+    fbError.style.display = 'block';
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = 'Creando…';
+
+  try {
+    const resp = await apiFetch({
+      action: 'crearSesionLive',
+      vendorToken: vendorSession.token,
+      titulo, descripcion: desc,
+      facebook_link: facebook,
+      tipo: tipoSeleccionado,
+      orientacion: orientacionSeleccionada,
+      productos_ids: Array.from(selectedProductIds).join(';')
+    });
+
+    if (!resp.ok) {
+      genError.textContent = resp.error || 'No se pudo crear la transmisión.';
+      genError.style.display = 'block';
+      btn.disabled = false;
+      btn.textContent = 'Crear transmisión';
+      return;
+    }
+
+    await cargarSesionActual();
+  } catch (err) {
+    genError.textContent = 'Error de conexión. Intenta de nuevo.';
+    genError.style.display = 'block';
+    btn.disabled = false;
+    btn.textContent = 'Crear transmisión';
+  }
+}
+
+function renderScheduled() {
+  detenerPlayerSincronizado();
+  document.body.classList.remove('live-active');
+  subtitle.textContent = 'Lista para iniciar';
+  const shareUrl = getComprobadorUrl(currentSesion.id);
+  wrap.innerHTML = `
+    <div class="live-card">
+      <span class="status-badge scheduled"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" aria-hidden="true"><use href="#ic-calendar"/></svg> PROGRAMADO</span>
+      <h2 style="margin-top:12px;">${esc(currentSesion.titulo)}</h2>
+      <p class="hint">${esc(currentSesion.descripcion || 'Sin descripción')}</p>
+
+      <label style="display:block; font-size:12px; font-weight:600; color:var(--color-text-soft); text-transform:uppercase; letter-spacing:.05em; margin-bottom:6px;">Link para tus compradores</label>
+      <div class="share-box">
+        <input type="text" readonly value="${esc(shareUrl)}" id="share-url">
+        <button id="btn-copy">Copiar</button>
+      </div>
+
+      <p class="hint">Cuando estés lista: abre Facebook, empieza tu transmisión en vivo, y regresa aquí a tocar "Iniciar".</p>
+
+      <button class="btn-live primary" id="btn-iniciar"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" aria-hidden="true"><use href="#ic-signal"/></svg> Iniciar transmisión</button>
+      <div style="height:8px;"></div>
+      <button class="btn-live ghost" id="btn-cancelar">Cancelar transmisión</button>
+    </div>`;
+
+  document.getElementById('btn-copy').addEventListener('click', () => {
+    const input = document.getElementById('share-url');
+    input.select();
+    navigator.clipboard.writeText(shareUrl).catch(() => document.execCommand('copy'));
+    const btn = document.getElementById('btn-copy');
+    btn.textContent = '¡Copiado!';
+    setTimeout(() => { btn.textContent = 'Copiar'; }, 1500);
+  });
+
+  document.getElementById('btn-iniciar').addEventListener('click', async () => {
+    try {
+      const resp = await apiFetch({ action: 'actualizarEstadoLive', vendorToken: vendorSession.token, id: currentSesion.id, estado: 'en_vivo' });
+      if (resp.ok) {
+        currentSesion.estado = 'en_vivo';
+        currentSesion.fecha_inicio = resp.fecha_inicio || new Date().toISOString();
+        if (!allProducts.length) await fetchAllProducts();
+        renderLive();
+      } else {
+        alert('No se pudo iniciar: ' + (resp.error || 'error desconocido'));
+      }
+    } catch (err) {
+      alert('Error de conexión al iniciar. Intenta de nuevo.');
+    }
+  });
+
+  document.getElementById('btn-cancelar').addEventListener('click', async () => {
+    if (!confirm('¿Cancelar esta transmisión programada?')) return;
+    await apiFetch({ action: 'actualizarEstadoLive', vendorToken: vendorSession.token, id: currentSesion.id, estado: 'terminado' });
+    currentSesion = null;
+    renderCreateForm();
+  });
+}
+
+function renderLive() {
+  subtitle.textContent = 'Transmitiendo';
+  try {
+    renderLiveFull();
+  } catch (err) {
+    console.error('renderLiveFull falló:', err);
+    alert('Hubo un problema mostrando tus productos en la pantalla de vivo (' + (err.message || err) + '). Te muestro una versión simple mientras lo reviso.');
+    renderLiveFallback();
+  }
+}
+
+async function renderLiveFallback() {
+  document.body.classList.add('live-active');
+  const shareUrl = getComprobadorUrl(currentSesion.id);
+  wrap.innerHTML = `
+    <div class="live-top-fixed">
+      <div class="live-info-row">
+        <div class="live-info-text">
+          <div class="li-title-line">
+            <span class="status-dot"></span>
+            <strong class="li-title">${esc(currentSesion.titulo || '')}</strong>
+          </div>
+          <div class="li-sub-line">
+            <span class="li-desc">${esc(currentSesion.descripcion || 'Transmisión en vivo')}</span>
+            <button class="li-views" id="btn-viewers">${Icon('eye')} <span id="viewer-count">0</span></button>
+          </div>
+        </div>
+        <button id="btn-copy" class="btn-copy-icon" title="Copiar link para compradores">${Icon('link')}</button>
+      </div>
+    </div>
+
+    <div class="live-middle-scroll">
+      <div class="live-card center-text" style="margin-bottom:0;">
+        <p class="hint" style="margin:0;">No pudimos cargar la vista previa del video, pero el chat y las ventas siguen funcionando normal.</p>
+      </div>
+    </div>
+
+    <div class="live-bottom-fixed">
+      <div class="chat-panel">
+        <div class="chat-panel-header">
+          <span>Chat</span>
+          <button id="btn-finalizar" class="btn-finalizar-mini">${Icon('stop')} Finalizar</button>
+        </div>
+        <div class="chat-messages" id="chat-messages"><div class="chat-empty">Aún no hay mensajes.</div></div>
+        <div class="chat-input-row">
+          <input type="text" id="chat-input" placeholder="Responde a tus compradores…" maxlength="300">
+          <button id="chat-send"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" aria-hidden="true"><use href="#ic-arrow-right"/></svg></button>
+        </div>
+      </div>
+    </div>
+  `;
+  document.getElementById('btn-copy').addEventListener('click', () => {
+    navigator.clipboard.writeText(shareUrl).catch(() => {});
+    const btn = document.getElementById('btn-copy');
+    btn.innerHTML = Icon('check');
+    setTimeout(() => { btn.innerHTML = Icon('link'); }, 1500);
+  });
+  document.getElementById('btn-viewers').addEventListener('click', mostrarEspectadores);
+  document.getElementById('btn-finalizar').addEventListener('click', () => {
+    if (!confirm('¿Finalizar la transmisión en vivo?')) return;
+    finalizarTransmision(document.getElementById('btn-finalizar'));
+  });
+  await certificarVendedorEnLive(currentSesion.id);
+  setupChat(currentSesion.id, vendorSession.nombre, true);
+  setupContadorEspectadores(currentSesion.id);
+}
+
+async function renderLiveFull() {
+  document.body.classList.add('live-active');
+  const shareUrl = getComprobadorUrl(currentSesion.id);
+  let misProductos = [];
+  try {
+    misProductos = String(currentSesion.productos_ids || '').split(';').filter(Boolean)
+      .map(id => allProducts.find(p => String(p.id) === String(id)))
+      .filter(Boolean);
+  } catch (e) {
+    misProductos = [];
+  }
+
+  const descLinea = currentSesion.descripcion || 'Transmisión en vivo';
+
+  wrap.innerHTML = `
+    <div class="live-top-fixed">
+      <div class="live-info-row">
+        <div class="live-info-text">
+          <div class="li-title-line">
+            <span class="status-dot"></span>
+            <strong class="li-title">${esc(currentSesion.titulo || '')}</strong>
+          </div>
+          <div class="li-sub-line">
+            <span class="li-desc">${esc(descLinea)}</span>
+            <button class="li-views" id="btn-viewers">${Icon('eye')} <span id="viewer-count">0</span></button>
+          </div>
+        </div>
+        <button id="btn-copy" class="btn-copy-icon" title="Copiar link para compradores">${Icon('link')}</button>
+      </div>
+    </div>
+
+    <div class="live-content-row">
+      <div class="live-products-col">
+        <div class="video-box" id="vendor-video-slot"></div>
+        <h2>Producto que estás mostrando</h2>
+        <p class="hint">Tócalo para destacarlo con botón de compra.</p>
+        <div class="product-grid" id="live-product-grid">
+          ${misProductos.length ? misProductos.map(p => `
+            <div class="product-chip ${String(p.id) === String(currentSesion.producto_actual_id) ? 'selected' : ''}" data-id="${esc(p.id)}">
+              <img src="${esc(p.imagen1 || 'https://placehold.co/200x200')}" alt="${esc(p.nombre)}" loading="lazy">
+              <div class="chip-name">${esc(p.nombre)}</div>
+            </div>
+          `).join('') : (String(currentSesion.productos_ids || '').trim()
+              ? `<div class="chat-empty" style="text-align:left; font-size:11px; font-family:monospace; white-space:pre-wrap;">${Icon('error')} Diagnóstico: guardaste productos pero no coinciden con tu catálogo cargado.
+productos_ids guardado: "${esc(String(currentSesion.productos_ids))}"
+productos cargados (allProducts): ${allProducts.length}
+IDs cargados: ${esc(allProducts.map(p => p.id).join(', '))}</div>`
+              : '<div class="chat-empty">No seleccionaste productos al crear la transmisión.</div>')}
+        </div>
+      </div>
+
+      <div class="live-chat-col">
+        <div class="chat-panel">
+          <div class="chat-panel-header">
+            <span>Chat</span>
+            <button id="btn-finalizar" class="btn-finalizar-mini">${Icon('stop')} Finalizar</button>
+          </div>
+          <div class="chat-messages" id="chat-messages"><div class="chat-empty">Aún no hay mensajes.</div></div>
+          <div class="chat-input-row">
+            <input type="text" id="chat-input" placeholder="Responde…" maxlength="300">
+            <button id="chat-send"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" aria-hidden="true"><use href="#ic-arrow-right"/></svg></button>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+
+  document.getElementById('btn-copy').addEventListener('click', () => {
+    navigator.clipboard.writeText(shareUrl).catch(() => {});
+    const btn = document.getElementById('btn-copy');
+    btn.innerHTML = Icon('check');
+    setTimeout(() => { btn.innerHTML = Icon('link'); }, 1500);
+  });
+
+  document.getElementById('btn-viewers').addEventListener('click', mostrarEspectadores);
+
+  document.querySelectorAll('#live-product-grid .product-chip').forEach(chip => {
+    chip.addEventListener('click', async () => {
+      document.querySelectorAll('#live-product-grid .product-chip').forEach(c => c.classList.remove('selected'));
+      chip.classList.add('selected');
+      const id = chip.dataset.id;
+      currentSesion.producto_actual_id = id;
+      await apiFetch({ action: 'actualizarEstadoLive', vendorToken: vendorSession.token, id: currentSesion.id, producto_actual_id: id });
+    });
+  });
+
+  document.getElementById('btn-finalizar').addEventListener('click', () => {
+    if (!confirm('¿Finalizar la transmisión en vivo?')) return;
+    finalizarTransmision(document.getElementById('btn-finalizar'));
+  });
+
+  await certificarVendedorEnLive(currentSesion.id);
+  setupChat(currentSesion.id, vendorSession.nombre, true);
+  setupContadorEspectadores(currentSesion.id);
+
+  renderFacebookVideo('vendor-video-slot', currentSesion.facebook_link);
+}
+
+// ── Cierre de transmisión: registra ventas, genera la página de
+// entregas (100% local, sin backend) y guarda un historial liviano
+// en este navegador para poder volver a abrirla después. ──
+async function finalizarTransmision(finBtn) {
+  if (finBtn) { finBtn.disabled = true; finBtn.textContent = 'Finalizando…'; }
+  detenerPlayerSincronizado();
+
+  let entregaUrl = null;
+
+  try {
+    const snap = await withTimeout(get(ref(db, `chats/${currentSesion.id}/messages`)), 5000);
+    const data = snap.val() || {};
+    const vendidos = Object.values(data).filter(m => m.vendido && !m.isVendor);
+
+    // El teléfono/dirección/horario/GPS ya no viajan en el mensaje de
+    // chat — se piden en bloque al backend (que lee contactos/{liveId}
+    // en RTDB con credenciales de servidor y deja auditoría), y solo
+    // para los uid que realmente tienen algo marcado como vendido.
+    const uidsConVenta = [...new Set(vendidos.map(m => m.uid).filter(Boolean))];
+    let contactosPorUid = {};
+    if (uidsConVenta.length > 0) {
+      try {
+        const respContactos = await withTimeout(apiFetch({
+          action: 'obtenerContactosParaCierre',
+          vendorToken: vendorSession.token,
+          liveId: currentSesion.id,
+          uids: JSON.stringify(uidsConVenta)
+        }), 8000);
+        if (respContactos.ok) contactosPorUid = respContactos.contactos || {};
+        else console.error('obtenerContactosParaCierre falló:', respContactos.error);
+      } catch (errContactos) {
+        console.error('obtenerContactosParaCierre falló:', errContactos);
+      }
+    }
+
+    const ventas = vendidos.map(m => {
+      const c = contactosPorUid[m.uid] || {};
+      return {
+        productId: m.producto_id || '',
+        comprador_nombre: m.author || '',
+        comprador_telefono: c.telefono || '',
+        comprador_nota: c.nota || '',
+        comprador_horario: c.horario || '',
+        comprador_lat: (typeof c.lat === 'number') ? c.lat : null,
+        comprador_lng: (typeof c.lng === 'number') ? c.lng : null,
+        comprador_direccion: '' // se llena abajo con lo que regrese cerrarVentasLive
+      };
+    });
+
+    if (ventas.length > 0) {
+      // El reverse geocoding (coords -> dirección legible) tarda ~1.1s
+      // por comprador distinto (política de Nominatim) — el timeout
+      // fijo de 8s no alcanza si hay varios, así que crece con la
+      // cantidad de compradores únicos.
+      const timeoutCierre = Math.max(8000, 3000 + uidsConVenta.length * 1300);
+      const resp = await withTimeout(apiFetch({
+        action: 'cerrarVentasLive',
+        vendorToken: vendorSession.token,
+        ventas: JSON.stringify(ventas)
+      }), timeoutCierre);
+      if (resp.ok) {
+        alert(`${resp.added} venta(s) de ${resp.compradores} comprador(es) enviadas a tus notificaciones para confirmar.`);
+        // La dirección legible ya se calculó una sola vez adentro de
+        // cerrarVentasLive (reverse geocoding) — se reutiliza aquí para
+        // no volver a llamar a Nominatim al armar la página de entregas.
+        const direcciones = resp.direcciones || {};
+        ventas.forEach(v => {
+          v.comprador_direccion = direcciones[v.comprador_telefono || ''] || '';
+        });
+      } else {
+        alert('No se pudieron registrar las ventas: ' + (resp.error || 'error desconocido') + '. Puedes revisarlas manualmente en el chat.');
+      }
+      entregaUrl = await crearPaginaEntregas(ventas);
+    }
+  } catch (err) {
+    console.error('finalizarTransmision: no se pudieron leer los "vendidos" (revisa las reglas de Firebase):', err);
+    alert('No se pudieron leer los "vendidos" del chat (puede ser tu conexión). Se va a cerrar de todos modos — revísalos manualmente si hace falta.');
+  }
+
+  try {
+    await withTimeout(apiFetch({ action: 'actualizarEstadoLive', vendorToken: vendorSession.token, id: currentSesion.id, estado: 'terminado' }), 8000);
+  } catch (err) {
+    console.error('actualizarEstadoLive (terminado) falló:', err);
+    alert('Ojo: no se pudo confirmar el cierre con el servidor (revisa tu conexión). Si al recargar la página sigue apareciendo como "en vivo", entra de nuevo y dale Finalizar otra vez.');
+  }
+
+  if (chatUnsub) chatUnsub();
+  if (presenceUnsub) { presenceUnsub(); presenceUnsub = null; }
+  renderEnded(entregaUrl);
+}
+
+// ── Arma el paquete de entrega (agrupado por comprador) y lo guarda
+// en el backend (hoja Entregas_Live). El link que se comparte solo
+// lleva el id del 00000
+// y el estado ENTREGADO/PENDIENTE queda guardado, no solo local. ──
+async function crearPaginaEntregas(ventas) {
+  try {
+    const grupos = {};
+    ventas.forEach(v => {
+      const key = v.comprador_telefono || ('sin_tel_' + v.comprador_nombre);
+      if (!grupos[key]) {
+        grupos[key] = {
+          key: key,
+          nombre: v.comprador_nombre || 'Comprador',
+          telefono: v.comprador_telefono || '',
+          direccion: v.comprador_direccion || '', // ya viene reverse-geocodificada desde cerrarVentasLive
+          nota: v.comprador_nota || '',
+          horario: v.comprador_horario || '',
+          lat: (typeof v.comprador_lat === 'number') ? v.comprador_lat : null,
+          lng: (typeof v.comprador_lng === 'number') ? v.comprador_lng : null,
+          items: [],
+          total: 0
+        };
+      }
+      const prod = allProducts.find(p => String(p.id) === String(v.productId));
+      const precio = prod ? (Number(prod.precio) || 0) : 0;
+      grupos[key].items.push({ nombre: (prod && prod.nombre) || 'Producto', precio });
+      grupos[key].total += precio;
+    });
+
+    const gruposArr = Object.values(grupos);
+    if (!gruposArr.length) return null;
+
+    // Normalmente cada grupo ya trae "direccion" pre-calculada (ver
+    // finalizarTransmision), así que esto no debería necesitar
+    // geocodificar de nuevo — el margen extra es solo por si algún
+    // grupo llegó sin ella y el backend tiene que hacerlo de respaldo.
+    const timeoutEntregas = Math.max(8000, 3000 + gruposArr.length * 1300);
+    const resp = await withTimeout(apiFetch({
+      action: 'guardarEntregasLive',
+      vendorToken: vendorSession.token,
+      liveId: currentSesion.id,
+      liveTitulo: currentSesion.titulo || '',
+      grupos: JSON.stringify(gruposArr)
+    }), timeoutEntregas);
+
+    if (!resp.ok) {
+      console.error('guardarEntregasLive falló:', resp.error);
+      return null;
+    }
+
+    return `${location.origin}${location.pathname.replace('vendedor-live.html', 'entregas-live.html')}?id=${encodeURIComponent(currentSesion.id)}`;
+  } catch (err) {
+    console.error('crearPaginaEntregas falló:', err);
+    return null;
+  }
+}
+
+function renderEnded(entregaUrl) {
+  detenerPlayerSincronizado();
+  document.body.classList.remove('live-active');
+  subtitle.textContent = 'Finalizada';
+  wrap.innerHTML = `
+    <div class="live-card center-text">
+      <div class="upsell-icon"><svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" aria-hidden="true"><use href="#ic-check"/></svg></div>
+      <h2>Transmisión finalizada</h2>
+      <p class="hint">¡Buen trabajo! Cuando quieras, puedes crear una nueva transmisión.</p>
+      ${entregaUrl ? `
+        <p class="hint" style="text-align:left;">${Icon('box')} Ya puedes coordinar las entregas de esta transmisión. Comparte este link con tu repartidor si lo necesitas:</p>
+        <div class="share-box">
+          <input type="text" readonly value="${esc(entregaUrl)}" id="entrega-url">
+          <button id="btn-copy-entrega">Copiar</button>
+        </div>
+        <button class="btn-live primary" id="btn-abrir-entregas">${Icon('box')} Ver página de entregas</button>
+        <div style="height:8px;"></div>
+      ` : ''}
+      <button class="btn-live ${entregaUrl ? 'ghost' : 'primary'}" id="btn-nueva">Crear nueva transmisión</button>
+    </div>`;
+
+  if (entregaUrl) {
+    document.getElementById('btn-copy-entrega').addEventListener('click', () => {
+      navigator.clipboard.writeText(entregaUrl).catch(() => {});
+      const btn = document.getElementById('btn-copy-entrega');
+      btn.textContent = '¡Copiado!';
+      setTimeout(() => { btn.textContent = 'Copiar'; }, 1500);
+    });
+    document.getElementById('btn-abrir-entregas').addEventListener('click', () => {
+      window.open(entregaUrl, '_blank');
+    });
+  }
+
+  document.getElementById('btn-nueva').addEventListener('click', () => {
+    currentSesion = null;
+    selectedProductIds = new Set();
+    renderCreateForm();
+  });
+}
+
+function marcarVendido(liveId, key, msg) {
+  if (msg.vendido) {
+    if (confirm(`¿Quitar el marcado de vendido a "${msg.text}" de ${msg.author}?`)) {
+      update(ref(db, `chats/${liveId}/messages/${key}`), { vendido: false }).catch(err => {
+        console.error('marcarVendido (quitar) falló:', err);
+        alert('No se pudo quitar el marcado de vendido: ' + err.message);
+      });
+    }
+    return;
+  }
+  if (confirm(`¿Marcar "${msg.text}" de ${msg.author} como vendido?`)) {
+    update(ref(db, `chats/${liveId}/messages/${key}`), { vendido: true }).catch(err => {
+      console.error('marcarVendido falló:', err);
+      alert('No se pudo marcar como vendido: ' + err.message);
+    });
+  }
+}
+
+// ── Chat con Firebase Realtime Database ──
+function setupChat(liveId, myName, isVendor) {
+  const messagesEl = document.getElementById('chat-messages');
+  const inputEl = document.getElementById('chat-input');
+  const sendBtn = document.getElementById('chat-send');
+  const chatRef = query(ref(db, `chats/${liveId}/messages`), limitToLast(100));
+
+  chatUnsub = onValue(chatRef, (snapshot) => {
+    const data = snapshot.val();
+    if (!data) { messagesEl.innerHTML = '<div class="chat-empty">Aún no hay mensajes.</div>'; return; }
+    const entries = Object.entries(data).sort((a, b) => (a[1].ts || 0) - (b[1].ts || 0));
+    messagesEl.innerHTML = entries.map(([key, m]) => {
+      const prod = m.producto_id ? allProducts.find(p => String(p.id) === String(m.producto_id)) : null;
+      const prodTag = prod ? `
+        <div style="display:flex; align-items:center; gap:5px; margin-top:3px; opacity:.8;">
+          <img src="${esc(prod.imagen1 || 'https://placehold.co/40x40')}" style="width:16px;height:16px;border-radius:4px;object-fit:cover;">
+          <span style="font-size:10px; color:var(--color-text-soft);">${esc(prod.nombre)}</span>
+        </div>` : '';
+      return `
+      <div class="chat-msg ${m.author === myName ? 'mine' : ''}" data-key="${esc(key)}" style="${!m.isVendor ? 'cursor:pointer;' : ''}">
+        <span class="author">${esc(m.author)}${m.isVendor ? ' ' + Icon('shopping-bag') : ''}:</span>
+        <span class="text">${esc(m.text)}</span>
+        ${m.vendido ? `<span class="vendido-tag" style="display:inline-block;margin-left:6px;font-size:10px;font-weight:700;background:rgba(74,222,128,.15);color:#4ade80;padding:2px 7px;border-radius:999px;">${Icon('check')} Vendido</span>` : ''}
+        ${prodTag}
+      </div>`;
+    }).join('');
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+
+    if (isVendor) {
+      messagesEl.querySelectorAll('.chat-msg[data-key]').forEach(el => {
+        const key = el.dataset.key;
+        const msg = data[key];
+        if (msg.isVendor) return;
+        el.addEventListener('click', () => marcarVendido(liveId, key, msg));
+      });
+    }
+  }, (err) => {
+    console.error('setupChat onValue falló (revisa las reglas de Firebase):', err);
+    messagesEl.innerHTML = `<div class="chat-empty">No se pudo cargar el chat: ${esc(err.message)}</div>`;
+  });
+
+  function send() {
+    const text = inputEl.value.trim();
+    if (!text) return;
+    inputEl.value = '';
+    push(ref(db, `chats/${liveId}/messages`), {
+      uid: authUid, author: myName, text, isVendor, ts: Date.now(),
+      producto_id: String(currentSesion.producto_actual_id || '')
+    }).catch(err => {
+      console.error('send (chat vendedor) falló (revisa las reglas de Firebase):', err);
+      alert('No se pudo enviar el mensaje: ' + err.message);
+      inputEl.value = text;
+    });
+  }
+  sendBtn.addEventListener('click', send);
+  inputEl.addEventListener('keydown', (e) => { if (e.key === 'Enter') send(); });
+}
+
+// ── Carga inicia45
+async function cargarSesionActual() {
+  wrap.innerHTML = '<div class="loading-spinner"></div>';
+  try {
+    const resp = await apiFetch({ action: 'obtenerMisSesionesLive', vendorToken: vendorSession.token }, 'GET');
+    if (!resp.ok) {
+      renderCreateForm();
+      const genError = document.getElementById('f-general-error');
+      if (genError) { genError.textContent = 'No se pudo cargar tu sesión: ' + (resp.error || 'error desconocido'); genError.style.display = 'block'; }
+      return;
+    }
+    if (resp.sesiones && resp.sesiones.length) {
+      const activa = resp.sesiones.find(s => s.estado === 'programado' || s.estado === 'en_vivo');
+      if (activa) {
+        currentSesion = activa;
+        if (!allProducts.length) await fetchAllProducts();
+        if (activa.estado === 'en_vivo') renderLive();
+        else renderScheduled();
+        return;
+      }
+    }
+    renderCreateForm();
+  } catch (err) {
+    renderCreateForm();
+    const genError = document.getElementById('f-general-error');
+    if (genError) { genError.textContent = 'No se pudo cargar tu sesión: ' + err.message; genError.style.display = 'block'; }
+  }
+}
+
+async function init() {
+  const raw = localStorage.getItem('vendor_session');
+  if (!raw) { renderNoSession(); return; }
+  try { vendorSession = JSON.parse(raw); } catch (e) { renderNoSession(); return; }
+  if (!vendorSession || !vendorSession.token) { renderNoSession(); return; }
+
+  if (vendorSession.plan !== 'plus') { renderNoPlus(); return; }
+
+  await cargarSesionActual();
+}
+
+init();
+</script>
+<script>if('serviceWorker' in navigator) navigator.serviceWorker.register('/znr/sw.js', { scope: '/znr/' });</script>
+</body>
+</html>

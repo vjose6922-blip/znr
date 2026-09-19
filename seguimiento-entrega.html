@@ -1,0 +1,269 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta http-equiv="Content-Security-Policy" content="
+ default-src 'self';
+ script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net;
+ style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net;
+ img-src 'self' data: blob: https://*.tile.openstreetmap.org https://cdn.jsdelivr.net https://firebasestorage.googleapis.com ;
+ connect-src 'self' https://live-api-1038143238323.us-central1.run.app https://*.tile.openstreetmap.org;
+ font-src 'self';
+ frame-src 'none';
+ frame-ancestors 'none';
+ object-src 'none';
+ base-uri 'self';
+ worker-src 'self' blob:;
+ child-src 'self' blob:;
+">
+ <script src="error-bootstrap.js"></script>
+
+<title>Seguimiento de tu pedido — Z&R</title>
+<meta name="theme-color" content="#1e2128">
+<script>document.documentElement.dataset.theme = localStorage.getItem('theme') || 'light';</script>
+<link rel="preload" href="styles.css" as="style">
+<link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css">
+<script src="icons.js" defer></script>
+<style>
+  body { margin: 0; }
+  .track-wrap { max-width: 640px; margin: 0 auto; padding: 16px; padding-bottom: 40px; }
+
+  .track-header { text-align: center; margin-bottom: 14px; }
+  .track-header h1 { font-size: 17px; margin: 0 0 4px; color: var(--color-text-primary); }
+  .track-header p { font-size: 13px; color: var(--color-text-soft); margin: 0; }
+
+  .estado-banner {
+    text-align: center; padding: 10px; border-radius: var(--radius-md);
+    font-size: 13px; font-weight: 700; margin-bottom: 14px;
+  }
+  .estado-banner.entregado { background: rgba(74,222,128,.15); color: #4ade80; }
+  .estado-banner.en-camino { background: rgba(59,130,246,.15); color: #60a5fa; }
+  .estado-banner.esperando { background: rgba(251,191,36,.15); color: #fbbf24; }
+  .estado-banner.preparando { background: rgba(251,146,60,.15); color: #fb923c; }
+  .estado-banner.cerca { background: rgba(192,132,252,.15); color: #c084fc; }
+
+  .eta-note {
+    text-align: center; font-size: 13px; color: var(--color-text-soft);
+    margin: -6px 0 14px;
+  }
+
+  #map {
+    width: 100%; aspect-ratio: 4/5; max-height: 70vh; border-radius: var(--radius-lg);
+    border: 1px solid var(--color-border-subtle); background: var(--color-surface-2);
+  }
+
+  .track-note {
+    font-size: 12px; color: var(--color-text-soft); text-align: center;
+    margin-top: 12px; line-height: 1.5;
+  }
+
+  .track-error {
+    text-align: center; padding: 40px 20px; color: var(--color-text-soft);
+  }
+</style>
+</head>
+<body>
+
+<div class="track-wrap">
+  <div class="track-header">
+    <h1 id="th-titulo">Seguimiento de tu pedido</h1>
+    <p id="th-sub"></p>
+  </div>
+  <div id="banner"></div>
+  <p class="eta-note" id="eta-note"></p>
+  <div id="map"></div>
+  <p class="track-note">El mapa se actualiza solo cada pocos segundos mientras tengas esta página abierta — no hace falta que la recargues.</p>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+const API_BASE = "https://live-api-1038143238323.us-central1.run.app"; // TODO: pegar la URL real tras el deploy
+
+const params = new URLSearchParams(location.search);
+const liveId = params.get('live');
+const compradorKey = params.get('key');
+
+const wrap = document.querySelector('.track-wrap');
+const bannerEl = document.getElementById('banner');
+const etaEl = document.getElementById('eta-note');
+const tituloEl = document.getElementById('th-titulo');
+const subEl = document.getElementById('th-sub');
+
+const VELOCIDAD_PROMEDIO_KMH = 30; // estimado, no hay tráfico real sin Directions API (de pago)
+
+let map = null;
+let destinoMarker = null;
+let repartidorMarker = null;
+let pollTimer = null;
+let followMode = true; // true = el mapa sigue al repartidor solo; se apaga si arrastras el mapa a mano
+
+async function apiFetch(action, extra) {
+  const p = new URLSearchParams({ action, liveId, compradorKey, ...extra });
+  const res = await fetch(`${API_BASE}?${p.toString()}`);
+  return res.json();
+}
+
+function renderError(msg) {
+  if (pollTimer) clearInterval(pollTimer);
+  wrap.innerHTML = `<div class="track-error">${msg}</div>`;
+}
+
+function initMap(lat, lng) {
+  map = L.map('map', { zoomControl: true }).setView([lat, lng], 15);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '&copy; OpenStreetMap',
+    maxZoom: 19
+  }).addTo(map);
+  // Si el comprador arrastra el mapa a mano, soltamos el seguimiento
+  // automático hasta que vuelva a pulsar el botón "◎".
+  map.on('dragstart', () => { followMode = false; });
+}
+
+function actualizarMapa(entrega) {
+  const puntos = [];
+
+  if (typeof entrega.lat === 'number' && typeof entrega.lng === 'number') {
+    if (!map) initMap(entrega.lat, entrega.lng);
+    if (!destinoMarker) {
+      destinoMarker = L.marker([entrega.lat, entrega.lng], {
+        title: 'Tu dirección'
+      }).addTo(map).bindPopup('Tu dirección');
+    }
+    puntos.push([entrega.lat, entrega.lng]);
+  }
+
+  if (typeof entrega.repartidorLat === 'number' && typeof entrega.repartidorLng === 'number') {
+    if (!map) initMap(entrega.repartidorLat, entrega.repartidorLng);
+    const pos = [entrega.repartidorLat, entrega.repartidorLng];
+    if (!repartidorMarker) {
+      const icon = L.divIcon({
+        className: '', html: '<div style="width:16px;height:16px;border-radius:50%;background:#c084fc;border:3px solid #fff;box-shadow:0 0 0 2px #c084fc;"></div>',
+        iconSize: [16, 16], iconAnchor: [8, 8]
+      });
+      repartidorMarker = L.marker(pos, { icon, title: 'Repartidor' }).addTo(map).bindPopup('Repartidor');
+    } else {
+      repartidorMarker.setLatLng(pos);
+      // Modo "seguir": se recentra en el repartidor sin tocar tu zoom,
+      // pero solo mientras followMode siga activo.
+      if (followMode && map._znrFitInicial) map.panTo(pos, { animate: true, duration: 0.5 });
+    }
+    puntos.push(pos);
+  }
+
+  // Solo ajustamos el zoom/encuadre automáticamente la PRIMERA vez que
+  // tenemos ambos puntos. Después, cada poll solo mueve los marcadores
+  // (arriba) sin tocar la vista, para respetar el zoom manual del usuario.
+  if (map && puntos.length === 2 && !map._znrFitInicial) {
+    map._znrFitInicial = true;
+    map.fitBounds(puntos, { padding: [40, 40] });
+    mostrarBotonRecentrar();
+  } else if (map && !map._znrCentradoInicial && puntos.length === 1) {
+    map._znrCentradoInicial = true;
+  }
+}
+
+let btnRecentrar = null;
+function mostrarBotonRecentrar() {
+  if (btnRecentrar || !map) return;
+  const Control = L.Control.extend({
+    onAdd: function() {
+      const btn = L.DomUtil.create('button', '');
+      btn.innerHTML = '◎';
+      btn.title = 'Centrar y reactivar seguimiento';
+      Object.assign(btn.style, {
+        width: '38px', height: '38px', fontSize: '18px',
+        background: 'var(--color-surface-2, #1e2128)',
+        color: 'var(--color-text-primary, #fff)',
+        border: '1px solid var(--color-border-subtle, #333)',
+        borderRadius: '8px', cursor: 'pointer'
+      });
+      L.DomEvent.disableClickPropagation(btn);
+      btn.onclick = () => {
+        followMode = true;
+        const puntos = [];
+        if (destinoMarker) puntos.push(destinoMarker.getLatLng());
+        if (repartidorMarker) puntos.push(repartidorMarker.getLatLng());
+        if (puntos.length) map.fitBounds(puntos, { padding: [40, 40] });
+      };
+      return btn;
+    },
+    onRemove: function() {}
+  });
+  btnRecentrar = new Control({ position: 'topright' });
+  btnRecentrar.addTo(map);
+}
+
+// Distancia en línea recta (haversine) — la misma fórmula que usa el
+// backend para decidir "cerca". El ETA es un estimado con velocidad
+// promedio fija, no tráfico real (eso necesitaría la API de Directions
+// de Google, que es de pago).
+function distanciaMetros(lat1, lng1, lat2, lng2) {
+  const R = 6371000;
+  const toRad = d => d * Math.PI / 180;
+  const dLat = toRad(lat2 - lat1), dLng = toRad(lng2 - lng1);
+  const a = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+function actualizarETA(entrega) {
+  const tieneAmbos = typeof entrega.lat === 'number' && typeof entrega.lng === 'number'
+    && typeof entrega.repartidorLat === 'number' && typeof entrega.repartidorLng === 'number';
+  const enCamino = entrega.estado === 'en-ruta' || entrega.estado === 'cerca';
+
+  if (!enCamino || !tieneAmbos) { etaEl.textContent = ''; return; }
+
+  const metros = distanciaMetros(entrega.repartidorLat, entrega.repartidorLng, entrega.lat, entrega.lng);
+  const minutos = Math.max(1, Math.round((metros / 1000) / VELOCIDAD_PROMEDIO_KMH * 60));
+  etaEl.textContent = entrega.estado === 'cerca'
+    ? '📍 Está a solo unos metros de tu ubicación'
+    : `⏱️ Llega en aproximadamente ${minutos} minuto${minutos === 1 ? '' : 's'} (estimado)`;
+}
+
+const ESTADO_BANNER = {
+  pendiente: ['esperando', '⏳ Esperando confirmación del vendedor'],
+  preparando: ['preparando', '📦 El vendedor está preparando tu pedido'],
+  'en-ruta': ['en-camino', '🛵 El repartidor va en camino'],
+  cerca: ['cerca', '📍 El repartidor está cerca de tu ubicación'],
+  entregado: ['entregado', '✅ ¡Tu pedido ya fue entregado! 🎉'],
+};
+
+function actualizarBanner(entrega) {
+  const [clase, texto] = ESTADO_BANNER[entrega.estado] || ESTADO_BANNER.pendiente;
+
+  if (entrega.estado === 'en-ruta' && typeof entrega.repartidorLat === 'number') {
+    bannerEl.innerHTML = `<div class="estado-banner en-camino">🛵 El repartidor está en camino – puedes ver su ubicación en el mapa</div>`;
+  } else {
+    bannerEl.innerHTML = `<div class="estado-banner ${clase}">${texto}</div>`;
+  }
+
+  if (entrega.estado === 'entregado' && pollTimer) { clearInterval(pollTimer); pollTimer = null; }
+}
+
+async function cargar() {
+  try {
+    const resp = await apiFetch('obtenerEntregaPorClave');
+    if (!resp.ok) { renderError('No se encontró esta entrega. Puede que el link haya caducado.'); return; }
+    const e = resp.entrega;
+    tituloEl.textContent = 'Seguimiento de tu pedido';
+    subEl.textContent = e.vendedorNombre ? `De ${e.vendedorNombre}` : '';
+    actualizarBanner(e);
+    actualizarETA(e);
+    actualizarMapa(e);
+  } catch (err) {
+    console.error('Error cargando seguimiento:', err);
+  }
+}
+
+if (!liveId || !compradorKey) {
+  renderError('Este link no es válido.');
+} else {
+  cargar();
+  pollTimer = setInterval(cargar, 5000);
+}
+</script>
+<script>if('serviceWorker' in navigator) navigator.serviceWorker.register('/znr/sw.js', { scope: '/znr/' });</script>
+</body>
+</html>

@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+<meta http-equiv="Content-Security-Policy" content="
+ default-src 'self';
+ script-src 'self' 'unsafe-inline' https://www.gstatic.com;
+ style-src 'self' 'unsafe-inline';
+ img-src 'self' data: blob: https://lh3.googleusercontent.com https://drive.google.com https://placehold.co https://via.placeholder.com https://firebasestorage.googleapis.com ;
+ connect-src 'self' https://script.google.com https://script.googleusercontent.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firestore.googleapis.com https://wttr.in https://www.gstatic.com https://firebaseinstallations.googleapis.com https://fcmregistrations.googleapis.com https://registrar-token-fcm-1038143238323.us-central1.run.app https://ventas-api-1038143238323.us-central1.run.app https://admin-api-1038143238323.us-central1.run.app https://auth-api-1038143238323.us-central1.run.app https://firebase.googleapis.com https://znr-live-default-rtdb.firebaseio.com https://nominatim.openstreetmap.org https://catalogo-api-1038143238323.us-central1.run.app https://tienda-znr-api-1038143238323.us-central1.run.app https://vendedores-api-1038143238323.us-central1.run.app ;
+ font-src 'self';
+ frame-src 'none';
+ frame-ancestors 'none';
+ object-src 'none';
+ base-uri 'self';
+ worker-src 'self' blob:;
+ child-src 'self' blob:;
+">
+ <script src="error-bootstrap.js"></script>
+
+  <title>Z&R · Actividad reciente</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="preconnect" href="https://lh3.googleusercontent.com" crossorigin>
+  <script>document.documentElement.dataset.theme = localStorage.getItem('theme') || 'light';</script>
+<link rel="stylesheet" href="styles.css" />
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#1e2128">
+  <link rel="icon" type="image/png" sizes="32x32" href="icons/icon-32x32.png">
+  <link rel="apple-touch-icon" sizes="152x152" href="icons/icon-152x152.png">
+
+  <style>
+    body { margin: 0; background: var(--page-bg); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; min-height: 100vh; padding-bottom: 70px; }
+
+    .fa-subtitle-bar { padding: 14px 16px 6px; font-size: .78rem; color: var(--color-text-soft); font-weight: 600; }
+    .fa-list { padding: 6px 16px 40px; display: flex; flex-direction: column; gap: 12px; }
+
+    .fa-card {
+      position: relative; overflow: hidden;
+      display: flex; align-items: center; gap: 14px;
+      background: var(--color-surface); border-radius: var(--radius-lg);
+      padding: 12px 14px 12px 16px;
+      box-shadow: var(--shadow-soft);
+      border: 1px solid var(--color-border-subtle);
+      animation: fa-fade-in .35s ease backwards;
+      transition: transform .18s ease, box-shadow .18s ease;
+    }
+    .fa-card:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(0,0,0,.08); }
+    .fa-card::before {
+      content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px;
+      background: var(--gradient-accent);
+    }
+    .fa-card img { width: 64px; height: 64px; border-radius: var(--radius-md); object-fit: cover; background: var(--color-bg); flex-shrink: 0; box-shadow: 0 2px 8px rgba(0,0,0,.12); }
+    .fa-card-thumb-fallback {
+      width: 64px; height: 64px; border-radius: var(--radius-md); flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      background: var(--color-bg); color: var(--color-text-soft);
+    }
+    .fa-card-text { flex: 1; min-width: 0; }
+    .fa-card-vendor {
+      font-size: .92rem; font-weight: 800; color: var(--color-text-primary); margin: 0 0 2px;
+      display: inline-flex; align-items: center; gap: 4px; cursor: pointer; width: fit-content;
+      text-decoration: none; transition: opacity .15s ease;
+    }
+    .fa-card-vendor:hover { opacity: .8; }
+    .fa-card-vendor svg { opacity: .55; flex-shrink: 0; }
+    .fa-card-product { font-size: .82rem; color: var(--color-text-muted); margin: 0; line-height: 1.3; }
+    .fa-card-footer { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin-top: 6px; }
+    .fa-card-time { font-size: .7rem; color: var(--color-text-soft); }
+
+    .fa-badge-fresh {
+      display: inline-flex; align-items: center; gap: 4px;
+      font-size: .65rem; font-weight: 800; color: #fff;
+      background: var(--gradient-accent);
+      padding: 3px 9px 3px 7px; border-radius: var(--radius-pill);
+      animation: fa-pulse 1.8s ease infinite;
+    }
+    .fa-badge-stock {
+      display: inline-flex; align-items: center;
+      font-size: .65rem; font-weight: 800; color: var(--color-warning);
+      background: var(--color-warning-bg); padding: 3px 9px; border-radius: var(--radius-pill);
+    }
+    .fa-badge-stock-out { color: var(--color-error); background: var(--color-error-bg); }
+
+    .fa-empty, .fa-error {
+      display: flex; flex-direction: column; align-items: center; gap: 10px;
+      text-align: center; color: var(--color-text-soft); padding: 60px 24px; font-size: .85rem;
+    }
+    .fa-empty svg, .fa-error svg { color: var(--color-text-soft); opacity: .6; }
+    .fa-error { color: var(--color-error); }
+    .fa-error svg { color: var(--color-error); }
+
+    .fa-skeleton {
+      position: relative; overflow: hidden; background: var(--color-surface);
+      border: 1px solid var(--color-border-subtle);
+      border-radius: var(--radius-lg); padding: 12px 14px; display: flex; gap: 14px; align-items: center;
+    }
+    .fa-skeleton .sk-img, .fa-skeleton .sk-line {
+      background: linear-gradient(90deg, var(--color-bg) 25%, var(--color-border-subtle) 37%, var(--color-bg) 63%);
+      background-size: 400% 100%; animation: sk-shimmer 1.4s ease infinite; border-radius: var(--radius-md);
+    }
+    .fa-skeleton .sk-img { width: 64px; height: 64px; flex-shrink: 0; }
+    .fa-skeleton .sk-line { height: 12px; width: 70%; }
+
+    @keyframes sk-shimmer { 0% { background-position: 100% 50%; } 100% { background-position: 0 50%; } }
+    @keyframes fa-fade-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes fa-pulse { 0%, 100% { opacity: 1; } 50% { opacity: .6; } }
+  </style>
+</head>
+<body>
+
+  <header class="app-header">
+    <div class="header-left">
+      <button class="icon-button" id="fa-back-btn" aria-label="Volver"></button>
+      <div class="header-text">
+        <h1 class="app-title">Actividad reciente</h1>
+        <p class="app-subtitle">Ventas confirmadas en Comunidad, últimos 7 días</p>
+      </div>
+    </div>
+  </header>
+
+  <div class="fa-list" id="fa-list">
+    <div class="fa-skeleton"><div class="sk-img"></div><div class="sk-line"></div></div>
+    <div class="fa-skeleton"><div class="sk-img"></div><div class="sk-line"></div></div>
+    <div class="fa-skeleton"><div class="sk-img"></div><div class="sk-line"></div></div>
+  </div>
+
+  <nav class="bottom-nav" id="bottom-nav-feed">
+    <button class="bottom-nav-item" id="nav-v-inicio">
+      <span class="nav-icon"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" aria-hidden="true"><use href="#ic-home"/></svg></span>
+      <span>Inicio</span>
+    </button>
+    <button class="bottom-nav-item" id="nav-v-comunidad">
+      <span class="nav-icon"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" aria-hidden="true"><use href="#ic-community"/></svg></span>
+      <span>Comunidad</span>
+    </button>
+    <button class="bottom-nav-item active" id="nav-vendedor">
+      <span class="nav-icon"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 12m-9 0a9 9 0 1 0 18 0a9 9 0 1 0 -18 0" /><path d="M12 10m-3 0a3 3 0 1 0 6 0a3 3 0 1 0 -6 0" /><path d="M6.168 18.849a4 4 0 0 1 3.832 -2.849h4a4 4 0 0 1 3.834 2.855" /></svg></span>
+      <span>Vendedor</span>
+    </button>
+  </nav>
+
+  <script>
+    document.getElementById('nav-v-inicio')?.addEventListener('click', () => { window.location.href = 'index.html'; });
+    document.getElementById('nav-v-comunidad')?.addEventListener('click', () => { window.location.href = 'comunidad.html'; });
+    document.getElementById('nav-vendedor')?.addEventListener('click', () => { window.location.href = 'vendedor.html'; });
+  </script>
+
+  <script src="icons.js" defer></script>
+  <script src="api-config.js" defer></script>
+  <script type="module" src="firestore-init.js"></script>
+  <script src="znr-devconsole.js" defer></script>
+  <script src="error-monitor.js" defer></script>
+  <script>
+    function esc(s) {
+      return String(s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    }
+
+    function tiempoRelativo(isoFecha) {
+      const ahora = Date.now();
+      const fecha = new Date(isoFecha).getTime();
+      const diffMin = Math.max(0, Math.floor((ahora - fecha) / 60000));
+      if (diffMin < 1) return 'justo ahora';
+      if (diffMin < 60) return 'hace ' + diffMin + ' min';
+      const diffH = Math.floor(diffMin / 60);
+      if (diffH < 24) return 'hace ' + diffH + (diffH === 1 ? ' hora' : ' horas');
+      const diffD = Math.floor(diffH / 24);
+      return 'hace ' + diffD + (diffD === 1 ? ' día' : ' días');
+    }
+
+    function renderFeed(items) {
+      const list = document.getElementById('fa-list');
+      if (!items.length) {
+        list.innerHTML = `<div class="fa-empty">${Icon('box', { size: 34 })}<span>Todavía no hay ventas recientes que mostrar.</span></div>`;
+        return;
+      }
+      const ahora = Date.now();
+      list.innerHTML = items.map((it, i) => {
+        const minutos = Math.floor((ahora - new Date(it.fecha).getTime()) / 60000);
+        const esReciente = minutos < 10;
+        const imagenHtml = it.imagen
+          ? `<img src="${esc(it.imagen)}" alt="" loading="lazy" onerror="this.outerHTML='<div class=&quot;fa-card-thumb-fallback&quot;>${Icon('shopping-bag', { size: 26 }).replace(/"/g, '&quot;')}</div>'">`
+          : `<div class="fa-card-thumb-fallback">${Icon('shopping-bag', { size: 26 })}</div>`;
+        return `
+        <div class="fa-card" style="animation-delay:${Math.min(i, 8) * 0.05}s">
+          ${imagenHtml}
+          <div class="fa-card-text">
+            ${it.vendedorUid
+              ? `<a href="perfil-vendedor.html?vendedor=${esc(it.vendedorUid)}" class="fa-card-vendor">${esc(it.vendedor || 'Un vendedor')}</a>`
+              : `<p class="fa-card-vendor" style="cursor:default;">${esc(it.vendedor || 'Un vendedor')}</p>`}
+            <p class="fa-card-product">vendió ${esc(it.producto || 'un producto')}</p>
+            <div class="fa-card-footer">
+              <span class="fa-card-time">${tiempoRelativo(it.fecha)}</span>
+              ${esReciente ? `<span class="fa-badge-fresh">${Icon('fire', { size: 11 })}Recién vendido</span>` : ''}
+              ${it.stockRestante === 0 ? '<span class="fa-badge-stock fa-badge-stock-out">Se agotó</span>' : ''}
+              ${it.stockRestante !== null && it.stockRestante > 0 && it.stockRestante <= 5 ? `<span class="fa-badge-stock">Solo quedan ${it.stockRestante}</span>` : ''}
+            </div>
+          </div>
+        </div>`;
+      }).join('');
+    }
+
+    async function cargarFeed() {
+      try {
+        let data = window.znrFirestore ? await window.znrFirestore.getFeedActividad() : { ok: false };
+        if (!data.ok) throw new Error(data.error || 'Error del servidor');
+        renderFeed(data.items || []);
+      } catch (err) {
+        console.error('Error cargando feed de actividad:', err);
+        document.getElementById('fa-list').innerHTML =
+          `<div class="fa-error">${Icon('error', { size: 30 })}<span>No se pudo cargar la actividad reciente. Intenta de nuevo más tarde.</span></div>`;
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      document.getElementById('fa-back-btn').innerHTML = Icon('arrow-left');
+      document.getElementById('fa-back-btn').addEventListener('click', () => {
+        if (document.referrer && document.referrer.includes(location.host)) history.back();
+        else window.location.href = 'vendedor.html';
+      });
+
+      cargarFeed();
+      // Se siente "vivo": refresca sola cada minuto, sin que el usuario tenga que jalar/recargar.
+      setInterval(cargarFeed, 60000);
+    });
+  </script>
+
+
+<footer class="app-footer" style="margin-bottom: 70px;">
+ <div class="footer-content">
+ <div class="footer-logo">
+ <span class="logo-mark">Z&R</span>
+ </div>
+ <div class="footer-social">
+ <a href="https://www.facebook.com/share/19AYtxxEWk/" target="_blank" class="social-link">Facebook</a>
+ </div>
+ <div class="footer-copyright">
+ <p>© 2026 Z&R - Todos los derechos reservados</p>
+ <a href="privacidad.html" style="color:#ff4f81; text-decoration:none;">Privacidad</a> ·
+ <a href="terminos.html" style="color:#ff4f81; text-decoration:none;">Términos</a>
+ </div>
+ </div>
+ </footer>
+  
+<script>if('serviceWorker' in navigator) navigator.serviceWorker.register('/znr/sw.js', { scope: '/znr/' });</script>
+</body>
+</html>
