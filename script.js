@@ -854,26 +854,24 @@ slider.addEventListener("mouseup", handleEnd);
 slider.addEventListener("mouseleave", () => { if (isDragging) handleEnd(); });
 dots.forEach((dot) => dot.addEventListener("click", () => updateSliderLocal(Number(dot.dataset.index))));
 }
-function handleInitialHash() {
+// Abre directo el modal de detalle del producto compartido (no depende de
+// que su tarjeta ya esté renderizada ni de en qué página quedó).
+function handleInitialHash(intentos = 0) {
 if (initialHashHandled) return;
-initialHashHandled = true;
 const hash = window.location.hash;
-if (!hash) return;
-const id = hash.replace("#", "");
-if (id.startsWith("producto-")) {
-const productId = id.replace("producto-", "");
-const idx = filteredProducts.findIndex(p => String(p.ID ?? p.id) === String(productId));
-if (idx !== -1) {
-// Con paginación de backend, simplemente recargamos la búsqueda si el producto no está visible
-// El backend ya entregó la página correcta; solo hacemos scroll al elemento si está en el DOM
+if (!hash || !hash.startsWith("#producto-")) return;
+const productId = hash.replace("#producto-", "");
+const product = allProducts.find(p => String(p.ID ?? p.id) === String(productId))
+  || filteredProducts.find(p => String(p.ID ?? p.id) === String(productId));
+if (!product) {
+  if (intentos < 20) setTimeout(() => handleInitialHash(intentos + 1), 300);
+  return;
 }
-}
-setTimeout(() => {
-const el = document.getElementById(id);
-if (!el) return;
-if (typeof window.highlightSharedElement === "function") window.highlightSharedElement(el);
-else el.scrollIntoView({ behavior: "smooth", block: "center" });
-}, 400);
+initialHashHandled = true;
+const { ID, Imagen1, Imagen2, Imagen3 } = product;
+const images = [Imagen1, Imagen2, Imagen3].map(u => optimizeDriveUrl(u)).filter(Boolean);
+const url = images[0] || "https://placehold.co/400x400/3b1f5f/white?text=Sin+Imagen";
+openImageModal(url, ID, images.length ? images : [url], product);
 }
 
   
