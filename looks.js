@@ -1357,6 +1357,7 @@ const getCachedProductsUnified = () => {
 return window.CacheManager?.getSessionProductsCache?.() || getCachedProducts() || [];
 };
 const restoreScrollPosition = () => {
+if (window.location.hash.startsWith('#look-')) return; // hay un look compartido: su scroll manda, no el guardado
 const savedScroll = sessionStorage.getItem("looks_scroll_position");
 if (savedScroll) {
 setTimeout(() => window.scrollTo(0, parseInt(savedScroll)), 100);
