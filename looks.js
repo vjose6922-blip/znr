@@ -948,12 +948,14 @@ if (needsRerender) {
 renderLooks();
 initLazyImagesAfterRender();
 }
-setTimeout(() => {
-const el = document.getElementById(targetId);
-if (!el) return;
-if (typeof window.highlightSharedElement === 'function') window.highlightSharedElement(el);
-else el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-}, 400);
+if (typeof window.waitForElementAndHighlight === 'function') {
+  window.waitForElementAndHighlight(targetId);
+} else {
+  setTimeout(() => {
+    const el = document.getElementById(targetId);
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }, 400);
+}
 }
 function renderLooksPagination(totalPages) {
 const container = document.getElementById("looks-container");

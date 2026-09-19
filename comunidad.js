@@ -889,18 +889,23 @@ window.restaurarBusquedaNormalComunidad = function () {
 };
 
 function handleInitialHashComunidad() {
-  if (initialHashHandledComunidad) return;
-  const hash = window.location.hash;
-  if (!hash || !hash.startsWith('#producto-')) return;
-  initialHashHandledComunidad = true;
-  const id = hash.replace('#producto-', '');
-  requestAnimationFrame(() => {
+if (initialHashHandledComunidad) return;
+const hash = window.location.hash;
+if (!hash || !hash.startsWith('#producto-')) return;
+initialHashHandledComunidad = true;
+const id = hash.replace('#producto-', '');
+// Con paginación de backend el producto puede estar en cualquier página.
+// Reintenta hasta 5s por si la tarjeta aún no terminó de renderizar
+// (caché->live, fetch en curso, etc). Si no aparece, el usuario puede
+// navegar con los botones de paginación.
+if (typeof window.waitForElementAndHighlight === 'function') {
+  window.waitForElementAndHighlight('producto-' + id);
+} else {
+  setTimeout(() => {
     const el = document.getElementById('producto-' + id);
-    if (!el) return;
-    const img = el.querySelector('img');
-    const go = () => window.highlightSharedElement ? window.highlightSharedElement(el) : el.scrollIntoView({behavior:'smooth', block:'center'});
-    (img && !img.complete) ? img.addEventListener('load', go, { once: true }) : go();
-  });
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }, 400);
+}
 }
 async function deleteProductInspector(productId, productName, cardElement) {
 const token = sessionStorage.getItem('admin_token') || '';

@@ -1978,6 +1978,12 @@ function highlightSharedElement(el, duration = 2000) {
     setTimeout(() => el.classList.remove('shared-highlight'), duration);
   } catch (_) {}
 }
+function waitForElementAndHighlight(id, maxTries = 25) {
+  const el = document.getElementById(id);
+  if (el) highlightSharedElement(el);
+  else if (maxTries > 0) setTimeout(() => waitForElementAndHighlight(id, maxTries - 1), 200);
+}
+window.waitForElementAndHighlight = waitForElementAndHighlight;
 function createImageObserver() {
 if ("IntersectionObserver" in window) {
 imageObserver = new IntersectionObserver((entries) => {
