@@ -1066,6 +1066,24 @@ function highlightAndScrollToLook(el) {
     }, 3000);
   });
 }
+
+// ──────────────────────────────────────────────
+// Manejar nuevos enlaces #look- sin recargar la página
+// ──────────────────────────────────────────────
+window.addEventListener('hashchange', () => {
+  const hash = window.location.hash;
+
+  if (!hash || !hash.startsWith('#look-')) return;
+
+  // Permitir procesar nuevamente el nuevo outfit
+  initialHashHandledLooks = false;
+
+  // Esperar a que el navegador termine de aplicar el nuevo hash
+  requestAnimationFrame(() => {
+    handleInitialHashLooks();
+  });
+});
+  
 function renderLooksPagination(totalPages) {
 const container = document.getElementById("looks-container");
 if (!container) return;
