@@ -3155,9 +3155,7 @@ if (window.CacheManager && window.CacheManager.initPreloading) {
 window.CacheManager.initPreloading();
 }
 });
-deferTask(async () => {
-await registerServiceWorker();
-});
+registerServiceWorker();
 deferTask(() => {
 startConnectionMonitor();
 });
