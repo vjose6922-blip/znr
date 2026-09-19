@@ -1014,74 +1014,105 @@ function handleInitialHashLooks() {
   waitForCard();
 }
 
-
 function highlightAndScrollToLook(el) {
   if (!el) return;
 
-  // Ya se procesó correctamente.
   initialHashHandledLooks = true;
 
-  /*
-   * Primero quitamos cualquier resaltado anterior.
-   */
+  // Quitar cualquier resaltado anterior
   document
     .querySelectorAll('.shared-look-highlight')
     .forEach(card => {
       card.classList.remove('shared-look-highlight');
     });
 
-  /*
-   * Resaltamos el outfit compartido.
-   */
   el.classList.add('shared-look-highlight');
 
   /*
-   * Esperamos un frame adicional antes de calcular la posición.
-   * Así usamos la altura REAL del card.
+   * Esperamos a que el navegador termine de:
+   * - aplicar el hash
+   * - restaurar el scroll
+   * - terminar el layout
    */
-  requestAnimationFrame(() => {
+  const positionLook = () => {
     const rect = el.getBoundingClientRect();
-    const absoluteTop = window.scrollY + rect.top;
 
-    /*
-     * Lo colocamos aproximadamente al centro de la pantalla.
-     * Esto evita que el resultado dependa de cuánto tardaron
-     * en cargar las imágenes.
-     */
+    const absoluteTop =
+      window.scrollY + rect.top;
+
     const targetTop =
       absoluteTop -
       (window.innerHeight / 2) +
       (rect.height / 2);
 
+    /*
+     * Cancelamos cualquier scroll suave que pudiera
+     * haber quedado pendiente y posicionamos directamente.
+     */
     window.scrollTo({
       top: Math.max(0, targetTop),
-      behavior: 'smooth'
+      behavior: 'auto'
     });
 
     /*
-     * Quitamos el resaltado después de unos segundos.
+     * Una segunda comprobación después de que el navegador
+     * haya aplicado la posición.
      */
+    requestAnimationFrame(() => {
+      const newRect = el.getBoundingClientRect();
+
+      // Si por alguna razón seguimos lejos del objetivo,
+      // corregimos una vez más.
+      if (
+        Math.abs(
+          newRect.top -
+          (window.innerHeight / 2 - newRect.height / 2)
+        ) > 10
+      ) {
+        const correctedTop =
+          window.scrollY +
+          newRect.top -
+          (window.innerHeight / 2) +
+          (newRect.height / 2);
+
+        window.scrollTo({
+          top: Math.max(0, correctedTop),
+          behavior: 'auto'
+        });
+      }
+    });
+
+    // Quitar resaltado después de 3 segundos
     setTimeout(() => {
       el.classList.remove('shared-look-highlight');
     }, 3000);
-  });
+  };
+
+  /*
+   * Damos tiempo al navegador para terminar cualquier
+   * restauración automática de scroll.
+   */
+  setTimeout(() => {
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        positionLook();
+      });
+    });
+  }, 150);
 }
 
 // ──────────────────────────────────────────────
 // Manejar nuevos enlaces #look- sin recargar la página
-// ──────────────────────────────────────────────
 window.addEventListener('hashchange', () => {
   const hash = window.location.hash;
 
   if (!hash || !hash.startsWith('#look-')) return;
 
-  // Permitir procesar nuevamente el nuevo outfit
   initialHashHandledLooks = false;
 
-  // Esperar a que el navegador termine de aplicar el nuevo hash
-  requestAnimationFrame(() => {
+  setTimeout(() => {
     handleInitialHashLooks();
-  });
+  }, 100);
 });
   
 function renderLooksPagination(totalPages) {
