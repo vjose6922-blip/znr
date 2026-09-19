@@ -1,4 +1,4 @@
-﻿const CACHE_KEY = 'zr_products_cache';
+const CACHE_KEY = 'zr_products_cache';
 const CACHE_EXPIRY = 5 * 60 * 1000;
 const RECENT_PRODUCTS_KEY = 'zr_recent_products';
 const MAX_RECENT_PRODUCTS = 12;
@@ -1934,7 +1934,7 @@ window.closeImageModal = closeImageModal;
 window.initImageModalControls = initImageModalControls;
 
 function shareContent({ id, title, text, url }) {
-  const shareUrl = url || `${window.location.origin}${window.location.pathname}${id ? '#producto-' + id : ''}`;
+  const shareUrl = url || `${window.location.origin}${window.location.pathname}${window.location.search}${id ? '#producto-' + id : ''}`;
   const shareTitle = title || 'Z&R';
   const shareText = text || shareTitle;
 
@@ -1970,7 +1970,7 @@ function shareProduct(id, nombre, precio) {
   shareContent({ id, title, text });
 }
 
-function highlightSharedElement(el, duration = 2000) {
+function highlightSharedElement(el, duration = 3000) {
   if (!el) return;
   try {
     el.scrollIntoView({ behavior: 'smooth', block: 'center' });
