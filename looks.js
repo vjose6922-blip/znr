@@ -933,18 +933,17 @@ function handleInitialHashLooks() {
 if (initialHashHandledLooks) return;
 const hash = window.location.hash;
 if (!hash || !hash.startsWith('#look-')) return;
-initialHashHandledLooks = true;
 const targetId = hash.slice(1);
 const idx = allLooks.findIndex(l => `look-${l.id}` === targetId);
-let needsRerender = false;
-if (idx !== -1) {
+// El look puede no existir aún si outfit.html sigue generando looks por
+// lotes (generateLooksProgressive llama a renderLooks tras cada lote).
+// No marcamos como "manejado" hasta que realmente aparezca, así el
+// siguiente renderLooks() (del próximo lote) vuelve a intentarlo.
+if (idx === -1) return;
+initialHashHandledLooks = true;
 const targetPage = Math.floor(idx / looksPerPage) + 1;
 if (targetPage !== currentLooksPage) {
 currentLooksPage = targetPage;
-needsRerender = true;
-}
-}
-if (needsRerender) {
 renderLooks();
 initLazyImagesAfterRender();
 }
