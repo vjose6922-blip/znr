@@ -930,31 +930,141 @@ preloadAdjacentPages();
 handleInitialHashLooks();
 }
 function handleInitialHashLooks() {
-if (initialHashHandledLooks) return;
-const hash = window.location.hash;
-if (!hash || !hash.startsWith('#look-')) return;
-const targetId = hash.slice(1);
-const idx = allLooks.findIndex(l => `look-${l.id}` === targetId);
-// El look puede no existir aún si outfit.html sigue generando looks por
-// lotes (generateLooksProgressive llama a renderLooks tras cada lote).
-// No marcamos como "manejado" hasta que realmente aparezca, así el
-// siguiente renderLooks() (del próximo lote) vuelve a intentarlo.
-if (idx === -1) return;
-initialHashHandledLooks = true;
-const targetPage = Math.floor(idx / looksPerPage) + 1;
-if (targetPage !== currentLooksPage) {
-currentLooksPage = targetPage;
-renderLooks();
-initLazyImagesAfterRender();
-}
-if (typeof window.waitForElementAndHighlight === 'function') {
-  window.waitForElementAndHighlight(targetId);
-} else {
-  setTimeout(() => {
+  if (initialHashHandledLooks) return;
+
+  const hash = window.location.hash;
+  if (!hash || !hash.startsWith('#look-')) return;
+
+  const targetId = hash.slice(1);
+
+  const idx = allLooks.findIndex(
+    l => `look-${l.id}` === targetId
+  );
+
+  // El look todavía puede no haber sido generado.
+  // Dejamos que el siguiente render vuelva a intentarlo.
+  if (idx === -1) return;
+
+  const targetPage = Math.floor(idx / looksPerPage) + 1;
+
+  if (targetPage !== currentLooksPage) {
+    currentLooksPage = targetPage;
+    renderLooks();
+    initLazyImagesAfterRender();
+  }
+
+  // Esperamos hasta que el card realmente exista en el DOM.
+  const waitForCard = (attempt = 0) => {
     const el = document.getElementById(targetId);
-    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-  }, 400);
+
+    if (!el) {
+      if (attempt < 60) {
+        requestAnimationFrame(() => waitForCard(attempt + 1));
+      }
+      return;
+    }
+
+    /*
+     * El card ya existe, pero sus imágenes pueden seguir cargando.
+     * Esto es importante especialmente en outfits de 3 artículos.
+     */
+    const images = Array.from(
+      el.querySelectorAll('img')
+    );
+
+    const waitForImages = () => {
+      const pendingImages = images.filter(img => {
+        return !img.complete || img.naturalWidth === 0;
+      });
+
+      if (pendingImages.length > 0) {
+        if (images.length) {
+          // Intentamos activar manualmente las imágenes lazy
+          // del card objetivo.
+          images.forEach(img => {
+            const dataSrc = img.dataset?.src;
+
+            if (
+              dataSrc &&
+              (!img.src || img.src === window.location.href)
+            ) {
+              img.src = dataSrc;
+            }
+          });
+        }
+
+        setTimeout(waitForImages, 50);
+        return;
+      }
+
+      /*
+       * Esperamos dos frames para asegurarnos de que el navegador
+       * terminó de recalcular el layout después de cargar imágenes.
+       */
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          highlightAndScrollToLook(el);
+        });
+      });
+    };
+
+    waitForImages();
+  };
+
+  waitForCard();
 }
+
+
+function highlightAndScrollToLook(el) {
+  if (!el) return;
+
+  // Ya se procesó correctamente.
+  initialHashHandledLooks = true;
+
+  /*
+   * Primero quitamos cualquier resaltado anterior.
+   */
+  document
+    .querySelectorAll('.shared-look-highlight')
+    .forEach(card => {
+      card.classList.remove('shared-look-highlight');
+    });
+
+  /*
+   * Resaltamos el outfit compartido.
+   */
+  el.classList.add('shared-look-highlight');
+
+  /*
+   * Esperamos un frame adicional antes de calcular la posición.
+   * Así usamos la altura REAL del card.
+   */
+  requestAnimationFrame(() => {
+    const rect = el.getBoundingClientRect();
+    const absoluteTop = window.scrollY + rect.top;
+
+    /*
+     * Lo colocamos aproximadamente al centro de la pantalla.
+     * Esto evita que el resultado dependa de cuánto tardaron
+     * en cargar las imágenes.
+     */
+    const targetTop =
+      absoluteTop -
+      (window.innerHeight / 2) +
+      (rect.height / 2);
+
+    window.scrollTo({
+      top: Math.max(0, targetTop),
+      behavior: 'smooth'
+    });
+
+    /*
+     * Quitamos el resaltado después de unos segundos.
+     */
+    setTimeout(() => {
+      el.classList.remove('shared-look-highlight');
+    }, 3000);
+  });
 }
 function renderLooksPagination(totalPages) {
 const container = document.getElementById("looks-container");
