@@ -1,4 +1,3 @@
-﻿
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -1676,6 +1675,41 @@
         });
 
         renderProductsGrid();
+
+        // Si la URL trae #producto-ID (enlace compartido), abre directo el
+        // modal de detalle de ese producto, sin depender de en qué "página"
+        // de "Mostrar más" haya quedado ni de que su tarjeta esté renderizada.
+        (function abrirProductoDesdeHash() {
+          const hash = window.location.hash;
+          if (!hash || !hash.startsWith('#producto-')) return;
+          const id = hash.replace('#producto-', '');
+          const p = productos.find(pp => String(pp.id) === String(id));
+          if (!p || typeof window.openImageModal !== 'function') return;
+          const esDonado = p.donado === true || p.donado === 'TRUE' || p.donado === 'true';
+          const imgUrl = p.imagen1 ? optimizeDriveUrl(p.imagen1, 800) : 'https://placehold.co/600x600/3b1f5f/white?text=Sin+Imagen';
+          const allImages = [p.imagen1, p.imagen2, p.imagen3].filter(Boolean).map(u => optimizeDriveUrl(u, 800));
+          window.openImageModal(imgUrl, p.id, allImages, {
+            ID: p.id,
+            Nombre: p.nombre || '',
+            Precio: p.precio || 0,
+            Categoria: p.categoria || '',
+            Talla: p.talla || '',
+            Descripcion: p.descripcion || '',
+            Stock: p.stock !== undefined ? Number(p.stock) : -1,
+            Badge: p.badge || '',
+            Imagen1: p.imagen1 || '',
+            Imagen2: p.imagen2 || '',
+            Imagen3: p.imagen3 || '',
+            _comunidad: true,
+            _vendedorNombre: v.nombre || '',
+            _vendedorUid: getVendorUid() || '',
+            _vendedorTel: waNumber,
+            _vendedorLogo: v.logo || '',
+            _vendedorPlan: v.plan || '',
+            _donado: esDonado,
+            _beneficiarioId: p.beneficiario_id || '',
+          });
+        })();
 
         // Actualizar subtítulo del header
         const sub = document.getElementById('profile-subtitle');
