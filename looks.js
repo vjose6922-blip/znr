@@ -889,7 +889,7 @@ e.stopPropagation();
 const lookName = look.name || 'Outfit Z&R';
 const lookProducts = Object.values(look.products || {}).filter(Boolean);
 const lines = lookProducts.map(p => `• ${p.name}${p.price ? ' — $' + Number(p.price).toLocaleString() : ''}`).join('\n');
-const url = `${window.location.origin}${window.location.pathname}#look-${look.id}`;
+const url = `${window.location.origin}${window.location.pathname}#compartido-${lookProducts.map(p => p.id).join(',')}`;
 const text = `👗 ${lookName}\n${lines}\n¡Míralo en Z&R!`;
 
 if (typeof shareContent === 'function') {
@@ -927,193 +927,60 @@ existingCards.forEach(card => card.remove());
 container.appendChild(fragment);
 renderLooksPagination(totalPages);
 preloadAdjacentPages();
-handleInitialHashLooks();
+checkSharedOutfitHash();
 }
-function handleInitialHashLooks() {
-  if (initialHashHandledLooks) return;
 
+// Modal de outfit compartido: guarda los IDs reales de los productos
+// (no la plantilla del look, que se regenera random) y los muestra en
+// un modal propio, chequeando disponibilidad actual - reemplaza al
+// viejo scroll+highlight dentro del feed, que competia con los
+// re-renders de la generacion progresiva.
+function checkSharedOutfitHash() {
   const hash = window.location.hash;
-  if (!hash || !hash.startsWith('#look-')) return;
-
-  const targetId = hash.slice(1);
-
-  const idx = allLooks.findIndex(
-    l => `look-${l.id}` === targetId
-  );
-
-  // El look todavía puede no haber sido generado.
-  // Dejamos que el siguiente render vuelva a intentarlo.
-  if (idx === -1) return;
-
-  const targetPage = Math.floor(idx / looksPerPage) + 1;
-
-  if (targetPage !== currentLooksPage) {
-    currentLooksPage = targetPage;
-    renderLooks();
-    initLazyImagesAfterRender();
-  }
-
-  // Esperamos hasta que el card realmente exista en el DOM.
-  const waitForCard = (attempt = 0) => {
-    const el = document.getElementById(targetId);
-
-    if (!el) {
-      if (attempt < 60) {
-        requestAnimationFrame(() => waitForCard(attempt + 1));
-      }
-      return;
-    }
-
-    /*
-     * El card ya existe, pero sus imágenes pueden seguir cargando.
-     * Esto es importante especialmente en outfits de 3 artículos.
-     */
-    const images = Array.from(
-      el.querySelectorAll('img')
-    );
-
-    const waitForImages = () => {
-      const pendingImages = images.filter(img => {
-        return !img.complete || img.naturalWidth === 0;
-      });
-
-      if (pendingImages.length > 0) {
-        if (images.length) {
-          // Intentamos activar manualmente las imágenes lazy
-          // del card objetivo.
-          images.forEach(img => {
-            const dataSrc = img.dataset?.src;
-            if (dataSrc) {
-              img.src = dataSrc;
-              img.removeAttribute('data-src');
-              img.classList.add('loaded');
-              lazyImageObserver?.unobserve(img);
-            }
-          });
-        }
-
-        setTimeout(waitForImages, 50);
-        return;
-      }
-
-      /*
-       * Esperamos dos frames para asegurarnos de que el navegador
-       * terminó de recalcular el layout después de cargar imágenes.
-       */
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-          highlightAndScrollToLook(el);
-        });
-      });
-    };
-
-    waitForImages();
-  };
-
-  waitForCard();
+  if (!hash.startsWith('#compartido-')) return;
+  history.replaceState(null, '', window.location.pathname + window.location.search);
+  const ids = hash.slice('#compartido-'.length).split(',').filter(Boolean);
+  const found = ids
+    .map(id => allProducts.find(p => String(p.ID) === id))
+    .filter(p => p && Number(p.Stock) > 0);
+  if (found.length > 0) showSharedOutfitModal(found, ids.length - found.length);
 }
 
-function highlightAndScrollToLook(el) {
-  if (!el) return;
-
-  initialHashHandledLooks = true;
-
-  // Quitar cualquier resaltado anterior
-  document
-    .querySelectorAll('.shared-look-highlight')
-    .forEach(card => {
-      card.classList.remove('shared-look-highlight');
-    });
-
-  el.classList.add('shared-look-highlight');
-
-  /*
-   * Esperamos a que el navegador termine de:
-   * - aplicar el hash
-   * - restaurar el scroll
-   * - terminar el layout
-   */
-  const positionLook = () => {
-    const rect = el.getBoundingClientRect();
-
-    const absoluteTop =
-      window.scrollY + rect.top;
-
-    const targetTop =
-      absoluteTop -
-      (window.innerHeight / 2) +
-      (rect.height / 2);
-
-    /*
-     * Cancelamos cualquier scroll suave que pudiera
-     * haber quedado pendiente y posicionamos directamente.
-     */
-    window.scrollTo({
-      top: Math.max(0, targetTop),
-      behavior: 'auto'
-    });
-
-    /*
-     * Una segunda comprobación después de que el navegador
-     * haya aplicado la posición.
-     */
-    requestAnimationFrame(() => {
-      const newRect = el.getBoundingClientRect();
-
-      // Si por alguna razón seguimos lejos del objetivo,
-      // corregimos una vez más.
-      if (
-        Math.abs(
-          newRect.top -
-          (window.innerHeight / 2 - newRect.height / 2)
-        ) > 10
-      ) {
-        const correctedTop =
-          window.scrollY +
-          newRect.top -
-          (window.innerHeight / 2) +
-          (newRect.height / 2);
-
-        window.scrollTo({
-          top: Math.max(0, correctedTop),
-          behavior: 'auto'
-        });
-      }
-    });
-
-    // Quitar resaltado después de 3 segundos
-    setTimeout(() => {
-      el.classList.remove('shared-look-highlight');
-    }, 3000);
-  };
-
-  /*
-   * Damos tiempo al navegador para terminar cualquier
-   * restauración automática de scroll.
-   */
-  setTimeout(() => {
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        positionLook();
-      });
-    });
-  }, 150);
+function showSharedOutfitModal(products, missing) {
+  const total = products.reduce((s, p) => s + Number(p.Precio || 0), 0);
+  const itemsHtml = products.map(p => `
+    <div class="shared-outfit-item">
+      <img src="${escapeHtml(optimizeDriveUrl(p.Imagen1, 400))}" alt="${escapeHtml(p.Nombre)}">
+      <div class="shared-outfit-info">
+        <div class="shared-outfit-name">${escapeHtml(p.Nombre)}</div>
+        <div class="shared-outfit-price">${formatCurrency(p.Precio)}</div>
+        ${p.Talla ? `<div class="shared-outfit-talla">Talla: ${escapeHtml(p.Talla)}</div>` : ''}
+      </div>
+    </div>`).join('');
+  const modal = document.createElement('div');
+  modal.className = 'shared-outfit-modal';
+  modal.innerHTML = `
+    <div class="shared-outfit-content">
+      <button class="shared-outfit-close" aria-label="Cerrar">&times;</button>
+      <h3>Outfit compartido</h3>
+      ${missing > 0 ? `<p class="shared-outfit-missing">${missing} articulo${missing > 1 ? 's' : ''} ya no disponible${missing > 1 ? 's' : ''}</p>` : ''}
+      <div class="shared-outfit-items">${itemsHtml}</div>
+      <div class="shared-outfit-footer">
+        <span>Total: ${formatCurrency(total)}</span>
+        <button class="shared-outfit-addall">Agregar todo</button>
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+  modal.querySelectorAll('.shared-outfit-item').forEach(el => {
+    el.addEventListener('click', () => el.classList.toggle('revealed'));
+  });
+  modal.querySelector('.shared-outfit-close').addEventListener('click', () => modal.remove());
+  modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+  modal.querySelector('.shared-outfit-addall').addEventListener('click', () => {
+    products.forEach(p => addToCart({ ID: p.ID, Nombre: p.Nombre, Precio: p.Precio, Stock: p.Stock, Imagen1: p.Imagen1, Talla: p.Talla }));
+    modal.remove();
+  });
 }
-
-// ──────────────────────────────────────────────
-// Manejar nuevos enlaces #look- sin recargar la página
-window.addEventListener('hashchange', () => {
-  const hash = window.location.hash;
-
-  if (!hash || !hash.startsWith('#look-')) return;
-
-  initialHashHandledLooks = false;
-
-  setTimeout(() => {
-    handleInitialHashLooks();
-  }, 100);
-});
-  
 function renderLooksPagination(totalPages) {
 const container = document.getElementById("looks-container");
 if (!container) return;
@@ -1664,9 +1531,10 @@ bgProductsRetryTimer = null;
 isGeneratingLooks = false;
 }
 }
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded", async () => {
 initLazyLoading();
-loadProducts();
+await loadProducts();
+checkSharedOutfitHash();
 const refreshBtn = document.getElementById("refresh-looks");
 if (refreshBtn) {
 refreshBtn.addEventListener("click", () => {
