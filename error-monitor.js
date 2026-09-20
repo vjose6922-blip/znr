@@ -193,13 +193,37 @@
     );
   }
 
+  // Duplicado del SDK de Firestore: "RPC_ERROR HTTP error has no status" es
+  // el log interno del SDK cuando el fetch se corta ANTES de recibir respuesta
+  // (recarga de la página, red que parpadea, pestaña en segundo plano).
+  // OJO: GAS ya no existe, así que un fallo de Firestore NO tiene respaldo y
+  // sí afecta al usuario. Aun así, firestore-init.js ya reporta cada fallo con
+  // su propio console.warn ("Firestore <colección> falló...") que SÍ llega
+  // al monitor; este log del SDK solo lo repite. Se ignora si es por conexión/
+  // segundo plano y, si no, se guarda como WARN una vez por visita.
+  let _fsRpcReported = false;
+  function isFirestoreNoStatusNoise(msg) {
+    return msg.indexOf('@firebase/firestore') !== -1 &&
+           msg.indexOf('RPC_ERROR') !== -1 &&
+           msg.indexOf('no status') !== -1;
+  }
+
   function handleConsole(payload) {
     // Evitar bucles: nunca reportar los propios console.log de ZRMonitor
     if (payload.message && payload.message.indexOf('ZRMonitor') !== -1) return;
+
+    let level = payload.level;
+    if (payload.message && isFirestoreNoStatusNoise(payload.message)) {
+      if (navigator.onLine === false || document.visibilityState === 'hidden') return;
+      if (_fsRpcReported) return;
+      _fsRpcReported = true;
+      level = 'WARN';
+    }
+
     report(
-      payload.level === 'ERROR' ? 'ERROR' : 'WARN',
+      level === 'ERROR' ? 'ERROR' : 'WARN',
       'console',
-      payload.level === 'ERROR' ? 'consoleError' : 'consoleWarn',
+      level === 'ERROR' ? 'consoleError' : 'consoleWarn',
       payload.message,
       {}
     );

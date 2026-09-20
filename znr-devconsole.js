@@ -39,13 +39,32 @@
   // ---------- Estado REPL ----------
   var replCommands = [];            // cada entrada: { command, result, error? }
   var replHistoryIndex = -1;
-  // Detección de CSP que bloquea eval
+  // Detección de CSP que bloquea eval.
+  // Primero se lee el CSP declarado en el <meta>: así NO se prueba eval a
+  // ciegas (esa prueba provocaba una violación CSP en cada carga, que el
+  // monitor de errores registraba como CRÍTICO).
   var evalBlocked = false;
+  var cspFromMeta = false;
   try {
-    (0, eval)("1+1");
-  } catch (e) {
-    if (e instanceof EvalError || e.name === "EvalError") {
-      evalBlocked = true;
+    var cspMetas = document.querySelectorAll('meta[http-equiv]');
+    for (var mi = 0; mi < cspMetas.length; mi++) {
+      if ((cspMetas[mi].getAttribute("http-equiv") || "").toLowerCase() !== "content-security-policy") continue;
+      cspFromMeta = true;
+      var cspText = cspMetas[mi].getAttribute("content") || "";
+      var cspDirs = cspText.split(";").map(function (d) { return d.trim(); });
+      var scriptDir = cspDirs.filter(function (d) { return /^script-src(\s|$)/i.test(d); })[0] ||
+                      cspDirs.filter(function (d) { return /^default-src(\s|$)/i.test(d); })[0];
+      if (scriptDir && scriptDir.indexOf("'unsafe-eval'") === -1) evalBlocked = true;
+    }
+  } catch (e) {}
+  // Solo si la página no declara ningún CSP se comprueba eval directamente.
+  if (!cspFromMeta) {
+    try {
+      (0, eval)("1+1");
+    } catch (e) {
+      if (e instanceof EvalError || e.name === "EvalError") {
+        evalBlocked = true;
+      }
     }
   }
 

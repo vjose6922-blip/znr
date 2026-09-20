@@ -69,6 +69,45 @@ try {
 
 window.znrFirestore = window.znrFirestore || {};
 
+// ── Reintentos ante fallos TRANSITORIOS de red ─────────────────────────
+// GAS ya no existe, así que un fallo de Firestore no tiene respaldo: si la
+// petición se corta (recarga de página, red que parpadea, "HTTP error has no
+// status") lo mejor es volver a intentar antes de rendirse. Solo se
+// reintentan errores de red/servidor pasajeros; permission-denied, índice
+// faltante, argumentos inválidos, etc. fallan al primer intento, como antes.
+// Sin conexión (navigator.onLine === false) tampoco se reintenta.
+const _FS_RETRY_DELAYS = [400, 1200, 2500]; // ms → hasta 4 intentos en total
+const _FS_CODIGOS_TRANSITORIOS = ['unavailable', 'deadline-exceeded', 'aborted', 'internal', 'unknown', 'network-request-failed'];
+const _fsStats = { recuperadas: 0, reintentos: 0, fallidas: 0 };
+
+function _fsEsTransitorio(err) {
+  const code = String((err && err.code) || '').toLowerCase().replace(/^(firestore|auth)\//, '');
+  if (_FS_CODIGOS_TRANSITORIOS.indexOf(code) !== -1) return true;
+  const msg = String((err && err.message) || err || '').toLowerCase();
+  return /no status|failed to fetch|networkerror|network request failed|load failed|timed out|timeout/.test(msg);
+}
+
+async function _fsConReintentos(fn) {
+  let ultimo;
+  for (let i = 0; i <= _FS_RETRY_DELAYS.length; i++) {
+    try {
+      const r = await fn();
+      if (i > 0) _fsStats.recuperadas++;
+      return r;
+    } catch (err) {
+      ultimo = err;
+      if (i >= _FS_RETRY_DELAYS.length || !_fsEsTransitorio(err) || navigator.onLine === false) break;
+      _fsStats.reintentos++;
+      await new Promise(function (ok) { setTimeout(ok, _FS_RETRY_DELAYS[i] + Math.random() * 200); });
+    }
+  }
+  _fsStats.fallidas++;
+  throw ultimo;
+}
+
+// Para revisar desde la DevConsole: znrFirestore.retryStats()
+window.znrFirestore.retryStats = function () { return Object.assign({}, _fsStats); };
+
 // Cloud Function que reemplaza a GAS para custom tokens de Firebase Auth.
 const AUTH_API_URL = "https://auth-api-1038143238323.us-central1.run.app"; // TODO: pegar la URL real tras el deploy
 
@@ -89,18 +128,20 @@ window.znrFirestore.signIn = async function (ownerType, ownerRef) {
     if (ownerType === 'vendedor') params.append('vendorToken', ownerRef);
     else params.append('telefono', ownerRef);
 
-    const res = await fetch(AUTH_API_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: params.toString()
+    const data = await _fsConReintentos(async () => {
+      const res = await fetch(AUTH_API_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: params.toString()
+      });
+      return await res.json();
     });
-    const data = await res.json();
     if (!data.ok || !data.firebaseToken) {
       console.warn('No se pudo obtener firebaseToken:', data.error);
       return null;
     }
 
-    const cred = await signInWithCustomToken(auth, data.firebaseToken);
+    const cred = await _fsConReintentos(() => signInWithCustomToken(auth, data.firebaseToken));
     return cred.user.uid; // debería coincidir con data.uid
   } catch (err) {
     console.warn('signIn de Firebase falló:', err);
@@ -115,11 +156,11 @@ window.znrFirestore.signIn = async function (ownerType, ownerRef) {
  */
 window.znrFirestore.getBeneficiariosAprobados = async function () {
   try {
-    const snap = await getDocs(collection(db, 'beneficiarios_aprobados'));
+    const snap = await _fsConReintentos(() => getDocs(collection(db, 'beneficiarios_aprobados')));
     const beneficiarios = snap.docs.map(d => ({ id: d.id, ...d.data() }));
     return { ok: true, beneficiarios };
   } catch (err) {
-    console.warn('Firestore beneficiarios_aprobados falló, se usará GAS como respaldo:', err);
+    console.warn('Firestore beneficiarios_aprobados falló:', err);
     return { ok: false, error: String(err) };
   }
 };
@@ -134,12 +175,12 @@ window.znrFirestore.getBeneficiariosAprobados = async function () {
  */
 window.znrFirestore.getCalificacionesVendedor = async function (vendedorUid) {
   try {
-    const snap = await getDoc(doc(db, 'calificaciones_vendedor', vendedorUid));
+    const snap = await _fsConReintentos(() => getDoc(doc(db, 'calificaciones_vendedor', vendedorUid)));
     if (!snap.exists()) return { ok: false, error: 'doc no encontrado' };
     const data = snap.data();
     return { ok: true, promedio: data.promedio, total: data.total, detalle: data.detalle || [] };
   } catch (err) {
-    console.warn('Firestore calificaciones_vendedor falló, se usará GAS como respaldo:', err);
+    console.warn('Firestore calificaciones_vendedor falló:', err);
     return { ok: false, error: String(err) };
   }
 };
@@ -188,11 +229,11 @@ window.znrFirestore.getNotificacionesCentro = async function (ownerType, ownerId
       orderBy('fecha', 'desc'),
       limit(30)
     );
-    const snap = await getDocs(q);
+    const snap = await _fsConReintentos(() => getDocs(q));
     const notificaciones = snap.docs.map(d => _fsNormalizarFecha({ id: d.id, ownerType, ...d.data() }));
     return { ok: true, notificaciones };
   } catch (err) {
-    console.warn('Firestore notificaciones_centro falló, se usará GAS como respaldo:', err);
+    console.warn('Firestore notificaciones_centro falló:', err);
     return { ok: false, error: String(err) };
   }
 };
@@ -207,11 +248,11 @@ window.znrFirestore.getVentasComunidadVendedor = async function (vendorUid, vend
     const uid = await window.znrFirestore.ensureSignedIn('vendedor', vendorUid, vendorToken);
     if (!uid) return { ok: false, error: 'sin sesión de Firebase' };
 
-    const snap = await getDocs(collection(db, 'ventas_comunidad', vendorUid, 'pedidos'));
+    const snap = await _fsConReintentos(() => getDocs(collection(db, 'ventas_comunidad', vendorUid, 'pedidos')));
     const notificaciones = snap.docs.map(d => _fsNormalizarFecha(d.data()));
     return { ok: true, notificaciones };
   } catch (err) {
-    console.warn('Firestore ventas_comunidad falló, se usará GAS como respaldo:', err);
+    console.warn('Firestore ventas_comunidad falló:', err);
     return { ok: false, error: String(err) };
   }
 };
@@ -223,11 +264,11 @@ window.znrFirestore.getVentasComunidadVendedor = async function (vendorUid, vend
  */
 window.znrFirestore.getPerfilVendedor = async function (uid) {
   try {
-    const snap = await getDoc(doc(db, 'perfil_vendedor', uid));
+    const snap = await _fsConReintentos(() => getDoc(doc(db, 'perfil_vendedor', uid)));
     if (!snap.exists()) return { ok: false, error: 'doc no encontrado' };
     return { ok: true, vendedor: _fsNormalizarFecha(snap.data()) };
   } catch (err) {
-    console.warn('Firestore perfil_vendedor falló, se usará GAS como respaldo:', err);
+    console.warn('Firestore perfil_vendedor falló:', err);
     return { ok: false, error: String(err) };
   }
 };
@@ -240,11 +281,11 @@ window.znrFirestore.getPerfilVendedor = async function (uid) {
  */
 window.znrFirestore.getProductosZNR = async function () {
   try {
-    const snap = await getDocs(collection(db, 'productos_znr'));
+    const snap = await _fsConReintentos(() => getDocs(collection(db, 'productos_znr')));
     const products = snap.docs.map(d => d.data());
     return { ok: true, products };
   } catch (err) {
-    console.warn('Firestore productos_znr falló, se usará GAS como respaldo:', err);
+    console.warn('Firestore productos_znr falló:', err);
     return { ok: false, error: String(err) };
   }
 };
@@ -257,12 +298,12 @@ window.znrFirestore.getProductosZNR = async function () {
  */
 window.znrFirestore.getDonacionesRecibidas = async function (vendorUid) {
   try {
-    const snap = await getDoc(doc(db, 'donaciones_recibidas', vendorUid));
+    const snap = await _fsConReintentos(() => getDoc(doc(db, 'donaciones_recibidas', vendorUid)));
     if (!snap.exists()) return { ok: false, error: 'doc no encontrado' };
     const data = snap.data();
     return { ok: true, esBeneficiario: !!data.esBeneficiario, donaciones: data.donaciones || [] };
   } catch (err) {
-    console.warn('Firestore donaciones_recibidas falló, se usará GAS como respaldo:', err);
+    console.warn('Firestore donaciones_recibidas falló:', err);
     return { ok: false, error: String(err) };
   }
 };
@@ -275,7 +316,7 @@ window.znrFirestore.getDonacionesRecibidas = async function (vendorUid) {
 window.znrFirestore.getLivesActivos = async function () {
   try {
     const q = query(collection(db, 'lives'), where('estado', '==', 'en_vivo'));
-    const snap = await getDocs(q);
+    const snap = await _fsConReintentos(() => getDocs(q));
     const lives = snap.docs.map(d => ({ id: d.id, ...d.data() }));
     return { ok: true, lives };
   } catch (err) {
@@ -293,7 +334,7 @@ window.znrFirestore.getLivesActivos = async function () {
 window.znrFirestore.getFeedActividad = async function () {
   try {
     const q = query(collection(db, 'feed_actividad'), orderBy('fecha', 'desc'), limit(40));
-    const snap = await getDocs(q);
+    const snap = await _fsConReintentos(() => getDocs(q));
     const ahora = Date.now();
     const items = snap.docs
       .map(d => {
