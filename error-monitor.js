@@ -127,13 +127,48 @@
     );
   }
 
+  // ─── Imágenes: solo fallos DEFINITIVOS ─────────────────────────
+  // error-bootstrap.js reintenta cada <img> y solo llama aquí (final:true)
+  // si al final sigue rota. Además, la misma URL no se vuelve a enviar al
+  // servidor durante 12 h, para que una imagen realmente perdida no se
+  // reporte en cada visita de cada página.
+  const IMG_SEEN_KEY = 'zr_img_fail_seen';
+  const IMG_SEEN_TTL = 12 * 60 * 60 * 1000;
+  const IMG_SEEN_MAX = 150;
+
+  function imgSeenRecently(url) {
+    if (!url) return false;
+    try {
+      const now  = Date.now();
+      const seen = JSON.parse(localStorage.getItem(IMG_SEEN_KEY) || '{}');
+      Object.keys(seen).forEach(function (k) { if (now - seen[k] > IMG_SEEN_TTL) delete seen[k]; });
+      if (seen[url]) return true;
+      seen[url] = now;
+      const keys = Object.keys(seen);
+      if (keys.length > IMG_SEEN_MAX) {
+        keys.sort(function (a, b) { return seen[a] - seen[b]; })
+            .slice(0, keys.length - IMG_SEEN_MAX)
+            .forEach(function (k) { delete seen[k]; });
+      }
+      localStorage.setItem(IMG_SEEN_KEY, JSON.stringify(seen));
+    } catch (_) {}
+    return false;
+  }
+
   function handleResourceError(payload) {
+    const tag = (payload.tag || 'recurso').toLowerCase();
+    let stack = '';
+    if (tag === 'img') {
+      if (!payload.final) return;            // intento intermedio: se ignora
+      if (imgSeenRecently(payload.url)) return;
+      if (payload.attempts) stack = 'definitivo tras ' + payload.attempts + ' intentos';
+    }
     report(
       'ERROR',
-      (payload.tag || 'recurso').toUpperCase(),
+      tag.toUpperCase(),
       'resourceLoadError',
       payload.message,
-      { filename: payload.url || '' }
+      { filename: payload.url || '', stack: stack }
     );
   }
 
@@ -200,6 +235,8 @@
       const isResourceError = !e.message && e.target && e.target !== window;
       if (isResourceError) {
         const el = e.target;
+        // Sin error-bootstrap.js no hay guardia de reintentos: las imágenes no se reportan.
+        if (el.tagName === 'IMG') return;
         handleResourceError({ tag: (el.tagName || '?').toLowerCase(), url: el.src || el.href || '', message: `No se pudo cargar <${(el.tagName || '?').toLowerCase()}>: ${el.src || el.href || ''}` });
       } else {
         handleScriptError({ message: e.message, filename: e.filename, lineno: e.lineno, colno: e.colno, stack: e.error?.stack || '' });

@@ -113,6 +113,10 @@
   // Error de carga de un recurso (img, script, css, etc.)
   if (e.target && e.target !== window) {
 
+    // Imágenes: error-bootstrap.js reintenta primero y avisa solo si el
+    // fallo es definitivo (ver onFail más abajo). Cada intento se omite.
+    if (e.__zrGuarded) return;
+
     var url =
       e.target.currentSrc ||
       e.target.src ||
@@ -139,6 +143,16 @@
   window.addEventListener("unhandledrejection", function (e) {
     addConsoleEntry("error", ["Promise rechazada sin manejar:", e.reason]);
   });
+
+  // Fallos DEFINITIVOS de imagen (ya agotaron los reintentos).
+  if (window.__zrImgGuard && window.__zrImgGuard.onFail) {
+    window.__zrImgGuard.onFail(function (p) {
+      addConsoleEntry("error", [
+        "IMG resourceLoadError",
+        p.message + (p.attempts ? " (definitivo, " + p.attempts + " intentos)" : "")
+      ]);
+    });
+  }
 
   function addConsoleEntry(level, args) {
     var entry = { level: level, time: ts(), text: args.map(safeStringify).join("  ") };
