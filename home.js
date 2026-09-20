@@ -139,7 +139,7 @@ card.dataset.genero = GENDER_BY_CATEGORY[product.Categoria] || '';
 card.innerHTML = `
 <div class="product-slider" style="position:relative;">
 ${badgeHtml}
-<img src="${escapeHtml(imgUrl)}" alt="${escapeHtml(product.Nombre)}" style="width:100%;height:100%;object-fit:contain;display:block;" onerror="this.onerror=null;this.src='placeholder.svg'">
+<img src="${escapeHtml(imgUrl)}" alt="${escapeHtml(product.Nombre)}" style="width:100%;height:100%;object-fit:contain;display:block;" onerror="window.znrLoadImgWithRetry(this)">
 </div>
 <div class="product-info" style="padding:12px;">
 <div class="product-title-row">
@@ -303,7 +303,7 @@ const descHtml = product.Descripcion
 : '';
 return `
 <a href="catalogo.html#producto-${product.ID}" class="recent-product-card">
-<img class="recent-product-img" src="${optimizeDriveUrl(product.Imagen1 || product.Imagen2 || '', 200)}" alt="${escapeHtml(product.Nombre)}" loading="lazy" onerror="this.onerror=null;this.src='placeholder.svg'">
+<img class="recent-product-img" src="${optimizeDriveUrl(product.Imagen1 || product.Imagen2 || '', 200)}" alt="${escapeHtml(product.Nombre)}" loading="lazy" onerror="window.znrLoadImgWithRetry(this)">
 <div class="recent-product-info">
 <div class="recent-product-name">${escapeHtml(product.Nombre)}</div>
 ${descHtml}

@@ -977,7 +977,7 @@ function showSharedOutfitModal(products, missing) {
   const total = products.reduce((s, p) => s + Number(p.Precio || 0), 0);
   const itemsHtml = products.map(p => `
     <div class="shared-outfit-item">
-      <img src="${escapeHtml(optimizeDriveUrl(p.Imagen1, 400))}" alt="${escapeHtml(p.Nombre)}" onerror="this.onerror=null;this.src='placeholder.svg'">
+      <img src="${escapeHtml(optimizeDriveUrl(p.Imagen1, 400))}" alt="${escapeHtml(p.Nombre)}" onerror="window.znrLoadImgWithRetry(this)">
       <div class="shared-outfit-info">
         <div class="shared-outfit-name">${escapeHtml(p.Nombre)}</div>
         <div class="shared-outfit-price">${formatCurrency(p.Precio)}</div>
@@ -1301,7 +1301,7 @@ const productImg = optimizeDriveUrl(product.image, 60);
 productsList += `
 <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px; padding: 4px 0; border-bottom: 1px solid #f0f0f0;">
 <img src="${escapeHtml(productImg)}" alt="${escapeHtml(product.name)}"
-onerror="this.onerror=null;this.src='placeholder.svg'"
+onerror="window.znrLoadImgWithRetry(this)"
 style="width: 40px; height: 40px; object-fit: contain; background:var(--color-surface-2,#f5f5f8); border-radius: 8px;">
 <div style="flex: 1;">
 <div style="font-size: 12px; font-weight: 500;">${escapeHtml(product.name)}</div>

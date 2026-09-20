@@ -4,6 +4,39 @@ const RECENT_PRODUCTS_KEY = 'zr_recent_products';
 const MAX_RECENT_PRODUCTS = 12;
 const UP_KEY  = 'zr_user_prefs_v1';
 const ORDERS_KEY  = 'zr_orders_history';
+
+// ── Reintento compartido para imágenes de producto ──────────────────────
+// Antes, cada onerror="this.src='placeholder.svg'" se rendía al primer
+// fallo (un hipo de red, Storage tardado en responder la primera vez,
+// etc.), aunque la imagen sí existiera. Esta función reintenta con espera
+// creciente antes de caer al placeholder, y cachebusting para forzar que
+// el navegador (y el Service Worker) hagan un intento de red nuevo en vez
+// de reusar el mismo fallo. Usada desde el atributo onerror en el HTML
+// generado por common.js, home.js, comunidad.js y looks.js.
+const ZNR_IMG_RETRY_DELAYS = [500, 1000, 2000, 4000, 6000];
+window.znrLoadImgWithRetry = function (imgEl, attempt) {
+  attempt = attempt || 0;
+  if (!imgEl.dataset.znrOrigSrc) {
+    imgEl.dataset.znrOrigSrc = imgEl.getAttribute('src') || '';
+  }
+  const originalSrc = imgEl.dataset.znrOrigSrc;
+  if (!originalSrc || originalSrc.indexOf('placeholder.svg') !== -1) {
+    imgEl.onerror = null;
+    imgEl.src = 'placeholder.svg';
+    return;
+  }
+  if (attempt >= ZNR_IMG_RETRY_DELAYS.length) {
+    imgEl.onerror = null;
+    imgEl.src = 'placeholder.svg';
+    return;
+  }
+  setTimeout(function () {
+    const sep = originalSrc.indexOf('?') === -1 ? '?' : '&';
+    imgEl.onerror = function () { window.znrLoadImgWithRetry(imgEl, attempt + 1); };
+    imgEl.src = originalSrc + sep + '_r=' + Date.now();
+  }, ZNR_IMG_RETRY_DELAYS[attempt]);
+};
+
 const GENERO_POR_CATEGORIA = {
   'playeras': 'HOMBRE', 'pantalon para caballero': 'HOMBRE', 'short para caballero': 'HOMBRE',
   'calzado para caballero': 'HOMBRE', 'sueter para caballero': 'HOMBRE', 'chamarra para caballero': 'HOMBRE',
@@ -465,7 +498,7 @@ return String(str)
 function crearSliderImagenesHTML(images, alt) {
   const safeAlt = escapeAttr(alt || '');
   const imgs = (images && images.length) ? images : ['placeholder.svg'];
-  const slides = imgs.map((url, i) => `<div class="mini-slider-slide"><img src="${escapeAttr(url)}" alt="${safeAlt}" loading="lazy" style="width:100%;height:100%;object-fit:contain;display:block;background:var(--color-surface-2,#f5f5f8);" onerror="this.onerror=null;this.src='placeholder.svg'"></div>`).join('');
+  const slides = imgs.map((url, i) => `<div class="mini-slider-slide"><img src="${escapeAttr(url)}" alt="${safeAlt}" loading="lazy" style="width:100%;height:100%;object-fit:contain;display:block;background:var(--color-surface-2,#f5f5f8);" onerror="window.znrLoadImgWithRetry(this)"></div>`).join('');
   const dots = imgs.length > 1
     ? `<div class="mini-slider-dots">${imgs.map((_, i) => `<span class="mini-slider-dot${i === 0 ? ' active' : ''}"></span>`).join('')}</div>`
     : '';
