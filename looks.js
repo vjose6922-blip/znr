@@ -937,8 +937,7 @@ checkSharedOutfitHash();
 // re-renders de la generacion progresiva.
 function checkSharedOutfitHash() {
   const hash = window.location.hash;
-  if (!hash.startsWith('#compartido-')) return;
-  history.replaceState(null, '', window.location.pathname + window.location.search);
+  if (!hash.startsWith('#compartido-') || document.querySelector('.shared-outfit-modal')) return;
   const ids = hash.slice('#compartido-'.length).split(',').filter(Boolean);
   const found = ids
     .map(id => allProducts.find(p => String(p.ID) === id))
@@ -974,11 +973,15 @@ function showSharedOutfitModal(products, missing) {
   modal.querySelectorAll('.shared-outfit-item').forEach(el => {
     el.addEventListener('click', () => el.classList.toggle('revealed'));
   });
-  modal.querySelector('.shared-outfit-close').addEventListener('click', () => modal.remove());
-  modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+  const closeModal = () => {
+    modal.remove();
+    history.replaceState(null, '', window.location.pathname + window.location.search);
+  };
+  modal.querySelector('.shared-outfit-close').addEventListener('click', closeModal);
+  modal.addEventListener('click', e => { if (e.target === modal) closeModal(); });
   modal.querySelector('.shared-outfit-addall').addEventListener('click', () => {
     products.forEach(p => addToCart({ ID: p.ID, Nombre: p.Nombre, Precio: p.Precio, Stock: p.Stock, Imagen1: p.Imagen1, Talla: p.Talla }));
-    modal.remove();
+    closeModal();
   });
 }
 function renderLooksPagination(totalPages) {
