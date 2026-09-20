@@ -26,6 +26,40 @@ let isGeneratingLooks = false;
 let preloadedNextPage = null;
 let lazyImageObserver = null;
 let isPreloading = false;
+const IMG_RETRY_DELAYS = [800, 1600, 3000]; // 3 reintentos antes de caer al placeholder
+const IMG_PLACEHOLDER = 'placeholder.svg';
+
+/**
+ * Intenta cargar `url` en un <img> visible, reintentando con backoff si
+ * falla (p. ej. red inestable o un 404 pasajero), y cae a placeholder.svg
+ * solo después de agotar los reintentos — así una imagen de producto que
+ * falla no se queda como el ícono roto nativo del navegador.
+ */
+function loadImageWithRetry(imgEl, url, attempt = 0) {
+  if (!url) {
+    imgEl.src = IMG_PLACEHOLDER;
+    imgEl.removeAttribute('data-src');
+    return;
+  }
+  const probe = new Image();
+  probe.onload = () => {
+    imgEl.src = url;
+    imgEl.removeAttribute('data-src');
+    imgEl.classList.add('loaded');
+    imgEl.style.opacity = '1';
+  };
+  probe.onerror = () => {
+    if (attempt < IMG_RETRY_DELAYS.length) {
+      setTimeout(() => loadImageWithRetry(imgEl, url, attempt + 1), IMG_RETRY_DELAYS[attempt]);
+    } else {
+      imgEl.src = IMG_PLACEHOLDER;
+      imgEl.removeAttribute('data-src');
+      imgEl.classList.add('loaded');
+      imgEl.style.opacity = '1';
+    }
+  };
+  probe.src = url;
+}
 const WEATHER_IMAGES = {
 'amanecer_aguanieve': '1nhMnXB76Y4iWrP9LXoKZt0UbIw9_xwlO',
 'amanecer_lluvia_ligera': '1U8Clnj-ub65qX5RiuVb928MGJGvLUDY-',
@@ -496,13 +530,7 @@ if (entry.isIntersecting) {
 const img = entry.target;
 const dataSrc = img.getAttribute('data-src');
 if (dataSrc) {
-const newImg = new Image();
-newImg.onload = () => {
-img.src = dataSrc;
-img.removeAttribute('data-src');
-img.classList.add('loaded');
-};
-newImg.src = dataSrc;
+loadImageWithRetry(img, dataSrc);
 }
 lazyImageObserver.unobserve(img);
 }
@@ -949,7 +977,7 @@ function showSharedOutfitModal(products, missing) {
   const total = products.reduce((s, p) => s + Number(p.Precio || 0), 0);
   const itemsHtml = products.map(p => `
     <div class="shared-outfit-item">
-      <img src="${escapeHtml(optimizeDriveUrl(p.Imagen1, 400))}" alt="${escapeHtml(p.Nombre)}">
+      <img src="${escapeHtml(optimizeDriveUrl(p.Imagen1, 400))}" alt="${escapeHtml(p.Nombre)}" onerror="this.onerror=null;this.src='placeholder.svg'">
       <div class="shared-outfit-info">
         <div class="shared-outfit-name">${escapeHtml(p.Nombre)}</div>
         <div class="shared-outfit-price">${formatCurrency(p.Precio)}</div>
@@ -1121,14 +1149,7 @@ const slotImg = slotImageContainer.querySelector('.look-slot-img');
 const newImageUrl = optimizeDriveUrl(newProduct.image, 150);
 if (slotImg) {
 slotImg.style.opacity = '0.5';
-const newImg = new Image();
-newImg.onload = () => {
-slotImg.src = newImageUrl;
-slotImg.style.opacity = '1';
-slotImg.classList.add('loaded');
-};
-newImg.src = newImageUrl;
-slotImg.setAttribute('data-src', newImageUrl);
+loadImageWithRetry(slotImg, newImageUrl);
 }
 slotImageContainer.dataset.modalUrl = optimizeDriveUrl(newProduct.image, 800);
 slotImageContainer.dataset.productId = newProduct.id;
@@ -1160,14 +1181,7 @@ const productImg = targetProductItem.querySelector('.look-product-img');
 const newImageUrl = optimizeDriveUrl(newProduct.image, 150);
 if (productImg) {
 productImg.style.opacity = '0.5';
-const newImg = new Image();
-newImg.onload = () => {
-productImg.src = newImageUrl;
-productImg.style.opacity = '1';
-productImg.classList.add('loaded');
-};
-newImg.src = newImageUrl;
-productImg.setAttribute('data-src', newImageUrl);
+loadImageWithRetry(productImg, newImageUrl);
 }
 const productNameEl = targetProductItem.querySelector('.look-product-name');
 if (productNameEl) productNameEl.textContent = escapeHtml(newProduct.name);
@@ -1287,6 +1301,7 @@ const productImg = optimizeDriveUrl(product.image, 60);
 productsList += `
 <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px; padding: 4px 0; border-bottom: 1px solid #f0f0f0;">
 <img src="${escapeHtml(productImg)}" alt="${escapeHtml(product.name)}"
+onerror="this.onerror=null;this.src='placeholder.svg'"
 style="width: 40px; height: 40px; object-fit: contain; background:var(--color-surface-2,#f5f5f8); border-radius: 8px;">
 <div style="flex: 1;">
 <div style="font-size: 12px; font-weight: 500;">${escapeHtml(product.name)}</div>
