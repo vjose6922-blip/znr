@@ -17,7 +17,14 @@
  */
 
 import { initializeApp, getApps, getApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
-import { getAuth, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
+import {
+  initializeAuth,
+  getAuth,
+  indexedDBLocalPersistence,
+  browserLocalPersistence,
+  browserSessionPersistence,
+  signInWithCustomToken
+} from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
 import { 
   getFirestore, 
   collection, 
@@ -42,7 +49,23 @@ const firebaseConfig = {
 
 const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
 const db = getFirestore(app);
-const auth = getAuth(app);
+
+// Solo usamos signInWithCustomToken en esta página, nunca signInWithPopup/
+// signInWithRedirect, así que inicializamos Auth SIN popupRedirectResolver.
+// Esto evita que el SDK cargue de forma proactiva
+// https://apis.google.com/js/api.js en Safari/iOS/móvil (comportamiento
+// interno de BrowserPopupRedirectResolver, no algo que ZNR dispare), que
+// antes quedaba bloqueado por el CSP y aparecía como error en consola.
+let auth;
+try {
+  auth = initializeAuth(app, {
+    persistence: [indexedDBLocalPersistence, browserLocalPersistence, browserSessionPersistence]
+  });
+} catch (e) {
+  // Ya se inicializó Auth para esta app (p. ej. otro script en la misma
+  // página lo hizo primero) — reutilizamos esa instancia.
+  auth = getAuth(app);
+}
 
 window.znrFirestore = window.znrFirestore || {};
 

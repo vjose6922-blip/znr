@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta http-equiv="Content-Security-Policy" content="
  default-src 'self';
- script-src 'self' 'unsafe-inline' https://www.gstatic.com https://connect.facebook.net https://*.firebaseio.com;
+ script-src 'self' 'unsafe-inline' https://www.gstatic.com https://apis.google.com https://connect.facebook.net https://*.firebaseio.com;
  style-src 'self' 'unsafe-inline';
  img-src 'self' data: blob: https://lh3.googleusercontent.com https://drive.google.com https://placehold.co https://via.placeholder.com https://*.fbcdn.net https://firebasestorage.googleapis.com ;
  connect-src 'self' https://script.google.com https://script.googleusercontent.com https://wttr.in https://www.gstatic.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firebaseinstallations.googleapis.com https://fcmregistrations.googleapis.com https://registrar-token-fcm-1038143238323.us-central1.run.app https://ventas-api-1038143238323.us-central1.run.app https://auth-api-1038143238323.us-central1.run.app https://live-api-1038143238323.us-central1.run.app https://catalogo-api-1038143238323.us-central1.run.app https://vendedores-api-1038143238323.us-central1.run.app https://firebase.googleapis.com https://znr-live-default-rtdb.firebaseio.com wss://znr-live-default-rtdb.firebaseio.com https://*.firebaseio.com wss://*.firebaseio.com https://nominatim.openstreetmap.org https://graph.facebook.com https://tienda-znr-api-1038143238323.us-central1.run.app ;
@@ -222,7 +222,14 @@
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-app.js";
 import { getDatabase, ref, push, onValue, set, remove, onDisconnect } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-database.js";
-import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-auth.js";
+import {
+  initializeAuth,
+  getAuth,
+  indexedDBLocalPersistence,
+  browserLocalPersistence,
+  browserSessionPersistence,
+  signInAnonymously
+} from "https://www.gstatic.com/firebasejs/12.15.0/firebase-auth.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyAaOe_lxLdQtTFCtw2BDR8KZRSafEMkkes",
@@ -235,7 +242,18 @@ const firebaseConfig = {
 };
 const fbApp = initializeApp(firebaseConfig);
 const db = getDatabase(fbApp);
-const auth = getAuth(fbApp);
+
+// Solo usamos signInAnonymously aquí, nunca signInWithPopup/Redirect, así
+// que inicializamos Auth SIN popupRedirectResolver para que el SDK no
+// intente cargar https://apis.google.com/js/api.js en Safari/iOS/móvil.
+let auth;
+try {
+  auth = initializeAuth(fbApp, {
+    persistence: [indexedDBLocalPersistence, browserLocalPersistence, browserSessionPersistence]
+  });
+} catch (e) {
+  auth = getAuth(fbApp);
+}
 
 // ── Autenticación anónima: necesaria para que las reglas de RTDB
 // puedan verificar auth != null y auth.uid en presencia/chats. ──
