@@ -460,11 +460,20 @@ if (panelDiv) panelDiv.style.display = 'block';
 const logoutBtn = document.getElementById('logout-btn');
 if (logoutBtn) logoutBtn.style.display = 'flex';
 
+// Estos botones se muestran siempre (aunque el vendedor no tenga Plan Plus)
+// para que vea qué funciones tendría disponibles; al no ser Plus, el acceso
+// real queda bloqueado y en su lugar se invita a mejorar de plan.
+const esPlusPanelBtns = !!(vendorSession && vendorSession.plan === 'plus');
+
 const liveBtn = document.getElementById('live-btn');
-if (liveBtn) liveBtn.style.display = (vendorSession && vendorSession.plan === 'plus') ? 'flex' : 'none';
+if (liveBtn) liveBtn.style.display = 'flex';
+const liveBtnBadge = document.getElementById('live-btn-plus-badge');
+if (liveBtnBadge) liveBtnBadge.style.display = esPlusPanelBtns ? 'none' : 'inline-block';
 
 const verEntregasBtn = document.getElementById('btn-ver-entregas-panel');
-if (verEntregasBtn) verEntregasBtn.style.display = (vendorSession && vendorSession.plan === 'plus') ? 'flex' : 'none';
+if (verEntregasBtn) verEntregasBtn.style.display = 'flex';
+const entregasBtnBadge = document.getElementById('entregas-btn-plus-badge');
+if (entregasBtnBadge) entregasBtnBadge.style.display = esPlusPanelBtns ? 'none' : 'inline-block';
 renderChecklistVendedor();
 if (typeof cargarSeccionHuella === 'function') cargarSeccionHuella();
 if (typeof cargarEstadoMP === 'function') cargarEstadoMP();
@@ -3067,6 +3076,29 @@ window.openEntregasLiveModal = async function() {
   const modal = document.createElement('div');
   modal.id = 'modal-entregas-live';
   modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.65);backdrop-filter:blur(4px);z-index:99999;display:flex;align-items:flex-end;justify-content:center;';
+
+  // El botón que abre este modal ahora se muestra a todos los vendedores
+  // (para que vean la función), pero solo Plan Plus puede ver el contenido real.
+  if (!vendorSession || vendorSession.plan !== 'plus') {
+    modal.innerHTML = `
+      <div style="background:#fff;border-radius:20px 20px 0 0;width:100%;max-height:96vh;overflow-y:auto;padding:0 0 32px;">
+        <div style="position:sticky;top:0;background:#fff;z-index:1;padding:16px 20px 12px;border-bottom:1px solid #f0f0f0;display:flex;align-items:center;justify-content:space-between;">
+          <h2 style="margin:0;font-size:1rem;font-weight:800;">${Icon('box')} Entregas de tus transmisiones</h2>
+          <button id="btn-close-entregas-live" style="background:none;border:none;font-size:22px;cursor:pointer;color:#888;line-height:1;">×</button>
+        </div>
+        <div style="padding:36px 20px;text-align:center;">
+          <div style="margin:0 auto 14px;width:52px;height:52px;border-radius:50%;background:#f5f3ff;display:flex;align-items:center;justify-content:center;color:#7c3aed;">${Icon('star')}</div>
+          <p style="margin:0 0 6px;font-weight:800;color:#111;font-size:.95rem;">Ver entregas es Plan Plus</p>
+          <p style="margin:0 0 20px;color:#888;font-size:.85rem;line-height:1.5;">Mejora tu cuenta a Plan Plus para transmitir en vivo y llevar el control de las entregas de tus ventas.</p>
+          <button onclick="location.href='plan-plus.html'" style="padding:11px 24px;border:none;border-radius:999px;background:linear-gradient(135deg,#7c3aed,#a855f7);color:#fff;font-weight:700;font-size:.85rem;cursor:pointer;">Ver Plan Plus</button>
+        </div>
+      </div>`;
+    document.body.appendChild(modal);
+    document.getElementById('btn-close-entregas-live').onclick = () => modal.remove();
+    modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+    return;
+  }
+
   modal.innerHTML = `
     <div style="background:#fff;border-radius:20px 20px 0 0;width:100%;max-height:96vh;overflow-y:auto;padding:0 0 32px;">
       <div style="position:sticky;top:0;background:#fff;z-index:1;padding:16px 20px 12px;border-bottom:1px solid #f0f0f0;display:flex;align-items:center;justify-content:space-between;">
