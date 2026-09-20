@@ -1,5 +1,5 @@
-const CACHE_NAME    = 'zr-cache-v88';
-const DYNAMIC_CACHE = 'zr-dynamic-v18';
+const CACHE_NAME    = 'zr-cache-v89';
+const DYNAMIC_CACHE = 'zr-dynamic-v19';
 const OFFLINE_URL   = '/znr/offline.html';
 
 const STATIC_ASSETS = [
@@ -122,17 +122,35 @@ self.addEventListener('fetch', event => {
 async function cacheFirst(request) {
   const cached = await caches.match(request);
   if (cached) return cached;
-  try {
-    const net = await fetch(request);
-    if (net?.status === 200) {
-      const cache = await caches.open(DYNAMIC_CACHE);
-      cache.put(request, net.clone());
+
+  const isImage = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.svg']
+    .some(ext => new URL(request.url).pathname.toLowerCase().endsWith(ext))
+    || request.destination === 'image';
+
+  // Recargar la página varias veces seguidas cancela (AbortError) las
+  // peticiones en curso de la página anterior — no es una falla real del
+  // recurso. Un solo reintento absorbe eso y cualquier hipo de red breve.
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const net = await fetch(request);
+      if (net?.status === 200) {
+        const cache = await caches.open(DYNAMIC_CACHE);
+        cache.put(request, net.clone());
+      }
+      return net;
+    } catch {
+      if (attempt === 0) await new Promise(r => setTimeout(r, 400));
     }
-    return net;
-  } catch {
-    if (request.mode === 'navigate') return caches.match(OFFLINE_URL);
-    return new Response('Offline', { status: 404 });
   }
+
+  if (request.mode === 'navigate') return caches.match(OFFLINE_URL);
+  // Para imágenes: servir el placeholder en vez de un 404, así el <img>
+  // no queda roto ni dispara un error visible por una falla pasajera.
+  if (isImage) {
+    const placeholder = await caches.match('/znr/placeholder.svg');
+    if (placeholder) return placeholder;
+  }
+  return new Response('Offline', { status: 404 });
 }
 
 async function networkOnly(request) {
