@@ -149,7 +149,7 @@
     s.id = 'nc-styles';
     s.textContent = `
 #notif-bell-btn{position:relative}
-.nc-badge{position:absolute;top:2px;right:2px;background:#c85c78;color:#fff;border-radius:50px;font-size:10px;font-weight:800;line-height:1;padding:3px 5px;min-width:16px;text-align:center;box-shadow:0 0 0 2px var(--color-surface,#252831)}
+.nc-badge{position:absolute;top:2px;right:2px;background:var(--color-accent-solid);color:#fff;border-radius:50px;font-size:10px;font-weight:800;line-height:1;padding:3px 5px;min-width:16px;text-align:center;box-shadow:0 0 0 2px var(--color-surface,#252831)}
 #nc-overlay{position:fixed;inset:0;background:rgba(0,0,0,.55);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);z-index:9200;opacity:0;pointer-events:none;transition:opacity .25s ease}
 #nc-overlay.visible{opacity:1;pointer-events:auto}
 #nc-modal{position:fixed;top:0;right:0;height:100dvh;width:min(420px,100vw);background:var(--color-surface,#252831);border-left:1px solid var(--color-border-subtle,rgba(255,255,255,.07));z-index:9201;display:flex;flex-direction:column;transform:translateX(100%);transition:transform .28s cubic-bezier(.4,0,.2,1);box-shadow:-8px 0 40px rgba(0,0,0,.4)}
@@ -157,11 +157,11 @@
 .nc-header{display:flex;align-items:center;justify-content:space-between;padding:18px 20px 14px;border-bottom:1px solid var(--color-border-subtle,rgba(255,255,255,.07));flex-shrink:0}
 .nc-title{font-size:16px;font-weight:700;margin:0;color:var(--color-text-primary,#fff);display:flex;align-items:center;gap:8px}
 .nc-close{background:rgba(255,255,255,.07);border:none;color:var(--color-text-secondary,#aaa);width:32px;height:32px;border-radius:50%;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center}
-.nc-close:hover{background:rgba(200,92,120,0.15);color:#c85c78}
+.nc-close:hover{background:rgba(var(--color-accent-rgb),0.15);color:var(--color-accent-solid)}
 .nc-tabs{display:flex;gap:6px;padding:12px 16px 0;border-bottom:1px solid var(--color-border-subtle,rgba(255,255,255,.07));flex-shrink:0}
 .nc-tab{flex:1;text-align:center;padding:9px 6px;border-radius:10px 10px 0 0;border:none;background:transparent;color:var(--color-text-muted,#888);font-size:13px;font-weight:600;cursor:pointer}
-.nc-tab.active{background:rgba(200,92,120,0.12);color:#c85c78}
-.nc-markall{background:none;border:none;color:#c85c78;font-size:12px;font-weight:600;cursor:pointer;padding:8px 16px;text-align:right}
+.nc-tab.active{background:rgba(var(--color-accent-rgb),0.12);color:var(--color-accent-solid)}
+.nc-markall{background:none;border:none;color:var(--color-accent-solid);font-size:12px;font-weight:600;cursor:pointer;padding:8px 16px;text-align:right}
 .nc-list{flex:1;overflow-y:auto;padding:10px 14px 20px}
 .nc-empty{text-align:center;color:var(--color-text-muted,#888);padding:60px 20px;font-size:13px}
 
@@ -179,8 +179,8 @@
   border-bottom:1px solid var(--color-border-subtle, rgba(255,255,255,.08));
 }
 .nc-item.unread{
-  background:rgba(200,92,120,0.07);
-  border-color:rgba(200,92,120,0.22);
+  background:rgba(var(--color-accent-rgb),0.07);
+  border-color:rgba(var(--color-accent-rgb),0.22);
 }
 .nc-item.unread::before{
   content:'';
@@ -190,7 +190,7 @@
   width:7px;
   height:7px;
   border-radius:50%;
-  background:#c85c78;
+  background:var(--color-accent-solid);
 }
 .nc-icon{
   font-size:20px;

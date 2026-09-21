@@ -76,13 +76,10 @@
 </div>
 
 <nav class="bottom-nav">
- <button class="bottom-nav-item" data-page="inicio" id="nav-inicio">
-<span class="nav-icon"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" aria-hidden="true"><use href="#ic-home"/></svg></span>
+ <button class="bottom-nav-item" data-page="outfit" id="nav-outfit">
+ <span class="nav-icon"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" aria-hidden="true"><use href="#ic-outfit"/></svg></span>
  <span>Inicio</span>
  </button>
-
-
-
  
  <button class="bottom-nav-item" data-page="catalogo" id="nav-catalogo">
  <span class="nav-icon"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" aria-hidden="true"><use href="#ic-catalog"/></svg></span>
@@ -111,7 +108,7 @@
  </button>
 </nav>
 
- <a href="armar-outfit.html" style="display:flex;align-items:center;gap:12px;margin:12px 16px;padding:14px 16px;border-radius:18px;background:linear-gradient(135deg, rgba(200,92,120,0.16), rgba(167,139,250,0.16));border:1px solid var(--color-border-subtle);text-decoration:none;">
+ <a href="armar-outfit.html" style="display:flex;align-items:center;gap:12px;margin:12px 16px;padding:14px 16px;border-radius:18px;background:linear-gradient(135deg, rgba(var(--color-accent-rgb),0.16), rgba(167,139,250,0.16));border:1px solid var(--color-border-subtle);text-decoration:none;">
  <span style="font-size:22px;line-height:1;"></span>
  <span style="flex:1;min-width:0;">
  <strong style="display:block;font-size:14px;color:var(--color-text-main);">Arma tu propio outfit</strong>
@@ -128,7 +125,7 @@
  </div>
  <div class="cart-body" id="wishlist-looks-container"></div>
  <div class="cart-footer">
- <button id="add-all-looks-to-cart" class="primary-button full-width" style="background: linear-gradient(135deg, #c85c78, #d68a5f);"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" aria-hidden="true"><use href="#ic-cart"/></svg> Agregar todos al carrito
+ <button id="add-all-looks-to-cart" class="primary-button full-width" style="background: var(--gradient-accent);"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" aria-hidden="true"><use href="#ic-cart"/></svg> Agregar todos al carrito
  </button>
  </div>
  </aside>
@@ -336,7 +333,7 @@ document.addEventListener('DOMContentLoaded', function() {
  
 
  const navCatalogo = document.getElementById('nav-catalogo');
- const navOutfit = document.getElementById('nav-inicio');
+ const navOutfit = document.getElementById('nav-outfit');
  const navCart = document.getElementById('nav-cart');
  const navWishlist = document.getElementById('nav-wishlist');
  
@@ -395,8 +392,8 @@ document.addEventListener('DOMContentLoaded', function() {
  </div>
  <div class="footer-copyright">
  <p>© 2026 Z&R - Todos los derechos reservados</p>
- <a href="privacidad.html" style="color:#c85c78; text-decoration:none;">Privacidad</a> ·
- <a href="terminos.html" style="color:#c85c78; text-decoration:none;">Términos</a>
+ <a href="privacidad.html" style="color:var(--color-accent-solid); text-decoration:none;">Privacidad</a> ·
+ <a href="terminos.html" style="color:var(--color-accent-solid); text-decoration:none;">Términos</a>
  </div>
  </div>
  </footer>

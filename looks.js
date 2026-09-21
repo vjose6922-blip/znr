@@ -936,7 +936,7 @@ const container = document.getElementById("looks-container");
 if (!container) return;
 if (allLooks.length === 0) {
 if (!container.querySelector('.skeleton-card')) {
-container.innerHTML = `<div class="empty-looks"><p>No disponibles en este momento.</p><p>Visita el <a href="index.html" style="color:var(--color-accent,#c85c78);">catalogo</a> para ver nuestros productos.</p></div>`;
+container.innerHTML = `<div class="empty-looks"><p>No disponibles en este momento.</p><p>Visita el <a href="index.html" style="color:var(--color-accent,var(--color-accent-solid));">catalogo</a> para ver nuestros productos.</p></div>`;
 }
 renderLooksPagination();
 return;
@@ -1305,7 +1305,7 @@ onerror="window.znrLoadImgWithRetry(this)"
 style="width: 40px; height: 40px; object-fit: contain; background:var(--color-surface-2,#f5f5f8); border-radius: 8px;">
 <div style="flex: 1;">
 <div style="font-size: 12px; font-weight: 500;">${escapeHtml(product.name)}</div>
-<div style="font-size: 11px; color:var(--color-accent,#c85c78);">${formatCurrency(product.price)}</div>
+<div style="font-size: 11px; color:var(--color-accent,var(--color-accent-solid));">${formatCurrency(product.price)}</div>
 <div style="font-size: 10px; color:var(--color-text-muted,#888);">${escapeHtml(product.size || 'Talla no especificada')}</div>
 </div>
 </div>
@@ -1318,7 +1318,7 @@ div.innerHTML = `
 <div style="margin-bottom: 8px; max-height: 200px; overflow-y: auto;">
 ${productsList}
 </div>
-<div class="cart-item-meta" style="font-weight:bold; color:var(--color-accent,#c85c78); margin: 8px 0;">Total: ${formatCurrency(totalPrice)}
+<div class="cart-item-meta" style="font-weight:bold; color:var(--color-accent,var(--color-accent-solid)); margin: 8px 0;">Total: ${formatCurrency(totalPrice)}
 </div>
 <div class="cart-item-actions" style="margin-top: 8px; display: flex; gap: 8px;">
 <button class="add-look-to-cart" data-look-id="${look.id}" style="background:var(--color-info-bg,#e8e8ff); border:none; padding: 6px 12px; border-radius: 20px; cursor: pointer; font-size: 12px;"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" aria-hidden="true"><use href="#ic-cart"/></svg> Agregar todo</button>

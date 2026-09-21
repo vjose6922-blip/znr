@@ -81,7 +81,7 @@
     }
     .legal-contact-btn {
       display: inline-block;
-      background: linear-gradient(135deg, #c85c78, #d68a5f);
+      background: var(--gradient-accent);
       color: white;
       padding: 10px 24px;
       border-radius: 40px;
@@ -115,8 +115,8 @@
       color: var(--color-text-soft);
     }
     [data-theme="dark"] .legal-highlight {
-      background: rgba(200,92,120,0.1);
-      border-left-color: #c85c78;
+      background: rgba(var(--color-accent-rgb),0.1);
+      border-left-color: var(--color-accent-solid);
       color: var(--color-text-main);
     }
   </style>
@@ -266,8 +266,8 @@
       <div class="footer-copyright">
         <p>© 2026 Z&R - Todos los derechos reservados</p>
         <p style="font-size:11px; margin-top:4px;">
-          <a href="privacidad.html" style="color:#c85c78; text-decoration:none;">Privacidad</a> ·
-          <a href="terminos.html" style="color:#c85c78; text-decoration:none;">Términos</a>
+          <a href="privacidad.html" style="color:var(--color-accent-solid); text-decoration:none;">Privacidad</a> ·
+          <a href="terminos.html" style="color:var(--color-accent-solid); text-decoration:none;">Términos</a>
         </p>
       </div>
     </div>

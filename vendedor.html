@@ -70,7 +70,7 @@
 
  .btn-primary{
  width: 100%; padding: 13px; border: none; border-radius: 40px;
- background: linear-gradient(135deg, #c85c78, #d68a5f);
+ background: var(--gradient-accent);
  color: #fff; font-size: 15px; font-weight: 700; cursor: pointer;
  transition: opacity .2s;
  }
@@ -141,7 +141,7 @@ h3 {
  background: var(--color-input-bg, #f9f9ff);
  transition: border-color .2s;
  }
- .img-upload-slot:hover{ border-color: #c85c78; }
+ .img-upload-slot:hover{ border-color: var(--color-accent-solid); }
  .img-upload-slot img{ width: 100%; height: 100%; object-fit: contain; }
  .img-upload-slot input[type=file]{ display: none; }
  .img-upload-slot .remove-img{
@@ -275,7 +275,7 @@ h3 {
  <span style="color:#888;cursor:pointer;display:inline-flex;align-items:center;gap:4px;" id="forgot-password-link"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" aria-hidden="true"><use href="#ic-lock"/></svg> ¿Olvidaste tu contraseña?</span>
  </p>
  <p style="text-align:center;margin-top:8px;font-size:13px;color:#888">
- ¿No tienes cuenta? <span style="color:#c85c78;font-weight:600;cursor:pointer;" id="switch-to-register">Regístrate aquí</span>
+ ¿No tienes cuenta? <span style="color:var(--color-accent-solid);font-weight:600;cursor:pointer;" id="switch-to-register">Regístrate aquí</span>
  </p>
  </div>
 
@@ -294,7 +294,7 @@ h3 {
 <p class="terms">Te enviaremos un código de acceso por WhatsApp. Al registrarte aceptas los términos de uso.
 </p>
  <p style="text-align:center;margin-top:16px;font-size:13px;color:#888">
- ¿Ya tienes cuenta? <span style="color:#c85c78;font-weight:600;cursor:pointer;" id="switch-to-login">Inicia sesión</span>
+ ¿Ya tienes cuenta? <span style="color:var(--color-accent-solid);font-weight:600;cursor:pointer;" id="switch-to-login">Inicia sesión</span>
  </p>
  </div>
  </div>
@@ -307,7 +307,6 @@ h3 {
  <div class="vendor-section">
  <h2> <button id="share-vendor-link" class="btn-secondary" style="font-size:12px; margin-left:10px;"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" aria-hidden="true"><use href="#ic-share"/></svg> Link de mi tienda</button></h2>
  <div id="vendor-plan-panel" style="margin:4px 0 16px;"></div>
- <div id="stock-alert-banner"></div>
  <button id="btn-crear-producto" class="btn-primary" onclick="window.switchTab && window.switchTab('form')" style="margin-bottom:16px;"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" aria-hidden="true"><use href="#ic-plus"/></svg> Crear producto</button>
  <div id="informe-semanal-card"></div>
 <div id="checklist-vendedor"></div>
@@ -1078,8 +1077,8 @@ document.addEventListener('DOMContentLoaded', () => {
  </div>
  <div class="footer-copyright">
  <p>© 2026 Z&R - Todos los derechos reservados</p>
- <a href="privacidad.html" style="color:#c85c78; text-decoration:none;">Privacidad</a> ·
- <a href="terminos.html" style="color:#c85c78; text-decoration:none;">Términos</a>
+ <a href="privacidad.html" style="color:var(--color-accent-solid); text-decoration:none;">Privacidad</a> ·
+ <a href="terminos.html" style="color:var(--color-accent-solid); text-decoration:none;">Términos</a>
  </div>
  </div>
  </footer>

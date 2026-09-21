@@ -139,12 +139,12 @@ function _injectOverlayStyles() {
 .bv-ring {
   fill: none;
   /* Color adaptable: en oscuro se ve sobre fondo oscuro, en claro sobre fondo claro */
-  stroke: rgba(200,92,120,0.18);
+  stroke: rgba(var(--color-accent-rgb),0.18);
   stroke-width: 5;
 }
 .bv-arc {
   fill: none;
-  stroke: #c85c78; /* El color de la marca, se mantiene igual en ambos temas */
+  stroke: var(--color-accent-solid); /* El color de la marca, se mantiene igual en ambos temas */
   stroke-width: 5;
   stroke-linecap: round;
   stroke-dasharray: 90 150;
@@ -153,7 +153,7 @@ function _injectOverlayStyles() {
 }
 .bv-cam {
   fill: none;
-  stroke: #c85c78; /* El color de la marca, se mantiene igual en ambos temas */
+  stroke: var(--color-accent-solid); /* El color de la marca, se mantiene igual en ambos temas */
   stroke-width: 2.5;
 }
 @keyframes bv-spin {
@@ -188,7 +188,7 @@ function _toggleOverlayCarga(mostrar) {
               <g transform="translate(32,32)">
                 <rect x="-12" y="-8" width="24" height="16" rx="3" class="bv-cam"/>
                 <circle cx="0" cy="0" r="5" class="bv-cam"/>
-                <rect x="-5" y="-12" width="10" height="4" rx="1.5" fill="#c85c78"/>
+                <rect x="-5" y="-12" width="10" height="4" rx="1.5" fill="var(--color-accent-solid)"/>
               </g>
             </svg>
           </div>

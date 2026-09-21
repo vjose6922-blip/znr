@@ -323,7 +323,7 @@ async function refreshFullCatalogInBackground() {
 // Replica exactamente la lógica de filtros que antes hacía listProducts() en GAS,
 // pero corriendo en el navegador sobre el catálogo ya descargado.
 function filterCatalogLocal(products, filters) {
-  let result = products.filter(p => Number(p.Stock || 0) > 0);
+  let result = products;
 
   if (filters.gender) {
     result = result.filter(p => getGenderFromCategory(p.Categoria) === filters.gender);
@@ -693,8 +693,8 @@ slider.dataset.productId = ID;
 const track = document.createElement("div");
 track.className = "product-slider-track";
 const images = [Imagen1, Imagen2, Imagen3]
-.filter(Boolean)
-.map(u => optimizeDriveUrl(u));
+.map(u => optimizeDriveUrl(u))
+.filter(Boolean);
 if (images.length === 0) {
 images.push("https://placehold.co/400x400/3b1f5f/white?text=Sin+Imagen");
 }
@@ -869,7 +869,7 @@ if (!product) {
 }
 initialHashHandled = true;
 const { ID, Imagen1, Imagen2, Imagen3 } = product;
-const images = [Imagen1, Imagen2, Imagen3].filter(Boolean).map(u => optimizeDriveUrl(u));
+const images = [Imagen1, Imagen2, Imagen3].map(u => optimizeDriveUrl(u)).filter(Boolean);
 const url = images[0] || "https://placehold.co/400x400/3b1f5f/white?text=Sin+Imagen";
 openImageModal(url, ID, images.length ? images : [url], product);
 }
