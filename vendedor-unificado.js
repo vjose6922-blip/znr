@@ -70,6 +70,7 @@ const MAPA_ACCIONES_MIGRADAS = {
   solicitarEliminacionBeneficiario: BENEFICIARIOS_API_URL,
   obtenerDonacionesRecibidas: BENEFICIARIOS_API_URL,
   obtenerEstadisticasVendedor: "https://ventas-api-1038143238323.us-central1.run.app",
+  obtenerUltimoInformeSemanal: VENTAS_API_URL,
   obtenerMisEntregasLive: LIVE_API_URL,
 };
 function resolverApiUrl(action) {
@@ -664,7 +665,7 @@ async function loadInformeSemanal() {
   }
 
   try {
-    const data = await apiCall({ action: 'obtenerUltimoInformeSemanal', vendor_uid: vendorSession.uid });
+    const data = await apiCall({ action: 'obtenerUltimoInformeSemanal', vendorToken: vendorSession.token });
     _setDailyCache(cacheKey, (data && data.ok) ? { informe: data.informe || null } : null);
     if (!data || !data.ok || !data.informe) { el.innerHTML = ''; return; }
     renderInformeSemanal(data.informe);
