@@ -59,7 +59,7 @@ if (container) {
 container.innerHTML = `
 <div style="text-align:center;padding:40px;grid-column:1/-1;min-height:340px;box-sizing:border-box;display:flex;flex-direction:column;align-items:center;justify-content:center;">
 <p style="margin-bottom:12px;">Error al cargar productos.</p>
-<button onclick="loadProducts()" style="padding:10px 24px;border-radius:40px;border:none;background:var(--color-accent,#ff4f81);color:white;font-weight:600;cursor:pointer;font-size:14px;"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" aria-hidden="true"><use href="#ic-refresh"/></svg> Reintentar</button>
+<button onclick="loadProducts()" style="padding:10px 24px;border-radius:40px;border:none;background:var(--color-accent,#c85c78);color:white;font-weight:600;cursor:pointer;font-size:14px;"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" aria-hidden="true"><use href="#ic-refresh"/></svg> Reintentar</button>
 </div>`;
 }
 const looksContainer = document.getElementById('home-looks-container');
@@ -67,7 +67,7 @@ if (looksContainer) {
 looksContainer.innerHTML = `
 <div style="text-align:center;padding:40px;min-height:200px;box-sizing:border-box;display:flex;flex-direction:column;align-items:center;justify-content:center;">
 <p style="margin-bottom:12px;color:var(--color-text-muted);">No se pudieron cargar los looks.</p>
-<button onclick="loadProducts()" style="padding:10px 24px;border-radius:40px;border:none;background:var(--color-accent,#ff4f81);color:white;font-weight:600;cursor:pointer;font-size:14px;"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" aria-hidden="true"><use href="#ic-refresh"/></svg> Reintentar</button>
+<button onclick="loadProducts()" style="padding:10px 24px;border-radius:40px;border:none;background:var(--color-accent,#c85c78);color:white;font-weight:600;cursor:pointer;font-size:14px;"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" aria-hidden="true"><use href="#ic-refresh"/></svg> Reintentar</button>
 </div>`;
 }
 }

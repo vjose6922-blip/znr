@@ -362,7 +362,7 @@ async function loadComunidadPageGAS(page, filters, opts = {}) {
       gridContainer.innerHTML = `<div style="grid-column:1/-1; text-align:center; padding:40px; color:var(--color-error,#ef4444);">
         Error al cargar productos de la comunidad.<br>
         <small style="color:var(--color-text-muted,#888);font-size:11px;">${err.message || ''}</small><br>
-        <button onclick="loadComunidadPage(1,{})" style="margin-top:12px; padding:8px 20px; border-radius:30px; border:none; background:#ff4f81; color:white; cursor:pointer; font-weight:600;"  >${Icon('refresh')} Reintentar</button>
+        <button onclick="loadComunidadPage(1,{})" style="margin-top:12px; padding:8px 20px; border-radius:30px; border:none; background:#c85c78; color:white; cursor:pointer; font-weight:600;"  >${Icon('refresh')} Reintentar</button>
       </div>`;
     }
   } finally {
@@ -1007,15 +1007,15 @@ modal.innerHTML = `
 <p style="margin-bottom:12px; font-size:13px; color:var(--color-text-muted,#666);">Selecciona el motivo del reporte:</p>
 <div style="display:flex; flex-direction:column; gap:8px;">
 <label style="display:flex; align-items:center; gap:10px; cursor:pointer; padding:10px 12px; border-radius:10px; border:1.5px solid #e0e0e0; transition:border-color 0.2s;">
-<input type="radio" name="report-reason" value="Producto inapropiado" style="accent-color:#ff4f81;">
+<input type="radio" name="report-reason" value="Producto inapropiado" style="accent-color:#c85c78;">
 <span style="font-size:13px;">Producto inapropiado</span>
 </label>
 <label style="display:flex; align-items:center; gap:10px; cursor:pointer; padding:10px 12px; border-radius:10px; border:1.5px solid #e0e0e0; transition:border-color 0.2s;">
-<input type="radio" name="report-reason" value="Información falsa o engañosa" style="accent-color:#ff4f81;">
+<input type="radio" name="report-reason" value="Información falsa o engañosa" style="accent-color:#c85c78;">
 <span style="font-size:13px;">Información falsa / engañosa</span>
 </label>
 <label style="display:flex; align-items:center; gap:10px; cursor:pointer; padding:10px 12px; border-radius:10px; border:1.5px solid #e0e0e0; transition:border-color 0.2s;" id="report-otro-label">
-<input type="radio" name="report-reason" value="Otro" style="accent-color:#ff4f81;" id="report-radio-otro">
+<input type="radio" name="report-reason" value="Otro" style="accent-color:#c85c78;" id="report-radio-otro">
 <span style="font-size:13px;">Otro (especificar)</span>
 </label>
 <div id="report-otro-field" style="display:none; margin-top:4px;">
@@ -1026,7 +1026,7 @@ style="width:100%; padding:10px 12px; border-radius:10px; border:1.5px solid #e0
 </div>
 <div class="custom-alert-footer">
 <button class="custom-alert-btn cancel" id="report-cancel-btn"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" aria-hidden="true"><use href="#ic-x"/></svg> Cancelar</button>
-<button class="custom-alert-btn confirm" id="report-confirm-btn" style="background:linear-gradient(135deg,#ff4f81,#ff7a4f);"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" aria-hidden="true"><use href="#ic-flag"/></svg> Enviar reporte</button>
+<button class="custom-alert-btn confirm" id="report-confirm-btn" style="background:linear-gradient(135deg,#c85c78,#d68a5f);"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" aria-hidden="true"><use href="#ic-flag"/></svg> Enviar reporte</button>
 </div>
 </div>
 `;
@@ -1601,7 +1601,7 @@ if (!data || !data.ok) {
     console.error('Error cargando fundaciones:', err);
     grid.innerHTML = `<div style="grid-column:1/-1; text-align:center; padding:40px; color:var(--color-error,#ef4444);">
       Error al cargar fundaciones.<br>
-      <button onclick="window.__reloadBeneficiariosGrid && window.__reloadBeneficiariosGrid()" style="margin-top:12px; padding:8px 20px; border-radius:30px; border:none; background:#ff4f81; color:white; cursor:pointer; font-weight:600;"  >${Icon('refresh')} Reintentar</button>
+      <button onclick="window.__reloadBeneficiariosGrid && window.__reloadBeneficiariosGrid()" style="margin-top:12px; padding:8px 20px; border-radius:30px; border:none; background:#c85c78; color:white; cursor:pointer; font-weight:600;"  >${Icon('refresh')} Reintentar</button>
     </div>`;
     window.__reloadBeneficiariosGrid = () => { beneficiariosCargados = false; loadBeneficiariosGrid(); };
   }
@@ -1706,7 +1706,7 @@ function mostrarModalCalificar(item, phone) {
         style="width:100%;box-sizing:border-box;border:1px solid #ddd;border-radius:10px;padding:10px;font-size:13px;margin-bottom:14px;resize:none;min-height:60px;"></textarea>
       <div style="display:flex;gap:10px;">
         <button id="calif-omitir" style="flex:1;padding:11px;border-radius:10px;border:1.5px solid #ddd;background:#fff;color:#888;font-weight:700;cursor:pointer;">Ahora no</button>
-        <button id="calif-enviar" style="flex:1;padding:11px;border-radius:10px;border:none;background:linear-gradient(135deg,#ff4f81,#ff7a4f);color:#fff;font-weight:700;cursor:pointer;">Enviar</button>
+        <button id="calif-enviar" style="flex:1;padding:11px;border-radius:10px;border:none;background:linear-gradient(135deg,#c85c78,#d68a5f);color:#fff;font-weight:700;cursor:pointer;">Enviar</button>
       </div>
     </div>`;
   document.body.appendChild(modal);
@@ -1964,14 +1964,14 @@ window.openBeneficiarioRegister = function(modoEdicion, idBeneficiario, datosAct
       link.style.padding = '8px 16px';
       link.style.borderRadius = '999px';
       link.style.background = '#ffffff';
-      link.style.color = '#ff4f81';
+      link.style.color = '#c85c78';
       link.style.fontWeight = '700';
       link.style.fontSize = '.82rem';
       link.style.textDecoration = 'none';
       link.style.boxShadow = '0 1px 3px rgba(0,0,0,.12)';
       link.style.transition = 'background .15s, color .15s';
-      link.addEventListener('mouseenter', () => { link.style.background = '#ff4f81'; link.style.color = '#ffffff'; });
-      link.addEventListener('mouseleave', () => { link.style.background = '#ffffff'; link.style.color = '#ff4f81'; });
+      link.addEventListener('mouseenter', () => { link.style.background = '#c85c78'; link.style.color = '#ffffff'; });
+      link.addEventListener('mouseleave', () => { link.style.background = '#ffffff'; link.style.color = '#c85c78'; });
       document.getElementById('ben-reg-msg').appendChild(link);
       return;
     }

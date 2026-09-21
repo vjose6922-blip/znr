@@ -554,7 +554,7 @@ function activarMiniSlider(container) {
 window.crearSliderImagenesHTML = crearSliderImagenesHTML;
 window.activarMiniSlider = activarMiniSlider;
 const _miniSliderSt = document.createElement('style');
-_miniSliderSt.textContent = '.mini-slider{position:relative;width:100%;height:100%;overflow:hidden;touch-action:pan-y;}.mini-slider-track{display:flex;width:100%;height:100%;transition:transform .3s ease;}.mini-slider-slide{min-width:100%;height:100%;flex-shrink:0;}.mini-slider-dots{position:absolute;bottom:6px;left:50%;transform:translateX(-50%);display:flex;gap:4px;z-index:2;}.mini-slider-dot{width:5px;height:5px;border-radius:50%;background:rgba(255,255,255,.6);box-shadow:0 0 2px rgba(0,0,0,.4);transition:all .2s;}.mini-slider-dot.active{background:#ff4f81;width:12px;border-radius:3px;}';
+_miniSliderSt.textContent = '.mini-slider{position:relative;width:100%;height:100%;overflow:hidden;touch-action:pan-y;}.mini-slider-track{display:flex;width:100%;height:100%;transition:transform .3s ease;}.mini-slider-slide{min-width:100%;height:100%;flex-shrink:0;}.mini-slider-dots{position:absolute;bottom:6px;left:50%;transform:translateX(-50%);display:flex;gap:4px;z-index:2;}.mini-slider-dot{width:5px;height:5px;border-radius:50%;background:rgba(255,255,255,.6);box-shadow:0 0 2px rgba(0,0,0,.4);transition:all .2s;}.mini-slider-dot.active{background:#c85c78;width:12px;border-radius:3px;}';
 document.head.appendChild(_miniSliderSt);
 function safeHtml(strings, ...values) {
 return strings.reduce((result, string, i) => {
@@ -1606,7 +1606,7 @@ function initImageModalControls() {
 .im-vendor-pill span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .im-vendor-pill-znr {
   padding: 6px 14px; 
-  background: linear-gradient(135deg,#ff4f81,#a855f7);
+  background: linear-gradient(135deg,#c85c78,#a855f7);
 }
 .im-donation-badge {
   display: inline-flex; align-items: center; gap: 4px;
@@ -1646,7 +1646,7 @@ function initImageModalControls() {
   transition: background .2s;
   flex-shrink: 0;
 }
-.im-close:hover { background: rgba(255,79,129,.4); }
+.im-close:hover { background: rgba(200,92,120,0.22); }
 
 .im-hero-col {
   position: relative;
@@ -1672,7 +1672,7 @@ function initImageModalControls() {
   backdrop-filter: blur(6px);
 }
 .im-prev { left: 10px; } .im-next { right: 10px; }
-.im-prev:hover, .im-next:hover { background: rgba(255,79,129,.55); }
+.im-prev:hover, .im-next:hover { background: rgba(200,92,120,0.22); }
 
 .im-wrapper {
   width: 100%;
@@ -1695,7 +1695,7 @@ function initImageModalControls() {
   display: flex; gap: 5px; z-index: 3;
 }
 .im-dot { width: 6px; height: 6px; border-radius: 50%; background: rgba(255,255,255,.35); transition: all .2s; }
-.im-dot.active { background: #ff4f81; width: 16px; border-radius: 3px; }
+.im-dot.active { background: #c85c78; width: 16px; border-radius: 3px; }
 
 .im-product-info {
   width: 100%;
@@ -1730,9 +1730,9 @@ function initImageModalControls() {
 .im-info-price {
   font-size: 17px;
   font-weight: 800;
-  color: #ff4f81;
+  color: #c85c78;
   white-space: nowrap;
-  background: rgba(255,79,129,.12);
+  background: rgba(200,92,120,0.12);
   padding: 2px 6px;
   border-radius: 10px;
   max-width: 140px;
@@ -1768,7 +1768,7 @@ function initImageModalControls() {
 .im-desc-toggle {
   background: none;
   border: none;
-  color: #ff4f81;
+  color: #c85c78;
   font-size: 12.5px;
   font-weight: 700;
   padding: 0;
@@ -1786,7 +1786,7 @@ function initImageModalControls() {
   letter-spacing: .4px;
 }
 .im-info-badge {
-  background: linear-gradient(135deg,#ff4f81,#ff7a4f);
+  background: linear-gradient(135deg,#c85c78,#d68a5f);
   color: #fff;
   font-size: 10px;
   font-weight: 700;
@@ -1833,7 +1833,7 @@ function initImageModalControls() {
   font-size: 13px;
   font-weight: 800;
   color: #fff;
-  background: linear-gradient(135deg,#ff4f81,#a855f7);
+  background: linear-gradient(135deg,#c85c78,#a855f7);
   border: none;
   border-radius: 24px;
   cursor: pointer;
@@ -1899,15 +1899,15 @@ function initImageModalControls() {
 
 .im-magazine-panel::-webkit-scrollbar { display: none; }
 .im-related-card:last-child { border-right: none; }
-.im-related-card:hover { background: rgba(255,79,129,.08); }
+.im-related-card:hover { background: rgba(200,92,120,0.08); }
 .im-related-card::after { content: ''; position: absolute; inset: 0; border: 2px solid transparent; border-radius: 0; transition: border-color .18s; pointer-events: none; }
-.im-related-card:hover::after { border-color: rgba(255,79,129,.4); }
+.im-related-card:hover::after { border-color: rgba(200,92,120,0.22); }
 .im-related-img-wrap { width: 100%; aspect-ratio: 1/1; overflow: hidden; background: #1a1a28; }
 .im-related-img-wrap img { width: 100%; height: 100%; object-fit: contain; transition: transform .3s; }
 .im-related-card:hover .im-related-img-wrap img { transform: scale(1.08); }
 .im-related-info { padding: 5px 6px 7px; display: flex; flex-direction: column; gap: 1px; background: rgba(0,0,0,.55); }
 .im-related-name { font-size: 10px; font-weight: 600; color: rgba(255,255,255,.8); line-height: 1.25; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
-.im-related-price { font-size: 12px; font-weight: 800; color: #ff4f81; margin-top: 1px; }
+.im-related-price { font-size: 12px; font-weight: 800; color: #c85c78; margin-top: 1px; }
 
 .im-magazine-layout.im-no-panel .im-hero-col { flex: 1 1 auto; }
 .im-magazine-layout.im-no-panel .im-wrapper { height: 82dvh; }
@@ -1932,12 +1932,12 @@ function initImageModalControls() {
 [data-theme="light"] .im-ver-beneficiario-btn { background: rgba(0,0,0,.06); color: #b45309; }
 [data-theme="light"] .im-ver-beneficiario-btn:hover { background: rgba(249,115,22,.15); color: #9a3412; }
 [data-theme="light"] .im-close { background: rgba(0,0,0,.07); color: #333; }
-[data-theme="light"] .im-close:hover { background: rgba(255,79,129,.15); color: #e11d6a; }
+[data-theme="light"] .im-close:hover { background: rgba(200,92,120,0.15); color: #e11d6a; }
 [data-theme="light"] .im-hero-col,
 [data-theme="light"] .im-wrapper { background: #f2f3f6; }
 [data-theme="light"] .im-dot { background: rgba(0,0,0,.18); }
 [data-theme="light"] .im-prev, [data-theme="light"] .im-next { background: rgba(255,255,255,.75); color: #333; }
-[data-theme="light"] .im-prev:hover, [data-theme="light"] .im-next:hover { background: rgba(255,79,129,.5); color: #fff; }
+[data-theme="light"] .im-prev:hover, [data-theme="light"] .im-next:hover { background: rgba(200,92,120,0.22); color: #fff; }
 [data-theme="light"] .im-product-info { background: #ffffff; border-top-color: rgba(0,0,0,.08); border-bottom-color: rgba(0,0,0,.08); }
 [data-theme="light"] .im-info-name { color: #111318; }
 [data-theme="light"] .im-info-cat { background: rgba(0,0,0,.06); color: #555; }
@@ -1948,7 +1948,7 @@ function initImageModalControls() {
 [data-theme="light"] .im-buy-btn:disabled { background: rgba(0,0,0,.07); color: rgba(0,0,0,.35); }
 [data-theme="light"] .im-magazine-panel { background: #ffffff; border-top-color: rgba(0,0,0,.08); }
 [data-theme="light"] .im-related-card { color: #111318; border-right-color: rgba(0,0,0,.08); }
-[data-theme="light"] .im-related-card:hover { background: rgba(255,79,129,.06); }
+[data-theme="light"] .im-related-card:hover { background: rgba(200,92,120,0.06); }
 [data-theme="light"] .im-related-img-wrap { background: #eef0f4; }
 [data-theme="light"] .im-related-info { background: rgba(255,255,255,.92); }
 [data-theme="light"] .im-related-name { color: #333; }
@@ -2066,8 +2066,8 @@ const savedDayArr = savedDays ? savedDays.split(',') : [];
 const dayBtns = DAYS.map(d => {
 const active = savedDayArr.includes(d);
 return `<button type="button" class="_day-btn${active?' _day-active':''}" data-day="${d}"
-style="padding:6px 10px;border-radius:20px;border:1.5px solid ${active?'#ff4f81':'rgba(255,255,255,.15)'};
-background:${active?'rgba(255,79,129,.18)':'transparent'};color:${active?'#ff4f81':'#aaa'};
+style="padding:6px 10px;border-radius:20px;border:1.5px solid ${active?'#c85c78':'rgba(255,255,255,.15)'};
+background:${active?'rgba(200,92,120,0.18)':'transparent'};color:${active?'#c85c78':'#aaa'};
 font-size:12px;font-weight:600;cursor:pointer;transition:all .15s">${d}</button>`;
 }).join('');
 const hourOpts = (sel) =>HOURS.map(h =>
@@ -2084,7 +2084,7 @@ overlay.innerHTML = `
 <!-- ADDRESS -->
 <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
 <label style="font-size:12px;font-weight:600;color:#aaa;text-transform:uppercase;letter-spacing:.05em">Dirección</label>
-<button type="button" id="_gps-btn" style="background:rgba(255,79,129,.12);border:1px solid rgba(255,79,129,.3);color:#ff4f81;border-radius:20px;padding:4px 12px;font-size:11px;font-weight:600;cursor:pointer"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z"/></svg> Usar GPS</button>
+<button type="button" id="_gps-btn" style="background:rgba(200,92,120,0.12);border:1px solid rgba(200,92,120,0.22);color:#c85c78;border-radius:20px;padding:4px 12px;font-size:11px;font-weight:600;cursor:pointer"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z"/></svg> Usar GPS</button>
 </div>
 <textarea id="_addr-input" rows="2" placeholder="Calle, número, colonia, ciudad…"
 style="width:100%;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);color:var(--color-text-primary,#fff);border-radius:12px;padding:12px;font-size:14px;font-family:inherit;resize:none;box-sizing:border-box;margin-bottom:16px">${escapeHtml(saved)}</textarea>
@@ -2110,7 +2110,7 @@ ${dayBtns}
 style="width:100%;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);color:var(--color-text-primary,#fff);border-radius:12px;padding:12px;font-size:13px;font-family:inherit;resize:none;box-sizing:border-box;margin-bottom:20px">${escapeHtml(savedNote)}</textarea>
 <div style="display:flex;gap:10px">
 <button id="_addr-cancel" style="flex:1;padding:13px;background:rgba(255,255,255,.07);border:none;border-radius:14px;color:#aaa;font-size:14px;font-weight:600;cursor:pointer"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" aria-hidden="true"><use href="#ic-x"/></svg> Cancelar</button>
-<button id="_addr-confirm" style="flex:2;padding:13px;background:linear-gradient(135deg,#ff4f81,#ff7a4f);border:none;border-radius:14px;color:#fff;font-size:14px;font-weight:700;cursor:pointer"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" aria-hidden="true"><use href="#ic-check"/></svg> Confirmar</button>
+<button id="_addr-confirm" style="flex:2;padding:13px;background:linear-gradient(135deg,#c85c78,#d68a5f);border:none;border-radius:14px;color:#fff;font-size:14px;font-weight:700;cursor:pointer"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" aria-hidden="true"><use href="#ic-check"/></svg> Confirmar</button>
 </div>
 </div>
 `;
@@ -2132,7 +2132,7 @@ if (Array.isArray(perfil.dias) && !savedDays) {
 overlay.querySelectorAll('._day-btn').forEach(btn => {
 if (perfil.dias.includes(btn.dataset.day)) {
 btn.classList.add('_day-active');
-btn.style.border = '1.5px solid #ff4f81'; btn.style.background = 'rgba(255,79,129,.18)'; btn.style.color = '#ff4f81';
+btn.style.border = '1.5px solid #c85c78'; btn.style.background = 'rgba(200,92,120,0.18)'; btn.style.color = '#c85c78';
 }
 });
 }
@@ -2150,16 +2150,16 @@ mapsLink.id  = '_maps-link';
 mapsLink.href  = mapsUrl;
 mapsLink.target = '_blank';
 mapsLink.rel  = 'noopener noreferrer';
-mapsLink.style.cssText = 'display:inline-flex;align-items:center;gap:5px;font-size:12px;color:#ff4f81;text-decoration:none;font-weight:600;margin-bottom:16px';
+mapsLink.style.cssText = 'display:inline-flex;align-items:center;gap:5px;font-size:12px;color:#c85c78;text-decoration:none;font-weight:600;margin-bottom:16px';
 mapsLink.innerHTML = ' Ver ubicación en Google Maps';
 overlay.querySelector('#_addr-input').insertAdjacentElement('afterend', mapsLink);
 }
 overlay.querySelectorAll('._day-btn').forEach(btn => {
 btn.addEventListener('click', () => {
 const active = btn.classList.toggle('_day-active');
-btn.style.border  = `1.5px solid ${active ? '#ff4f81' : 'rgba(255,255,255,.15)'}`;
-btn.style.background  = active ? 'rgba(255,79,129,.18)' : 'transparent';
-btn.style.color  = active ? '#ff4f81' : '#aaa';
+btn.style.border  = `1.5px solid ${active ? '#c85c78' : 'rgba(255,255,255,.15)'}`;
+btn.style.background  = active ? 'rgba(200,92,120,0.18)' : 'transparent';
+btn.style.color  = active ? '#c85c78' : '#aaa';
 });
 });
 overlay.querySelector('#_gps-btn').addEventListener('click', () => {
@@ -2197,7 +2197,7 @@ mapsLink = document.createElement('a');
 mapsLink.id  = '_maps-link';
 mapsLink.target = '_blank';
 mapsLink.rel  = 'noopener noreferrer';
-mapsLink.style.cssText = 'display:inline-flex;align-items:center;gap:5px;font-size:12px;color:#ff4f81;text-decoration:none;font-weight:600;margin-bottom:16px';
+mapsLink.style.cssText = 'display:inline-flex;align-items:center;gap:5px;font-size:12px;color:#c85c78;text-decoration:none;font-weight:600;margin-bottom:16px';
 overlay.querySelector('#_addr-input').insertAdjacentElement('afterend', mapsLink);
 }
 mapsLink.href  = mapsUrl;
@@ -2615,7 +2615,7 @@ const itemsHtml = items.map(i => `
 <div style="font-size:13px;font-weight:600;color:var(--color-text-primary,#fff);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escapeHtml(i.name)}${i._donacion ? ` <span style="color:#f97316;font-weight:700;">${Icon('heart-fill')} Donativo</span>` : ''}</div>
 <div style="font-size:12px;color:#aaa">${i.Talla ? ' ' + escapeHtml(i.Talla) + ' · ' : ''} ${i.quantity} × ${formatCurrency(i.price)}</div>
 </div>
-<div style="font-size:13px;font-weight:700;color:#ff4f81;white-space:nowrap">${formatCurrency(i.price * i.quantity)}</div>
+<div style="font-size:13px;font-weight:700;color:#c85c78;white-space:nowrap">${formatCurrency(i.price * i.quantity)}</div>
 </div>
 `).join('');
 const remainingNote = remaining > 0
@@ -2676,7 +2676,7 @@ max-height:85vh;overflow-y:auto;
 ${itemsHtml}
 <div style="display:flex;justify-content:space-between;align-items:center;padding-top:10px;margin-top:6px">
 <span style="font-size:13px;color:#aaa">Total a coordinar</span>
-<span style="font-size:18px;font-weight:800;color:#ff4f81">${formatCurrency(subtotal)}</span>
+<span style="font-size:18px;font-weight:800;color:#c85c78">${formatCurrency(subtotal)}</span>
 </div>
 </div>
 ${entregaHtml}
@@ -2694,7 +2694,7 @@ ${vendorUid || waUrl
 ? `<button id="vcm-send-btn"
 style="display:flex;align-items:center;justify-content:center;gap:10px;
 padding:15px;border-radius:16px;border:none;
-background:linear-gradient(135deg,#ff4f81,#7c3aed);
+background:linear-gradient(135deg,#c85c78,#7c3aed);
 color:#fff;font-size:15px;font-weight:700;
 cursor:pointer;-webkit-tap-highlight-color:transparent">
 ${Icon('bell', {size:20})}Enviar pedido a ${escapeHtml(nombre)}
@@ -3298,7 +3298,7 @@ installBtn.style.cssText = `
 position: fixed;
 bottom: 90px;
 left: 16px;
-background: linear-gradient(135deg, #ff4f81, #ff7a4f);
+background: linear-gradient(135deg, #c85c78, #d68a5f);
 color: white;
 border: none;
 border-radius: 50px;
