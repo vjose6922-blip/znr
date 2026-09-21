@@ -1184,7 +1184,6 @@
               </select>
             </div>
             <div class="profile-products-toggles">
-              <label class="profile-toggle-chip" id="profile-stock-chip"><input type="checkbox" id="profile-only-stock"> Solo disponibles</label>
               ${hasDonativos ? `<label class="profile-toggle-chip" id="profile-donativo-chip"><input type="checkbox" id="profile-only-donativo"> Donativos</label>` : ''}
             </div>
             <button type="button" id="profile-clear-filters-active" class="profile-clear-filters-link" style="display:none;">${Icon('x')} Quitar filtros</button>
@@ -1263,17 +1262,16 @@
 
         // ── Filtros, orden y paginación de productos ──
         let productsShown = PRODUCTS_PAGE_SIZE;
-        const productFilterState = { search: '', sort: 'relevancia', onlyStock: false, onlyDonativo: false };
+        const productFilterState = { search: '', sort: 'relevancia', onlyDonativo: false };
 
         function normalizeText(s) {
           return String(s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
         }
 
         function getFilteredProducts() {
-          let list = productos.slice();
+          let list = productos.slice().filter(p => Number(p.stock || 0) > 0);
           const q = normalizeText(productFilterState.search.trim());
           if (q) list = list.filter(p => normalizeText(p.nombre).includes(q));
-          if (productFilterState.onlyStock) list = list.filter(p => Number(p.stock || 0) > 0);
           if (productFilterState.onlyDonativo) {
             list = list.filter(p => p.donado === true || p.donado === 'TRUE' || p.donado === 'true');
           }
@@ -1592,7 +1590,6 @@
 
           const filtersActive = productFilterState.search.trim() !== ''
             || productFilterState.sort !== 'relevancia'
-            || productFilterState.onlyStock
             || productFilterState.onlyDonativo;
           const clearActiveBtn = document.getElementById('profile-clear-filters-active');
           if (clearActiveBtn) clearActiveBtn.style.display = filtersActive ? '' : 'none';
@@ -1628,18 +1625,14 @@
         function resetProductFilters() {
           productFilterState.search = '';
           productFilterState.sort = 'relevancia';
-          productFilterState.onlyStock = false;
           productFilterState.onlyDonativo = false;
           productsShown = PRODUCTS_PAGE_SIZE;
           const searchInput = document.getElementById('profile-product-search');
           const sortSelect = document.getElementById('profile-product-sort');
-          const stockChk = document.getElementById('profile-only-stock');
           const donativoChk = document.getElementById('profile-only-donativo');
           if (searchInput) searchInput.value = '';
           if (sortSelect) sortSelect.value = 'relevancia';
-          if (stockChk) stockChk.checked = false;
           if (donativoChk) donativoChk.checked = false;
-          document.getElementById('profile-stock-chip')?.classList.remove('is-active');
           document.getElementById('profile-donativo-chip')?.classList.remove('is-active');
           renderProductsGrid();
         }
@@ -1658,12 +1651,6 @@
         });
         document.getElementById('profile-product-sort')?.addEventListener('change', function() {
           productFilterState.sort = this.value;
-          productsShown = PRODUCTS_PAGE_SIZE;
-          renderProductsGrid();
-        });
-        document.getElementById('profile-only-stock')?.addEventListener('change', function() {
-          productFilterState.onlyStock = this.checked;
-          document.getElementById('profile-stock-chip')?.classList.toggle('is-active', this.checked);
           productsShown = PRODUCTS_PAGE_SIZE;
           renderProductsGrid();
         });

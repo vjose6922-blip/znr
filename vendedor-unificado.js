@@ -226,19 +226,28 @@ window.invalidateVendorProductsCache = function(uid) {
   window.invalidateVendorPagesCache(u);
 };
 window.fetchAndCacheVendorPage = async function(uid, page, limit, status) {
+  const soloSinStock = status === 'sin_stock';
   const data = await apiFetch({
     action: 'misProductosComunidad',
-    limit: limit,
-    page: page,
-    estado: status !== 'todos' ? status : undefined,
+    limit: soloSinStock ? 200 : limit,
+    page: soloSinStock ? 1 : page,
+    estado: (!soloSinStock && status !== 'todos') ? status : undefined,
     vendorToken: vendorSession.token
   }, 'GET');
 
   if (!data.ok) throw new Error(data.error || 'Error al cargar productos');
 
-  const myProducts = (data.products || []).filter(p => p.vendedor_uid === uid);
-  const total = data.total || myProducts.length;
-  const totalPages = data.totalPages || Math.ceil(total / limit) || 1;
+  let myProducts = (data.products || []).filter(p => p.vendedor_uid === uid);
+  let total, totalPages;
+  if (soloSinStock) {
+    myProducts = myProducts.filter(p => p.estado === 'aprobado' && Number(p.stock || 0) <= 0);
+    total = myProducts.length;
+    totalPages = Math.max(1, Math.ceil(total / limit));
+    myProducts = myProducts.slice((page - 1) * limit, page * limit);
+  } else {
+    total = data.total || myProducts.length;
+    totalPages = data.totalPages || Math.ceil(total / limit) || 1;
+  }
 
   const payload = { data: myProducts, total, page, totalPages };
   window.setVendorPageCache(uid, page, status, payload);
@@ -516,6 +525,7 @@ if (headerName) {
 applyLayoutGlobal(localStorage.getItem('products_layout') || 'grid');
 
 loadMyProducts();
+checkStockBanner();
 renderVendorPlanPanel();
 loadVendorSaleNotifications();
 setTimeout(loadInformeSemanal, 4000);
@@ -641,6 +651,7 @@ extraHtml: waExtraHtml
 
 loadVendorSaleNotifications();
 loadMyProducts();
+checkStockBanner();
 } else {
 window.showTemporaryMessage?.(data?.error || 'No se pudo procesar', 'error');
 }
@@ -747,6 +758,7 @@ function renderVendorPlanPanel() {
     { status: 'aprobado',  label: 'Aprobados' },
     { status: 'pendiente', label: 'Pendientes' },
     { status: 'rechazado', label: 'Rechazados' },
+    { status: 'sin_stock', label: 'Sin stock' },
   ];
   const statusFilterHTML = `
     <div class="vendor-status-filter" style="display:flex; gap:8px; margin-top:14px; flex-wrap:wrap;">
@@ -1094,6 +1106,21 @@ window.fetchPage = async function(uid, page, limit, status, background = false) 
   }
 };
 
+window.checkStockBanner = async function checkStockBanner() {
+  const el = document.getElementById('stock-alert-banner');
+  if (!el || !vendorSession) return;
+  try {
+    const res = await apiFetch({ action: 'misProductosComunidad', vendorToken: vendorSession.token, limit: 200, page: 1 }, 'GET');
+    const sinStock = res.ok ? (res.products || []).filter(p => p.estado === 'aprobado' && Number(p.stock || 0) <= 0) : [];
+    el.innerHTML = !sinStock.length ? '' : `
+      <div style="background:#fef2f2;border:1.5px solid #dc2626;border-radius:14px;padding:14px;margin-bottom:16px;">
+        <div style="font-weight:800;color:#991b1b;">⚠️ Tienes ${sinStock.length} producto${sinStock.length === 1 ? '' : 's'} sin stock</div>
+        <div style="font-size:12.5px;color:#7f1d1d;margin:4px 0 8px;">No se muestran a los compradores hasta que subas el stock o los elimines.</div>
+        ${sinStock.map(p => `<button type="button" class="btn-secondary" style="display:block;width:100%;text-align:left;margin-top:6px;font-size:12.5px;" onclick="editProduct('${p.id}');switchTab('form');">${escapeHtml(p.nombre || 'Producto')} →</button>`).join('')}
+      </div>`;
+  } catch (e) {}
+};
+
 window.updateDonacionesBadge = function updateDonacionesBadge() {
   const el = document.getElementById('donaciones-count-badge');
   if (!el) return;
@@ -1163,6 +1190,7 @@ if (!res.ok) throw new Error(res.error);
 showTemporaryMessage(' Producto eliminado', 'info');
 window.invalidateVendorProductsCache();
 loadMyProducts(true);
+checkStockBanner();
 } catch (err) {
 showTemporaryMessage(' ' + err.message, 'error');
 } finally {
@@ -1482,6 +1510,7 @@ showTemporaryMessage(editId ? ' Producto actualizado' : ' Producto publicado', '
 cancelEdit();
 window.invalidateVendorProductsCache();
 loadMyProducts(true);
+checkStockBanner();
 } catch (err) {
 console.error("Error en submitProduct:", err);
 if(window.ZRMonitor) ZRMonitor.report('ERROR','vendedor.js','submitProduct',err.message||String(err));
