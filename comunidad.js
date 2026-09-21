@@ -1742,10 +1742,7 @@ function mostrarModalCalificar(item, phone) {
         padding: 8px; box-sizing: border-box;
         margin: 0 auto 14px; display: block;
       }
-      #modal-calificar h2 {
-        margin: 0 0 4px; font-size: 1.05rem; font-weight: 700;
-        color: var(--color-text, #1a1a1a);
-      }
+      
       #modal-calificar .mc-sub {
         margin: 0 0 18px; font-size: 13px; color: #8a8a92;
         overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
