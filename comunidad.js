@@ -1702,7 +1702,7 @@ function mostrarModalCalificar(item, phone) {
   modal.innerHTML = `
     <div style="background:var(--color-surface,#fff);border-radius:20px;padding:24px;max-width:380px;width:100%;text-align:center;">
       <img src="${item.imagen || ''}" onerror="this.style.display='none'" style="width:80px;height:80px;object-fit:contain;border-radius:12px;background:#f5f5f8;margin:0 auto 12px;">
-      <h3 style="margin:0 0 4px;font-size:1rem;">¿Cómo estuvo tu compra?</h3>
+      <h2 style="margin:0 0 4px;font-size:1rem;">¿Cómo estuvo tu compra?</h2>
       <p style="margin:0 0 16px;font-size:13px;color:#888;">${(item.nombre || 'tu producto')}</p>
       <div id="calif-stars" style="font-size:32px;letter-spacing:6px;margin-bottom:14px;cursor:pointer;"></div>
       <textarea id="calif-comentario" placeholder="Cuéntanos algo (opcional)" maxlength="300"
