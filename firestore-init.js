@@ -1,4 +1,3 @@
-
 /**
  * firestore-init.js
  * ------------------------------------------------------------------
@@ -68,6 +67,23 @@ try {
 }
 
 window.znrFirestore = window.znrFirestore || {};
+
+// ── Exclusión mutua entre identidades de Firebase Auth ─────────────────
+// `auth` es una sola instancia global. Si dos lecturas con identidades
+// distintas corren en paralelo (p. ej. el panel de vendedor pidiendo sus
+// propias ventas MIENTRAS notification-center.js revisa, en la misma
+// página, las notificaciones de ese mismo usuario como "cliente" por su
+// teléfono), la segunda puede reemplazar la sesión de Auth a mitad de la
+// primera lectura — y esa primera lectura termina en permission-denied
+// aunque el uid que la pidió sí tenía permiso. Por eso todo lo que hace
+// ensureSignedIn() + la lectura que depende de esa sesión debe correr en
+// una sola fila, nunca entrelazado.
+let _authQueue = Promise.resolve();
+function _conIdentidadExclusiva(fn) {
+  const resultado = _authQueue.then(fn, fn);
+  _authQueue = resultado.then(function () {}, function () {});
+  return resultado;
+}
 
 // ── Reintentos ante fallos TRANSITORIOS de red ─────────────────────────
 // GAS ya no existe, así que un fallo de Firestore no tiene respaldo: si la
@@ -220,22 +236,24 @@ function _fsNormalizarFecha(data) {
  *            necesita GAS para emitir el custom token
  */
 window.znrFirestore.getNotificacionesCentro = async function (ownerType, ownerId, ownerRef) {
-  try {
-    const uid = await window.znrFirestore.ensureSignedIn(ownerType, ownerId, ownerRef);
-    if (!uid) return { ok: false, error: 'sin sesión de Firebase' };
+  return _conIdentidadExclusiva(async () => {
+    try {
+      const uid = await window.znrFirestore.ensureSignedIn(ownerType, ownerId, ownerRef);
+      if (!uid) return { ok: false, error: 'sin sesión de Firebase' };
 
-    const q = query(
-      collection(db, 'notificaciones_centro', ownerType + '_' + String(ownerId), 'items'),
-      orderBy('fecha', 'desc'),
-      limit(30)
-    );
-    const snap = await _fsConReintentos(() => getDocs(q));
-    const notificaciones = snap.docs.map(d => _fsNormalizarFecha({ id: d.id, ownerType, ...d.data() }));
-    return { ok: true, notificaciones };
-  } catch (err) {
-    console.warn('Firestore notificaciones_centro falló:', err);
-    return { ok: false, error: String(err) };
-  }
+      const q = query(
+        collection(db, 'notificaciones_centro', ownerType + '_' + String(ownerId), 'items'),
+        orderBy('fecha', 'desc'),
+        limit(30)
+      );
+      const snap = await _fsConReintentos(() => getDocs(q));
+      const notificaciones = snap.docs.map(d => _fsNormalizarFecha({ id: d.id, ownerType, ...d.data() }));
+      return { ok: true, notificaciones };
+    } catch (err) {
+      console.warn('Firestore notificaciones_centro falló:', err);
+      return { ok: false, error: String(err) };
+    }
+  });
 };
 
 /**
@@ -244,17 +262,19 @@ window.znrFirestore.getNotificacionesCentro = async function (ownerType, ownerId
  * o { ok: false, error } si falla (el caller debe hacer fallback a GAS).
  */
 window.znrFirestore.getVentasComunidadVendedor = async function (vendorUid, vendorToken) {
-  try {
-    const uid = await window.znrFirestore.ensureSignedIn('vendedor', vendorUid, vendorToken);
-    if (!uid) return { ok: false, error: 'sin sesión de Firebase' };
+  return _conIdentidadExclusiva(async () => {
+    try {
+      const uid = await window.znrFirestore.ensureSignedIn('vendedor', vendorUid, vendorToken);
+      if (!uid) return { ok: false, error: 'sin sesión de Firebase' };
 
-    const snap = await _fsConReintentos(() => getDocs(collection(db, 'ventas_comunidad', vendorUid, 'pedidos')));
-    const notificaciones = snap.docs.map(d => _fsNormalizarFecha(d.data()));
-    return { ok: true, notificaciones };
-  } catch (err) {
-    console.warn('Firestore ventas_comunidad falló:', err);
-    return { ok: false, error: String(err) };
-  }
+      const snap = await _fsConReintentos(() => getDocs(collection(db, 'ventas_comunidad', vendorUid, 'pedidos')));
+      const notificaciones = snap.docs.map(d => _fsNormalizarFecha(d.data()));
+      return { ok: true, notificaciones };
+    } catch (err) {
+      console.warn('Firestore ventas_comunidad falló:', err);
+      return { ok: false, error: String(err) };
+    }
+  });
 };
 
 /**
