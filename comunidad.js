@@ -1941,6 +1941,12 @@ function mostrarModalCalificar(item, phone) {
   });
 }
 
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initComunidad);
+} else {
+  initComunidad();
+}
+  
 // ── Modal: Registro de beneficiario (y también edición, ver 2do/3er parámetro) ─
 // modoEdicion: true => es una solicitud de edición sobre un beneficiario ya aprobado
 // idBeneficiario: id del beneficiario existente (requerido si modoEdicion=true)
