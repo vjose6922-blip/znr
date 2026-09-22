@@ -1,5 +1,10 @@
-const CACHE_NAME    = 'zr-cache-v94';
-const DYNAMIC_CACHE = 'zr-dynamic-v24';
+// Sin número de versión: el HTML/JS del shell ahora se sirve NETWORK_FIRST
+// (ver getCacheStrategy), así que ya no depende de bumpear este nombre en
+// cada deploy para que los usuarios vean el contenido fresco. Solo
+// cambiarías este nombre si algún día necesitas forzar un borrado total
+// de la caché (p.ej. cambiaste la lógica de cacheo en sí).
+const CACHE_NAME    = 'zr-cache';
+const DYNAMIC_CACHE = 'zr-dynamic';
 const OFFLINE_URL   = '/znr/offline.html';
 
 const STATIC_ASSETS = [
@@ -103,7 +108,14 @@ function getCacheStrategy(request) {
   // primero, nunca servir cacheado indefinidamente como haría CACHE_FIRST.
   if (url.hostname.includes('firebaseio.com')) return 'NETWORK_FIRST';
   if (API_DOMAINS.some(d => url.hostname.includes(d))) return 'NETWORK_FIRST';
-  if (['document','style','script'].includes(request.destination)) return 'STALE_WHILE_REVALIDATE';
+  // El HTML y el JS del shell van siempre por red primero, y además
+  // sin pasar por el caché del CDN de GitHub Pages (Fastly): NETWORK_FIRST
+  // solo evita la caché local del navegador, no la del CDN, que puede
+  // seguir sirviendo la copia vieja varios minutos incluso con
+  // {cache:'reload'}. NETWORK_FIRST_FRESH agrega un parámetro que cambia
+  // en cada intento para forzar que Fastly vaya siempre a origen.
+  if (['document','script'].includes(request.destination)) return 'NETWORK_FIRST_FRESH';
+  if (request.destination === 'style') return 'STALE_WHILE_REVALIDATE';
   return 'CACHE_FIRST';
 }
 
@@ -114,6 +126,7 @@ self.addEventListener('fetch', event => {
     CACHE_FIRST:            cacheFirst,
     NETWORK_ONLY:           networkOnly,
     NETWORK_FIRST:          networkFirst,
+    NETWORK_FIRST_FRESH:    networkFirstFresh,
     STALE_WHILE_REVALIDATE: staleWhileRevalidate,
   };
   event.respondWith((handlers[strategy] || networkFirst)(event.request));
@@ -159,6 +172,30 @@ async function networkOnly(request) {
     return new Response(JSON.stringify(null), {
       status: 503, headers: { 'Content-Type': 'application/json' }
     });
+  }
+}
+
+// Igual que networkFirst, pero pensada para el HTML/JS del shell servido
+// por GitHub Pages: agrega un parámetro que cambia en cada intento para
+// que el CDN (Fastly) nunca tenga esa URL exacta cacheada y siempre
+// reenvíe la petición a origen. La respuesta se guarda en caché bajo la
+// request ORIGINAL (sin el parámetro), así el fallback offline sigue
+// funcionando con la URL real que pide el navegador.
+async function networkFirstFresh(request) {
+  const bustUrl = new URL(request.url);
+  bustUrl.searchParams.set('_swfresh', Date.now().toString());
+  try {
+    const net = await fetch(bustUrl.toString(), { cache: 'no-store' });
+    if (net?.status === 200) {
+      const cache = await caches.open(CACHE_NAME);
+      cache.put(request, net.clone());
+    }
+    return net;
+  } catch {
+    const cached = await caches.match(request);
+    if (cached) return cached;
+    if (request.mode === 'navigate') return caches.match(OFFLINE_URL);
+    throw new Error('Offline');
   }
 }
 
