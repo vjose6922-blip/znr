@@ -802,7 +802,7 @@ function renderOfertasCarousel(products) {
   const track = document.getElementById('comunidad-ofertas-track');
   if (!wrap || !track) return;
   const ofertas = (products || [])
-    .filter(p => (Number(p.precio_original) || 0) > (Number(p.precio) || 0))
+    .filter(p => Number(p.stock || 0) > 0 && (Number(p.precio_original) || 0) > (Number(p.precio) || 0))
     .sort((a, b) => (1 - a.precio / a.precio_original) < (1 - b.precio / b.precio_original) ? 1 : -1)
     .slice(0, 10);
   if (!ofertas.length) { wrap.style.display = 'none'; return; }
@@ -823,10 +823,11 @@ function renderRecomendadoParaTi(products) {
   const track = document.getElementById('comunidad-recomendado-track');
   if (!wrap || !track) return;
   const categorias = obtenerCategoriasPreferidas();
+  const conStock = (products || []).filter(p => Number(p.stock || 0) > 0);
   let recomendados = [];
   if (categorias.length) {
     // Un balde por categoría preferida (más vista primero), barajado internamente
-    const baldes = categorias.map(cat => shuffleArray((products || []).filter(p => p.categoria === cat)));
+    const baldes = categorias.map(cat => shuffleArray(conStock.filter(p => p.categoria === cat)));
     let i = 0;
     while (recomendados.length < 10 && baldes.some(b => b.length)) {
       const balde = baldes[i % baldes.length];
@@ -834,7 +835,7 @@ function renderRecomendadoParaTi(products) {
       i++;
     }
   } else {
-    recomendados = (products || []).filter(p => p.vendedor_plan === 'plus').slice(0, 10);
+    recomendados = conStock.filter(p => p.vendedor_plan === 'plus').slice(0, 10);
   }
   if (!recomendados.length) { wrap.style.display = 'none'; return; }
   wrap.style.display = '';
@@ -847,14 +848,16 @@ function renderRecomendadoParaTi(products) {
 function renderProducts() {
 if (!gridContainer) return;
 try {
-  // Los productos ya vienen paginados desde el backend — renderizamos todo el array
-  if (filteredProducts.length === 0) {
+  // Los productos ya vienen paginados desde el backend — renderizamos todo el array,
+  // ocultando los que ya no tienen stock disponible.
+  const visibles = filteredProducts.filter(p => Number(p.stock || 0) > 0);
+  if (visibles.length === 0) {
     gridContainer.innerHTML = `<div style="grid-column:1/-1; text-align:center; padding:40px;">No hay productos que coincidan con los filtros.</div>`;
     renderPagination();
     return;
   }
   gridContainer.innerHTML = '';
-  filteredProducts.forEach(product => {
+  visibles.forEach(product => {
     const card = createCommunityCard(product);
     if (card) gridContainer.appendChild(card);
   });
