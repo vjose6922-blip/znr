@@ -53,33 +53,19 @@
     return null;
   }
 
-  function apiUrl() {
-    return window.API_URL;
-  }
-
   // marcarNotificacionLeida/marcarTodasNotificacionesLeidas ya migraron a
-  // vendedores-api. fetchFeed (misNotificacionesVendedor/Cliente) NO se
-  // tocó a propósito: es solo el respaldo de cuando falla la lectura
-  // directa de Firestore (window.znrFirestore.getNotificacionesCentro),
-  // que ya es el camino real que se usa casi siempre.
+  // vendedores-api. La lectura del feed usa exclusivamente Firestore
+  // (window.znrFirestore.getNotificacionesCentro); el respaldo por GAS
+  // (misNotificacionesVendedor/Cliente) se eliminó porque la migración a
+  // Firestore/Cloud Run ya está 100% completa.
   const VENDEDORES_API_URL_NOTIF = "https://vendedores-api-1038143238323.us-central1.run.app";
-
-  async function fetchFeed(action, extraParams) {
-    const params = new URLSearchParams({ action, pageSize: '30', ...extraParams });
-    try {
-      const res = await fetch(`${apiUrl()}?${params.toString()}`);
-      return await res.json();
-    } catch (e) {
-      return { ok: false, notificaciones: [] };
-    }
-  }
 
   async function fetchFeedVendedor(identity) {
     if (window.znrFirestore && window.znrFirestore.getNotificacionesCentro) {
       const r = await window.znrFirestore.getNotificacionesCentro('vendedor', identity.id, identity.vendorToken);
       if (r && r.ok) return r;
     }
-    return fetchFeed('misNotificacionesVendedor', { vendorToken: identity.vendorToken });
+    return { ok: true, notificaciones: [] };
   }
 
   async function fetchFeedCliente(phone) {
@@ -87,12 +73,12 @@
       const r = await window.znrFirestore.getNotificacionesCentro('cliente', phone, phone);
       if (r && r.ok) return r;
     }
-    return fetchFeed('misNotificacionesCliente', { phone });
+    return { ok: true, notificaciones: [] };
   }
 
   async function fetchNotificaciones() {
   const identity = getIdentity();
-  if (!identity || !apiUrl()) return { ok: true, notificaciones: [] };
+  if (!identity) return { ok: true, notificaciones: [] };
 
   const results = [];
   if (identity.type === 'vendedor') {
@@ -118,7 +104,7 @@
 
   async function marcarLeida(notif) {
     const identity = getIdentity();
-    if (!identity || !apiUrl() || !notif) return;
+    if (!identity || !notif) return;
     const body = { action: 'marcarNotificacionLeida', id: notif.id, ownerType: notif.ownerType };
     if (notif.ownerType === 'vendedor') {
       body.vendorToken = identity.vendorToken;
@@ -130,7 +116,7 @@
 
   async function marcarTodasLeidas() {
     const identity = getIdentity();
-    if (!identity || !apiUrl()) return;
+    if (!identity) return;
     const calls = [];
     if (identity.type === 'vendedor') {
       calls.push(postAction({ action: 'marcarTodasNotificacionesLeidas', ownerType: 'vendedor', vendorToken: identity.vendorToken }));
