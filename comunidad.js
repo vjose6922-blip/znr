@@ -1696,41 +1696,176 @@ function mostrarModalCalificar(item, phone) {
   const old = document.getElementById('modal-calificar');
   if (old) old.remove();
 
+  // Inyectar estilos una sola vez
+  if (!document.getElementById('modal-calificar-styles')) {
+    const style = document.createElement('style');
+    style.id = 'modal-calificar-styles';
+    style.textContent = `
+      #modal-calificar {
+        position: fixed; inset: 0;
+        background: rgba(15, 12, 20, 0.65);
+        backdrop-filter: blur(4px);
+        -webkit-backdrop-filter: blur(4px);
+        z-index: 99999;
+        display: flex; align-items: center; justify-content: center;
+        padding: 20px;
+        animation: mcFadeIn .22s ease-out;
+        font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      }
+      @keyframes mcFadeIn { from { opacity: 0 } to { opacity: 1 } }
+      @keyframes mcPop {
+        from { opacity: 0; transform: translateY(12px) scale(.96) }
+        to   { opacity: 1; transform: translateY(0)    scale(1) }
+      }
+      #modal-calificar .mc-panel {
+        background: var(--color-surface, #fff);
+        border-radius: 24px;
+        padding: 26px 22px 20px;
+        max-width: 400px; width: 100%;
+        text-align: center;
+        box-shadow: 0 24px 60px -12px rgba(0,0,0,.35),
+                    0 8px 24px -8px rgba(0,0,0,.2);
+        animation: mcPop .28s cubic-bezier(.2,.9,.3,1.2);
+        position: relative;
+      }
+      #modal-calificar .mc-close {
+        position: absolute; top: 12px; right: 12px;
+        width: 32px; height: 32px; border-radius: 50%;
+        border: none; background: rgba(0,0,0,.05);
+        color: #888; font-size: 18px; line-height: 1;
+        cursor: pointer; transition: background .15s, transform .15s;
+      }
+      #modal-calificar .mc-close:hover { background: rgba(0,0,0,.1); transform: rotate(90deg); }
+      #modal-calificar .mc-img {
+        width: 88px; height: 88px; object-fit: contain;
+        border-radius: 16px; background: #f5f5f8;
+        padding: 8px; box-sizing: border-box;
+        margin: 0 auto 14px; display: block;
+      }
+       #modal-calificar .mc-sub {
+        margin: 0 0 18px; font-size: 13px; color: #8a8a92;
+        overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+      }
+      #modal-calificar .mc-stars {
+        display: flex; justify-content: center; gap: 6px;
+        margin-bottom: 6px; user-select: none;
+      }
+      #modal-calificar .mc-star {
+        cursor: pointer; padding: 4px;
+        transition: transform .15s ease, color .15s ease;
+        color: #ddd; line-height: 0;
+      }
+      #modal-calificar .mc-star:hover { transform: scale(1.15); }
+      #modal-calificar .mc-star.active { color: #f59e0b; }
+      #modal-calificar .mc-label {
+        font-size: 12.5px; font-weight: 600;
+        color: #f59e0b; min-height: 18px;
+        margin-bottom: 16px; letter-spacing: .3px;
+      }
+      #modal-calificar textarea {
+        width: 100%; box-sizing: border-box;
+        border: 1.5px solid #e6e6ec; border-radius: 12px;
+        padding: 11px 12px; font-size: 13px;
+        margin-bottom: 16px; resize: none; min-height: 68px;
+        font-family: inherit; color: inherit;
+        background: var(--color-bg, #fafafc);
+        transition: border-color .15s, box-shadow .15s;
+        outline: none;
+      }
+      #modal-calificar textarea:focus {
+        border-color: #c85c78;
+        box-shadow: 0 0 0 3px rgba(200,92,120,.15);
+      }
+      #modal-calificar .mc-actions { display: flex; gap: 10px; }
+      #modal-calificar button.mc-btn {
+        flex: 1; padding: 12px; border-radius: 12px;
+        font-weight: 700; font-size: 13.5px;
+        cursor: pointer; transition: transform .12s, opacity .15s, box-shadow .15s;
+        font-family: inherit;
+      }
+      #modal-calificar button.mc-btn:active { transform: scale(.97); }
+      #modal-calificar .mc-skip {
+        border: 1.5px solid #e6e6ec; background: transparent; color: #888;
+      }
+      #modal-calificar .mc-skip:hover { background: #f5f5f8; color: #555; }
+      #modal-calificar .mc-send {
+        border: none; color: #fff;
+        background: linear-gradient(135deg, #c85c78, #d68a5f);
+        box-shadow: 0 6px 16px -6px rgba(200,92,120,.6);
+      }
+      #modal-calificar .mc-send:hover:not(:disabled) {
+        box-shadow: 0 10px 22px -8px rgba(200,92,120,.75);
+        transform: translateY(-1px);
+      }
+      #modal-calificar .mc-send:disabled { opacity: .7; cursor: wait; }
+    `;
+    document.head.appendChild(style);
+  }
+
+  const STAR_SVG = `<svg width="34" height="34" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+    <path d="M12 2.5l2.95 5.98 6.6.96-4.78 4.66 1.13 6.57L12 17.56 6.1 20.67l1.13-6.57L2.45 9.44l6.6-.96L12 2.5z"/>
+  </svg>`;
+
+  const LABELS = ['', 'Muy malo', 'Malo', 'Regular', 'Bueno', '¡Excelente!'];
+
   const modal = document.createElement('div');
   modal.id = 'modal-calificar';
-  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px;';
+  modal.setAttribute('role', 'dialog');
+  modal.setAttribute('aria-modal', 'true');
   modal.innerHTML = `
-    <div style="background:var(--color-surface,#fff);border-radius:20px;padding:24px;max-width:380px;width:100%;text-align:center;">
-      <img src="${item.imagen || ''}" onerror="this.style.display='none'" style="width:80px;height:80px;object-fit:contain;border-radius:12px;background:#f5f5f8;margin:0 auto 12px;">
-      <h3 style="margin:0 0 4px;font-size:1rem;">¿Cómo estuvo tu compra?</h3>
-      <p style="margin:0 0 16px;font-size:13px;color:#888;">${(item.nombre || 'tu producto')}</p>
-      <div id="calif-stars" style="font-size:32px;letter-spacing:6px;margin-bottom:14px;cursor:pointer;"></div>
-      <textarea id="calif-comentario" placeholder="Cuéntanos algo (opcional)" maxlength="300"
-        style="width:100%;box-sizing:border-box;border:1px solid #ddd;border-radius:10px;padding:10px;font-size:13px;margin-bottom:14px;resize:none;min-height:60px;"></textarea>
-      <div style="display:flex;gap:10px;">
-        <button id="calif-omitir" style="flex:1;padding:11px;border-radius:10px;border:1.5px solid #ddd;background:#fff;color:#888;font-weight:700;cursor:pointer;">Ahora no</button>
-        <button id="calif-enviar" style="flex:1;padding:11px;border-radius:10px;border:none;background:var(--gradient-accent);color:#fff;font-weight:700;cursor:pointer;">Enviar</button>
+    <div class="mc-panel">
+      <button class="mc-close" aria-label="Cerrar">×</button>
+      <img class="mc-img" src="${item.imagen || ''}" alt=""
+           onerror="this.style.display='none'">
+      <h2>¿Cómo estuvo tu compra?</h2>
+      <p class="mc-sub">${(item.nombre || 'tu producto')}</p>
+
+      <div class="mc-stars" id="calif-stars" role="radiogroup" aria-label="Calificación"></div>
+      <div class="mc-label" id="calif-label"></div>
+
+      <textarea id="calif-comentario" placeholder="Cuéntanos algo (opcional)"
+        maxlength="300" aria-label="Comentario"></textarea>
+
+      <div class="mc-actions">
+        <button class="mc-btn mc-skip" id="calif-omitir">Ahora no</button>
+        <button class="mc-btn mc-send" id="calif-enviar">Enviar</button>
       </div>
     </div>`;
   document.body.appendChild(modal);
 
-  // 🆕 FIX: se crean los 5 <span> UNA sola vez y solo se les cambia el color
-  // en cada clic — antes se reemplazaba todo el innerHTML, lo que destruía
-  // los listeners después del primer clic y no dejaba cambiar la selección.
+  // -------- Estrellas --------
   let calificacionSeleccionada = 5;
   const starsEl = modal.querySelector('#calif-stars');
+  const labelEl = modal.querySelector('#calif-label');
   const spans = [];
   for (let i = 0; i < 5; i++) {
     const span = document.createElement('span');
-    span.innerHTML = Icon('star');
+    span.className = 'mc-star';
+    span.innerHTML = STAR_SVG;
     span.dataset.value = String(i + 1);
+    span.setAttribute('role', 'radio');
+    span.setAttribute('aria-label', `${i + 1} estrellas`);
     spans.push(span);
     starsEl.appendChild(span);
   }
+
   const pintarEstrellas = (n) => {
-    spans.forEach((s, i) => { s.style.color = i < n ? '#f59e0b' : '#ddd'; });
+    spans.forEach((s, i) => s.classList.toggle('active', i < n));
+    labelEl.textContent = LABELS[n] || '';
+    spans.forEach((s, i) => s.setAttribute('aria-checked', String(i + 1 === n)));
   };
+
+  const setHover = (n) => {
+    spans.forEach((s, i) => s.classList.toggle('active', i < n));
+  };
+
   pintarEstrellas(calificacionSeleccionada);
+
+  starsEl.addEventListener('mouseover', (e) => {
+    const span = e.target.closest('span[data-value]');
+    if (span) setHover(Number(span.dataset.value));
+  });
+  starsEl.addEventListener('mouseleave', () => pintarEstrellas(calificacionSeleccionada));
   starsEl.addEventListener('click', (e) => {
     const span = e.target.closest('span[data-value]');
     if (!span) return;
@@ -1738,47 +1873,67 @@ function mostrarModalCalificar(item, phone) {
     pintarEstrellas(calificacionSeleccionada);
   });
 
-  const close = () => { if (modal.parentNode) modal.remove(); };
+  // -------- Cierre --------
+  const close = () => {
+    if (!modal.parentNode) return;
+    modal.style.animation = 'mcFadeIn .18s ease-in reverse';
+    setTimeout(() => modal.remove(), 160);
+    document.removeEventListener('keydown', onEsc);
+  };
+  const onEsc = (e) => { if (e.key === 'Escape') close(); };
+  document.addEventListener('keydown', onEsc);
+  modal.querySelector('.mc-close').addEventListener('click', close);
   modal.querySelector('#calif-omitir').addEventListener('click', close);
   modal.addEventListener('click', (e) => { if (e.target === modal) close(); });
 
+  // -------- Enviar --------
   modal.querySelector('#calif-enviar').addEventListener('click', async (e) => {
     const comentario = modal.querySelector('#calif-comentario').value.trim();
-    await window.withButtonLoading(e.currentTarget, async () => {
-    try {
-      const params = new URLSearchParams({
-        action: 'calificarProducto',
-        productId: String(item.productId),
-        clientPhone: phone,
-        calificacion: String(calificacionSeleccionada),
-        comentario: comentario,
-        requestId: item.requestId || ''
-      });
-      const res = await fetch(_resolverApiUrlInspector('calificarProducto'), {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: params.toString()
-      });
-      const data = await res.json();
-      if (!data.ok) throw new Error(data.error || 'No se pudo enviar la calificación');
+    const btn = e.currentTarget;
 
-      // 🆕 Marca localmente este producto como ya calificado por este teléfono,
-      // así nunca vuelve a pedir calificarlo en este navegador aunque el
-      // backend tarde en reflejarlo.
+    const ejecutar = async () => {
       try {
-        const ya = JSON.parse(localStorage.getItem('rated_products_' + phone) || '[]');
-        if (!ya.includes(String(item.productId))) {
-          ya.push(String(item.productId));
-          localStorage.setItem('rated_products_' + phone, JSON.stringify(ya));
-        }
-      } catch (e) {}
+        const params = new URLSearchParams({
+          action: 'calificarProducto',
+          productId: String(item.productId),
+          clientPhone: phone,
+          calificacion: String(calificacionSeleccionada),
+          comentario: comentario,
+          requestId: item.requestId || ''
+        });
+        const res = await fetch(_resolverApiUrlInspector('calificarProducto'), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: params.toString()
+        });
+        const data = await res.json();
+        if (!data.ok) throw new Error(data.error || 'No se pudo enviar la calificación');
 
-      if (typeof window.showTemporaryMessage === 'function') window.showTemporaryMessage('¡Gracias por tu calificación!', 'success');
-      close();
-    } catch (err) {
-      if (typeof window.showTemporaryMessage === 'function') window.showTemporaryMessage(err.message, 'error');
+        try {
+          const ya = JSON.parse(localStorage.getItem('rated_products_' + phone) || '[]');
+          if (!ya.includes(String(item.productId))) {
+            ya.push(String(item.productId));
+            localStorage.setItem('rated_products_' + phone, JSON.stringify(ya));
+          }
+        } catch (_) {}
+
+        if (typeof window.showTemporaryMessage === 'function')
+          window.showTemporaryMessage('¡Gracias por tu calificación!', 'success');
+        close();
+      } catch (err) {
+        if (typeof window.showTemporaryMessage === 'function')
+          window.showTemporaryMessage(err.message, 'error');
+      }
+    };
+
+    if (typeof window.withButtonLoading === 'function') {
+      await window.withButtonLoading(btn, ejecutar, 'Enviando…');
+    } else {
+      btn.disabled = true;
+      const txt = btn.textContent;
+      btn.textContent = 'Enviando…';
+      try { await ejecutar(); } finally { btn.disabled = false; btn.textContent = txt; }
     }
-    }, 'Enviando…');
   });
 }
 if (document.readyState === 'loading') {
