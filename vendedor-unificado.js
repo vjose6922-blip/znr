@@ -258,6 +258,10 @@ window.fetchAndCacheVendorPage = async function(uid, page, limit, status) {
 // FUNCIÓN PRINCIPAL DE INICIO
 // ──────────────────────────────────────────────
 function initVendorPanel() {
+const regPais = document.getElementById('reg-pais');
+const regCiudad = document.getElementById('reg-ciudad');
+if (regPais && regCiudad) enlazarPaisCiudad(regPais, regCiudad);
+
 const urlParams = new URLSearchParams(window.location.search);
 if (urlParams.get('register') === '1') {
 setTimeout(() => {
@@ -305,7 +309,9 @@ if (switchToLogin) switchToLogin.addEventListener('click', () => loginTab && log
 async function registerVendor() {
 const nombre = document.getElementById('reg-nombre')?.value.trim();
 const phone = document.getElementById('reg-phone')?.value.trim().replace(/\D/g, '');
-if (!nombre || phone.length !== 10) {
+const pais = document.getElementById('reg-pais')?.value;
+const ciudad = document.getElementById('reg-ciudad')?.value;
+if (!nombre || phone.length !== 10 || !pais || !ciudad) {
 showTemporaryMessage(' Completa todos los campos correctamente', 'error');
 return;
 }
@@ -315,11 +321,13 @@ btn.disabled = true;
 btn.textContent = 'Enviando...';
 }
 try {
-const res = await apiFetch({ action: 'registrarVendedor', nombre, telefono: phone });
+const res = await apiFetch({ action: 'registrarVendedor', nombre, telefono: phone, pais, ciudad });
 if (!res.ok) throw new Error(res.error);
 showTemporaryMessage(' Registro exitoso. Espera a que el administrador active tu cuenta.', 'success');
 document.getElementById('reg-nombre').value = '';
 document.getElementById('reg-phone').value = '';
+if (regPais) regPais.value = '';
+if (regCiudad) regCiudad.innerHTML = '';
 const loginTab = document.querySelector('.login-tab[data-tab="login"]');
 if (loginTab) loginTab.click();
 } catch (err) {

@@ -486,6 +486,8 @@ function construirOrdenAleatorioComunidad(hits) {
 // conexiones simultáneas de los lives. El objetivo es que la vista por
 // defecto de Comunidad (la de MÁS tráfico: cualquier visitante que entra
 // sin buscar ni filtrar) no gaste una búsqueda de Algolia por sesión.
+
+
 const CATALOGO_SNAPSHOT_URL = 'https://znr-live-default-rtdb.firebaseio.com/catalogo/snapshot.json';
 const CATALOGO_SNAPSHOT_MAX_AGE_MS = 10 * 60 * 1000; // 2x el refresh (5 min); más viejo = el trigger probablemente murió
 
@@ -560,6 +562,10 @@ async function loadComunidadPageAlgolia(page, filters, opts = {}) {
           communityRandomOrder = construirOrdenAleatorioComunidad(searchResult.hits || []);
         }
         window.communityRandomOrder = communityRandomOrder;
+
+        // Ciudad del comprador primero; el resto se muestra igual, solo al final.
+        const miCiudad = await obtenerCiudadComprador();
+        communityRandomOrder.sort((a, b) => (b.ciudad === miCiudad) - (a.ciudad === miCiudad));
       }
 
       currentPage      = page;
@@ -1644,6 +1650,9 @@ if (!data || !data.ok) {
     slot.innerHTML = '';
     return;
   }
+
+  const miCiudad = await obtenerCiudadComprador();
+  lives.sort((a, b) => (b.ciudad === miCiudad) - (a.ciudad === miCiudad));
 
   const n = lives.length;
   const nombres = lives.slice(0, 2).map(l => l.vendedor_nombre || 'Vendedor').join(', ');

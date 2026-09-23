@@ -34,6 +34,7 @@
 <link rel="stylesheet" href="styles.css">
 <script src="api-config.js"></script>
 <script src="icons.js" defer></script>
+<script src="ciudades.js" defer></script>
 <style>
   .lives-wrap { max-width: 640px; margin: 0 auto; padding: 16px; padding-bottom: 100px; }
 
@@ -188,6 +189,8 @@ function withTimeout(promise, ms) {
     try {
       const resp = await apiFetch({ action: 'obtenerLivesActivos' });
       if (resp.ok && resp.lives && resp.lives.length > 0) {
+        const miCiudad = await obtenerCiudadComprador();
+        resp.lives.sort((a, b) => (b.ciudad === miCiudad) - (a.ciudad === miCiudad));
         try {
           const counts = await withTimeout(
             Promise.all(resp.lives.map(l => contarEspectadores(l.id))),
