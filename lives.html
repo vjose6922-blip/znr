@@ -190,7 +190,12 @@ function withTimeout(promise, ms) {
       const resp = await apiFetch({ action: 'obtenerLivesActivos' });
       if (resp.ok && resp.lives && resp.lives.length > 0) {
         const miCiudad = await obtenerCiudadComprador();
-        resp.lives.sort((a, b) => (b.ciudad === miCiudad) - (a.ciudad === miCiudad));
+        resp.lives = resp.lives.filter((l) => l.ciudad === miCiudad);
+        if (resp.lives.length === 0) {
+          subtitle.textContent = 'Vendedores transmitiendo';
+          renderEmpty();
+          return;
+        }
         try {
           const counts = await withTimeout(
             Promise.all(resp.lives.map(l => contarEspectadores(l.id))),

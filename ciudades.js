@@ -1,5 +1,3 @@
-// Fuente única de países/ciudades donde opera ZNR. Rellena con tus datos reales
-// (lat/lng: centro aproximado de la ciudad, para detectar la más cercana al comprador).
 // Fuente única de países/ciudades donde opera ZNR. Cobertura: todo México.
 window.ZNR_CIUDADES = [
   { pais: 'México', ciudad: 'Ciudad de México', lat: 19.4326, lng: -99.1332 },
@@ -102,33 +100,8 @@ window.ZNR_CIUDADES = [
   { pais: 'México', ciudad: 'Tarimoro', lat: 20.2833, lng: -100.7500 },
   { pais: 'México', ciudad: 'Salvatierra', lat: 20.2167, lng: -100.8833 },
   { pais: 'México', ciudad: 'Santiago Maravatío', lat: 20.1667, lng: -100.9833 },
-  { pais: 'México', ciudad: 'Yuriria', lat: 20.2167, lng: -101.1333 },
-  { pais: 'México', ciudad: 'Moroleón', lat: 20.1333, lng: -101.1833 },
-  { pais: 'México', ciudad: 'Uriangato', lat: 20.1500, lng: -101.1667 },
-  { pais: 'México', ciudad: 'Valle de Santiago', lat: 20.3833, lng: -101.1833 },
-  { pais: 'México', ciudad: 'Jaral del Progreso', lat: 20.3667, lng: -101.0667 },
-  { pais: 'México', ciudad: 'Villagrán', lat: 20.5167, lng: -100.9833 },
-  { pais: 'México', ciudad: 'Abasolo', lat: 20.4500, lng: -101.5333 },
-  { pais: 'México', ciudad: 'Cuerámaro', lat: 20.6167, lng: -101.6667 },
-  { pais: 'México', ciudad: 'Manuel Doblado', lat: 20.7167, lng: -101.9500 },
-  { pais: 'México', ciudad: 'San Luis de la Paz', lat: 21.3000, lng: -100.5167 },
-  { pais: 'México', ciudad: 'Dolores Hidalgo', lat: 21.1500, lng: -100.9333 },
-  { pais: 'México', ciudad: 'Ocampo', lat: 21.6500, lng: -101.5000 },
-  { pais: 'México', ciudad: 'Xichú', lat: 21.3000, lng: -100.0500 },
-  { pais: 'México', ciudad: 'Atarjea', lat: 21.2667, lng: -99.7167 },
-  { pais: 'México', ciudad: 'Santa Catarina', lat: 21.1333, lng: -100.0667 },
-  { pais: 'México', ciudad: 'Doctor Mora', lat: 21.1333, lng: -100.3167 },
-  { pais: 'México', ciudad: 'Tierra Blanca', lat: 21.1167, lng: -100.1667 },
-  { pais: 'México', ciudad: 'San José Iturbide', lat: 21.0000, lng: -100.3833 },
-  { pais: 'México', ciudad: 'Apaseo el Grande', lat: 20.5667, lng: -100.6833 },
-  { pais: 'México', ciudad: 'Apaseo el Alto', lat: 20.4500, lng: -100.6167 },
-  { pais: 'México', ciudad: 'Jerécuaro', lat: 20.1500, lng: -100.5000 },
-  { pais: 'México', ciudad: 'Coroneo', lat: 20.2000, lng: -100.3667 },
-  { pais: 'México', ciudad: 'Tarandacuao', lat: 20.0000, lng: -100.5333 },
-  { pais: 'México', ciudad: 'Tarimoro', lat: 20.2833, lng: -100.7500 },
-  { pais: 'México', ciudad: 'Salvatierra', lat: 20.2167, lng: -100.8833 },
-  { pais: 'México', ciudad: 'Santiago Maravatío', lat: 20.1667, lng: -100.9833 },
 ];
+
 // Llena un <select> de país con los países únicos de la lista de arriba.
 function llenarSelectPais(select) {
   const paises = [...new Set(window.ZNR_CIUDADES.map(c => c.pais))];

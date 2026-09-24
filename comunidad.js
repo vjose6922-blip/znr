@@ -561,11 +561,10 @@ async function loadComunidadPageAlgolia(page, filters, opts = {}) {
           });
           communityRandomOrder = construirOrdenAleatorioComunidad(searchResult.hits || []);
         }
-        window.communityRandomOrder = communityRandomOrder;
-
-        // Ciudad del comprador primero; el resto se muestra igual, solo al final.
+        // Filtra al catálogo de la ciudad del comprador.
         const miCiudad = await obtenerCiudadComprador();
-        communityRandomOrder.sort((a, b) => (b.ciudad === miCiudad) - (a.ciudad === miCiudad));
+        communityRandomOrder = communityRandomOrder.filter((p) => p.ciudad === miCiudad);
+        window.communityRandomOrder = communityRandomOrder;
       }
 
       currentPage      = page;
@@ -1646,13 +1645,12 @@ if (!data || !data.ok) {
     }
   }
 
+  const miCiudad = await obtenerCiudadComprador();
+  lives = lives.filter((l) => l.ciudad === miCiudad);
   if (lives.length === 0) {
     slot.innerHTML = '';
     return;
   }
-
-  const miCiudad = await obtenerCiudadComprador();
-  lives.sort((a, b) => (b.ciudad === miCiudad) - (a.ciudad === miCiudad));
 
   const n = lives.length;
   const nombres = lives.slice(0, 2).map(l => l.vendedor_nombre || 'Vendedor').join(', ');
