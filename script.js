@@ -259,34 +259,17 @@ async function ensureFullCatalog(force = false) {
   try {
     if (!fullCatalogCache) showLoader('Cargando catálogo...');
 
-    // Intentar Firestore primero (catálogo completo, sin gastar ejecución de GAS)
+    // Firestore es la única fuente ahora — GAS fue dado de baja por completo.
     if (window.znrFirestore && window.znrFirestore.getProductosZNR) {
       const fs = await window.znrFirestore.getProductosZNR();
-      if (fs && fs.ok && fs.products.length) {
+      if (fs && fs.ok) {
         fullCatalogCache = fs.products;
         setFullCatalogToStorage(fs.products);
         return fullCatalogCache;
       }
     }
 
-    // Firestore no disponible o falló: respaldo con GAS (comportamiento anterior)
-    const url = new URL(API_URL);
-    url.searchParams.set('action', 'list');
-    url.searchParams.set('page', '1');
-    url.searchParams.set('limit', '400'); // suficiente para todo el catálogo actual
-
-    // Reintenta hasta 3 veces si falla la red (Apps Script a veces tarda en
-    // "despertar" o hay hipos de conexión momentáneos que tiran "Failed to fetch").
-    const fetchFn = () => fetch(url.toString());
-    const res = typeof window.fetchWithRetry === 'function'
-      ? await window.fetchWithRetry(fetchFn, 3, [1500, 3000])
-      : await fetchFn();
-
-    const data = await res.json();
-    const products = data.products || [];
-    fullCatalogCache = products;
-    setFullCatalogToStorage(products);
-    return fullCatalogCache;
+    throw new Error('Firestore no disponible para el catálogo');
   } catch (err) {
     console.error('Error cargando catálogo completo:', err);
     return fullCatalogCache || [];

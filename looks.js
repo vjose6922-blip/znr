@@ -1463,14 +1463,11 @@ console.log("Cargando productos desde red...");
 let data = null;
 if (window.znrFirestore && window.znrFirestore.getProductosZNR) {
   const fs = await window.znrFirestore.getProductosZNR();
-  if (fs && fs.ok && fs.products.length) data = fs;
+  if (fs && fs.ok) data = fs;
 }
 if (!data) {
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 8000);
-  const res = await fetch(API_URL, { signal: controller.signal });
-  clearTimeout(timeoutId);
-  data = await res.json();
+  console.error('No se pudo cargar el catálogo desde Firestore (GAS fue dado de baja, ya no hay respaldo).');
+  data = { ok: false, products: [] };
 }
 allProducts = Array.isArray(data?.products) ? data.products
             : Array.isArray(data) ? data
@@ -1507,14 +1504,11 @@ try {
 let data = null;
 if (window.znrFirestore && window.znrFirestore.getProductosZNR) {
   const fs = await window.znrFirestore.getProductosZNR();
-  if (fs && fs.ok && fs.products.length) data = fs;
+  if (fs && fs.ok) data = fs;
 }
 if (!data) {
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 8000);
-  const res = await fetch(API_URL, { signal: controller.signal });
-  clearTimeout(timeoutId);
-  data = await res.json();
+  console.error('No se pudo refrescar el catálogo desde Firestore (GAS fue dado de baja, ya no hay respaldo).');
+  return;
 }
 const freshProducts = data.products || data || [];
 bgProductsRetryCount = 0;

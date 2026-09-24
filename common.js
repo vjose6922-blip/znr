@@ -73,13 +73,8 @@ async function fetchZNRCatalogo({ page = 1, limit = 10, filters = {} } = {}) {
     const start = (page - 1) * limit;
     return { ok: true, products: list.slice(start, start + limit), page, totalPages, total };
   }
-  const url = new URL(API_URL);
-  url.searchParams.set('action', 'list');
-  url.searchParams.set('page', page);
-  url.searchParams.set('limit', limit);
-  Object.entries(filters).forEach(([k, v]) => { if (v) url.searchParams.set(k, v); });
-  const res = await fetch(url.toString());
-  return await res.json();
+  console.error('fetchZNRCatalogo: Firestore no disponible (GAS fue dado de baja, ya no hay respaldo)');
+  return { ok: false, products: [], page, totalPages: 1, total: 0 };
 }
 let localCart = {};
 let imageObserver = null;
