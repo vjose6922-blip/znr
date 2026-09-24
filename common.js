@@ -54,8 +54,9 @@ async function fetchZNRCatalogo({ page = 1, limit = 10, filters = {} } = {}) {
     if (fs && fs.ok) allProducts = fs.products;
   }
   if (allProducts) {
-    const miCiudad = await obtenerCiudadComprador();
-    let list = allProducts.filter(p => p.ciudad === miCiudad);
+    // El filtro por ciudad ya se aplica en getProductosZNR() (firestore-init.js);
+    // aquí solo quedan los filtros propios de esta función.
+    let list = allProducts;
     if (filters.gender)   list = list.filter(p => GENERO_POR_CATEGORIA[String(p.Categoria || '').toLowerCase().trim()] === filters.gender);
     if (filters.category) list = list.filter(p => (p.Categoria || '') === filters.category);
     if (filters.search) {

@@ -302,7 +302,15 @@ window.znrFirestore.getPerfilVendedor = async function (uid) {
 window.znrFirestore.getProductosZNR = async function () {
   try {
     const snap = await _fsConReintentos(() => getDocs(collection(db, 'productos_znr')));
-    const products = snap.docs.map(d => d.data());
+    let products = snap.docs.map(d => d.data());
+    // Filtro por ciudad centralizado aquí — es el único origen real de los
+    // datos (fetchZNRCatalogo, ensureFullCatalog y looks.js pasan los tres
+    // por esta función), así que filtrar aquí cubre a cualquier página sin
+    // duplicar el filtro en cada una.
+    if (typeof obtenerCiudadComprador === 'function') {
+      const miCiudad = await obtenerCiudadComprador();
+      products = products.filter(p => p.ciudad === miCiudad);
+    }
     return { ok: true, products };
   } catch (err) {
     console.warn('Firestore productos_znr falló:', err);
