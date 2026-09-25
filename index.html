@@ -760,8 +760,13 @@
  const res  = await fetch('https://znr-live-default-rtdb.firebaseio.com/catalogo/snapshot.json');
  const data = await res.json();
  if (!data || !data.ok || !data.products) throw new Error('Sin datos');
- // Home: solo vendedores de Comunidad, sin productos propios de Z&R.
- const soloComunidad = data.products.filter(p => !p.es_znr);
+ // Home: solo vendedores de Comunidad, sin productos propios de Z&R,
+ // y solo de la ciudad del comprador — el snapshot trae TODAS las
+ // ciudades juntas (es la "vista pública sin filtros" que arma
+ // generarSnapshotCatalogo), el filtro por ciudad se aplica acá,
+ // igual que ya hace comunidad.js con este mismo snapshot.
+ const miCiudad = typeof obtenerCiudadComprador === 'function' ? await obtenerCiudadComprador() : null;
+ const soloComunidad = data.products.filter(p => !p.es_znr && (!miCiudad || p.ciudad === miCiudad));
  const aprobados = soloComunidad.slice(0, PREVIEW_COUNT);
  window.allCommunityProductsIndexed = soloComunidad;
  grid.innerHTML = '';
