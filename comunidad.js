@@ -20,7 +20,7 @@ function _resolverApiUrlInspector(action) {
   }
   if (action === 'verificarAdmin') return AUTH_API_URL_INSPECTOR;
   if (action === 'obtenerCalificacionesPendientes') return VENTAS_API_URL_INSPECTOR;
-  if (['registrarBeneficiario', 'solicitarEdicionBeneficiario', 'obtenerBeneficiario', 'asignarDonacion', 'desasignarDonacion'].includes(action)) {
+  if (['registrarBeneficiario', 'reportarBeneficiario', 'solicitarEdicionBeneficiario', 'obtenerBeneficiario', 'asignarDonacion', 'desasignarDonacion'].includes(action)) {
     return BENEFICIARIOS_API_URL_INSPECTOR;
   }
   return window.API_URL;
@@ -2248,12 +2248,16 @@ window.openBeneficiarioModal = async function(beneficiarioId) {
     <div style="background:var(--color-surface,#fff);border-radius:20px 20px 0 0;width:100%;max-height:96vh;overflow-y:auto;padding:24px 20px 32px;">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
         <h2 style="margin:0;font-size:1rem;font-weight:800;">${Icon('heart-fill')} Beneficiario</h2>
-        <button id="btn-close-ben-det" style="background:none;border:none;font-size:22px;cursor:pointer;">×</button>
+        <div style="display:flex;align-items:center;gap:12px;">
+          <button id="btn-report-ben" title="Reportar" style="background:none;border:none;cursor:pointer;color:var(--color-text-soft);">${Icon('flag',{size:16})}</button>
+          <button id="btn-close-ben-det" style="background:none;border:none;font-size:22px;cursor:pointer;">×</button>
+        </div>
       </div>
       <div id="ben-det-body"><p style="color:#aaa;text-align:center;padding:24px 0;">Cargando…</p></div>
     </div>`;
   document.body.appendChild(modal);
   document.getElementById('btn-close-ben-det').onclick = () => modal.remove();
+  document.getElementById('btn-report-ben').onclick = () => showReportBeneficiarioDialog(beneficiarioId);
   modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
   try {
     const res  = await fetch(_resolverApiUrlInspector('obtenerBeneficiario') + '?' + new URLSearchParams({ action:'obtenerBeneficiario', id: beneficiarioId }));
@@ -2316,6 +2320,58 @@ window.openBeneficiarioModal = async function(beneficiarioId) {
     if (body) body.innerHTML = '<p style="color:#ef4444;text-align:center;">Error de conexión.</p>';
   }
 };
+
+// ── Modal: Reportar beneficiario (info falsa, estafa, robo de identidad, etc.) ──
+function showReportBeneficiarioDialog(benId) {
+  const motivos = ['Información falsa', 'Posible estafa', 'Robo de identidad', 'Otro'];
+  const modal = document.createElement('div');
+  modal.className = 'custom-alert-modal';
+  modal.style.zIndex = '100001';
+  modal.innerHTML = `<div class="custom-alert-content" style="max-width:380px;width:90%;">
+    <div class="custom-alert-header"><h3>Reportar beneficiario</h3></div>
+    <div class="custom-alert-body">
+      <p style="margin-bottom:12px;font-size:13px;color:var(--color-text-muted,#666);">¿Por qué estás reportando este beneficiario?</p>
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        ${motivos.map(m => `<label style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:10px 12px;border-radius:10px;border:1.5px solid #e0e0e0;">
+          <input type="radio" name="ben-report-reason" value="${m}"><span style="font-size:13px;">${m}</span></label>`).join('')}
+        <div id="ben-report-otro-field" style="display:none;"><input type="text" id="ben-report-otro-text" placeholder="Describe el problema…" maxlength="200" style="width:100%;padding:10px 12px;border-radius:10px;border:1.5px solid #e0e0e0;font-size:13px;box-sizing:border-box;"></div>
+      </div>
+    </div>
+    <div class="custom-alert-footer">
+      <button class="custom-alert-btn cancel" id="ben-report-cancel">Cancelar</button>
+      <button class="custom-alert-btn confirm" id="ben-report-confirm" style="background:var(--gradient-accent);">${Icon('flag')} Enviar reporte</button>
+    </div>
+  </div>`;
+  document.body.appendChild(modal);
+  modal.querySelectorAll('input[name="ben-report-reason"]').forEach(r => r.addEventListener('change', () => {
+    modal.querySelector('#ben-report-otro-field').style.display = r.value === 'Otro' ? 'block' : 'none';
+  }));
+  const close = () => modal.remove();
+  modal.querySelector('#ben-report-cancel').onclick = close;
+  modal.addEventListener('click', e => { if (e.target === modal) close(); });
+  modal.querySelector('#ben-report-confirm').onclick = async () => {
+    const sel = modal.querySelector('input[name="ben-report-reason"]:checked');
+    if (!sel) return window.showTemporaryMessage?.('Selecciona un motivo', 'error');
+    let motivo = sel.value;
+    if (motivo === 'Otro') {
+      const t = modal.querySelector('#ben-report-otro-text').value.trim();
+      if (!t) return window.showTemporaryMessage?.('Describe el motivo', 'error');
+      motivo = 'Otro: ' + t;
+    }
+    try {
+      const res = await fetch(_resolverApiUrlInspector('reportarBeneficiario'), {
+        method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({ action: 'reportarBeneficiario', beneficiario_id: benId, motivo, telefonoUsuario: localStorage.getItem('client_phone') || '' })
+      });
+      const data = await res.json();
+      if (!data.ok) throw new Error(data.error || 'Error al enviar reporte');
+      window.showTemporaryMessage?.('Reporte enviado. Gracias por ayudarnos a mantener la comunidad segura. 🙏', 'success');
+      close();
+    } catch (err) {
+      window.showTemporaryMessage?.('No se pudo enviar el reporte. Inténtalo de nuevo.', 'error');
+    }
+  };
+}
 
 // Modal para donar un producto propio a un refugio/beneficiario específico,
 // abierto desde su card en la sección "Ver Refugios". Reutiliza las mismas
