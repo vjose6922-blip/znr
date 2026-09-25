@@ -153,21 +153,25 @@ function mostrarSelectorCiudad(resolve) {
   });
 }
 
-// Ciudad del comprador: localStorage → geolocalización (sin request al backend,
-// solo distancia contra la lista de arriba) → selector manual si no hay permiso.
+// Ciudad del comprador: localStorage → ciudad aproximada por IP contra
+// catalogo-api (sin pedir permiso de ubicación al navegador; ese permiso
+// exacto se pide después, solo en los formularios que sí lo necesitan) →
+// selector manual si no se pudo resolver ninguna de las dos anteriores.
 function obtenerCiudadComprador() {
   const guardada = localStorage.getItem('buyer_ciudad');
   if (guardada) return Promise.resolve(guardada);
   return new Promise((resolve) => {
-    if (!navigator.geolocation) return mostrarSelectorCiudad(resolve);
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        const ciudad = ciudadMasCercana(pos.coords.latitude, pos.coords.longitude);
+    fetch(window.CATALOGO_API_URL + '?action=ciudadPorIp')
+      .then((r) => r.json())
+      .then((data) => {
+        if (!data || !data.ok || !data.encontrado) {
+          mostrarSelectorCiudad(resolve);
+          return;
+        }
+        const ciudad = ciudadMasCercana(data.lat, data.lng);
         localStorage.setItem('buyer_ciudad', ciudad);
         resolve(ciudad);
-      },
-      () => mostrarSelectorCiudad(resolve),
-      { timeout: 6000 }
-    );
+      })
+      .catch(() => mostrarSelectorCiudad(resolve));
   });
 }
