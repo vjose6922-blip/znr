@@ -2,6 +2,12 @@ const CACHE_KEYS = {
 PAGE_STATE: 'zr_page_cache',
 PRODUCTS: 'zr_products_data'
 };
+// Igual que en common.js: la clave incluye la ciudad para que un cambio de
+// ciudad (o un backfill de ciudad a productos viejos) no siga sirviendo el
+// caché de la ciudad anterior.
+function productsCacheKey() {
+return CACHE_KEYS.PRODUCTS + '_' + (localStorage.getItem('buyer_ciudad') || 'pendiente');
+}
 function setProductsCache(products, persistent = false) {
 try {
 const cacheData = {
@@ -9,27 +15,27 @@ data: products,
 timestamp: Date.now(),
 version: '1.0'
 };
-sessionStorage.setItem(CACHE_KEYS.PRODUCTS, JSON.stringify(cacheData));
+sessionStorage.setItem(productsCacheKey(), JSON.stringify(cacheData));
 if (persistent) {
-localStorage.setItem(CACHE_KEYS.PRODUCTS, JSON.stringify(cacheData));
+localStorage.setItem(productsCacheKey(), JSON.stringify(cacheData));
 }
 } catch(e) { console.warn('Error guardando caché de productos:', e); }
 }
 function getProductsCache(maxAge = 300000, preferPersistent = false) {
 try {
-let cached = sessionStorage.getItem(CACHE_KEYS.PRODUCTS);
+let cached = sessionStorage.getItem(productsCacheKey());
 let source = 'session';
 if (!cached && preferPersistent) {
-cached = localStorage.getItem(CACHE_KEYS.PRODUCTS);
+cached = localStorage.getItem(productsCacheKey());
 source = 'local';
 }
 if (!cached) return null;
 const { data, timestamp, version } = JSON.parse(cached);
 if (Date.now() - timestamp > maxAge) {
 if (source === 'session') {
-sessionStorage.removeItem(CACHE_KEYS.PRODUCTS);
+sessionStorage.removeItem(productsCacheKey());
 } else {
-localStorage.removeItem(CACHE_KEYS.PRODUCTS);
+localStorage.removeItem(productsCacheKey());
 }
 return null;
 }

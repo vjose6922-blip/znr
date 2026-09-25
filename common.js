@@ -1,4 +1,10 @@
-const CACHE_KEY = 'zr_products_cache';
+// Antes era un string fijo — así, un cambio de ciudad (o el backfill de
+// ciudad a productos viejos) invalida el caché automáticamente en vez de
+// seguir sirviendo la lista de la ciudad anterior. localStorage directo
+// (no obtenerCiudadComprador) porque esto se usa en puntos síncronos.
+function cacheKeyZNR() {
+  return 'zr_products_cache_' + (localStorage.getItem('buyer_ciudad') || 'pendiente');
+}
 const CACHE_EXPIRY = 5 * 60 * 1000;
 const RECENT_PRODUCTS_KEY = 'zr_recent_products';
 const MAX_RECENT_PRODUCTS = 12;
@@ -382,11 +388,11 @@ return sessionCached;
 }
 }
 try {
-const cached = localStorage.getItem(CACHE_KEY);
+const cached = localStorage.getItem(cacheKeyZNR());
 if (!cached) return null;
 const { data, timestamp } = JSON.parse(cached);
 if (Date.now() - timestamp >CACHE_EXPIRY) {
-localStorage.removeItem(CACHE_KEY);
+localStorage.removeItem(cacheKeyZNR());
 return null;
 }
 return data;
@@ -397,7 +403,7 @@ if (window.CacheManager && window.CacheManager.setSessionProductsCache) {
 window.CacheManager.setSessionProductsCache(products);
 }
 try {
-localStorage.setItem(CACHE_KEY, JSON.stringify({ data: products, timestamp: Date.now() }));
+localStorage.setItem(cacheKeyZNR(), JSON.stringify({ data: products, timestamp: Date.now() }));
 } catch (e) { console.warn("No se pudo guardar en caché:", e); }
 }
 function formatCurrency(value) {
@@ -2874,7 +2880,7 @@ async function loadProductsUnified({ onProducts, onError, force = false, page = 
   if (!navigator.onLine) {
     const stale = (() => {
       try {
-        const raw = localStorage.getItem(CACHE_KEY);
+        const raw = localStorage.getItem(cacheKeyZNR());
         return raw ? JSON.parse(raw).data : null;
       } catch { return null; }
     })();
