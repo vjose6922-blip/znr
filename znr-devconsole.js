@@ -413,6 +413,7 @@
         '<button class="znr-tab" data-tab="perf">Rendimiento</button>' +
         '<button class="znr-tab" data-tab="info">Info</button>' +
         '<button class="znr-tab" data-tab="repl">REPL</button>' +
+        '<button class="znr-tab" data-tab="ciudad">Ciudad</button>' +
         '<input class="znr-filter" id="znr-dc-search" placeholder="filtrar…" style="width:120px;">' +
         '<div class="znr-spacer"></div>' +
         '<button class="znr-btn-mini" id="znr-dc-clear">Limpiar</button>' +
@@ -509,6 +510,7 @@
     else if (currentTab === "perf") renderPerf();
     else if (currentTab === "info") renderInfo();
     else if (currentTab === "repl") renderRepl();
+    else if (currentTab === "ciudad") renderCiudad();
   }
 
   function getFilter() {
@@ -893,6 +895,43 @@
     body.innerHTML = '<div class="znr-card">' +
       lines.map(function (l) { return '<div><b>' + l[0] + ':</b> ' + escapeHtml(String(l[1])) + '</div>'; }).join("") +
       '</div>';
+  }
+
+  // ---------- Ciudad (para probar el filtro por ciudad sin GPS real) ----------
+  function renderCiudad() {
+    var body = document.getElementById("znr-dc-body");
+    var actual = "";
+    try { actual = localStorage.getItem("buyer_ciudad") || ""; } catch (e) {}
+
+    if (!window.ZNR_CIUDADES) {
+      body.innerHTML = '<div class="znr-empty">ZNR_CIUDADES no está cargado en esta página (falta ciudades.js).</div>';
+      return;
+    }
+
+    var opciones = '<option value="">— detección automática (borra buyer_ciudad) —</option>' +
+      window.ZNR_CIUDADES.map(function (c) {
+        var sel = c.ciudad === actual ? " selected" : "";
+        return '<option value="' + escapeHtml(c.ciudad) + '"' + sel + '>' + escapeHtml(c.ciudad) + " (" + escapeHtml(c.pais) + ")</option>";
+      }).join("");
+
+    body.innerHTML =
+      '<div class="znr-card">' +
+        '<b>Ciudad guardada ahora</b><br>' + (actual ? escapeHtml(actual) : '<span style="color:#777">(ninguna — se detecta por IP al cargar)</span>') +
+      '</div>' +
+      '<div class="znr-card">' +
+        '<b>Simular otra ciudad</b><br><br>' +
+        '<select id="znr-dc-ciudad-sel" style="width:100%;padding:6px;margin-bottom:8px;background:#151521;color:#eee;border:1px solid #3a3a52;border-radius:4px;">' + opciones + '</select><br>' +
+        '<button class="znr-btn-mini" id="znr-dc-ciudad-aplicar">Aplicar y recargar</button>' +
+      '</div>';
+
+    document.getElementById("znr-dc-ciudad-aplicar").addEventListener("click", function () {
+      var val = document.getElementById("znr-dc-ciudad-sel").value;
+      try {
+        if (val) localStorage.setItem("buyer_ciudad", val);
+        else localStorage.removeItem("buyer_ciudad");
+      } catch (e) {}
+      location.reload();
+    });
   }
 
   // ---------- REPL (con soporte CSP) ----------
