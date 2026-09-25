@@ -14,7 +14,7 @@
         https://firebasestorage.googleapis.com
         https://*.firebasestorage.app
         https://storage.googleapis.com ;
- connect-src 'self' https://script.google.com https://script.googleusercontent.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firestore.googleapis.com https://wttr.in https://www.gstatic.com https://firebaseinstallations.googleapis.com https://fcmregistrations.googleapis.com https://registrar-token-fcm-1038143238323.us-central1.run.app https://ventas-api-1038143238323.us-central1.run.app https://admin-api-1038143238323.us-central1.run.app https://auth-api-1038143238323.us-central1.run.app https://firebase.googleapis.com https://znr-live-default-rtdb.firebaseio.com https://nominatim.openstreetmap.org https://catalogo-api-1038143238323.us-central1.run.app https://tienda-znr-api-1038143238323.us-central1.run.app https://vendedores-api-1038143238323.us-central1.run.app ;
+ connect-src 'self' https://script.google.com https://script.googleusercontent.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firestore.googleapis.com https://wttr.in https://www.gstatic.com https://firebaseinstallations.googleapis.com https://fcmregistrations.googleapis.com https://registrar-token-fcm-1038143238323.us-central1.run.app https://ventas-api-1038143238323.us-central1.run.app https://admin-api-1038143238323.us-central1.run.app https://auth-api-1038143238323.us-central1.run.app https://firebase.googleapis.com https://znr-live-default-rtdb.firebaseio.com https://nominatim.openstreetmap.org https://catalogo-api-1038143238323.us-central1.run.app https://tienda-znr-api-1038143238323.us-central1.run.app https://vendedores-api-1038143238323.us-central1.run.app https://beneficiarios-api-1038143238323.us-central1.run.app ;
  font-src 'self';
  frame-src 'none';
  frame-ancestors 'none';
@@ -88,6 +88,19 @@
     }
     .fa-badge-stock-out { color: var(--color-error); background: var(--color-error-bg); }
 
+    .fa-reco-wrap { padding: 14px 16px 2px; }
+    .fa-reco-title { font-size: .78rem; font-weight: 700; color: var(--color-text-soft); margin: 0 0 10px; display: flex; align-items: center; gap: 6px; }
+    .fa-reco-scroll { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 4px; }
+    .fa-reco-card {
+      flex-shrink: 0; width: 132px; text-decoration: none; text-align: center;
+      background: linear-gradient(160deg, #fdf2f8, #f5f3ff); border: 1px solid #f0d9ec;
+      border-radius: var(--radius-lg); padding: 14px 10px 12px; transition: transform .15s ease;
+    }
+    .fa-reco-card:hover { transform: translateY(-2px); }
+    .fa-reco-rank { font-size: 1.15rem; margin-bottom: 4px; }
+    .fa-reco-name { font-size: .78rem; font-weight: 800; color: var(--color-text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .fa-reco-count { font-size: .68rem; color: #9d174d; font-weight: 700; margin-top: 2px; }
+
     .fa-empty, .fa-error {
       display: flex; flex-direction: column; align-items: center; gap: 10px;
       text-align: center; color: var(--color-text-soft); padding: 60px 24px; font-size: .85rem;
@@ -124,6 +137,8 @@
       </div>
     </div>
   </header>
+
+  <div id="fa-reco-wrap"></div>
 
   <div class="fa-list" id="fa-list">
     <div class="fa-skeleton"><div class="sk-img"></div><div class="sk-line"></div></div>
@@ -206,6 +221,36 @@
       }).join('');
     }
 
+    const BENEFICIARIOS_API = 'https://beneficiarios-api-1038143238323.us-central1.run.app';
+
+    function renderRankingDonadores(ranking) {
+      const wrap = document.getElementById('fa-reco-wrap');
+      if (!ranking || !ranking.length) { wrap.innerHTML = ''; return; }
+      const medallas = ['🥇', '🥈', '🥉'];
+      wrap.innerHTML = `
+        <div class="fa-reco-wrap">
+          <p class="fa-reco-title">${Icon('heart-fill', { size: 14 })} Reconocimiento ZNR · Vendedores solidarios</p>
+          <div class="fa-reco-scroll">
+            ${ranking.map((r, i) => `
+              <a class="fa-reco-card" href="perfil-vendedor.html?vendedor=${esc(r.vendor_uid)}">
+                <div class="fa-reco-rank">${medallas[i] || '💜'}</div>
+                <div class="fa-reco-name">${esc(r.nombre)}</div>
+                <div class="fa-reco-count">${r.donaciones} donación${r.donaciones === 1 ? '' : 'es'}</div>
+              </a>`).join('')}
+          </div>
+        </div>`;
+    }
+
+    async function cargarRankingDonadores() {
+      try {
+        const res  = await fetch(`${BENEFICIARIOS_API}?${new URLSearchParams({ action: 'obtenerRankingDonadores' })}`);
+        const data = await res.json();
+        if (data.ok) renderRankingDonadores(data.ranking);
+      } catch (err) {
+        console.warn('No se pudo cargar el ranking de donadores:', err);
+      }
+    }
+
     async function cargarFeed() {
       try {
         let data = window.znrFirestore ? await window.znrFirestore.getFeedActividad() : { ok: false };
@@ -226,6 +271,7 @@
       });
 
       cargarFeed();
+      cargarRankingDonadores();
       // Se siente "vivo": refresca sola cada minuto, sin que el usuario tenga que jalar/recargar.
       setInterval(cargarFeed, 60000);
     });

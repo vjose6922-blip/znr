@@ -1016,6 +1016,22 @@
       // registrado y aprobado como beneficiario. Se detecta cruzando su
       // teléfono contra la lista pública de beneficiarios aprobados (no
       // depende de ningún endpoint nuevo).
+      // Insignia "Vendedor Solidario": se muestra si donó en los últimos 60
+      // días (beneficiarios-api lo calcula al vuelo, sin cron); se retira
+      // sola cuando pasan 60 días sin una donación nueva.
+      async function cargarInsigniaDonador(v) {
+        if (!v || !v.uid) return;
+        try {
+          const res  = await fetch(`https://beneficiarios-api-1038143238323.us-central1.run.app?${new URLSearchParams({ action: 'obtenerInsigniaDonador', vendor_uid: v.uid })}`);
+          const data = await res.json();
+          if (!data.ok || !data.activa) return;
+          const row = document.querySelector('.profile-name-row');
+          if (!row) return;
+          const vence = new Date(data.vence).toLocaleDateString('es-MX', { day: 'numeric', month: 'short' });
+          row.insertAdjacentHTML('beforeend', `<span class="profile-plan-badge" style="background:#fdf2f8;color:#9d174d;" title="Donó a una fundación en Comunidad · vigente hasta ${vence}">${Icon('heart-fill')} Vendedor solidario</span>`);
+        } catch (err) { /* silencioso: la insignia es decorativa, no crítica */ }
+      }
+
       async function cargarPestanaFundacion(v) {
         if (!window.API_URL || !v || !v.uid) return;
         try {
@@ -1249,6 +1265,7 @@
 
         cargarCalificacionVendedor(v.uid);
         cargarPestanaFundacion(v);
+        cargarInsigniaDonador(v);
 
         // Pestañas (Información / Contacto / Redes sociales): colapsadas por
         // defecto para no ocupar espacio antes de llegar a los productos.

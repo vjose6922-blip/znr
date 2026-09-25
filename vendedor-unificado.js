@@ -534,6 +534,7 @@ applyLayoutGlobal(localStorage.getItem('products_layout') || 'grid');
 
 loadMyProducts();
 checkStockBanner();
+checkInsigniaDonadorBanner();
 renderVendorPlanPanel();
 loadVendorSaleNotifications();
 setTimeout(loadInformeSemanal, 4000);
@@ -1112,6 +1113,22 @@ window.fetchPage = async function(uid, page, limit, status, background = false) 
       container.innerHTML = `<p style="color:#ef4444">Error: ${escapeHtml(err.message)}</p>`;
     }
   }
+};
+
+window.checkInsigniaDonadorBanner = async function checkInsigniaDonadorBanner() {
+  const el = document.getElementById('insignia-donador-banner');
+  if (!el || !vendorSession) return;
+  try {
+    const res  = await fetch(`https://beneficiarios-api-1038143238323.us-central1.run.app?${new URLSearchParams({ action: 'obtenerInsigniaDonador', vendor_uid: vendorSession.uid })}`);
+    const data = await res.json();
+    if (!data.ok || !data.activa) { el.innerHTML = ''; return; }
+    const vence = new Date(data.vence).toLocaleDateString('es-MX', { day: 'numeric', month: 'long' });
+    el.innerHTML = `
+      <div style="background:#fdf2f8;border:1.5px solid #f9a8d4;border-radius:14px;padding:14px;margin-bottom:16px;">
+        <div style="font-weight:800;color:#9d174d;">💜 Tienes la insignia Vendedor Solidario</div>
+        <div style="font-size:12.5px;color:#831843;margin-top:2px;">Se ve en tu perfil y en el ranking de Comunidad. Vigente hasta el ${vence} — dona algo más antes de esa fecha para conservarla.</div>
+      </div>`;
+  } catch (e) {}
 };
 
 window.checkStockBanner = async function checkStockBanner() {
