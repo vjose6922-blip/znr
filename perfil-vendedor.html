@@ -15,7 +15,25 @@
         https://firebasestorage.googleapis.com
         https://*.firebasestorage.app
         https://storage.googleapis.com ;
- connect-src 'self' https://script.google.com https://script.googleusercontent.com https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://wttr.in https://www.gstatic.com https://firebaseinstallations.googleapis.com https://fcmregistrations.googleapis.com https://registrar-token-fcm-1038143238323.us-central1.run.app https://ventas-api-1038143238323.us-central1.run.app https://vendedores-api-1038143238323.us-central1.run.app https://catalogo-api-1038143238323.us-central1.run.app https://auth-api-1038143238323.us-central1.run.app https://firebase.googleapis.com https://znr-live-default-rtdb.firebaseio.com https://nominatim.openstreetmap.org https://admin-api-1038143238323.us-central1.run.app https://beneficiarios-api-1038143238323.us-central1.run.app https://tienda-znr-api-1038143238323.us-central1.run.app ;
+ connect-src 'self'
+   https://firestore.googleapis.com
+   https://identitytoolkit.googleapis.com
+   https://securetoken.googleapis.com
+   https://wttr.in
+   https://www.gstatic.com
+   https://firebaseinstallations.googleapis.com
+   https://fcmregistrations.googleapis.com
+   https://registrar-token-fcm-1038143238323.us-central1.run.app
+   https://ventas-api-1038143238323.us-central1.run.app
+   https://vendedores-api-1038143238323.us-central1.run.app
+   https://catalogo-api-1038143238323.us-central1.run.app
+   https://auth-api-1038143238323.us-central1.run.app
+   https://firebase.googleapis.com
+   https://znr-live-default-rtdb.firebaseio.com
+   https://nominatim.openstreetmap.org
+   https://admin-api-1038143238323.us-central1.run.app
+   https://beneficiarios-api-1038143238323.us-central1.run.app
+   https://tienda-znr-api-1038143238323.us-central1.run.app ;
  font-src 'self';
  frame-src 'none';
  frame-ancestors 'none';
@@ -27,7 +45,6 @@
  <script src="error-bootstrap.js"></script>
 
   <title>Perfil de Vendedor - Z&R</title>
-  <link rel="preconnect" href="https://script.google.com" crossorigin>
   <link rel="preconnect" href="https://lh3.googleusercontent.com" crossorigin>
   <link rel="dns-prefetch" href="https://lh3.googleusercontent.com">
   <script>document.documentElement.dataset.theme = localStorage.getItem('theme') || 'light';</script>
@@ -926,6 +943,11 @@
 
 
   <script>
+
+
+
+
+    
     (function() {
       'use strict';
 
@@ -1003,7 +1025,7 @@
             data = await window.znrFirestore.getCalificacionesVendedor(uid);
           }
           if (!data || !data.ok) {
-            const res = await fetch(`${window.API_URL}?${new URLSearchParams({ action: 'obtenerCalificacionesVendedor', vendedor_uid: uid })}`);
+            const res = await fetch(`${window.VENDEDORES_API_URL}?${new URLSearchParams({ action: 'obtenerCalificacionesVendedor', vendedor_uid: uid })}`);
             data = await res.json();
           }
           if (data.ok && data.total > 0) {
@@ -1037,19 +1059,22 @@
         try {
           
           async function fsOrGasDonaciones() {
-            if (window.znrFirestore && window.znrFirestore.getDonacionesRecibidas) {
-              const r = await window.znrFirestore.getDonacionesRecibidas(v.uid);
-              if (r && r.ok) return r;
-            }
-            return fetch(`${window.API_URL}?${new URLSearchParams({ action: 'obtenerDonacionesRecibidas', vendor_uid: v.uid })}`).then(r => r.json()).catch(() => null);
-          }
-          async function fsOrGasBeneficiarios() {
-            if (window.znrFirestore && window.znrFirestore.getBeneficiariosAprobados) {
-              const r = await window.znrFirestore.getBeneficiariosAprobados();
-              if (r && r.ok) return r;
-            }
-            return fetch(`${window.API_URL}?${new URLSearchParams({ action: 'obtenerBeneficiariosAprobados' })}`).then(r => r.json()).catch(() => null);
-          }
+  if (window.znrFirestore && window.znrFirestore.getDonacionesRecibidas) {
+    const r = await window.znrFirestore.getDonacionesRecibidas(v.uid);
+    if (r && r.ok) return r;
+  }
+  return fetch(`${window.BENEFICIARIOS_API_URL}?${new URLSearchParams({ action: 'obtenerDonacionesRecibidas', vendor_uid: v.uid })}`)
+    .then(r => r.json())
+    .catch(() => null);
+}
+
+async function fsOrGasBeneficiarios() {
+  if (window.znrFirestore && window.znrFirestore.getBeneficiariosAprobados) {
+    const r = await window.znrFirestore.getBeneficiariosAprobados();
+    if (r && r.ok) return r;
+  }
+  return null; // ya no hay fallback: no existe en Cloud Run
+}
           const [donRes, benRes] = await Promise.all([fsOrGasDonaciones(), fsOrGasBeneficiarios()]);
           
           if (!donRes || !donRes.ok || !donRes.esBeneficiario) return;
