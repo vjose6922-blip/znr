@@ -534,7 +534,6 @@ applyLayoutGlobal(localStorage.getItem('products_layout') || 'grid');
 
 loadMyProducts();
 checkStockBanner();
-checkInsigniaDonadorBanner();
 renderVendorPlanPanel();
 loadVendorSaleNotifications();
 setTimeout(loadInformeSemanal, 4000);
@@ -1115,8 +1114,8 @@ window.fetchPage = async function(uid, page, limit, status, background = false) 
   }
 };
 
-window.checkInsigniaDonadorBanner = async function checkInsigniaDonadorBanner() {
-  const el = document.getElementById('insignia-donador-banner');
+window.checkInsigniaDonadorBanner = async function checkInsigniaDonadorBanner(elId = 'insignia-donador-banner') {
+  const el = document.getElementById(elId);
   if (!el || !vendorSession) return;
   try {
     const res  = await fetch(`https://beneficiarios-api-1038143238323.us-central1.run.app?${new URLSearchParams({ action: 'obtenerInsigniaDonador', vendor_uid: vendorSession.uid })}`);
@@ -3019,11 +3018,13 @@ window.openGestionarDonacionesModal = async function(page = 1) {
           <h2 style="margin:0;font-size:1rem;font-weight:800;">${Icon('heart-fill')} Gestionar donaciones</h2>
           <button id="btn-close-gestionar" style="background:none;border:none;font-size:22px;cursor:pointer;color:#888;line-height:1;">×</button>
         </div>
+        <div id="insignia-donador-banner" style="padding:14px 20px 0;"></div>
         <div id="gestionar-lista" style="padding:32px 20px;text-align:center;color:#aaa;">Actualizando productos…</div>
       </div>`;
     document.body.appendChild(modal);
     document.getElementById('btn-close-gestionar').onclick = () => modal.remove();
     modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+    checkInsigniaDonadorBanner('insignia-donador-banner');
   }
 
   const lista = document.getElementById('gestionar-lista');
