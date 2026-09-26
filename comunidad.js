@@ -1537,6 +1537,8 @@ function initBeneficiariosToggle() {
     const chipsBar = document.getElementById('comunidad-filter-chips');
     const grid = document.getElementById('comunidad-grid');
     const pagination = document.getElementById('comunidad-pagination');
+    const ofertasWrap = document.getElementById('comunidad-ofertas-wrap');
+    const recomendadoWrap = document.getElementById('comunidad-recomendado-wrap');
     if (!wrap) return;
     const showing = wrap.style.display !== 'none';
     if (showing) {
@@ -1545,6 +1547,8 @@ function initBeneficiariosToggle() {
       if (grid) grid.style.display = '';
       if (pagination) pagination.style.display = '';
       if (toolbarArea) toolbarArea.style.display = '';
+      if (ofertasWrap && ofertasWrap.dataset.hadContent) ofertasWrap.style.display = '';
+      if (recomendadoWrap && recomendadoWrap.dataset.hadContent) recomendadoWrap.style.display = '';
       btn.innerHTML = Icon('heart') + ' Ver refugios';
     } else {
       // Mostrar fundaciones
@@ -1553,6 +1557,8 @@ function initBeneficiariosToggle() {
       if (pagination) pagination.style.display = 'none';
       if (chipsBar) chipsBar.style.display = 'none';
       if (toolbarArea) toolbarArea.style.display = 'none';
+      if (ofertasWrap) { ofertasWrap.dataset.hadContent = ofertasWrap.style.display !== 'none' ? '1' : ''; ofertasWrap.style.display = 'none'; }
+      if (recomendadoWrap) { recomendadoWrap.dataset.hadContent = recomendadoWrap.style.display !== 'none' ? '1' : ''; recomendadoWrap.style.display = 'none'; }
       btn.innerHTML = Icon('shopping-bag') + ' Ver productos';
       if (!beneficiariosCargados) loadBeneficiariosGrid();
     }
@@ -1592,7 +1598,7 @@ if (!data || !data.ok) {
         ? 'background:#f0f0f0;color:#888;'
         : 'background:linear-gradient(135deg,#f97316,#ef4444);color:#fff;';
       return `
-        <div class="comunidad-beneficiario-card" data-ben-id="${esc(b.id)}"
+        <div class="comunidad-beneficiario-card" data-ben-id="${esc(b.id)}" data-fuera="${fueraDeCiudad ? '1' : ''}"
           style="background:var(--color-surface,#181820);border-radius:14px;overflow:hidden;cursor:pointer;
           border:1px solid rgba(255,255,255,.08);display:flex;flex-direction:column;">
           <div style="width:100%;aspect-ratio:1;background:#26262f;display:flex;align-items:center;justify-content:center;overflow:hidden;">
@@ -1616,6 +1622,10 @@ if (!data || !data.ok) {
     grid.querySelectorAll('.btn-donar-refugio').forEach(btn => {
       btn.addEventListener('click', (e) => {
         e.stopPropagation();
+        if (btn.closest('.comunidad-beneficiario-card')?.dataset.fuera === '1') {
+          window.showTemporaryMessage && window.showTemporaryMessage('Esta fundación está fuera de tu ciudad', 'error');
+          return;
+        }
         if (window.openDonarARefugioModal) window.openDonarARefugioModal({ id: btn.dataset.benId, nombre: btn.dataset.benNombre });
       });
     });
