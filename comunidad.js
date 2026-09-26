@@ -582,7 +582,13 @@ async function loadComunidadPageAlgolia(page, filters, opts = {}) {
       // muestran TODAS las categorías/vendedores, no solo las del filtro activo.
       loadComunidadFilterOptionsAlgolia();
 
+      // La vista por defecto SÍ filtraba por ciudad (línea ~566), pero este
+      // camino (con categoría/búsqueda/orden activos) armaba el filtro de
+      // Algolia sin incluir ciudad — por eso se colaban productos de otras
+      // ciudades en cuanto se usaba cualquier filtro.
+      const miCiudad = await obtenerCiudadComprador();
       const filterParts = [];
+      if (miCiudad) filterParts.push('ciudad:"' + String(miCiudad).replace(/"/g, '') + '"');
       if (filters.categoria) filterParts.push('categoria:"' + String(filters.categoria).replace(/"/g, '') + '"');
       if (filters.vendedor)  filterParts.push('vendedor_uid:"' + String(filters.vendedor).replace(/"/g, '') + '"');
       if (filters.orden === 'verificados') filterParts.push('vendedor_plan:"plus"');
@@ -1575,8 +1581,16 @@ if (!data || !data.ok) {
       return;
     }
     const esc = s => String(s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    const miCiudad = await obtenerCiudadComprador();
     grid.innerHTML = beneficiarios.map(b => {
       const img = b.imagen1 ? optimizeDriveUrl(b.imagen1, 300) : '';
+      const fueraDeCiudad = !!(b.ciudad && miCiudad && b.ciudad !== miCiudad);
+      const btnLabel = fueraDeCiudad
+        ? `${Icon('map-pin',{size:12})} Fuera de tu ciudad`
+        : `${Icon('heart-fill',{size:12})} Donar artículo`;
+      const btnStyle = fueraDeCiudad
+        ? 'background:#f0f0f0;color:#888;'
+        : 'background:linear-gradient(135deg,#f97316,#ef4444);color:#fff;';
       return `
         <div class="comunidad-beneficiario-card" data-ben-id="${esc(b.id)}"
           style="background:var(--color-surface,#181820);border-radius:14px;overflow:hidden;cursor:pointer;
@@ -1589,7 +1603,7 @@ if (!data || !data.ok) {
             <div style="font-size:.85rem;font-weight:700;color:var(--color-text-primary,#fff);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(b.nombre)}</div>
             ${b.organizacion ? `<div style="font-size:.72rem;color:#888;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(b.organizacion)}</div>` : ''}
             ${b.ubicacion ? `<div style="font-size:.7rem;color:#666;margin-top:2px;">${Icon('map-pin',{size:12})} ${esc(b.ubicacion)}</div>` : ''}
-            <button class="btn-donar-refugio" data-ben-id="${esc(b.id)}" data-ben-nombre="${esc(b.nombre)}" style="width:100%;margin-top:8px;padding:7px 8px;border:none;border-radius:20px;background:linear-gradient(135deg,#f97316,#ef4444);color:#fff;font-weight:700;font-size:.72rem;cursor:pointer;">${Icon('heart-fill',{size:12})} Donar artículo</button>
+            <button class="btn-donar-refugio" data-ben-id="${esc(b.id)}" data-ben-nombre="${esc(b.nombre)}" style="width:100%;margin-top:8px;padding:7px 8px;border:none;border-radius:20px;font-weight:700;font-size:.72rem;cursor:pointer;${btnStyle}">${btnLabel}</button>
           </div>
         </div>`;
     }).join('');
