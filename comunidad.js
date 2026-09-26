@@ -2004,8 +2004,16 @@ window.openBeneficiarioRegister = function(modoEdicion, idBeneficiario, datosAct
       <input id="ben-nombre" type="text" value="${escv(d.nombre)}" placeholder="Tu nombre completo" style="width:100%;box-sizing:border-box;padding:10px 12px;border:1.5px solid #e0e0e0;border-radius:10px;margin-bottom:10px;font-size:.88rem;">
       <label style="font-size:.78rem;font-weight:700;color:#888;display:block;margin-bottom:3px;">Organización (opcional)</label>
       <input id="ben-org" type="text" value="${escv(d.organizacion)}" placeholder="Nombre de la organización si aplica" style="width:100%;box-sizing:border-box;padding:10px 12px;border:1.5px solid #e0e0e0;border-radius:10px;margin-bottom:10px;font-size:.88rem;">
-      <label style="font-size:.78rem;font-weight:700;color:#888;display:block;margin-bottom:3px;">Ciudad / Estado *</label>
-      <input id="ben-ubicacion" type="text" value="${escv(d.ubicacion)}" placeholder="Ej. Nuevo Laredo, Tamaulipas" style="width:100%;box-sizing:border-box;padding:10px 12px;border:1.5px solid #e0e0e0;border-radius:10px;margin-bottom:10px;font-size:.88rem;">
+      
+      <label style="font-size:.78rem;font-weight:700;color:#888;display:block;margin-bottom:3px;">País *</label>
+<select id="ben-pais" style="width:100%;box-sizing:border-box;padding:10px 12px;border:1.5px solid #e0e0e0;border-radius:10px;margin-bottom:10px;font-size:.88rem;background:#fff;"></select>
+
+<label style="font-size:.78rem;font-weight:700;color:#888;display:block;margin-bottom:3px;">Ciudad *</label>
+<select id="ben-ciudad" style="width:100%;box-sizing:border-box;padding:10px 12px;border:1.5px solid #e0e0e0;border-radius:10px;margin-bottom:10px;font-size:.88rem;background:#fff;"></select>
+
+<label style="font-size:.78rem;font-weight:700;color:#888;display:block;margin-bottom:3px;">Dirección / referencia *</label>
+<input id="ben-ubicacion" type="text" value="${escv(d.ubicacion)}" placeholder="Ej. Calle X #123, Col. Centro" style="width:100%;box-sizing:border-box;padding:10px 12px;border:1.5px solid #e0e0e0;border-radius:10px;margin-bottom:10px;font-size:.88rem;">
+      
       <label style="font-size:.78rem;font-weight:700;color:#888;display:block;margin-bottom:3px;">Facebook (URL o usuario)</label>
       <input id="ben-facebook" type="text" value="${escv(d.facebook)}" placeholder="https://facebook.com/tu-pagina" style="width:100%;box-sizing:border-box;padding:10px 12px;border:1.5px solid #e0e0e0;border-radius:10px;margin-bottom:10px;font-size:.88rem;">
       <label style="font-size:.78rem;font-weight:700;color:#888;display:block;margin-bottom:3px;">¿Para qué necesitas las donaciones? *</label>
@@ -2032,7 +2040,7 @@ window.openBeneficiarioRegister = function(modoEdicion, idBeneficiario, datosAct
           <span id="ben-img-placeholder-2" style="font-size:1.4rem;display:${d.imagen2 ? 'none' : ''};">${Icon('camera',{size:22})}</span>
           <img id="ben-img-preview-2"
      ${d.imagen2 ? `src="${escv(d.imagen2)}"` : ""}
-     style="display:${d.imagen1 ? 'block' : 'none'};width:100%;height:100%;object-fit:cover;">
+     style="display:${d.imagen2 ? 'block' : 'none'};width:100%;height:100%;object-fit:cover;">
           <input type="file" id="ben-img-2" accept="image/*" multiple style="display:none;">
         </label>
         
@@ -2041,7 +2049,7 @@ window.openBeneficiarioRegister = function(modoEdicion, idBeneficiario, datosAct
           <span id="ben-img-placeholder-3" style="font-size:1.4rem;display:${d.imagen3 ? 'none' : ''};">${Icon('camera',{size:22})}</span>
           <img id="ben-img-preview-3"
      ${d.imagen3 ? `src="${escv(d.imagen3)}"` : ""}
-     style="display:${d.imagen1 ? 'block' : 'none'};width:100%;height:100%;object-fit:cover;">
+     style="display:${d.imagen3 ? 'block' : 'none'};width:100%;height:100%;object-fit:cover;">
           <input type="file" id="ben-img-3" accept="image/*" multiple style="display:none;">
        
         
@@ -2055,6 +2063,24 @@ window.openBeneficiarioRegister = function(modoEdicion, idBeneficiario, datosAct
   document.getElementById('btn-close-ben-reg').onclick = () => modal.remove();
   modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
 
+  if (typeof enlazarPaisCiudad === 'function') {
+  const paisSel = document.getElementById('ben-pais');
+  const ciudadSel = document.getElementById('ben-ciudad');
+  if (paisSel && ciudadSel) {
+    enlazarPaisCiudad(paisSel, ciudadSel);
+    // Pre-llenar: primero con la sesión del vendedor (si ya trae pais/ciudad),
+    // luego con los datos existentes del beneficiario (modo edición).
+    const paisInicial = (window.vendorSession && window.vendorSession.pais) || d.pais || '';
+    const ciudadInicial = (window.vendorSession && window.vendorSession.ciudad) || d.ciudad || '';
+    if (paisInicial) {
+      paisSel.value = paisInicial;
+      if (typeof llenarSelectCiudad === 'function') {
+        llenarSelectCiudad(ciudadSel, paisInicial);
+        if (ciudadInicial) ciudadSel.value = ciudadInicial;
+      }
+    }
+  }
+}
   // Preview de imágenes
   function benUpdatePreview(n, file) {
     const preview = document.getElementById('ben-img-preview-' + n);
@@ -2110,16 +2136,20 @@ window.openBeneficiarioRegister = function(modoEdicion, idBeneficiario, datosAct
 
     // Validar campos
     const nombre     = document.getElementById('ben-nombre').value.trim();
-    const tel        = document.getElementById('ben-telefono').value.replace(/\D/g, '');
-    const ubicacion  = document.getElementById('ben-ubicacion').value.trim();
-    const historia   = document.getElementById('ben-historia').value.trim();
-    const cuenta     = document.getElementById('ben-cuenta').value.trim();
+const tel        = document.getElementById('ben-telefono').value.replace(/\D/g, '');
+const pais       = document.getElementById('ben-pais').value;
+const ciudad     = document.getElementById('ben-ciudad').value;
+const ubicacion  = document.getElementById('ben-ubicacion').value.trim();
+const historia   = document.getElementById('ben-historia').value.trim();
+const cuenta     = document.getElementById('ben-cuenta').value.trim();
 
-    if (!nombre)           return showMsg('El nombre es requerido.', false);
-    if (!ubicacion)        return showMsg('La ciudad/estado es requerida.', false);
-    if (!historia)         return showMsg('Cuéntanos tu propósito.', false);
-    if (!cuenta)           return showMsg('La cuenta bancaria es requerida.', false);
-    if (tel.length !== 10) return showMsg('El WhatsApp debe tener 10 dígitos.', false);
+if (!nombre)           return showMsg('El nombre es requerido.', false);
+if (!pais)             return showMsg('El país es requerido.', false);
+if (!ciudad)           return showMsg('La ciudad es requerida.', false);
+if (!ubicacion)        return showMsg('La dirección es requerida.', false);
+if (!historia)         return showMsg('Cuéntanos tu propósito.', false);
+if (!cuenta)           return showMsg('La cuenta bancaria es requerida.', false);
+if (tel.length !== 10) return showMsg('El WhatsApp debe tener 10 dígitos.', false);
 
     // Restaurar sesión por si no se hizo antes
     if (!window.vendorSession) {
@@ -2208,19 +2238,21 @@ window.openBeneficiarioRegister = function(modoEdicion, idBeneficiario, datosAct
 
       btn.textContent = modo === 'editar' ? 'Enviando cambios…' : 'Enviando solicitud…';
       const payload = {
-        action: modo === 'editar' ? 'solicitarEdicionBeneficiario' : 'registrarBeneficiario',
-        nombre,
-        organizacion: document.getElementById('ben-org').value.trim(),
-        ubicacion,
-        facebook: document.getElementById('ben-facebook').value.trim(),
-        historia,
-        cuenta_bancaria: cuenta,
-        telefono: tel,
-        imagen1: imgUrls[0],
-        imagen2: imgUrls[1],
-        imagen3: imgUrls[2],
-        vendorToken: vendor.token
-      };
+  action: modo === 'editar' ? 'solicitarEdicionBeneficiario' : 'registrarBeneficiario',
+  nombre,
+  organizacion: document.getElementById('ben-org').value.trim(),
+  pais,
+  ciudad,
+  ubicacion,
+  facebook: document.getElementById('ben-facebook').value.trim(),
+  historia,
+  cuenta_bancaria: cuenta,
+  telefono: tel,
+  imagen1: imgUrls[0],
+  imagen2: imgUrls[1],
+  imagen3: imgUrls[2],
+  vendorToken: vendor.token
+};
       if (modo === 'editar') payload.id_beneficiario = idBen;
       const res = await fetch(_resolverApiUrlInspector(payload.action), {
         method: 'POST',
