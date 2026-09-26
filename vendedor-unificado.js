@@ -891,7 +891,7 @@ function createVendorProductCard(product) {
     img.alt = safeNombre;
     img.src = url;
     img.loading = "lazy";
-    img.addEventListener("click", () => openImageModal(url, id, images, product));
+    img.addEventListener("click", () => openImageModal(url, id, images, { ...product, _modoVendedorPropio: true }));
     slide.appendChild(img);
     track.appendChild(slide);
   });
