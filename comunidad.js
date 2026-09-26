@@ -1623,7 +1623,7 @@ if (!data || !data.ok) {
       btn.addEventListener('click', (e) => {
         e.stopPropagation();
         if (btn.closest('.comunidad-beneficiario-card')?.dataset.fuera === '1') {
-          window.showTemporaryMessage && window.showTemporaryMessage('Esta fundación está fuera de tu ciudad', 'error');
+          if (window.openBeneficiarioModal) window.openBeneficiarioModal(btn.dataset.benId);
           return;
         }
         if (window.openDonarARefugioModal) window.openDonarARefugioModal({ id: btn.dataset.benId, nombre: btn.dataset.benNombre });
