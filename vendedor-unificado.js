@@ -534,6 +534,7 @@ applyLayoutGlobal(localStorage.getItem('products_layout') || 'grid');
 
 loadMyProducts();
 checkStockBanner();
+checkInsigniaSolidarioChip();
 renderVendorPlanPanel();
 loadVendorSaleNotifications();
 setTimeout(loadInformeSemanal, 4000);
@@ -734,6 +735,19 @@ function _escapeHtmlInforme(texto) {
   return div.innerHTML;
 }
 
+// Chip compacto (no la caja grande) junto al badge FREE/PLUS: se guarda en
+// caché y solo vuelve a pintar el panel del plan, sin bloquear nada. Clic
+// abre "Gestionar donaciones", que es donde sí se ve la fecha completa.
+window.checkInsigniaSolidarioChip = async function() {
+  if (!vendorSession) return;
+  try {
+    const res  = await fetch(`https://beneficiarios-api-1038143238323.us-central1.run.app?${new URLSearchParams({ action: 'obtenerInsigniaDonador', vendor_uid: vendorSession.uid })}`);
+    const data = await res.json();
+    window._insigniaSolidaria = (data.ok && data.activa) ? { vence: data.vence } : null;
+  } catch (e) { window._insigniaSolidaria = null; }
+  if (typeof renderVendorPlanPanel === 'function') renderVendorPlanPanel();
+};
+
 function renderVendorPlanPanel() {
   const el = document.getElementById('vendor-plan-panel');
   if (!el || !vendorSession) return;
@@ -748,6 +762,10 @@ function renderVendorPlanPanel() {
   const planBadge = esPlus
     ? `<span style="background:linear-gradient(135deg,#7c3aed,#a855f7);color:#fff;font-size:11px;font-weight:700;padding:3px 10px;border-radius:999px;">PLUS</span>`
     : `<span style="background:#eee;color:#666;font-size:11px;font-weight:700;padding:3px 10px;border-radius:999px;">FREE</span>`;
+
+  const solidarioChip = window._insigniaSolidaria
+    ? `<button onclick="openGestionarDonacionesModal()" title="Vence el ${new Date(window._insigniaSolidaria.vence).toLocaleDateString('es-MX', { day: 'numeric', month: 'short' })} — dona algo más antes para conservarla" style="background:#fdf2f8;color:#9d174d;font-size:11px;font-weight:700;padding:3px 10px;border-radius:999px;border:none;cursor:pointer;">💜 Solidario</button>`
+    : '';
 
   let renovacionHTML = '';
   if (esPlus && diasRestantes != null && diasRestantes <= 7) {
@@ -785,7 +803,7 @@ function renderVendorPlanPanel() {
     <div style="background:#f8f8fc;border-radius:14px;padding:12px 14px;color:#000;">
       <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
         <div style="font-size:13px;font-weight:600;color:#000;">${actuales}/${limite} productos usados</div>
-        ${planBadge}
+        <div style="display:flex;align-items:center;gap:6px;">${solidarioChip}${planBadge}</div>
       </div>
       <div style="background:#e6e6ee;border-radius:999px;height:6px;margin-top:8px;overflow:hidden;">
         <div style="background:${pct >= 100 ? '#c62828' : '#7c3aed'};height:100%;width:${pct}%;"></div>
