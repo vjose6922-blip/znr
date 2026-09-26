@@ -1108,7 +1108,9 @@ const descLarga = desc.length > DESC_LIMIT;
 const descHtml  = desc ? `<p class="im-info-desc"${descLarga ? ' id="im-desc-text" data-full="' + escapeAttr(desc) + '" data-short="' + escapeAttr(desc.slice(0, DESC_LIMIT).trim() + '…') + '"' : ''}>${escapeHtml(descLarga ? desc.slice(0, DESC_LIMIT).trim() + '…' : desc)}</p>${descLarga ? '<button type="button" id="im-desc-toggle" class="im-desc-toggle">Ver más</button>' : ''}` : '';
 const entregaHtml = califica_entrega ? `<div class="im-info-entrega"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 3h15v13H1z"/><path d="M16 8h4l3 3v5h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg> Entrega a domicilio disponible</div>` : '';
 const sinStock = stock === 0;
-const buyBtnHtml = `
+const buyBtnHtml = p._modoVendedorPropio
+? `<button class="im-buy-btn" id="im-buy-btn">${Icon('edit', { size: 16 })} Editar</button>`
+: `
 <button class="im-buy-btn"${sinStock ? ' disabled' : ''} id="im-buy-btn">
 ${sinStock
 ? 'Sin stock'
@@ -1134,7 +1136,15 @@ const buySlot = modal.querySelector('#im-buy-slot');
 if (buySlot) {
 buySlot.innerHTML = buyBtnHtml;
 const buyBtn = buySlot.querySelector('#im-buy-btn');
-if (buyBtn && !sinStock) {
+if (buyBtn && p._modoVendedorPropio) {
+buyBtn.addEventListener('click', (e) => {
+e.stopPropagation();
+modal.classList.remove('open');
+const ov = document.getElementById('overlay');
+if (ov) ov.classList.remove('visible');
+if (typeof window.editProduct === 'function') window.editProduct(p.id || p.ID);
+});
+} else if (buyBtn && !sinStock) {
 buyBtn.addEventListener('click', (e) => {
 e.stopPropagation();
 _handleModalBuyClick(p);
