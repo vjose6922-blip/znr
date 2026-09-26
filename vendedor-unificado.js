@@ -3344,8 +3344,16 @@ function abrirEditarFundacionVendedor(miBen) {
       <input id="ef-nombre" type="text" value="${escv(miBen.nombre)}" style="width:100%;box-sizing:border-box;padding:10px 12px;border:1.5px solid #e0e0e0;border-radius:10px;margin-bottom:10px;font-size:.88rem;">
       <label style="font-size:.78rem;font-weight:700;color:#888;display:block;margin-bottom:3px;">Organización (opcional)</label>
       <input id="ef-org" type="text" value="${escv(miBen.organizacion)}" style="width:100%;box-sizing:border-box;padding:10px 12px;border:1.5px solid #e0e0e0;border-radius:10px;margin-bottom:10px;font-size:.88rem;">
-      <label style="font-size:.78rem;font-weight:700;color:#888;display:block;margin-bottom:3px;">Ciudad / Estado *</label>
-      <input id="ef-ubicacion" type="text" value="${escv(miBen.ubicacion)}" style="width:100%;box-sizing:border-box;padding:10px 12px;border:1.5px solid #e0e0e0;border-radius:10px;margin-bottom:10px;font-size:.88rem;">
+      
+      <label style="font-size:.78rem;font-weight:700;color:#888;display:block;margin-bottom:3px;">País *</label>
+<select id="ef-pais" style="width:100%;box-sizing:border-box;padding:10px 12px;border:1.5px solid #e0e0e0;border-radius:10px;margin-bottom:10px;font-size:.88rem;background:#fff;"></select>
+
+<label style="font-size:.78rem;font-weight:700;color:#888;display:block;margin-bottom:3px;">Ciudad *</label>
+<select id="ef-ciudad" style="width:100%;box-sizing:border-box;padding:10px 12px;border:1.5px solid #e0e0e0;border-radius:10px;margin-bottom:10px;font-size:.88rem;background:#fff;"></select>
+
+<label style="font-size:.78rem;font-weight:700;color:#888;display:block;margin-bottom:3px;">Dirección / referencia *</label>
+<input id="ef-ubicacion" type="text" value="${escv(miBen.ubicacion)}" style="width:100%;box-sizing:border-box;padding:10px 12px;border:1.5px solid #e0e0e0;border-radius:10px;margin-bottom:10px;font-size:.88rem;">
+      
       <label style="font-size:.78rem;font-weight:700;color:#888;display:block;margin-bottom:3px;">Facebook (URL o usuario)</label>
       <input id="ef-facebook" type="text" value="${escv(miBen.facebook)}" style="width:100%;box-sizing:border-box;padding:10px 12px;border:1.5px solid #e0e0e0;border-radius:10px;margin-bottom:10px;font-size:.88rem;">
       <label style="font-size:.78rem;font-weight:700;color:#888;display:block;margin-bottom:3px;">¿Para qué necesitas las donaciones? *</label>
@@ -3366,6 +3374,20 @@ function abrirEditarFundacionVendedor(miBen) {
       <button id="btn-submit-edit-fund" style="width:100%;padding:13px;border:none;border-radius:12px;background:linear-gradient(135deg,#f97316,#ef4444);color:#fff;font-weight:800;font-size:.92rem;cursor:pointer;">Enviar cambios</button>
     </div>`;
   document.body.appendChild(modal);
+  if (typeof enlazarPaisCiudad === 'function') {
+  const efPais = document.getElementById('ef-pais');
+  const efCiudad = document.getElementById('ef-ciudad');
+  if (efPais && efCiudad) {
+    enlazarPaisCiudad(efPais, efCiudad);
+    if (miBen.pais) {
+      efPais.value = miBen.pais;
+      if (typeof llenarSelectCiudad === 'function') {
+        llenarSelectCiudad(efCiudad, miBen.pais);
+        if (miBen.ciudad) efCiudad.value = miBen.ciudad;
+      }
+    }
+  }
+}
   document.getElementById('btn-close-edit-fund').onclick = () => modal.remove();
   modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
 
@@ -3389,12 +3411,16 @@ function abrirEditarFundacionVendedor(miBen) {
       el.style.color = ok ? '#166534' : '#991b1b';
     };
     const nombre = document.getElementById('ef-nombre').value.trim();
-    const ubicacion = document.getElementById('ef-ubicacion').value.trim();
+const pais = document.getElementById('ef-pais').value;
+const ciudad = document.getElementById('ef-ciudad').value;
+const ubicacion = document.getElementById('ef-ubicacion').value.trim();
     const historia = document.getElementById('ef-historia').value.trim();
     const cuenta = document.getElementById('ef-cuenta').value.trim();
     const tel = document.getElementById('ef-telefono').value.replace(/\D/g,'');
     if (!nombre) return showMsg('El nombre es requerido.', false);
-    if (!ubicacion) return showMsg('La ciudad/estado es requerida.', false);
+    if (!pais) return showMsg('El país es requerido.', false);
+    if (!ciudad) return showMsg('La ciudad es requerida.', false);
+    if (!ubicacion) return showMsg('La dirección es requerida.', false);
     if (!historia) return showMsg('Cuéntanos tu propósito.', false);
     if (!cuenta) return showMsg('La cuenta bancaria es requerida.', false);
     if (tel.length !== 10) return showMsg('El WhatsApp debe tener 10 dígitos.', false);
@@ -3429,14 +3455,18 @@ function abrirEditarFundacionVendedor(miBen) {
       const res = await fetch(resolverApiUrl('solicitarEdicionBeneficiario'), {
         method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: new URLSearchParams({
-          action: 'solicitarEdicionBeneficiario',
-          id_beneficiario: miBen.id,
-          vendorToken: vendorSession.token,
-          nombre, organizacion: document.getElementById('ef-org').value.trim(),
-          ubicacion, facebook: document.getElementById('ef-facebook').value.trim(),
-          historia, cuenta_bancaria: cuenta, telefono: tel,
-          imagen1: imgUrls[0], imagen2: imgUrls[1], imagen3: imgUrls[2]
-        }).toString()
+  action: 'solicitarEdicionBeneficiario',
+  id_beneficiario: miBen.id,
+  vendorToken: vendorSession.token,
+  nombre,
+  organizacion: document.getElementById('ef-org').value.trim(),
+  pais,
+  ciudad,
+  ubicacion,
+  facebook: document.getElementById('ef-facebook').value.trim(),
+  historia, cuenta_bancaria: cuenta, telefono: tel,
+  imagen1: imgUrls[0], imagen2: imgUrls[1], imagen3: imgUrls[2]
+}).toString()
       });
       const data = await res.json();
       if (data.ok) {
