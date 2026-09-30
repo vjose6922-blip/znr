@@ -1105,7 +1105,7 @@ const catHtml  = categoria ? `<span class="im-info-cat">${escapeHtml(categoria)}
 const tallaHtml  = talla  ? `<div class="im-info-talla">${p.vendedor_uid ? 'Info' : 'Talla'}: <strong>${escapeHtml(talla)}</strong></div>` : '';
 const DESC_LIMIT = 140;
 const descLarga = desc.length > DESC_LIMIT;
-const descHtml  = desc ? `<p class="im-info-desc"${descLarga ? ' id="im-desc-text" data-full="' + escapeAttr(desc) + '" data-short="' + escapeAttr(desc.slice(0, DESC_LIMIT).trim() + '…') + '"' : ''}>${escapeHtml(descLarga ? desc.slice(0, DESC_LIMIT).trim() + '…' : desc)}</p>${descLarga ? '<button type="button" id="im-desc-toggle" class="im-desc-toggle">Ver más</button>' : ''}` : '';
+const descHtml  = desc ? `<div class="im-desc-wrap"><p class="im-info-desc">${escapeHtml(descLarga ? desc.slice(0, DESC_LIMIT).trim() + '…' : desc)}</p>${descLarga ? `<button type="button" class="im-desc-toggle">Ver más</button><div class="im-desc-pop"><p>${escapeHtml(desc)}</p><button type="button" class="im-desc-toggle">Ver menos</button></div>` : ''}</div>` : '';
 const entregaHtml = califica_entrega ? `<div class="im-info-entrega"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 3h15v13H1z"/><path d="M16 8h4l3 3v5h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg> Entrega a domicilio disponible</div>` : '';
 const sinStock = stock === 0;
 const buyBtnHtml = p._modoVendedorPropio
@@ -1151,17 +1151,10 @@ _handleModalBuyClick(p);
 });
 }
 }
-const descToggle = el.querySelector('#im-desc-toggle');
-if (descToggle) {
-descToggle.addEventListener('click', (e) => {
+el.querySelectorAll('.im-desc-toggle').forEach(b => b.addEventListener('click', e => {
 e.stopPropagation();
-const textEl = el.querySelector('#im-desc-text');
-const expanded = descToggle.dataset.expanded === '1';
-textEl.textContent = expanded ? textEl.dataset.short : textEl.dataset.full;
-descToggle.textContent = expanded ? 'Ver más' : 'Ver menos';
-descToggle.dataset.expanded = expanded ? '0' : '1';
-});
-}
+el.querySelector('.im-desc-wrap').classList.toggle('open');
+}));
 }
 
 const BENEFICIARIOS_API_URL_RESOLVE = "https://beneficiarios-api-1038143238323.us-central1.run.app"; // TODO: pegar la URL real tras el deploy
@@ -1788,6 +1781,20 @@ function initImageModalControls() {
   margin-top: -4px;
   cursor: pointer;
 }
+.im-product-info { position: relative; z-index: 2; }
+.im-desc-wrap { position: relative; }
+.im-desc-wrap.open > .im-info-desc, .im-desc-wrap.open > .im-desc-toggle { visibility: hidden; }
+.im-desc-pop {
+  display: none; position: absolute; z-index: 5; left: -16px; right: -16px; top: -6px;
+  max-height: min(260px, 45dvh); overflow-y: auto; padding: 6px 16px 10px;
+  background: rgba(13,13,20,.94); backdrop-filter: blur(6px);
+  box-shadow: 0 8px 24px rgba(0,0,0,.5); border-radius: 0 0 22px 22px;
+}
+.im-desc-pop p { margin: 0 0 6px; font-size: 13px; line-height: 1.5; color: rgba(255,255,255,.85); white-space: pre-line; }
+.im-desc-wrap.open .im-desc-pop { display: block; }
+.im-no-panel .im-desc-pop { top: auto; bottom: -12px; border-radius: 0; }
+[data-theme="light"] .im-desc-pop { background: rgba(255,255,255,.96); }
+[data-theme="light"] .im-desc-pop p { color: #333; }
 .im-info-cat {
   background: rgba(255,255,255,.08);
   color: rgba(255,255,255,.7);
