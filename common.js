@@ -3973,3 +3973,17 @@ window.getModalImageUrl = getModalImageUrl;
 window.intervalConJitter = intervalConJitter;
 
 })();
+
+
+// Orden del catálogo por visita (antes lo mezclaba el servidor en cada corrida):
+// primero hasta 15 productos de vendedores Plus al azar, luego el resto al azar.
+window.ordenarCatalogoComunidad = function (lista) {
+  const mezclar = (a) => a.map((v) => [Math.random(), v]).sort((x, y) => x[0] - y[0]).map((x) => x[1]);
+  const plus = mezclar(lista.filter((p) => p.vendedor_plan === 'plus')).slice(0, 15);
+  const ids = new Set(plus.map((p) => String(p.id)));
+  return plus.concat(mezclar(lista.filter((p) => !ids.has(String(p.id)))));
+};
+
+// Nodo del catálogo para la ciudad del comprador (misma clave que catalogo-api); sin ciudad, el global.
+window.claveCiudad = (c) => String(c || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
+window.urlSnapshotCatalogo = (ciudad) => 'https://znr-live-default-rtdb.firebaseio.com/catalogo/' + (window.claveCiudad(ciudad) ? 'snapshot_ciudad/' + window.claveCiudad(ciudad) : 'snapshot') + '.json';

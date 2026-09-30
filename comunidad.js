@@ -491,25 +491,28 @@ function construirOrdenAleatorioComunidad(hits) {
 const CATALOGO_SNAPSHOT_URL = 'https://znr-live-default-rtdb.firebaseio.com/catalogo/snapshot.json';
 const CATALOGO_SNAPSHOT_MAX_AGE_MS = 10 * 60 * 1000; // 2x el refresh (5 min); más viejo = el trigger probablemente murió
 
-async function intentarCatalogoDesdeSnapshot() {
-  try {
-    const controller = new AbortController();
-    const tid = setTimeout(() => controller.abort(), 4000);
-    const res = await fetch(CATALOGO_SNAPSHOT_URL, { signal: controller.signal });
-    clearTimeout(tid);
-    if (!res.ok) return null;
-    const data = await res.json();
-    if (!data || !data.ok || !Array.isArray(data.products) || !data.products.length) return null;
-    if (!data.generadoEn || (Date.now() - data.generadoEn) > CATALOGO_SNAPSHOT_MAX_AGE_MS) {
-      console.warn('Snapshot de catálogo desactualizado o sin generadoEn, usando Algolia');
-      return null;
+async function intentarCatalogoDesdeSnapshot(ciudad) {
+  // Primero el feed de la ciudad del comprador; si no existe, el global (se filtra por ciudad después).
+  for (const url of [window.urlSnapshotCatalogo ? window.urlSnapshotCatalogo(ciudad) : CATALOGO_SNAPSHOT_URL, CATALOGO_SNAPSHOT_URL]) {
+    try {
+      const controller = new AbortController();
+      const tid = setTimeout(() => controller.abort(), 4000);
+      const res = await fetch(url, { signal: controller.signal });
+      clearTimeout(tid);
+      if (!res.ok) continue;
+      const data = await res.json();
+      if (!data || !data.ok || !Array.isArray(data.products) || !data.products.length) continue;
+      if (!data.generadoEn || (Date.now() - data.generadoEn) > CATALOGO_SNAPSHOT_MAX_AGE_MS) {
+        console.warn('Snapshot de catálogo desactualizado o sin generadoEn, usando Algolia');
+        return null;
+      }
+      return data;
+    } catch (err) {
+      // Silencioso a propósito: cualquier falla (CSP, red, RTDB caído) sigue con el siguiente
+      // origen y, al final, cae al camino de Algolia sin romper la carga.
     }
-    return data;
-  } catch (err) {
-    // Silencioso a propósito: cualquier falla (CSP, red, RTDB caído) cae
-    // directo al camino de Algolia que ya existía, sin romper la carga.
-    return null;
   }
+  return null;
 }
 
 // ── Carga y renderiza una página de productos vía Algolia (público, rápido) ──
@@ -545,9 +548,10 @@ async function loadComunidadPageAlgolia(page, filters, opts = {}) {
       // en memoria (así la página 1 queda reservada a verificados+ZNR y el
       // resto se mantiene fijo mientras el usuario navega de página) ──────
       if (!communityRandomOrder) {
-        const snapshot = await intentarCatalogoDesdeSnapshot();
+        const miCiudad = await obtenerCiudadComprador();
+        const snapshot = await intentarCatalogoDesdeSnapshot(miCiudad);
         if (snapshot) {
-          communityRandomOrder = snapshot.products;
+          communityRandomOrder = window.ordenarCatalogoComunidad ? window.ordenarCatalogoComunidad(snapshot.products) : snapshot.products;
           if (snapshot.filterOptions) {
             populateFiltersFromOptions(snapshot.filterOptions);
             comunidadFilterOptionsLoaded = true;
@@ -561,8 +565,7 @@ async function loadComunidadPageAlgolia(page, filters, opts = {}) {
           });
           communityRandomOrder = construirOrdenAleatorioComunidad(searchResult.hits || []);
         }
-        // Filtra al catálogo de la ciudad del comprador.
-        const miCiudad = await obtenerCiudadComprador();
+        // Filtra al catálogo de la ciudad del comprador (el feed de ciudad ya viene filtrado).
         communityRandomOrder = communityRandomOrder.filter((p) => p.ciudad === miCiudad);
         window.communityRandomOrder = communityRandomOrder;
       }
