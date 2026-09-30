@@ -766,7 +766,7 @@
  // generarSnapshotCatalogo), el filtro por ciudad se aplica acá,
  // igual que ya hace comunidad.js con este mismo snapshot.
  const miCiudad = typeof obtenerCiudadComprador === 'function' ? await obtenerCiudadComprador() : null;
- const soloComunidad = data.products.filter(p => !p.es_znr && (!miCiudad || p.ciudad === miCiudad));
+ const soloComunidad = data.products.filter(p => !p.es_znr && Number(p.stock || 0) > 0 && (!miCiudad || p.ciudad === miCiudad));
  const aprobados = soloComunidad.slice(0, PREVIEW_COUNT);
  window.allCommunityProductsIndexed = soloComunidad;
  grid.innerHTML = '';

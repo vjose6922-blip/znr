@@ -1902,15 +1902,25 @@ async function fsOrGasBeneficiarios() {
         try {
           let data = null;
 
-          // 2a. Intentar Firestore primero (perfil) + GAS solo para productos
+          // 2a. Perfil: primero la copia pública en RTDB (sin lecturas de Firestore);
+          // si no existe todavía o falla, cae a Firestore como antes.
           if (window.znrFirestore && window.znrFirestore.getPerfilVendedor) {
-            const perfilFs = await window.znrFirestore.getPerfilVendedor(uid);
+            const perfilRt = await fetch(`https://znr-live-default-rtdb.firebaseio.com/perfiles/${encodeURIComponent(uid)}.json`)
+              .then(r => r.ok ? r.json() : null).catch(() => null);
+            const perfilFs = perfilRt && perfilRt.uid ? { ok: true, vendedor: perfilRt } : await window.znrFirestore.getPerfilVendedor(uid);
             if (perfilFs && perfilFs.ok) {
               try {
-                const prodUrl = `https://catalogo-api-1038143238323.us-central1.run.app?${new URLSearchParams({ action: 'productosPorVendedor', vendedor_uid: uid, limit: '200' })}`;
-                const prodRes = await fetch(prodUrl);
-                const prodData = await prodRes.json();
-                data = { ok: true, vendedor: perfilFs.vendedor, productos: (prodData && prodData.ok) ? (prodData.products || []) : [] };
+                // Productos: primero la copia en RTDB (la mantiene el trigger espejarProductosPerfil);
+                // solo se usa si está marcada como completa (_ok). Si no, catalogo-api como antes.
+                const rt = await fetch(`https://znr-live-default-rtdb.firebaseio.com/perfiles_productos/${encodeURIComponent(uid)}.json`)
+                  .then(r => r.ok ? r.json() : null).catch(() => null);
+                let productos = rt && rt._ok ? Object.values(rt).filter(x => x && typeof x === 'object') : null;
+                if (!productos) {
+                  const prodRes = await fetch(`https://catalogo-api-1038143238323.us-central1.run.app?${new URLSearchParams({ action: 'productosPorVendedor', vendedor_uid: uid, limit: '200' })}`);
+                  const prodData = await prodRes.json();
+                  productos = (prodData && prodData.ok) ? (prodData.products || []) : [];
+                }
+                data = { ok: true, vendedor: perfilFs.vendedor, productos };
               } catch (e) { /* si falla el listado de productos, cae al bloque de abajo */ }
             }
           }
