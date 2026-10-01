@@ -3987,3 +3987,17 @@ window.ordenarCatalogoComunidad = function (lista) {
 // Nodo del catálogo para la ciudad del comprador (misma clave que catalogo-api); sin ciudad, el global.
 window.claveCiudad = (c) => String(c || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
 window.urlSnapshotCatalogo = (ciudad) => 'https://znr-live-default-rtdb.firebaseio.com/catalogo/' + (window.claveCiudad(ciudad) ? 'snapshot_ciudad/' + window.claveCiudad(ciudad) : 'snapshot') + '.json';
+
+// Stock en vivo: catalogo/stock/{ciudad} lo mantiene un trigger y solo lleva productos con poco stock (0 a 5).
+// Se lee sin caché y corrige el stock del snapshot; lo que no está en el nodo conserva su stock.
+window.STOCK_VIVO = {};
+window.cargarStockVivo = async function (ciudad) {
+  const k = window.claveCiudad(ciudad);
+  if (!k) return;
+  try {
+    const r = await fetch('https://znr-live-default-rtdb.firebaseio.com/catalogo/stock/' + k + '.json', { cache: 'no-store' });
+    const d = r.ok ? await r.json() : null;
+    window.STOCK_VIVO = d && typeof d === 'object' ? d : {};
+  } catch (e) { /* sin red o sin regla: se usa el stock del snapshot */ }
+};
+window.stockVivo = (p) => { const v = window.STOCK_VIVO[p.id]; return v === undefined ? p.stock : v; };
