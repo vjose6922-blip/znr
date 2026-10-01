@@ -522,6 +522,8 @@ async function loadComunidadPageAlgolia(page, filters, opts = {}) {
 
   // isFirstLoad: solo true la primera vez que se carga la página (no en cada cambio de filtro).
   const isFirstLoad = !hasLoadedOnce;
+  // Stock en vivo antes de pintar (también la caché): lo agotado se oculta al instante.
+  if (isFirstLoad && window.cargarStockVivo) await window.cargarStockVivo(await obtenerCiudadComprador());
 
   if (isFirstLoad && !opts.force) {
     const cached = getComunidadCache();
@@ -783,7 +785,7 @@ function crearMiniCardComunidad(p, badgeHtml) {
     const allImages = [p.imagen1, p.imagen2, p.imagen3].filter(Boolean);
     abrirDetalleComunidad(img, p.id, allImages, {
       ID: p.id, Nombre: p.nombre || '', Precio: p.precio || 0, Categoria: p.categoria || '',
-      Talla: p.talla || '', Descripcion: p.descripcion || '', Stock: p.stock !== undefined ? Number(p.stock) : -1,
+      Talla: p.talla || '', Descripcion: p.descripcion || '', Stock: stockVivo(p) !== undefined ? Number(stockVivo(p)) : -1,
       Badge: p.badge || '', Imagen1: p.imagen1 || '', Imagen2: p.imagen2 || '', Imagen3: p.imagen3 || '',
       _comunidad: true, _vendedorNombre: p.vendedor_nombre || '', _vendedorUid: p.vendedor_uid || '',
       _vendedorTel: p.vendedor_tel || '', _vendedorLogo: p.vendedor_logo || '', _vendedorPlan: p.vendedor_plan || '',
@@ -816,7 +818,7 @@ function renderOfertasCarousel(products) {
   const track = document.getElementById('comunidad-ofertas-track');
   if (!wrap || !track) return;
   const ofertas = (products || [])
-    .filter(p => Number(p.stock || 0) > 0 && (Number(p.precio_original) || 0) > (Number(p.precio) || 0))
+    .filter(p => Number(stockVivo(p) || 0) > 0 && (Number(p.precio_original) || 0) > (Number(p.precio) || 0))
     .sort((a, b) => (1 - a.precio / a.precio_original) < (1 - b.precio / b.precio_original) ? 1 : -1)
     .slice(0, 10);
   if (!ofertas.length) { wrap.style.display = 'none'; return; }
@@ -837,7 +839,7 @@ function renderRecomendadoParaTi(products) {
   const track = document.getElementById('comunidad-recomendado-track');
   if (!wrap || !track) return;
   const categorias = obtenerCategoriasPreferidas();
-  const conStock = (products || []).filter(p => Number(p.stock || 0) > 0);
+  const conStock = (products || []).filter(p => Number(stockVivo(p) || 0) > 0);
   let recomendados = [];
   if (categorias.length) {
     // Un balde por categoría preferida (más vista primero), barajado internamente
@@ -864,7 +866,7 @@ if (!gridContainer) return;
 try {
   // Los productos ya vienen paginados desde el backend — renderizamos todo el array,
   // ocultando los que ya no tienen stock disponible.
-  const visibles = filteredProducts.filter(p => Number(p.stock || 0) > 0);
+  const visibles = filteredProducts.filter(p => Number(stockVivo(p) || 0) > 0);
   if (visibles.length === 0) {
     gridContainer.innerHTML = `<div style="grid-column:1/-1; text-align:center; padding:40px;">No hay productos que coincidan con los filtros.</div>`;
     renderPagination();
@@ -945,7 +947,7 @@ function handleInitialHashComunidad(intentos = 0) {
     Categoria: product.categoria || '',
     Talla: product.talla || '',
     Descripcion: product.descripcion || '',
-    Stock: product.stock !== undefined ? Number(product.stock) : -1,
+    Stock: stockVivo(product) !== undefined ? Number(stockVivo(product)) : -1,
     Badge: product.badge || '',
     Imagen1: product.imagen1 || '',
     Imagen2: product.imagen2 || '',
@@ -1124,7 +1126,7 @@ const driveThumb = (url, size) => {
 };
 const imgUrl  = product.imagen1 ? driveThumb(product.imagen1, 400) : 'https://placehold.co/400x400/3b1f5f/white?text=Sin+Imagen';
 const allImages = [product.imagen1, product.imagen2, product.imagen3].filter(Boolean).map(u => driveThumb(u, 800));
-const stockNum  = Number(product.stock) || 0;
+const stockNum  = Number(stockVivo(product)) || 0;
 const hasStock  = stockNum > 0;
 const esDonativo = product.donado === true || product.donado === 'TRUE' || product.donado === 'true';
 const vendorName = safeString(product.vendedor_nombre);
@@ -1202,7 +1204,7 @@ Precio:  product.precio  || 0,
 Categoria:  product.categoria  || '',
 Talla:  product.talla  || '',
 Descripcion: product.descripcion || '',
-Stock:  product.stock !== undefined ? Number(product.stock) : -1,
+Stock:  stockVivo(product) !== undefined ? Number(stockVivo(product)) : -1,
 Badge:  product.badge  || '',
 Imagen1:  product.imagen1  || '',
 Imagen2:  product.imagen2  || '',
