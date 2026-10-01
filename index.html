@@ -654,7 +654,7 @@
  const img  = optUrl(p.imagen1 || '', 400) || 'https://placehold.co/300x300/3b1f5f/white?text=Z%26R';
  const allImages = [p.imagen1, p.imagen2, p.imagen3].filter(Boolean).map(u => optUrl(u, 800));
  const price = Number(p.precio || 0).toLocaleString('es-MX', { style:'currency', currency:'MXN', maximumFractionDigits:0 });
- const stock = Number(p.stock) || 0;
+ const stock = Number(stockVivo(p)) || 0;
  const hasStock = stock > 0;
 
  const card = document.createElement('div');
@@ -710,7 +710,7 @@
  Categoria:  p.categoria  || '',
  Talla:  p.talla  || '',
  Descripcion: p.descripcion || '',
- Stock:  p.stock !== undefined ? Number(p.stock) : -1,
+ Stock:  stockVivo(p) !== undefined ? Number(stockVivo(p)) : -1,
  Badge:  p.badge  || '',
  Imagen1:  p.imagen1  || '',
  Imagen2:  p.imagen2  || '',
@@ -765,12 +765,13 @@
  if (data && data.ok && data.products) break;
  }
  if (!data || !data.ok || !data.products) throw new Error('Sin datos');
+ if (window.cargarStockVivo) await window.cargarStockVivo(miCiudad);
  // Home: solo vendedores de Comunidad, sin productos propios de Z&R,
  // y solo de la ciudad del comprador — el snapshot trae TODAS las
  // ciudades juntas (es la "vista pública sin filtros" que arma
  // generarSnapshotCatalogo), el filtro por ciudad se aplica acá,
  // igual que ya hace comunidad.js con este mismo snapshot.
- const soloComunidad = (window.ordenarCatalogoComunidad ? window.ordenarCatalogoComunidad(data.products) : data.products).filter(p => !p.es_znr && Number(p.stock || 0) > 0 && (!miCiudad || p.ciudad === miCiudad));
+ const soloComunidad = (window.ordenarCatalogoComunidad ? window.ordenarCatalogoComunidad(data.products) : data.products).filter(p => !p.es_znr && Number(stockVivo(p) || 0) > 0 && (!miCiudad || p.ciudad === miCiudad));
  const aprobados = soloComunidad.slice(0, PREVIEW_COUNT);
  window.allCommunityProductsIndexed = soloComunidad;
  grid.innerHTML = '';
