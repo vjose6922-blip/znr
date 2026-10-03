@@ -640,66 +640,20 @@ addrContainer.style.display = "none";
 _refreshDeliveryBlock();
 }
 async function changePhoneNumber() {
-const currentPhone = localStorage.getItem("client_phone") || "";
-const formattedCurrent = currentPhone && currentPhone.length === 10
-? `${currentPhone.slice(0,2)}-${currentPhone.slice(2,6)}-${currentPhone.slice(6)}`
-: "no guardado";
-const newPhone = await new Promise((resolve) => {
-showCustomPrompt({
-title: " Cambiar número de teléfono",
-message: `Número actual: ${formattedCurrent}\n\nIngresa tu nuevo número (10 dígitos):\nEjemplo: 8671234567\n\n Solo números, sin espacios ni código país.`,
-icon: "",
-defaultValue: currentPhone || "",
-confirmText: "Guardar",
-cancelText: "Cancelar",
-onConfirm: (value) => resolve(value),
-onCancel: () => resolve(null)
-});
-});
-if (newPhone === null) {
-return;
-}
-if (newPhone === "") {
-const confirmDelete = await new Promise((resolve) => {
-showCustomConfirm({
-title: " Eliminar número",
-message: "¿Eliminar tu número guardado? Deberás ingresarlo nuevamente en tu próxima compra.",
-icon: "",
-confirmText: "Sí, eliminar",
-cancelText: "Cancelar",
-onConfirm: () => resolve(true),
-onCancel: () => resolve(false)
-});
-});
-if (confirmDelete) {
-const oldPhone = localStorage.getItem("client_phone");
-if (oldPhone && typeof window.eliminarTokenFCM === 'function') {
-  window.eliminarTokenFCM('cliente', oldPhone.replace(/\D/g, '')).catch(() => {});
-}
-localStorage.removeItem("client_phone");
-updateSavedPhoneDisplay();
-}
-return;
-}
-let cleanPhone = newPhone.replace(/[^0-9]/g, '');
-if (cleanPhone.length !== 10) {
-showCustomAlert({
-title: " Número inválido",
-message: "El número debe tener exactamente 10 dígitos.\nEjemplo: 8671234567",
-icon: "",
-confirmText: "Entendido"
-});
-return;
-}
-localStorage.setItem("client_phone", cleanPhone);
+const actual = localStorage.getItem("client_phone") || "";
+const acceso = await pedirAccesoComprador(actual, "Para cambiar de número");
+if (!acceso) return;
+if (actual && actual !== acceso.telefono) olvidarComprador();
+localStorage.setItem("client_phone", acceso.telefono);
+localStorage.setItem("comprador_token", acceso.token);
 updateSavedPhoneDisplay();
 if (typeof window.solicitarPermisoNotificacionesSiFalta === 'function') {
-  window.solicitarPermisoNotificacionesSiFalta('cliente', cleanPhone);
+  window.solicitarPermisoNotificacionesSiFalta('cliente', acceso.telefono);
 }
-const formatted = `${cleanPhone.slice(0,2)}-${cleanPhone.slice(2,6)}-${cleanPhone.slice(6)}`;
+const t = acceso.telefono;
 showCustomAlert({
 title: " ¡Número actualizado!",
-message: `Tu nuevo número es: ${formatted}\n\nSe usará para futuras compras.`,
+message: `Tu número es: ${t.slice(0,2)}-${t.slice(2,6)}-${t.slice(6)}\n\nSe usará para futuras compras.`,
 icon: "",
 confirmText: "Aceptar"
 });
@@ -2142,7 +2096,7 @@ setTimeout(() => overlay.querySelector('textarea').focus(), 100);
 // usa comprador-live.html) — solo rellena los campos que sigan vacíos,
 // nunca pisa lo que la persona ya tenga puesto o guardado localmente.
 if (savedPhoneForPerfil.length === 10) {
-fetch(`${AUTH_API_URL_CART}?${new URLSearchParams({ action: 'leerPerfilComprador', telefono: savedPhoneForPerfil })}`)
+fetch(`${AUTH_API_URL_CART}?${new URLSearchParams({ action: 'leerPerfilComprador', telefono: savedPhoneForPerfil, compradorToken: localStorage.getItem('comprador_token') || '' })}`)
 .then(r => r.json()).then(resp => {
 const perfil = resp && resp.ok ? resp.perfil : null;
 if (!perfil) return;
@@ -2257,7 +2211,7 @@ overlay.remove();
 // Deja el perfil actualizado (compradores/{telefono}) para la próxima
 // compra, en cualquier página — no bloquea el checkout si falla.
 if (savedPhoneForPerfil.length === 10) {
-const payload = { action: 'guardarPerfilComprador', telefono: savedPhoneForPerfil, direccion: address, dias: selectedDays.join(','), horaDesde: hourFrom, horaHasta: hourTo, nota: note };
+const payload = { action: 'guardarPerfilComprador', telefono: savedPhoneForPerfil, compradorToken: localStorage.getItem('comprador_token') || '', direccion: address, dias: selectedDays.join(','), horaDesde: hourFrom, horaHasta: hourTo, nota: note };
 if (overlay._gpsLat !== undefined && overlay._gpsLng !== undefined) { payload.lat = overlay._gpsLat; payload.lng = overlay._gpsLng; }
 fetch(AUTH_API_URL_CART, { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams(payload).toString() }).catch(() => {});
 }
@@ -2277,33 +2231,117 @@ if (comunidadItems.length > 0) {
 await _checkoutComunidad(comunidadItems);
 }
 }
-async function _checkoutZNR(znrItems, allItems) {
-let clientPhone = localStorage.getItem("client_phone");
-if (!clientPhone) {
-clientPhone = await new Promise(resolve => {
-showCustomPrompt({
-title: " Tu número de WhatsApp",
-message: "Para procesar tu compra necesitamos tu número (10 dígitos).\nEjemplo: 8671234567",
-icon: "",
-defaultValue: "",
-confirmText: "Continuar",
-cancelText: "Cancelar",
-onConfirm: v => resolve(v),
-onCancel: () => resolve(null)
-});
-});
-if (!clientPhone) {
-showTemporaryMessage(" Necesitamos tu número para procesar la compra", "error");
-return;
+// ── Cuenta de comprador: teléfono + contraseña ──────────────────────
+// Sin esto, cualquiera que supiera tu número podía ver tus notificaciones.
+// Comprar no requiere aprobación del admin (solo ser vendedor la requiere).
+function compradorApi(payload) {
+return fetch(window.VENDEDORES_API_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) }).then(r => r.json());
 }
-clientPhone = clientPhone.replace(/[^0-9]/g, '');
-if (clientPhone.length !== 10) {
-showTemporaryMessage(" Número inválido. Debe tener 10 dígitos.", "error");
-return;
+function olvidarComprador() {
+const tel = (localStorage.getItem('client_phone') || '').replace(/\D/g, '');
+const compradorToken = localStorage.getItem('comprador_token');
+localStorage.removeItem('client_phone');
+localStorage.removeItem('comprador_token');
+if (tel && typeof window.eliminarTokenFCM === 'function') window.eliminarTokenFCM('cliente', tel).catch(() => {});
+if (compradorToken) compradorApi({ action: 'cerrarSesionComprador', compradorToken }).catch(() => {});
 }
-localStorage.setItem("client_phone", clientPhone);
+function pedirAccesoComprador(tel = '', motivo = 'Para continuar') {
+return new Promise(resolve => {
+let nuevo = true;
+const m = document.createElement('div');
+m.className = 'custom-alert-modal';
+m.innerHTML = `<div class="custom-alert-content">
+<div class="custom-alert-header"><h3>Tu número de WhatsApp</h3></div>
+<div class="custom-alert-body">
+<p id="_ac-msg"></p>
+<input type="tel" class="custom-alert-input" id="_ac-tel" inputmode="numeric" maxlength="10" placeholder="8671234567" value="${tel.replace(/\D/g, '')}" autocomplete="tel">
+<input type="password" class="custom-alert-input" id="_ac-pw" style="margin-top:8px" autocomplete="current-password">
+<input type="password" class="custom-alert-input" id="_ac-pw2" style="margin-top:8px" placeholder="Repite la contraseña" autocomplete="new-password">
+<div id="_ac-sq">
+<input type="text" class="custom-alert-input" id="_ac-pq" style="margin-top:8px" placeholder="Pregunta de seguridad (ej. nombre de tu primera mascota)" maxlength="80">
+<input type="text" class="custom-alert-input" id="_ac-pa" style="margin-top:8px" placeholder="Tu respuesta" maxlength="60" autocomplete="off">
+</div>
+<div id="_ac-rec" style="display:none;margin-top:8px"><p id="_ac-rq" style="font-weight:600"></p>
+<input type="text" class="custom-alert-input" id="_ac-ans" placeholder="Tu respuesta" autocomplete="off"></div>
+<p id="_ac-err" style="color:#ef4444;font-size:.85rem;min-height:1.1em;margin:8px 0 0"></p>
+<p id="_ac-sw" style="color:#7c3aed;font-size:.85rem;cursor:pointer;margin:4px 0 0;font-weight:600"></p>
+<p id="_ac-olv" style="color:#888;font-size:.85rem;cursor:pointer;margin:4px 0 0">¿Olvidaste tu contraseña?</p>
+</div>
+<div class="custom-alert-footer">
+<button class="custom-alert-btn cancel"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" aria-hidden="true"><use href="#ic-x"/></svg> Cancelar</button>
+<button class="custom-alert-btn confirm"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" aria-hidden="true"><use href="#ic-check"/></svg> Continuar</button>
+</div></div>`;
+const $ = q => m.querySelector(q);
+const pintar = () => {
+$('#_ac-msg').textContent = nuevo
+? `${motivo} necesitamos tu número (10 dígitos) y una contraseña que proteja tus notificaciones.`
+: 'Ingresa tu número y tu contraseña (si ya eres vendedor, la de tu cuenta de vendedor).';
+$('#_ac-pw').placeholder = nuevo ? 'Crea una contraseña (mín. 6)' : 'Tu contraseña';
+$('#_ac-pw2').style.display = nuevo ? '' : 'none';
+$('#_ac-sq').style.display = nuevo ? '' : 'none';
+$('#_ac-rec').style.display = 'none';
+$('#_ac-olv').textContent = '¿Olvidaste tu contraseña?';
+$('#_ac-olv').style.display = nuevo ? 'none' : '';
+$('#_ac-sw').textContent = nuevo ? '¿Ya tienes cuenta? Inicia sesión' : '¿Primera vez? Crea tu contraseña';
+};
+const cerrar = v => { m.classList.add('closing'); setTimeout(() => { m.remove(); resolve(v); }, 150); };
+$('#_ac-sw').onclick = () => { nuevo = !nuevo; $('#_ac-err').textContent = ''; pintar(); };
+$('#_ac-olv').onclick = async () => {
+const t = $('#_ac-tel').value.replace(/\D/g, ''), err = $('#_ac-err'), rec = $('#_ac-rec');
+err.style.color = '#ef4444';
+if (t.length !== 10) return err.textContent = 'Escribe primero tu número de 10 dígitos.';
+if (rec.style.display === 'none') {
+const q = await compradorApi({ action: 'obtenerPreguntaComprador', telefono: t }).catch(() => ({}));
+if (!q.tienePregunta) return err.textContent = 'No hay cuenta de comprador con ese número. Si eres vendedor, recupérala en vendedor.html.';
+$('#_ac-rq').textContent = q.pregunta;
+rec.style.display = '';
+$('#_ac-olv').textContent = 'Enviar solicitud';
+return err.textContent = '';
+}
+const r = await compradorApi({ action: 'solicitarResetComprador', telefono: t, respuesta: $('#_ac-ans').value }).catch(() => ({ error: 'Sin conexión. Intenta de nuevo.' }));
+err.style.color = r.ok ? '#16a34a' : '#ef4444';
+err.textContent = r.ok ? 'Listo. El administrador te contactará por WhatsApp con un código nuevo.' : r.error;
+};
+$('.cancel').onclick = () => cerrar(null);
+m.onkeydown = e => { if (e.key === 'Enter') $('.confirm').click(); };
+$('.confirm').onclick = async () => {
+const t = $('#_ac-tel').value.replace(/\D/g, ''), p = $('#_ac-pw').value, err = $('#_ac-err');
+err.style.color = '#ef4444';
+if (t.length !== 10) return err.textContent = 'Número inválido. Debe tener 10 dígitos.';
+if (nuevo && p !== $('#_ac-pw2').value) return err.textContent = 'Las contraseñas no coinciden.';
+$('.confirm').disabled = true;
+const r = await compradorApi({ action: nuevo ? 'registrarComprador' : 'loginComprador', telefono: t, password: p, pregunta: $('#_ac-pq').value, respuesta: $('#_ac-pa').value }).catch(() => ({ error: 'Sin conexión. Intenta de nuevo.' }));
+$('.confirm').disabled = false;
+if (r.ok) return cerrar({ telefono: t, token: r.token });
+if (r.existe) { nuevo = false; pintar(); }
+err.textContent = r.error || 'No se pudo continuar. Intenta de nuevo.';
+};
+pintar();
+document.body.appendChild(m);
+setTimeout(() => $('#_ac-tel').focus(), 100);
+});
+}
+// Devuelve el teléfono del comprador con sesión válida, o null si cancela.
+async function asegurarComprador(motivo) {
+const tel = (localStorage.getItem('client_phone') || '').replace(/\D/g, '');
+const compradorToken = localStorage.getItem('comprador_token');
+if (tel.length === 10 && compradorToken) {
+const r = await compradorApi({ action: 'verificarSesionComprador', telefono: tel, compradorToken }).catch(() => ({ ok: true }));
+if (r.ok) return tel;
+localStorage.removeItem('comprador_token');
+}
+const acceso = await pedirAccesoComprador(tel, motivo);
+if (!acceso) { showTemporaryMessage(" Necesitamos tu número para continuar", "error"); return null; }
+localStorage.setItem('client_phone', acceso.telefono);
+localStorage.setItem('comprador_token', acceso.token);
 updateSavedPhoneDisplay();
+return acceso.telefono;
 }
+window.asegurarComprador = asegurarComprador;
+window.olvidarComprador = olvidarComprador;
+async function _checkoutZNR(znrItems, allItems) {
+const clientPhone = await asegurarComprador("Para procesar tu compra");
+if (!clientPhone) return;
 if (typeof window.solicitarPermisoNotificacionesSiFalta === 'function') {
   window.solicitarPermisoNotificacionesSiFalta('cliente', clientPhone);
 }
@@ -2442,32 +2480,8 @@ _entregaVendedorCache.set(vendorUid, vacio);
 return vacio;
 }
 async function _checkoutComunidad(comunidadItems) {
-let clientPhone = localStorage.getItem("client_phone") || "";
-if (!clientPhone) {
-clientPhone = await new Promise(resolve => {
-showCustomPrompt({
-title: " Tu número de WhatsApp",
-message: "Para que el vendedor te contacte necesitamos tu número (10 dígitos).\nEjemplo: 8671234567",
-icon: "",
-defaultValue: "",
-confirmText: "Continuar",
-cancelText: "Cancelar",
-onConfirm: v => resolve(v),
-onCancel: () => resolve(null)
-});
-});
-if (!clientPhone) {
-showTemporaryMessage(" Necesitamos tu número para contactar al vendedor", "error");
-return;
-}
-clientPhone = clientPhone.replace(/[^0-9]/g, '');
-if (clientPhone.length !== 10) {
-showTemporaryMessage(" Número inválido. Debe tener 10 dígitos.", "error");
-return;
-}
-localStorage.setItem("client_phone", clientPhone);
-updateSavedPhoneDisplay();
-}
+const clientPhone = await asegurarComprador("Para que el vendedor te contacte");
+if (!clientPhone) return;
 if (typeof window.solicitarPermisoNotificacionesSiFalta === 'function') {
   window.solicitarPermisoNotificacionesSiFalta('cliente', clientPhone);
 }

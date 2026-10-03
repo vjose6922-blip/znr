@@ -110,6 +110,7 @@
       body.vendorToken = identity.vendorToken;
     } else {
       body.phone = identity.type === 'vendedor' ? identity.telefono : identity.id;
+      body.compradorToken = localStorage.getItem('comprador_token') || '';
     }
     await postAction(body);
   }
@@ -121,10 +122,10 @@
     if (identity.type === 'vendedor') {
       calls.push(postAction({ action: 'marcarTodasNotificacionesLeidas', ownerType: 'vendedor', vendorToken: identity.vendorToken }));
       if (identity.telefono) {
-        calls.push(postAction({ action: 'marcarTodasNotificacionesLeidas', ownerType: 'cliente', phone: identity.telefono }));
+        calls.push(postAction({ action: 'marcarTodasNotificacionesLeidas', ownerType: 'cliente', phone: identity.telefono, compradorToken: localStorage.getItem('comprador_token') || '' }));
       }
     } else {
-      calls.push(postAction({ action: 'marcarTodasNotificacionesLeidas', ownerType: 'cliente', phone: identity.id }));
+      calls.push(postAction({ action: 'marcarTodasNotificacionesLeidas', ownerType: 'cliente', phone: identity.id, compradorToken: localStorage.getItem('comprador_token') || '' }));
     }
     await Promise.all(calls);
   }

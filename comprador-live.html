@@ -634,7 +634,7 @@ function askIdentity(onDone) {
   // ajeno no puede enviar el formulario sin estar ahí físicamente).
   async function aplicarPerfilGuardado(tel) {
     if (tel.length !== 10) return;
-    const resp = await apiFetch({ action: 'leerPerfilComprador', telefono: tel }, 'GET').catch(() => null);
+    const resp = await apiFetch({ action: 'leerPerfilComprador', telefono: tel, compradorToken: localStorage.getItem('comprador_token') || '' }, 'GET').catch(() => null);
     const perfil = resp && resp.ok ? resp.perfil : null;
     if (!perfil) return;
     if (Array.isArray(perfil.dias)) {
@@ -718,6 +718,7 @@ function guardarPerfilRemoto(idn, actualizarUbicacion) {
   const payload = {
     action: 'guardarPerfilComprador',
     telefono: idn.telefono,
+    compradorToken: localStorage.getItem('comprador_token') || '',
     dias: idn.dias.join(','),
     horaDesde: idn.horaDesde,
     horaHasta: idn.horaHasta,

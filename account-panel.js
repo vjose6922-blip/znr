@@ -468,10 +468,10 @@ showCustomConfirm({
 title:' Eliminar teléfono',
 message:'¿Eliminar el número guardado? Tendrás que ingresarlo de nuevo al comprar.',
 icon:'', confirmText:'Sí, eliminar', cancelText:'Cancelar',
-onConfirm:()=>{ localStorage.removeItem('client_phone'); closePanel(); buildPanel(); }
+onConfirm:()=>{ olvidarComprador(); closePanel(); buildPanel(); }
 });
 } else {
-localStorage.removeItem('client_phone');
+olvidarComprador();
 closePanel(); buildPanel();
 }
 });

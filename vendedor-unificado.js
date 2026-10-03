@@ -29,6 +29,7 @@ const LIVE_API_URL =
 const MAPA_ACCIONES_MIGRADAS = {
   registrarVendedor: VENDEDORES_API_URL,
   loginVendedor: VENDEDORES_API_URL,
+  sesionCompradorDesdeVendedor: VENDEDORES_API_URL,
   webauthnLoginOpciones: VENDEDORES_API_URL,
   webauthnLoginVerificar: VENDEDORES_API_URL,
   webauthnRegistroOpciones: VENDEDORES_API_URL,
@@ -298,12 +299,23 @@ registerTab.classList.add('active');
 loginTab.classList.remove('active');
 loginContainer.style.display = 'none';
 registerContainer.style.display = 'block';
+const tel = localStorage.getItem('client_phone');
+if (tel && localStorage.getItem('comprador_token')) {
+  document.getElementById('reg-phone').value = tel;
+  mostrarAvisoComprador('Ya tienes cuenta de comprador. Completa tus datos para terminar tu validación como vendedor: el administrador revisará tu solicitud y te dará una contraseña nueva de vendedor que sustituirá la de comprador.');
+}
 });
 
 const switchToRegister = document.getElementById('switch-to-register');
 const switchToLogin = document.getElementById('switch-to-login');
 if (switchToRegister) switchToRegister.addEventListener('click', () => registerTab && registerTab.click());
 if (switchToLogin) switchToLogin.addEventListener('click', () => loginTab && loginTab.click());
+}
+
+function mostrarAvisoComprador(msg, pedirPassword) {
+document.getElementById('reg-comprador-box').style.display = 'block';
+document.getElementById('reg-comprador-msg').textContent = msg;
+document.getElementById('reg-comprador-pass').style.display = pedirPassword ? 'block' : 'none';
 }
 
 async function registerVendor() {
@@ -321,7 +333,14 @@ btn.disabled = true;
 btn.textContent = 'Enviando...';
 }
 try {
-const res = await apiFetch({ action: 'registrarVendedor', nombre, telefono: phone, pais, ciudad });
+const sesionOk = localStorage.getItem('client_phone') === phone;
+const res = await apiFetch({ action: 'registrarVendedor', nombre, telefono: phone, pais, ciudad,
+  compradorToken: sesionOk ? localStorage.getItem('comprador_token') : undefined,
+  password: document.getElementById('reg-comprador-pass')?.value || undefined });
+if (res.requiereComprador) {
+  mostrarAvisoComprador(res.error, true);
+  return;
+}
 if (!res.ok) throw new Error(res.error);
 showTemporaryMessage(' Registro exitoso. Espera a que el administrador active tu cuenta.', 'success');
 document.getElementById('reg-nombre').value = '';
@@ -342,6 +361,12 @@ btn.textContent = 'Registrarme';
 
 const registerBtn = document.getElementById('register-btn');
 if (registerBtn) registerBtn.addEventListener('click', registerVendor);
+
+function vincularComprador(forzar) {
+if (!forzar && localStorage.getItem('comprador_token')) return;
+apiFetch({ action: 'sesionCompradorDesdeVendedor', vendorToken: vendorSession.token })
+  .then(r => { if (r.ok) localStorage.setItem('comprador_token', r.token); }).catch(() => {});
+}
 
 async function finalizarLoginVendedor(res, telefono) {
 vendorSession = {
@@ -382,6 +407,7 @@ if (typeof window.solicitarPermisoNotificacionesSiFalta === 'function') {
 }
 
 if (telefono) localStorage.setItem('client_phone', telefono);
+vincularComprador(true);
 if (typeof updateSavedPhoneDisplay === 'function') updateSavedPhoneDisplay();
 }
 
@@ -1590,6 +1616,7 @@ if (stored) {
 try {
 vendorSession = JSON.parse(stored);
 if (vendorSession.telefono) localStorage.setItem('client_phone', vendorSession.telefono);
+vincularComprador(false);
 showPanel();
 apiFetch({ action: 'misProductosComunidad', vendorToken: vendorSession.token, limit: 1 }, 'GET').then(resp => {
   if (!resp.ok) {

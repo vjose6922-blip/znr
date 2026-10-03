@@ -142,7 +142,7 @@ window.znrFirestore.signIn = async function (ownerType, ownerRef) {
     const params = new URLSearchParams();
     params.append('action', 'obtenerFirebaseToken');
     if (ownerType === 'vendedor') params.append('vendorToken', ownerRef);
-    else params.append('telefono', ownerRef);
+    else { params.append('telefono', ownerRef); params.append('compradorToken', localStorage.getItem('comprador_token') || ''); }
 
     const data = await _fsConReintentos(async () => {
       const res = await fetch(AUTH_API_URL, {
