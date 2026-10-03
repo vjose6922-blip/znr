@@ -2257,12 +2257,6 @@ m.innerHTML = `<div class="custom-alert-content">
 <input type="tel" class="custom-alert-input" id="_ac-tel" inputmode="numeric" maxlength="10" placeholder="8671234567" value="${tel.replace(/\D/g, '')}" autocomplete="tel">
 <input type="password" class="custom-alert-input" id="_ac-pw" style="margin-top:8px" autocomplete="current-password">
 <input type="password" class="custom-alert-input" id="_ac-pw2" style="margin-top:8px" placeholder="Repite la contraseña" autocomplete="new-password">
-<div id="_ac-sq">
-<input type="text" class="custom-alert-input" id="_ac-pq" style="margin-top:8px" placeholder="Pregunta de seguridad (ej. nombre de tu primera mascota)" maxlength="80">
-<input type="text" class="custom-alert-input" id="_ac-pa" style="margin-top:8px" placeholder="Tu respuesta" maxlength="60" autocomplete="off">
-</div>
-<div id="_ac-rec" style="display:none;margin-top:8px"><p id="_ac-rq" style="font-weight:600"></p>
-<input type="text" class="custom-alert-input" id="_ac-ans" placeholder="Tu respuesta" autocomplete="off"></div>
 <p id="_ac-err" style="color:#ef4444;font-size:.85rem;min-height:1.1em;margin:8px 0 0"></p>
 <p id="_ac-sw" style="color:#7c3aed;font-size:.85rem;cursor:pointer;margin:4px 0 0;font-weight:600"></p>
 <p id="_ac-olv" style="color:#888;font-size:.85rem;cursor:pointer;margin:4px 0 0">¿Olvidaste tu contraseña?</p>
@@ -2278,29 +2272,17 @@ $('#_ac-msg').textContent = nuevo
 : 'Ingresa tu número y tu contraseña (si ya eres vendedor, la de tu cuenta de vendedor).';
 $('#_ac-pw').placeholder = nuevo ? 'Crea una contraseña (mín. 6)' : 'Tu contraseña';
 $('#_ac-pw2').style.display = nuevo ? '' : 'none';
-$('#_ac-sq').style.display = nuevo ? '' : 'none';
-$('#_ac-rec').style.display = 'none';
-$('#_ac-olv').textContent = '¿Olvidaste tu contraseña?';
 $('#_ac-olv').style.display = nuevo ? 'none' : '';
 $('#_ac-sw').textContent = nuevo ? '¿Ya tienes cuenta? Inicia sesión' : '¿Primera vez? Crea tu contraseña';
 };
 const cerrar = v => { m.classList.add('closing'); setTimeout(() => { m.remove(); resolve(v); }, 150); };
 $('#_ac-sw').onclick = () => { nuevo = !nuevo; $('#_ac-err').textContent = ''; pintar(); };
 $('#_ac-olv').onclick = async () => {
-const t = $('#_ac-tel').value.replace(/\D/g, ''), err = $('#_ac-err'), rec = $('#_ac-rec');
-err.style.color = '#ef4444';
-if (t.length !== 10) return err.textContent = 'Escribe primero tu número de 10 dígitos.';
-if (rec.style.display === 'none') {
-const q = await compradorApi({ action: 'obtenerPreguntaComprador', telefono: t }).catch(() => ({}));
-if (!q.tienePregunta) return err.textContent = 'No hay cuenta de comprador con ese número. Si eres vendedor, recupérala en vendedor.html.';
-$('#_ac-rq').textContent = q.pregunta;
-rec.style.display = '';
-$('#_ac-olv').textContent = 'Enviar solicitud';
-return err.textContent = '';
-}
-const r = await compradorApi({ action: 'solicitarResetComprador', telefono: t, respuesta: $('#_ac-ans').value }).catch(() => ({ error: 'Sin conexión. Intenta de nuevo.' }));
-err.style.color = r.ok ? '#16a34a' : '#ef4444';
-err.textContent = r.ok ? 'Listo. El administrador te contactará por WhatsApp con un código nuevo.' : r.error;
+const t = $('#_ac-tel').value.replace(/\D/g, ''), err = $('#_ac-err');
+if (t.length !== 10) { err.style.color = '#ef4444'; return err.textContent = 'Escribe primero tu número de 10 dígitos.'; }
+await compradorApi({ action: 'solicitarResetComprador', telefono: t }).catch(() => {});
+err.style.color = '#16a34a';
+err.textContent = 'Listo. El administrador te contactará por WhatsApp a ese número con un código nuevo.';
 };
 $('.cancel').onclick = () => cerrar(null);
 m.onkeydown = e => { if (e.key === 'Enter') $('.confirm').click(); };
@@ -2310,7 +2292,7 @@ err.style.color = '#ef4444';
 if (t.length !== 10) return err.textContent = 'Número inválido. Debe tener 10 dígitos.';
 if (nuevo && p !== $('#_ac-pw2').value) return err.textContent = 'Las contraseñas no coinciden.';
 $('.confirm').disabled = true;
-const r = await compradorApi({ action: nuevo ? 'registrarComprador' : 'loginComprador', telefono: t, password: p, pregunta: $('#_ac-pq').value, respuesta: $('#_ac-pa').value }).catch(() => ({ error: 'Sin conexión. Intenta de nuevo.' }));
+const r = await compradorApi({ action: nuevo ? 'registrarComprador' : 'loginComprador', telefono: t, password: p }).catch(() => ({ error: 'Sin conexión. Intenta de nuevo.' }));
 $('.confirm').disabled = false;
 if (r.ok) return cerrar({ telefono: t, token: r.token });
 if (r.existe) { nuevo = false; pintar(); }
