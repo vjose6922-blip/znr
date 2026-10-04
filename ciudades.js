@@ -148,6 +148,7 @@ function mostrarSelectorCiudad(resolve) {
   selCiudad.addEventListener('change', () => {
     if (!selCiudad.value) return;
     localStorage.setItem('buyer_ciudad', selCiudad.value);
+    localStorage.setItem('buyer_ciudad_ok', '1');
     chip.remove();
     resolve(selCiudad.value);
   });
@@ -175,3 +176,33 @@ function obtenerCiudadComprador() {
       .catch(() => mostrarSelectorCiudad(resolve));
   });
 }
+
+// La IP solo adivina: hasta que el comprador confirma, se muestra esta franja y no puede agregar al carrito.
+window.ciudadConfirmada = () => localStorage.getItem('buyer_ciudad_ok') === '1';
+const _recargarCiudad = () => mostrarSelectorCiudad(() => location.reload());
+function mostrarFranjaCiudad() {
+  const ciudad = localStorage.getItem('buyer_ciudad');
+  if (!ciudad || window.ciudadConfirmada() || document.getElementById('franja-ciudad')) return;
+  const f = document.createElement('div');
+  f.id = 'franja-ciudad';
+  f.style.cssText = 'position:sticky;top:0;z-index:9998;background:#fff8e1;color:#5d4037;padding:8px 12px;font-size:13px;display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(0,0,0,.15)';
+  f.innerHTML = `📍 Mostrando productos de <b>${ciudad}</b> ` + [['ok', 'Es correcta'], ['gps', 'Usar mi ubicación'], ['otra', 'Cambiar']]
+    .map(([a, t]) => `<button data-a="${a}" style="border:1px solid #5d4037;background:#fff;border-radius:14px;padding:4px 10px;font-size:12px">${t}</button>`).join('');
+  f.onclick = (e) => {
+    const a = e.target.dataset.a;
+    if (a === 'ok') { localStorage.setItem('buyer_ciudad_ok', '1'); f.remove(); }
+    if (a === 'otra') _recargarCiudad();
+    if (a === 'gps') navigator.geolocation
+      ? navigator.geolocation.getCurrentPosition(
+          (p) => { localStorage.setItem('buyer_ciudad', ciudadMasCercana(p.coords.latitude, p.coords.longitude)); localStorage.setItem('buyer_ciudad_ok', '1'); location.reload(); },
+          _recargarCiudad)
+      : _recargarCiudad();
+  };
+  document.body.prepend(f);
+}
+window.pedirConfirmarCiudad = () => {
+  obtenerCiudadComprador().then(mostrarFranjaCiudad);
+  scrollTo({ top: 0, behavior: 'smooth' });
+  if (window.showTemporaryMessage) window.showTemporaryMessage('Confirma tu ciudad para continuar', 'error');
+};
+if (/^\/(index\.html|catalogo\.html|comunidad\.html)?$/.test(location.pathname)) obtenerCiudadComprador().then(mostrarFranjaCiudad);
