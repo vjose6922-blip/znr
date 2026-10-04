@@ -5,43 +5,43 @@
 // de la caché (p.ej. cambiaste la lógica de cacheo en sí).
 const CACHE_NAME    = 'zr-cache';
 const DYNAMIC_CACHE = 'zr-dynamic';
-const OFFLINE_URL   = '/znr/offline.html';
+const OFFLINE_URL   = '/offline.html';
 
 const STATIC_ASSETS = [
-  '/znr/',
-  '/znr/index.html',
-  '/znr/catalogo.html',
-  '/znr/outfit.html',
-  '/znr/armar-outfit.html',
-  '/znr/comunidad.html',
-  '/znr/perfil-vendedor.html',
-  '/znr/vendedor.html',
-  '/znr/terminos.html',
-  '/znr/privacidad.html',
-  '/znr/mapa.html',
-  '/znr/lives.html',
-  '/znr/entregas-live.html',
-  '/znr/plan-plus.html',
-  '/znr/mp-callback.html',
-  '/znr/vendedor-live.html',
-  '/znr/seguimiento-entrega.html',
-  '/znr/feed-actividad.html',
-  '/znr/comprador-live.html',
-  '/znr/offline.html',
-  '/znr/styles.css',
-  '/znr/api-config.js',
-  '/znr/common.js',
-  '/znr/script.js',
-  '/znr/looks.js',
-  '/znr/home.js',
-  '/znr/comunidad.js',
-  '/znr/vendedor-unificado.js',
-  '/znr/offline-manager.js',
-  '/znr/cache-manager.js',
-  '/znr/error-monitor.js',
-  '/znr/icons.js',
-  '/znr/manifest.json',
-  '/znr/placeholder.svg',
+  '/',
+  '/index.html',
+  '/catalogo.html',
+  '/outfit.html',
+  '/armar-outfit.html',
+  '/comunidad.html',
+  '/perfil-vendedor.html',
+  '/vendedor.html',
+  '/terminos.html',
+  '/privacidad.html',
+  '/mapa.html',
+  '/lives.html',
+  '/entregas-live.html',
+  '/plan-plus.html',
+  '/mp-callback.html',
+  '/vendedor-live.html',
+  '/seguimiento-entrega.html',
+  '/feed-actividad.html',
+  '/comprador-live.html',
+  '/offline.html',
+  '/styles.css',
+  '/api-config.js',
+  '/common.js',
+  '/script.js',
+  '/looks.js',
+  '/home.js',
+  '/comunidad.js',
+  '/vendedor-unificado.js',
+  '/offline-manager.js',
+  '/cache-manager.js',
+  '/error-monitor.js',
+  '/icons.js',
+  '/manifest.json',
+  '/placeholder.svg',
 ];
 
 const IMAGE_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.svg'];
@@ -160,7 +160,7 @@ async function cacheFirst(request) {
   // Para imágenes: servir el placeholder en vez de un 404, así el <img>
   // no queda roto ni dispara un error visible por una falla pasajera.
   if (isImage) {
-    const placeholder = await caches.match('/znr/placeholder.svg');
+    const placeholder = await caches.match('/placeholder.svg');
     if (placeholder) return placeholder;
   }
   return new Response('Offline', { status: 404 });
@@ -262,12 +262,12 @@ self.addEventListener('push', event => {
   const notif = payload.notification || {};
   const title = notif.title || 'Z&R';
   const body  = notif.body  || '¡Novedades en Z&R!';
-  const url   = (payload.data && payload.data.url) || payload.fcmOptions?.link || '/znr/';
+  const url   = (payload.data && payload.data.url) || payload.fcmOptions?.link || '/';
 
   event.waitUntil((async () => {
     await self.registration.showNotification(title, {
       body:    body,
-      icon:    '/znr/logo.svg',
+      icon:    '/logo.svg',
       vibrate: [200, 100, 200],
       data:    { url: url },
       actions: [{ action: 'open', title: 'Ver ahora' }, { action: 'close', title: 'Cerrar' }]
@@ -290,7 +290,7 @@ self.addEventListener('notificationclick', event => {
   // porque ahí event.action llega vacío). Más robusto: abrir siempre,
   // excepto cuando se toca explícitamente "Cerrar".
   if (event.action === 'close') return;
-  const url = event.notification.data?.url || '/znr/';
+  const url = event.notification.data?.url || '/';
   event.waitUntil(
     self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(clients => {
       for (const c of clients) {

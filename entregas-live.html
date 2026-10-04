@@ -627,7 +627,7 @@
   const watchers = {}; // compradorKey -> watchPosition id, mientras se comparte ubicación
 
   function linkSeguimiento(key) {
-    return `${location.origin}/znr/seguimiento-entrega.html?live=${encodeURIComponent(liveId)}&key=${encodeURIComponent(key)}`;
+    return `${location.origin}/seguimiento-entrega.html?live=${encodeURIComponent(liveId)}&key=${encodeURIComponent(key)}`;
   }
 
   function enviarLinkSeguimiento(key) {
@@ -790,6 +790,6 @@
   cargar();
 })();
 </script>
-<script>if('serviceWorker' in navigator) navigator.serviceWorker.register('/znr/sw.js', { scope: '/znr/' });</script>
+<script>if('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js', { scope: '/' });</script>
 </body>
 </html>

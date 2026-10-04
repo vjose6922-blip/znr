@@ -3084,8 +3084,8 @@ return false;
 }
 try {
 const teniaControllerPrevio = !!navigator.serviceWorker.controller;
-const registration = await navigator.serviceWorker.register('/znr/sw.js', {
-scope: '/znr/'
+const registration = await navigator.serviceWorker.register('/sw.js', {
+scope: '/'
 });
 navigator.serviceWorker.addEventListener('message', event => {
 if (event.data.type === 'CONNECTION_STATUS') {

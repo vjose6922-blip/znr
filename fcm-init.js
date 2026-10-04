@@ -61,7 +61,7 @@ async function eliminarTokenFCM(ownerType, ownerId) {
   if (!ownerType || !ownerId) return false;
   try {
     if (Notification.permission !== "granted") return false;
-    const registration = await navigator.serviceWorker.getRegistration("/znr/firebase-messaging-sw.js");
+    const registration = await navigator.serviceWorker.getRegistration("/firebase-messaging-sw.js");
     const token = await getToken(messaging, {
       vapidKey: VAPID_KEY,
       serviceWorkerRegistration: registration
@@ -97,7 +97,7 @@ async function solicitarPermisoNotificacionesSiFalta(ownerType, ownerId) {
     // 2. ✅ Ahora sí, permiso es "granted" (recién otorgado o YA LO TENÍA)
     //    Obtenemos el token y REGISTRAMOS al dueño actual SIEMPRE.
     // Antes registraba firebase-messaging-sw.js aparte, peleando por el
-    // mismo scope /znr/ que sw.js (que ya trae su propio handler de push,
+    // mismo scope / que sw.js (que ya trae su propio handler de push,
     // ver comentario en sw.js). Ahora reutiliza ese único registro.
     const registration = await navigator.serviceWorker.ready;
     const token = await getToken(messaging, {
@@ -122,7 +122,7 @@ onMessage(messaging, (payload) => {
   console.log("🔔 Push recibido en primer plano:", payload);
   const { title, body } = payload.notification || {};
   if (title && Notification.permission === "granted") {
-    new Notification(title, { body, icon: "/znr/logo.svg" });
+    new Notification(title, { body, icon: "/logo.svg" });
   }
   window.dispatchEvent(new CustomEvent('znr:nueva-notificacion'));
 });
