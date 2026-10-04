@@ -138,7 +138,7 @@ function ciudadMasCercana(lat, lng) {
 // Muestra un chip no-bloqueante con selects país→ciudad cuando no hay geolocalización.
 function mostrarSelectorCiudad(resolve) {
   const chip = document.createElement('div');
-  chip.style.cssText = 'position:fixed;bottom:16px;left:16px;right:16px;max-width:320px;background:#fff;border-radius:12px;box-shadow:0 4px 16px rgba(0,0,0,.2);padding:14px;z-index:9999;font-size:13px;';
+  chip.style.cssText = 'position:fixed;bottom:16px;left:16px;right:16px;max-width:320px;background:#fff;border-radius:12px;box-shadow:0 4px 16px rgba(0,0,0,.2);padding:14px;z-index:10001;font-size:13px;';
   chip.innerHTML = `<div style="margin-bottom:8px;font-weight:600;">📍 Elige tu ciudad</div>
     <select id="chip-pais" style="width:100%;margin-bottom:6px;padding:8px;border-radius:8px;"></select>
     <select id="chip-ciudad-sel" style="width:100%;padding:8px;border-radius:8px;"></select>`;
