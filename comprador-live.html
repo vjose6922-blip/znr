@@ -412,9 +412,8 @@ async function conectarWHEP() {
 
   const entrante = new MediaStream();
   pc.ontrack = (ev) => {
-    const flujo = (ev.streams && ev.streams[0]) || entrante;
-    if (flujo === entrante) entrante.addTrack(ev.track);
-    if (video.srcObject !== flujo) video.srcObject = flujo;
+    entrante.addTrack(ev.track);
+    if (video.srcObject !== entrante) video.srcObject = entrante;
     reproducirVideo(video);
   };
   pc.onconnectionstatechange = () => {
@@ -501,7 +500,7 @@ function iniciarReproductorWHEP(containerId, whepUrl) {
   setInterval(async () => {
     if (!whepPC) return;
     const st = [...(await whepPC.getStats()).values()].filter((r) => r.type === 'inbound-rtp');
-    estadoVideo(whepPC.connectionState + ' ' + st.map((r) => `${r.kind}:${r.bytesReceived}/${r.framesDecoded ?? '-'}/${r.packetsLost}`).join(' '));
+    estadoVideo(whepPC.connectionState + ' ' + st.map((r) => `${r.kind}:${r.bytesReceived}/${r.framesDecoded ?? '-'}/${r.packetsLost}`).join(' ') + ` tracks:${video.srcObject?.getVideoTracks().length} ${video.videoWidth}x${video.videoHeight}`);
   }, 3000);
   conectarWHEP();
 }
