@@ -700,12 +700,13 @@ async function conectarWHIP() {
   limitarBitrate(pc);
   vigilarPC(pc);
   const dbg = setInterval(async () => { // temporal: quitar cuando funcione
-    if (pc !== pcActual) return clearInterval(dbg);
-    const st = await pc.getStats();
-    const s = [...st.values()].find((r) => r.type === 'outbound-rtp' && r.kind === 'video');
-    const c = s && st.get(s.codecId);
-    avisoVideo(s ? `${c?.mimeType} ${c?.sdpFmtpLine} frames:${s.framesEncoded}` : 'sin outbound-rtp');
-  }, 3000);
+  if (pc !== pcActual) return clearInterval(dbg);
+  const st = await pc.getStats();
+  const s = [...st.values()].find((r) => r.type === 'outbound-rtp' && r.kind === 'video');
+  const c = s && st.get(s.codecId);
+  const r = [...st.values()].find((x) => x.type === 'remote-inbound-rtp' && x.kind === 'video');
+  avisoVideo(s ? `${c?.sdpFmtpLine?.match(/profile-level-id=\w+/)} sent:${s.bytesSent} rtt:${r?.roundTripTime ?? 'sin respuesta'} lost:${r?.packetsLost ?? '-'}` : 'sin outbound-rtp');
+}, 3000);
 }
 
 function vigilarPC(pc) {
