@@ -676,6 +676,7 @@ async function conectarWHIP() {
     bundlePolicy: 'max-bundle'
   });
   pcActual = pc;
+  // Cloudflare solo acepta H264 Constrained Baseline (42e01f) en WebRTC
   const h264 = (RTCRtpSender.getCapabilities('video')?.codecs || [])
     .filter((c) => c.mimeType === 'video/H264' && /profile-level-id=42e01f/.test(c.sdpFmtpLine));
   localStream.getTracks().forEach((track) => {
@@ -699,14 +700,6 @@ async function conectarWHIP() {
   }
   limitarBitrate(pc);
   vigilarPC(pc);
-  const dbg = setInterval(async () => { // temporal: quitar cuando funcione
-  if (pc !== pcActual) return clearInterval(dbg);
-  const st = await pc.getStats();
-  const s = [...st.values()].find((r) => r.type === 'outbound-rtp' && r.kind === 'video');
-  const c = s && st.get(s.codecId);
-  const r = [...st.values()].find((x) => x.type === 'remote-inbound-rtp' && x.kind === 'video');
-  avisoVideo(s ? `${c?.sdpFmtpLine?.match(/profile-level-id=\w+/)} sent:${s.bytesSent} rtt:${r?.roundTripTime ?? 'sin respuesta'} lost:${r?.packetsLost ?? '-'}` : 'sin outbound-rtp');
-}, 3000);
 }
 
 function vigilarPC(pc) {
@@ -1009,7 +1002,6 @@ function pausarRespaldo() { return detenerRecorderActual(); }
 function reanudarRespaldo() { if (respaldoActivo) iniciarCicloSegmento(); }
 
 function iniciarRespaldo() {
- return;
   mimeRespaldo = elegirMimeRespaldo();
   if (!mimeRespaldo) {
     alert('Ojo: este navegador no puede guardar el respaldo de video que se usa para revisar reportes. La transmisión funciona normal.');
