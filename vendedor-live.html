@@ -676,7 +676,11 @@ async function conectarWHIP() {
     bundlePolicy: 'max-bundle'
   });
   pcActual = pc;
-  localStream.getTracks().forEach((track) => pc.addTransceiver(track, { direction: 'sendonly', streams: [localStream] }));
+  const h264 = (RTCRtpSender.getCapabilities('video')?.codecs || []).filter((c) => c.mimeType === 'video/H264');
+  localStream.getTracks().forEach((track) => {
+    const t = pc.addTransceiver(track, { direction: 'sendonly', streams: [localStream] });
+    if (track.kind === 'video' && h264.length) t.setCodecPreferences(h264);
+  });
   try {
     await pc.setLocalDescription(await pc.createOffer());
     await esperarIce(pc, 4000);
