@@ -676,7 +676,8 @@ async function conectarWHIP() {
     bundlePolicy: 'max-bundle'
   });
   pcActual = pc;
-  const h264 = (RTCRtpSender.getCapabilities('video')?.codecs || []).filter((c) => c.mimeType === 'video/H264');
+  const h264 = (RTCRtpSender.getCapabilities('video')?.codecs || [])
+    .filter((c) => c.mimeType === 'video/H264' && /profile-level-id=42e01f/.test(c.sdpFmtpLine));
   localStream.getTracks().forEach((track) => {
     const t = pc.addTransceiver(track, { direction: 'sendonly', streams: [localStream] });
     if (track.kind === 'video' && h264.length) t.setCodecPreferences(h264);
@@ -697,16 +698,14 @@ async function conectarWHIP() {
     throw err;
   }
   limitarBitrate(pc);
-
-const dbg = setInterval(async () => {
-  if (pc !== pcActual) return clearInterval(dbg);
-  const s = [...(await pc.getStats()).values()].find((r) => r.type === 'outbound-rtp' && r.kind === 'video');
-  avisoVideo(s ? `${s.frameWidth}x${s.frameHeight} frames:${s.framesEncoded} bytes:${s.bytesSent} ${s.qualityLimitationReason || ''}` : 'sin outbound-rtp');
-}, 3000);
-
-
- 
   vigilarPC(pc);
+  const dbg = setInterval(async () => { // temporal: quitar cuando funcione
+    if (pc !== pcActual) return clearInterval(dbg);
+    const st = await pc.getStats();
+    const s = [...st.values()].find((r) => r.type === 'outbound-rtp' && r.kind === 'video');
+    const c = s && st.get(s.codecId);
+    avisoVideo(s ? `${c?.mimeType} ${c?.sdpFmtpLine} frames:${s.framesEncoded}` : 'sin outbound-rtp');
+  }, 3000);
 }
 
 function vigilarPC(pc) {
