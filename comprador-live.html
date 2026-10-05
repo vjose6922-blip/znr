@@ -458,7 +458,7 @@ function vigilarVideo() {
     if (!v || !whepActivo || whepConectando || !v.srcObject) return;
     // En pausa (autoplay bloqueado o pestaña oculta) no es un corte de red: solo se intenta reanudar.
     if (v.paused) { v.play().catch(() => {}); return; }
-    if (!v.videoWidth || v.currentTime === whepUltimoT) {
+    if (v.currentTime === whepUltimoT) {
       whepCongelado++;
       if (whepCongelado >= 3) {
         whepCongelado = 0;
@@ -484,7 +484,7 @@ function iniciarReproductorWHEP(containerId, whepUrl) {
     <div class="video-estado" id="video-estado">Conectando video…</div>
     <button type="button" class="btn-sonido" id="btn-sonido">🔇 Activar sonido</button>`;
   const video = document.getElementById('live-video');
-  video.onresize = () => video.videoWidth && estadoVideo(null);
+  video.onplaying = () => estadoVideo(null);
   video.onvolumechange = actualizarBotonSonido;
   document.getElementById('btn-sonido').addEventListener('click', () => {
     sonidoActivado = true;
@@ -497,6 +497,12 @@ function iniciarReproductorWHEP(containerId, whepUrl) {
     return;
   }
   vigilarVideo();
+  // TEMPORAL (diagnóstico): quitar cuando se resuelva
+  setInterval(async () => {
+    if (!whepPC) return;
+    const st = [...(await whepPC.getStats()).values()].filter((r) => r.type === 'inbound-rtp');
+    estadoVideo(whepPC.connectionState + ' ' + st.map((r) => `${r.kind}:${r.bytesReceived}/${r.framesDecoded ?? '-'}/${r.packetsLost}`).join(' '));
+  }, 3000);
   conectarWHEP();
 }
 
