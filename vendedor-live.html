@@ -1447,11 +1447,16 @@ IDs cargados: ${esc(allProducts.map(p => p.id).join(', '))}</div>`
 
   document.querySelectorAll('#live-product-grid .product-chip').forEach(chip => {
     chip.addEventListener('click', async () => {
-      document.querySelectorAll('#live-product-grid .product-chip').forEach(c => c.classList.remove('selected'));
-      chip.classList.add('selected');
-      const id = chip.dataset.id;
-      currentSesion.producto_actual_id = id;
-      await apiFetch({ action: 'actualizarEstadoLive', vendorToken: vendorSession.token, id: currentSesion.id, producto_actual_id: id });
+      const anterior = currentSesion.producto_actual_id, id = chip.dataset.id;
+      const marcar = (x) => document.querySelectorAll('#live-product-grid .product-chip').forEach((c) => c.classList.toggle('selected', c.dataset.id === String(x)));
+      currentSesion.producto_actual_id = id; marcar(id);
+      let r = null, motivo = '';
+      try { r = await apiFetch({ action: 'actualizarEstadoLive', vendorToken: vendorSession.token, id: currentSesion.id, producto_actual_id: id }); }
+      catch (e) { motivo = e.message; }
+      if (!r || !r.ok) {
+        currentSesion.producto_actual_id = anterior; marcar(anterior);
+        alert('No se pudo destacar el producto: ' + ((r && r.error) || motivo || 'sin respuesta del servidor'));
+      }
     });
   });
 

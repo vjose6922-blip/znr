@@ -967,7 +967,7 @@ function renderProductoActual() {
   const slot = document.getElementById('producto-slot');
   if (!slot) return;
   const p = productosMap[sesion.producto_actual_id];
-  if (!p) { slot.innerHTML = ''; return; }
+  if (!p) { slot.innerHTML = sesion.producto_actual_id ? `<p class="chat-empty">Producto ${esc(sesion.producto_actual_id)} no encontrado</p>` : ''; return; }
   const palabra = (p.nombre || '').trim().split(/\s+/)[0].toUpperCase();
   slot.innerHTML = `
     <div class="producto-actual">
