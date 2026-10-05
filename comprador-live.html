@@ -4,12 +4,13 @@
 <meta charset="UTF-8">
 <meta http-equiv="Content-Security-Policy" content="
  default-src 'self';
- script-src 'self' 'unsafe-inline' https://www.gstatic.com https://apis.google.com https://connect.facebook.net https://*.firebaseio.com;
+ script-src 'self' 'unsafe-inline' https://www.gstatic.com https://apis.google.com https://*.firebaseio.com;
  style-src 'self' 'unsafe-inline';
  img-src 'self' data: blob: https://lh3.googleusercontent.com https://drive.google.com https://placehold.co https://via.placeholder.com https://*.fbcdn.net https://firebasestorage.googleapis.com https://*.firebasestorage.app https://storage.googleapis.com ;
- connect-src 'self' https://script.google.com https://script.googleusercontent.com https://wttr.in https://www.gstatic.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firebaseinstallations.googleapis.com https://fcmregistrations.googleapis.com https://registrar-token-fcm-1038143238323.us-central1.run.app https://ventas-api-1038143238323.us-central1.run.app https://auth-api-1038143238323.us-central1.run.app https://live-api-1038143238323.us-central1.run.app https://catalogo-api-1038143238323.us-central1.run.app https://vendedores-api-1038143238323.us-central1.run.app https://firebase.googleapis.com https://znr-live-default-rtdb.firebaseio.com wss://znr-live-default-rtdb.firebaseio.com https://*.firebaseio.com wss://*.firebaseio.com https://nominatim.openstreetmap.org https://graph.facebook.com https://tienda-znr-api-1038143238323.us-central1.run.app ;
+ connect-src 'self' https://script.google.com https://script.googleusercontent.com https://wttr.in https://www.gstatic.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firebaseinstallations.googleapis.com https://fcmregistrations.googleapis.com https://registrar-token-fcm-1038143238323.us-central1.run.app https://ventas-api-1038143238323.us-central1.run.app https://auth-api-1038143238323.us-central1.run.app https://live-api-1038143238323.us-central1.run.app https://catalogo-api-1038143238323.us-central1.run.app https://vendedores-api-1038143238323.us-central1.run.app https://firebase.googleapis.com https://*.cloudflarestream.com https://znr-live-default-rtdb.firebaseio.com wss://znr-live-default-rtdb.firebaseio.com https://*.firebaseio.com wss://*.firebaseio.com https://nominatim.openstreetmap.org https://tienda-znr-api-1038143238323.us-central1.run.app ;
  font-src 'self';
- frame-src https://www.facebook.com https://staticxx.facebook.com https://*.firebaseio.com https://www.youtube.com;
+ media-src 'self' blob:;
+ frame-src https://*.firebaseio.com;
  frame-ancestors 'none';
  object-src 'none';
  base-uri 'self';
@@ -38,7 +39,17 @@
   }
   .video-slot-inner { position: absolute; inset: 0; }
   .video-box iframe { width: 100%; height: 100%; border: 0; display: block; }
-  .video-box .fb-video, .video-box .fb-video iframe { width: 100% !important; height: 100% !important; }
+  .video-box video { width: 100%; height: 100%; object-fit: contain; display: block; background: #000; }
+  .video-estado {
+    position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+    text-align: center; padding: 16px; color: #fff; font-size: 13px; line-height: 1.4;
+    background: rgba(0,0,0,.55); pointer-events: none;
+  }
+  .btn-sonido {
+    position: absolute; left: 10px; bottom: 10px; z-index: 2; display: none; border: none;
+    border-radius: var(--radius-pill); padding: 7px 12px; font-size: 12px; font-weight: 700;
+    background: rgba(0,0,0,.65); color: #fff; cursor: pointer;
+  }
 
   .live-info { padding: 14px 16px; border-bottom: 1px solid var(--color-border-subtle); }
   .live-info h1 { margin: 0 0 4px; font-size: 16px; color: var(--color-text-primary); }
@@ -194,7 +205,6 @@
 </style>
 </head>
 <body>
-<div id="fb-root"></div>
 
 <header class="app-header">
   <div class="header-left">
@@ -308,57 +318,199 @@ let stickyObserver = null;
 let stickySentinel = null;
 let stickyResizeHandler = null;
 
-// ── Reproductor de Facebook Video/Live ──
-// Nota: a diferencia de YouTube, el SDK de Facebook no expone una API
-// de JS para leer/forzar la posición de reproducción (seekTo,
-// getCurrentTime, getDuration). Por eso el modo "grabado" ya NO se
-// sincroniza entre compradores: cada quien ve el video desde el
-// inicio en el momento que entra. El modo "vivo real" no se ve
-// afectado (todos ven la misma transmisión en curso).
-const FB_APP_ID = '1587883199599777';
+// ── Reproductor WHEP (Cloudflare Stream) ──
+// El vendedor publica por WHIP desde vendedor-live.html; aquí se recibe
+// el mismo video por WHEP (WebRTC, latencia menor a 1 s). Si todavía no
+// hay señal, o el vendedor se reconecta, se reintenta solo.
+let whepPC = null;
+let whepActivo = false;
+let whepUrlActual = '';
+let whepConectando = false;
+let whepReintento = 0;
+let whepReintentoTimer = null;
+let whepWatchdog = null;
+let whepUltimoT = -1;
+let whepCongelado = 0;
+let sonidoActivado = false;
 
-let fbSdkPromise = null;
-function loadFacebookSDK() {
-  if (fbSdkPromise) return fbSdkPromise;
-  fbSdkPromise = new Promise((resolve) => {
-    if (window.FB) { resolve(window.FB); return; }
-    const prevInit = window.fbAsyncInit;
-    window.fbAsyncInit = function () {
-      if (typeof prevInit === 'function') prevInit();
-      window.FB.init({ appId: FB_APP_ID, xfbml: false, version: 'v21.0' });
-      resolve(window.FB);
-    };
-    if (!document.querySelector('script[src*="connect.facebook.net"]')) {
-      const tag = document.createElement('script');
-      tag.src = 'https://connect.facebook.net/es_LA/sdk.js';
-      tag.async = true; tag.defer = true; tag.crossOrigin = 'anonymous';
-      document.body.appendChild(tag);
-    }
+function estadoVideo(msg) {
+  const el = document.getElementById('video-estado');
+  if (!el) return;
+  if (!msg) { el.style.display = 'none'; return; }
+  el.textContent = msg;
+  el.style.display = 'flex';
+}
+
+function actualizarBotonSonido() {
+  const b = document.getElementById('btn-sonido');
+  const v = document.getElementById('live-video');
+  if (!b || !v) return;
+  b.style.display = v.muted ? 'block' : 'none';
+}
+
+// Los navegadores solo dejan reproducir con sonido si ya hubo un toque en
+// la página; si no, arranca en silencio y aparece "Activar sonido".
+function reproducirVideo(video) {
+  const yaInteractuo = !!(navigator.userActivation && navigator.userActivation.hasBeenActive);
+  video.muted = !(sonidoActivado || yaInteractuo);
+  const p = video.play();
+  if (p && p.catch) {
+    p.catch(() => { video.muted = true; video.play().catch(() => {}); actualizarBotonSonido(); });
+  }
+  actualizarBotonSonido();
+}
+
+function esperarIceWHEP(pc, ms) {
+  return new Promise((resolve) => {
+    if (pc.iceGatheringState === 'complete') { resolve(); return; }
+    const fin = () => { clearTimeout(t); pc.removeEventListener('icegatheringstatechange', check); resolve(); };
+    const check = () => { if (pc.iceGatheringState === 'complete') fin(); };
+    const t = setTimeout(fin, ms);
+    pc.addEventListener('icegatheringstatechange', check);
   });
-  return fbSdkPromise;
 }
 
-// TODO: quitar el soporte de YouTube y volver a exigir solo Facebook
-// cuando FB ya no le pida seguidores al vendedor de prueba (agregado
-// temporalmente para poder probar lives sin depender de esa
-// restricción de FB).
-function _youtubeVideoId(url) {
-  const m = String(url || '').match(/(?:youtube\.com\/(?:watch\?v=|live\/|embed\/)|youtu\.be\/)([a-zA-Z0-9_-]{6,})/);
-  return m ? m[1] : null;
+function cerrarWHEP() {
+  if (!whepPC) return;
+  try { whepPC.ontrack = null; whepPC.onconnectionstatechange = null; whepPC.close(); } catch (e) { /* ya estaba cerrada */ }
+  whepPC = null;
 }
 
-async function renderFacebookVideo(containerId, facebookUrl) {
-  const container = document.getElementById(containerId);
-  if (!container || !facebookUrl) return;
-  const ytId = _youtubeVideoId(facebookUrl);
-  if (ytId) {
-    container.innerHTML = `<iframe width="100%" height="100%" style="aspect-ratio:16/9;border:0;" src="https://www.youtube.com/embed/${ytId}?autoplay=1" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>`;
+// forzar=false: solo reconecta si la conexión actual no está sana.
+function reintentarWHEP(forzar) {
+  if (!whepActivo) return;
+  if (!forzar && whepPC && whepPC.connectionState === 'connected') return;
+  conectarWHEP();
+}
+
+function programarReintentoWHEP(ms) {
+  if (!whepActivo) return;
+  clearTimeout(whepReintentoTimer);
+  const espera = ms != null ? ms : Math.min(2000 + whepReintento * 1000, 6000);
+  whepReintentoTimer = setTimeout(() => reintentarWHEP(false), espera);
+}
+
+async function conectarWHEP() {
+  if (!whepActivo || whepConectando) return;
+  if (!whepUrlActual) {
+    estadoVideo('Esperando la señal del vendedor…');
+    programarReintentoWHEP(3000);
     return;
   }
-  container.innerHTML = `<div class="fb-video" data-href="${esc(facebookUrl)}" data-width="auto" data-show-text="false" data-autoplay="true" data-allowfullscreen="true"></div>`;
-  const FB = await loadFacebookSDK();
-  FB.XFBML.parse(container);
+  const video = document.getElementById('live-video');
+  if (!video) return;
+  whepConectando = true;
+  cerrarWHEP();
+
+  const pc = new RTCPeerConnection({
+    iceServers: [{ urls: 'stun:stun.cloudflare.com:3478' }],
+    bundlePolicy: 'max-bundle'
+  });
+  whepPC = pc;
+  pc.addTransceiver('video', { direction: 'recvonly' });
+  pc.addTransceiver('audio', { direction: 'recvonly' });
+
+  const entrante = new MediaStream();
+  pc.ontrack = (ev) => {
+    const flujo = (ev.streams && ev.streams[0]) || entrante;
+    if (flujo === entrante) entrante.addTrack(ev.track);
+    if (video.srcObject !== flujo) video.srcObject = flujo;
+    reproducirVideo(video);
+  };
+  pc.onconnectionstatechange = () => {
+    if (pc !== whepPC || !whepActivo) return;
+    const st = pc.connectionState;
+    if (st === 'connected') whepReintento = 0;
+    else if (st === 'failed') { estadoVideo('Reconectando video…'); programarReintentoWHEP(500); }
+    else if (st === 'disconnected') { estadoVideo('Reconectando video…'); programarReintentoWHEP(3000); }
+  };
+
+  try {
+    await pc.setLocalDescription(await pc.createOffer());
+    await esperarIceWHEP(pc, 3000);
+    const res = await fetch(whepUrlActual, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/sdp' },
+      body: pc.localDescription.sdp
+    });
+    if (!res.ok) throw new Error('WHEP ' + res.status); // sin transmisión activa todavía, o el vendedor se está reconectando
+    await pc.setRemoteDescription({ type: 'answer', sdp: await res.text() });
+    whepReintento = 0;
+  } catch (err) {
+    if (pc === whepPC) cerrarWHEP();
+    whepReintento++;
+    estadoVideo(whepReintento > 1 ? 'Esperando la señal del vendedor…' : 'Conectando video…');
+    whepConectando = false;
+    programarReintentoWHEP();
+    return;
+  }
+  whepConectando = false;
 }
+
+// Si el video se congela (el vendedor perdió conexión, o la red del
+// comprador se cayó sin avisar), a los ~12 s se vuelve a conectar.
+function vigilarVideo() {
+  clearInterval(whepWatchdog);
+  whepUltimoT = -1;
+  whepCongelado = 0;
+  whepWatchdog = setInterval(() => {
+    const v = document.getElementById('live-video');
+    if (!v || !whepActivo || whepConectando || !v.srcObject) return;
+    // En pausa (autoplay bloqueado o pestaña oculta) no es un corte de red: solo se intenta reanudar.
+    if (v.paused) { v.play().catch(() => {}); return; }
+    if (v.currentTime === whepUltimoT) {
+      whepCongelado++;
+      if (whepCongelado >= 3) {
+        whepCongelado = 0;
+        estadoVideo('Reconectando video…');
+        reintentarWHEP(true);
+      }
+    } else {
+      whepUltimoT = v.currentTime;
+      whepCongelado = 0;
+    }
+  }, 4000);
+}
+
+function iniciarReproductorWHEP(containerId, whepUrl) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+  detenerReproductor();
+  whepActivo = true;
+  whepUrlActual = whepUrl || '';
+  whepReintento = 0;
+  container.innerHTML = `
+    <video id="live-video" autoplay playsinline muted></video>
+    <div class="video-estado" id="video-estado">Conectando video…</div>
+    <button type="button" class="btn-sonido" id="btn-sonido">🔇 Activar sonido</button>`;
+  const video = document.getElementById('live-video');
+  video.onplaying = () => estadoVideo(null);
+  video.onvolumechange = actualizarBotonSonido;
+  document.getElementById('btn-sonido').addEventListener('click', () => {
+    sonidoActivado = true;
+    video.muted = false;
+    video.play().catch(() => {});
+  });
+  if (!window.RTCPeerConnection) {
+    whepActivo = false;
+    estadoVideo('Tu navegador no puede reproducir esta transmisión. Actualízalo o prueba con Chrome.');
+    return;
+  }
+  vigilarVideo();
+  conectarWHEP();
+}
+
+function detenerReproductor() {
+  whepActivo = false;
+  whepConectando = false;
+  clearTimeout(whepReintentoTimer);
+  clearInterval(whepWatchdog);
+  cerrarWHEP();
+  const v = document.getElementById('live-video');
+  if (v) v.srcObject = null;
+}
+
+window.addEventListener('pagehide', detenerReproductor);
 
 function detenerStickyVideo() {
   if (stickyObserver) { stickyObserver.disconnect(); stickyObserver = null; }
@@ -411,11 +563,6 @@ function setupStickyVideo() {
   stickyObserver.observe(stickySentinel);
 }
 
-function detenerPlayerSincronizado() {
-  // El plugin de Facebook no expone un objeto "player" para destruir;
-  // basta con que el contenedor se reemplace al renderizar otro estado.
-}
-
 // ── Presencia (contador de espectadores en vivo) ──
 // El viewerId AHORA es el uid de Firebase Auth (anónimo), porque las
 // reglas de RTDB exigen que auth.uid === $viewerId. Ya no se genera
@@ -460,7 +607,7 @@ function mostrarReporte() {
   overlay.innerHTML = `
     <div class="identity-sheet">
       <h2><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" aria-hidden="true"><use href="#ic-flag"/></svg> Reportar esta transmisión</h2>
-      <p>Cuéntanos qué está pasando. Un administrador va a revisarlo. Esto no cancela nada que hayas apartado ni te saca del chat.</p>
+      <p>Cuéntanos qué está pasando. Un administrador va a revisarlo, y podrá ver unos minutos del video y del chat alrededor de este momento. Esto no cancela nada que hayas apartado ni te saca del chat.</p>
       <label for="rep-motivo">¿Qué está pasando?</label>
       <textarea id="rep-motivo" maxlength="300" placeholder="Ej. contenido inapropiado, producto engañoso, lenguaje ofensivo…"></textarea>
       <button id="rep-btn">Enviar reporte</button>
@@ -483,7 +630,6 @@ function mostrarReporte() {
         liveTitulo: sesion.titulo || '',
         vendedor_uid: sesion.vendedor_id || '',
         vendedor_nombre: sesion.vendedor_nombre || '',
-        facebookLink: sesion.facebook_link || '',
         motivo,
         telefonoUsuario: identity ? (identity.telefono || '') : ''
       }, 'POST');
@@ -535,7 +681,7 @@ function renderNotFound() {
 }
 
 function renderEnded() {
-  detenerPlayerSincronizado();
+  detenerReproductor();
   detenerStickyVideo();
   quitarPresencia();
   document.body.classList.remove('live-active');
@@ -810,7 +956,12 @@ function renderLive() {
   document.getElementById('chat-send').addEventListener('click', () => enviarMensaje());
   document.getElementById('chat-input').addEventListener('keydown', (e) => { if (e.key === 'Enter') enviarMensaje(); });
 
-  renderFacebookVideo('video-slot', sesion.facebook_link);
+  if (!sesion.playbackUrl && sesion.facebook_link && sesion.fuente !== 'znr') {
+    // Live creado con el formato anterior (link de Facebook/YouTube): ya no se puede mostrar.
+    document.getElementById('video-slot').innerHTML = '<div class="video-estado">Esta transmisión se creó con el formato anterior y ya no se puede ver aquí.</div>';
+  } else {
+    iniciarReproductorWHEP('video-slot', sesion.playbackUrl);
+  }
 }
 
 function renderProductoActual() {
@@ -892,6 +1043,12 @@ function startPolling() {
       if (nueva.producto_actual_id !== sesion.producto_actual_id) {
         sesion.producto_actual_id = nueva.producto_actual_id;
         renderProductoActual();
+      }
+      // Si el vendedor re-publicó con otra URL (o la nuestra venía vacía), reconectar con la nueva.
+      if (nueva.playbackUrl && nueva.playbackUrl !== whepUrlActual) {
+        sesion.playbackUrl = nueva.playbackUrl;
+        whepUrlActual = nueva.playbackUrl;
+        reintentarWHEP(true);
       }
     } catch (e) { /* silencioso, reintenta en el siguiente ciclo */ }
   }, 6000);
