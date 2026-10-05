@@ -1009,6 +1009,7 @@ function pausarRespaldo() { return detenerRecorderActual(); }
 function reanudarRespaldo() { if (respaldoActivo) iniciarCicloSegmento(); }
 
 function iniciarRespaldo() {
+ return;
   mimeRespaldo = elegirMimeRespaldo();
   if (!mimeRespaldo) {
     alert('Ojo: este navegador no puede guardar el respaldo de video que se usa para revisar reportes. La transmisión funciona normal.');
