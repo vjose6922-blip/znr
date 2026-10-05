@@ -1,16 +1,16 @@
-
 <!DOCTYPE html>
 <html lang="es">
 <head>
 <meta charset="UTF-8">
 <meta http-equiv="Content-Security-Policy" content="
  default-src 'self';
- script-src 'self' 'unsafe-inline' https://www.gstatic.com https://apis.google.com https://connect.facebook.net https://*.firebaseio.com;
+ script-src 'self' 'unsafe-inline' https://www.gstatic.com https://apis.google.com https://*.firebaseio.com;
  style-src 'self' 'unsafe-inline';
  img-src 'self' data: blob: https://lh3.googleusercontent.com https://drive.google.com https://placehold.co https://via.placeholder.com https://*.fbcdn.net https://firebasestorage.googleapis.com https://*.firebasestorage.app https://storage.googleapis.com ;
- connect-src 'self' https://script.google.com https://catalogo-api-1038143238323.us-central1.run.app https://script.googleusercontent.com https://ventas-api-1038143238323.us-central1.run.app https://wttr.in https://www.gstatic.com https://apis.google.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firebaseinstallations.googleapis.com https://fcmregistrations.googleapis.com  https://registrar-token-fcm-1038143238323.us-central1.run.app https://ventas-api-1038143238323.us-central1.run.app https://auth-api-1038143238323.us-central1.run.app https://vendedores-api-1038143238323.us-central1.run.app https://live-api-1038143238323.us-central1.run.app https://firebase.googleapis.com https://znr-live-default-rtdb.firebaseio.com wss://znr-live-default-rtdb.firebaseio.com https://*.firebaseio.com wss://*.firebaseio.com https://nominatim.openstreetmap.org https://graph.facebook.com https://admin-api-1038143238323.us-central1.run.app https://tienda-znr-api-1038143238323.us-central1.run.app ;
+ connect-src 'self' https://script.google.com https://catalogo-api-1038143238323.us-central1.run.app https://script.googleusercontent.com https://ventas-api-1038143238323.us-central1.run.app https://wttr.in https://www.gstatic.com https://apis.google.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firebaseinstallations.googleapis.com https://fcmregistrations.googleapis.com  https://registrar-token-fcm-1038143238323.us-central1.run.app https://ventas-api-1038143238323.us-central1.run.app https://auth-api-1038143238323.us-central1.run.app https://vendedores-api-1038143238323.us-central1.run.app https://live-api-1038143238323.us-central1.run.app https://firebase.googleapis.com https://znr-live-default-rtdb.firebaseio.com wss://znr-live-default-rtdb.firebaseio.com https://*.firebaseio.com wss://*.firebaseio.com https://nominatim.openstreetmap.org https://*.cloudflarestream.com https://storage.googleapis.com https://admin-api-1038143238323.us-central1.run.app https://tienda-znr-api-1038143238323.us-central1.run.app ;
  font-src 'self';
- frame-src https://www.facebook.com https://staticxx.facebook.com https://apis.google.com https://*.firebaseio.com https://www.youtube.com;
+ media-src 'self' blob:;
+ frame-src https://apis.google.com https://*.firebaseio.com;
  frame-ancestors 'none';
  object-src 'none';
  base-uri 'self';
@@ -183,7 +183,24 @@
     border-radius: var(--radius-lg); overflow: hidden; margin-bottom: 12px;
   }
   .video-box iframe { width: 100%; height: 100%; border: 0; display: block; }
-  .video-box .fb-video, .video-box .fb-video iframe { width: 100% !important; height: 100% !important; }
+  .video-box video { width: 100%; height: 100%; object-fit: contain; display: block; background: #000; }
+  .vid-aviso {
+    display: none; position: absolute; left: 8px; right: 8px; top: 8px; z-index: 2;
+    background: rgba(0,0,0,.72); color: #fff; font-size: 11px; line-height: 1.35;
+    padding: 6px 10px; border-radius: 8px; text-align: center;
+  }
+  .btn-camara {
+    position: absolute; right: 8px; bottom: 8px; z-index: 2; border: none;
+    border-radius: var(--radius-pill); padding: 6px 10px; font-size: 11px; font-weight: 700;
+    background: rgba(0,0,0,.6); color: #fff; cursor: pointer;
+  }
+  .btn-camara:disabled { opacity: .5; }
+  .resume-panel {
+    display: none; position: absolute; inset: 0; z-index: 3; flex-direction: column;
+    align-items: center; justify-content: center; gap: 10px; padding: 12px; text-align: center;
+    background: rgba(0,0,0,.85); color: #fff; font-size: 12px; line-height: 1.4;
+  }
+  .resume-panel .btn-live { width: auto; padding: 10px 18px; font-size: 13px; }
   .sync-note {
     font-size: 11px; color: var(--color-text-soft); text-align: center;
     margin: -6px 0 14px;
@@ -322,8 +339,6 @@
 </style>
 </head>
 <body>
-<div id="fb-root"></div>
-
 <header class="app-header">
   <div class="header-left">
     <a href="vendedor.html" class="logo-touch-area" style="text-decoration:none;">
@@ -538,59 +553,480 @@ function mostrarEspectadores() {
   overlay.addEventListener('click', (e) => { if (e.target === overlay) document.body.removeChild(overlay); });
 }
 
-// ── Reproductor de Facebook Video/Live (vista previa del vendedor) ──
-// Nota: el SDK de Facebook no expone una API de JS para forzar la
-// posición de reproducción, así que aquí solo mostramos el video/
-// live tal cual — sin el truco de sincronización que antes hacíamos
-// con YouTube.
-const FB_APP_ID = '1587883199599777';
+// ── Transmisión dentro de ZNR: cámara + WHIP (Cloudflare Stream) ──
+// El vendedor publica su cámara por WebRTC (WHIP) a un live input de
+// Cloudflare; los compradores lo ven por WHEP en comprador-live.html.
+// Cloudflare NO graba las transmisiones WebRTC, así que además se guarda
+// una copia de baja calidad en segmentos (ver "Respaldo de video") que
+// el backend usa para armar el clip de un reporte.
 
-let fbSdkPromise = null;
-function loadFacebookSDK() {
-  if (fbSdkPromise) return fbSdkPromise;
-  fbSdkPromise = new Promise((resolve) => {
-    if (window.FB) { resolve(window.FB); return; }
-    const prevInit = window.fbAsyncInit;
-    window.fbAsyncInit = function () {
-      if (typeof prevInit === 'function') prevInit();
-      window.FB.init({ appId: FB_APP_ID, xfbml: false, version: 'v21.0' });
-      resolve(window.FB);
-    };
-    if (!document.querySelector('script[src*="connect.facebook.net"]')) {
-      const tag = document.createElement('script');
-      tag.src = 'https://connect.facebook.net/es_LA/sdk.js';
-      tag.async = true; tag.defer = true; tag.crossOrigin = 'anonymous';
-      document.body.appendChild(tag);
-    }
+let localStream = null;
+let pcActual = null;
+let whipUrl = null;
+let transmitiendo = false;
+let camaraFacing = 'environment'; // primero la trasera: lo normal es mostrar productos
+let cambiandoCamara = false;
+let reconectando = false;
+let discTimer = null;
+let wakeLock = null;
+let segmentoMs = 30000;
+
+function videoConstraints(facing) {
+  const vertical = currentSesion && currentSesion.orientacion === 'vertical';
+  return {
+    facingMode: { ideal: facing },
+    width: { ideal: vertical ? 720 : 1280 },
+    height: { ideal: vertical ? 1280 : 720 },
+    frameRate: { ideal: 24, max: 30 }
+  };
+}
+
+function errorCamara(e) {
+  const n = e && e.name;
+  if (n === 'NotAllowedError' || n === 'SecurityError') return new Error('Permite el acceso a la cámara y al micrófono en tu navegador para poder transmitir.');
+  if (n === 'NotFoundError' || n === 'OverconstrainedError') return new Error('No encontramos una cámara o micrófono disponible en este dispositivo.');
+  if (n === 'NotReadableError' || n === 'AbortError') return new Error('La cámara o el micrófono están siendo usados por otra app. Ciérrala e intenta de nuevo.');
+  return new Error('No se pudo abrir la cámara: ' + ((e && e.message) || 'error desconocido'));
+}
+
+async function pedirCamara(facing) {
+  try {
+    return await navigator.mediaDevices.getUserMedia({
+      video: videoConstraints(facing),
+      audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true }
+    });
+  } catch (e) {
+    throw errorCamara(e);
+  }
+}
+
+async function pedirVideoTrack(facing) {
+  const s = await navigator.mediaDevices.getUserMedia({ video: videoConstraints(facing), audio: false });
+  return s.getVideoTracks()[0];
+}
+
+function ligarPreview() {
+  const v = document.getElementById('vendor-preview');
+  if (!v || !localStream) return;
+  v.srcObject = localStream;
+  v.muted = true;
+  v.playsInline = true;
+  v.play().catch(() => {});
+  v.style.transform = camaraFacing === 'user' ? 'scaleX(-1)' : 'none'; // la frontal se ve como espejo
+}
+
+function avisoVideo(msg, onClick) {
+  const el = document.getElementById('conn-aviso');
+  if (!el) return;
+  if (!msg) { el.style.display = 'none'; el.textContent = ''; el.onclick = null; el.style.cursor = ''; return; }
+  el.textContent = msg;
+  el.style.display = 'block';
+  el.onclick = onClick || null;
+  el.style.cursor = onClick ? 'pointer' : '';
+}
+
+function esperarIce(pc, ms) {
+  return new Promise((resolve) => {
+    if (pc.iceGatheringState === 'complete') { resolve(); return; }
+    const fin = () => { clearTimeout(t); pc.removeEventListener('icegatheringstatechange', check); resolve(); };
+    const check = () => { if (pc.iceGatheringState === 'complete') fin(); };
+    const t = setTimeout(fin, ms);
+    pc.addEventListener('icegatheringstatechange', check);
   });
-  return fbSdkPromise;
 }
 
-// TODO: quitar el soporte de YouTube y volver a exigir solo Facebook
-// cuando FB ya no le pida seguidores al vendedor de prueba (agregado
-// temporalmente para poder probar lives sin depender de esa
-// restricción de FB).
-function _youtubeVideoId(url) {
-  const m = String(url || '').match(/(?:youtube\.com\/(?:watch\?v=|live\/|embed\/)|youtu\.be\/)([a-zA-Z0-9_-]{6,})/);
-  return m ? m[1] : null;
+function esperarConexion(pc, ms) {
+  return new Promise((resolve, reject) => {
+    if (pc.connectionState === 'connected') { resolve(); return; }
+    const t = setTimeout(() => { pc.removeEventListener('connectionstatechange', check); reject(new Error('timeout')); }, ms);
+    const check = () => {
+      const st = pc.connectionState;
+      if (st === 'connected') { clearTimeout(t); pc.removeEventListener('connectionstatechange', check); resolve(); }
+      else if (st === 'failed' || st === 'closed') { clearTimeout(t); pc.removeEventListener('connectionstatechange', check); reject(new Error('conexión ' + st)); }
+    };
+    pc.addEventListener('connectionstatechange', check);
+  });
 }
 
-async function renderFacebookVideo(containerId, facebookUrl) {
-  const container = document.getElementById(containerId);
-  if (!container || !facebookUrl) return;
-  const ytId = _youtubeVideoId(facebookUrl);
-  if (ytId) {
-    container.innerHTML = `<iframe width="100%" height="100%" style="aspect-ratio:16/9;border:0;" src="https://www.youtube.com/embed/${ytId}?autoplay=1" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>`;
+function cerrarPC() {
+  if (!pcActual) return;
+  try { pcActual.onconnectionstatechange = null; pcActual.close(); } catch (e) { /* ya estaba cerrada */ }
+  pcActual = null;
+}
+
+function limitarBitrate(pc) {
+  // Tope de 1.5 Mbps al video en vivo para que no compita de más con la
+  // subida del respaldo. No es crítico: si el navegador no lo permite, sigue.
+  try {
+    pc.getSenders().forEach((sender) => {
+      if (!sender.track || sender.track.kind !== 'video') return;
+      const params = sender.getParameters();
+      if (!params.encodings || !params.encodings.length) params.encodings = [{}];
+      params.encodings[0].maxBitrate = 1500000;
+      sender.setParameters(params).catch(() => {});
+    });
+  } catch (e) { /* no crítico */ }
+}
+
+// Publica localStream a Cloudflare por WHIP (offer SDP -> answer SDP).
+async function conectarWHIP() {
+  cerrarPC();
+  const pc = new RTCPeerConnection({
+    iceServers: [{ urls: 'stun:stun.cloudflare.com:3478' }],
+    bundlePolicy: 'max-bundle'
+  });
+  pcActual = pc;
+  localStream.getTracks().forEach((track) => pc.addTransceiver(track, { direction: 'sendonly', streams: [localStream] }));
+  try {
+    await pc.setLocalDescription(await pc.createOffer());
+    await esperarIce(pc, 4000);
+    const res = await fetch(whipUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/sdp' },
+      body: pc.localDescription.sdp
+    });
+    if (!res.ok) throw new Error('El servidor de video respondió ' + res.status);
+    await pc.setRemoteDescription({ type: 'answer', sdp: await res.text() });
+    await esperarConexion(pc, 12000);
+  } catch (err) {
+    if (pcActual === pc) cerrarPC();
+    throw err;
+  }
+  limitarBitrate(pc);
+  vigilarPC(pc);
+}
+
+function vigilarPC(pc) {
+  pc.onconnectionstatechange = () => {
+    if (pc !== pcActual || !transmitiendo) return;
+    const st = pc.connectionState;
+    if (st === 'connected') {
+      clearTimeout(discTimer);
+      avisoVideo(null);
+    } else if (st === 'disconnected') {
+      avisoVideo('Conexión inestable… reconectando el video.');
+      clearTimeout(discTimer);
+      discTimer = setTimeout(() => {
+        if (pc === pcActual && pc.connectionState !== 'connected') reconectar();
+      }, 5000);
+    } else if (st === 'failed') {
+      reconectar();
+    }
+  };
+}
+
+// Si se cae el WiFi o los datos, vuelve a publicar a la MISMA url de
+// Cloudflare. La cámara y el respaldo siguen corriendo mientras tanto.
+async function reconectar() {
+  if (reconectando || !transmitiendo) return;
+  reconectando = true;
+  avisoVideo('Reconectando el video…');
+  for (let i = 0; i < 6 && transmitiendo; i++) {
+    try {
+      await conectarWHIP();
+      avisoVideo(null);
+      reconectando = false;
+      return;
+    } catch (e) {
+      console.error('reconectar: intento ' + (i + 1) + ' falló', e);
+      await new Promise((r) => setTimeout(r, 2000 * (i + 1)));
+    }
+  }
+  reconectando = false;
+  if (transmitiendo) avisoVideo('Se perdió la conexión del video. Toca aquí para reintentar.', reconectar);
+}
+
+async function pedirWakeLock() {
+  try {
+    if ('wakeLock' in navigator) wakeLock = await navigator.wakeLock.request('screen');
+  } catch (e) { /* no todos los navegadores lo permiten */ }
+}
+
+// Camera + credenciales + WHIP. Lanza Error con mensaje listo para mostrar.
+async function iniciarMedios() {
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || !window.RTCPeerConnection) {
+    throw new Error('Este navegador no permite transmitir desde ZNR. Usa Chrome en Android o un Safari actualizado en iPhone.');
+  }
+  const stream = await pedirCamara(camaraFacing); // primero la cámara: si la niegan, no se gasta nada en el servidor
+  let cred;
+  try {
+    cred = await apiFetch({ action: 'obtenerCredencialesTransmision', vendorToken: vendorSession.token, id: currentSesion.id });
+  } catch (e) {
+    stream.getTracks().forEach((t) => t.stop());
+    throw new Error('Error de conexión. Intenta de nuevo.');
+  }
+  if (!cred.ok) {
+    stream.getTracks().forEach((t) => t.stop());
+    throw new Error(cred.error || 'No se pudo preparar la transmisión.');
+  }
+  whipUrl = cred.whipUrl;
+  segmentoMs = (Number(cred.segmentoSegundos) || 30) * 1000;
+  localStream = stream;
+  try {
+    await conectarWHIP();
+  } catch (e) {
+    console.error('conectarWHIP falló:', e);
+    liberarMedios();
+    throw new Error('No se pudo conectar el video. Revisa tu internet e intenta de nuevo.');
+  }
+  transmitiendo = true;
+  pedirWakeLock();
+  return true;
+}
+
+function liberarMedios() {
+  transmitiendo = false;
+  clearTimeout(discTimer);
+  cerrarPC();
+  if (localStream) { localStream.getTracks().forEach((t) => t.stop()); localStream = null; }
+}
+
+// Cierra todo: corta el respaldo (esperando hasta 8 s a que termine de
+// subir el último segmento), la conexión a Cloudflare y la cámara.
+async function detenerTransmision() {
+  transmitiendo = false;
+  respaldoActivo = false;
+  clearTimeout(discTimer);
+  try { await withTimeout(detenerRecorderActual(), 3000); } catch (e) { /* se sigue igual */ }
+  if (subidasPendientes.size) {
+    try { await withTimeout(Promise.allSettled([...subidasPendientes]), 8000); } catch (e) { /* se sigue sin esperar más */ }
+  }
+  liberarMedios();
+  if (wakeLock) { try { await wakeLock.release(); } catch (e) { /* ya liberado */ } wakeLock = null; }
+  const v = document.getElementById('vendor-preview');
+  if (v) v.srcObject = null;
+}
+
+function cambiarTracksEnPC(nuevoStream) {
+  if (!pcActual) return;
+  pcActual.getSenders().forEach((sender) => {
+    const kind = sender.track && sender.track.kind;
+    if (!kind) return;
+    const t = nuevoStream.getTracks().find((x) => x.kind === kind);
+    if (t) sender.replaceTrack(t).catch((e) => console.error('replaceTrack falló:', e));
+  });
+}
+
+// Frontal <-> trasera sin cortar la transmisión. En muchos Android hay que
+// soltar la cámara actual antes de abrir la otra.
+async function cambiarCamara() {
+  if (!transmitiendo || !localStream || cambiandoCamara) return;
+  cambiandoCamara = true;
+  const btn = document.getElementById('btn-camara');
+  if (btn) btn.disabled = true;
+  const destino = camaraFacing === 'user' ? 'environment' : 'user';
+  await pausarRespaldo();
+  const viejoVideo = localStream.getVideoTracks()[0];
+  if (viejoVideo) viejoVideo.stop();
+  let video = null;
+  try {
+    video = await pedirVideoTrack(destino);
+    camaraFacing = destino;
+  } catch (e) {
+    try { video = await pedirVideoTrack(camaraFacing); }
+    catch (e2) { avisoVideo('No se pudo cambiar de cámara. Toca 🔄 Cámara para reintentar.'); }
+  }
+  if (video) {
+    localStream = new MediaStream([video, ...localStream.getAudioTracks()]);
+    cambiarTracksEnPC(localStream);
+    ligarPreview();
+    avisoVideo(null);
+  }
+  reanudarRespaldo();
+  cambiandoCamara = false;
+  if (btn) btn.disabled = false;
+}
+
+// Algunos celulares cortan la cámara si la pestaña pasa a segundo plano.
+// Al volver, si las pistas murieron, se vuelve a abrir.
+async function reabrirCamara() {
+  if (!transmitiendo || !localStream || cambiandoCamara) return;
+  const v = localStream.getVideoTracks()[0];
+  const a = localStream.getAudioTracks()[0];
+  if (v && v.readyState === 'live' && (!a || a.readyState === 'live')) return;
+  cambiandoCamara = true;
+  try {
+    await pausarRespaldo();
+    const nuevo = await pedirCamara(camaraFacing);
+    const viejo = localStream;
+    localStream = nuevo;
+    cambiarTracksEnPC(nuevo);
+    ligarPreview();
+    viejo.getTracks().forEach((t) => t.stop());
+    avisoVideo(null);
+  } catch (e) {
+    avisoVideo('No se pudo reactivar la cámara. Toca 🔄 Cámara para reintentar.');
+  }
+  reanudarRespaldo();
+  cambiandoCamara = false;
+}
+
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState !== 'visible' || !transmitiendo) return;
+  pedirWakeLock();
+  reabrirCamara();
+});
+
+window.addEventListener('beforeunload', (e) => {
+  if (transmitiendo) { e.preventDefault(); e.returnValue = ''; }
+});
+
+// ── Respaldo de video para reportes ──
+// Copia de baja calidad (~500 kbps) grabada en el celular, partida en
+// segmentos de 30 s que se suben a un bucket privado con URLs firmadas.
+// Cada segmento es un archivo independiente (se reinicia el MediaRecorder
+// en cada corte), así el backend puede sacar la ventana de unos minutos
+// alrededor de un reporte. Si algo falla aquí, la transmisión sigue.
+
+let respaldoActivo = false;
+let recTimer = null;
+let recActual = null; // { rec, cerrado: Promise }
+let mimeRespaldo = null;
+let tipoRespaldo = null; // 'video/webm' | 'video/mp4'
+let ultimaSeq = -1;
+const subidasPendientes = new Set();
+
+function elegirMimeRespaldo() {
+  if (typeof MediaRecorder === 'undefined') return null;
+  const candidatos = [
+    'video/webm;codecs=vp8,opus', 'video/webm;codecs=vp9,opus', 'video/webm',
+    'video/mp4;codecs=avc1.42E01E,mp4a.40.2', 'video/mp4'
+  ];
+  for (const c of candidatos) {
+    try { if (MediaRecorder.isTypeSupported(c)) return c; } catch (e) { /* siguiente */ }
+  }
+  return null;
+}
+
+// Número de segmento = segundos desde el inicio del live, y nunca menor
+// al último que se usó (se guarda en este navegador por si la vendedora
+// recarga y reanuda: así no se pisa un segmento ya subido).
+function siguienteSeq() {
+  const clave = 'znr_live_seq_' + (currentSesion && currentSesion.id);
+  const inicio = currentSesion && currentSesion.fecha_inicio ? new Date(currentSesion.fecha_inicio).getTime() : NaN;
+  const base = Number.isFinite(inicio) ? Math.floor((Date.now() - inicio) / 1000) : 0;
+  let guardada = -1;
+  try {
+    const raw = localStorage.getItem(clave);
+    if (raw !== null && Number.isFinite(Number(raw))) guardada = Number(raw);
+  } catch (e) { /* sin storage: se usa solo el tiempo transcurrido */ }
+  ultimaSeq = Math.max(base, ultimaSeq + 1, guardada + 1, 0);
+  try { localStorage.setItem(clave, String(ultimaSeq)); } catch (e) { /* sin storage */ }
+  return ultimaSeq;
+}
+
+async function pedirUrlSubida(seq) {
+  try {
+    const resp = await apiFetch({
+      action: 'obtenerUrlSubidaSegmento',
+      vendorToken: vendorSession.token,
+      liveId: currentSesion.id,
+      seq,
+      contentType: tipoRespaldo
+    });
+    return resp.ok ? resp.uploadUrl : null;
+  } catch (e) {
+    return null;
+  }
+}
+
+function encolarSubida(seq, urlPromise, blob) {
+  if (subidasPendientes.size >= 20) {
+    console.warn('Respaldo: cola de subida llena, se descarta el segmento', seq);
     return;
   }
-  container.innerHTML = `<div class="fb-video" data-href="${esc(facebookUrl)}" data-width="auto" data-show-text="false" data-autoplay="true" data-allowfullscreen="true"></div>`;
-  const FB = await loadFacebookSDK();
-  FB.XFBML.parse(container);
+  const p = (async () => {
+    let url = await urlPromise;
+    for (let intento = 0; intento < 4; intento++) {
+      try {
+        if (!url) url = await pedirUrlSubida(seq);
+        if (!url) throw new Error('sin URL de subida');
+        const res = await fetch(url, { method: 'PUT', headers: { 'Content-Type': tipoRespaldo }, body: blob });
+        if (res.ok) return true;
+        throw new Error('PUT ' + res.status);
+      } catch (e) {
+        url = null; // si la URL falló o caducó, se pide una nueva
+        await new Promise((r) => setTimeout(r, 1500 * (intento + 1)));
+      }
+    }
+    console.warn('Respaldo: no se pudo subir el segmento', seq);
+    return false;
+  })().finally(() => subidasPendientes.delete(p));
+  subidasPendientes.add(p);
 }
 
-function detenerPlayerSincronizado() {
-  // El plugin de Facebook no expone un objeto "player" para destruir;
-  // basta con que el contenedor se reemplace al renderizar otro estado.
+function iniciarCicloSegmento() {
+  if (!respaldoActivo || !localStream || !mimeRespaldo) return;
+  const seq = siguienteSeq();
+  let rec;
+  try {
+    rec = new MediaRecorder(localStream, { mimeType: mimeRespaldo, videoBitsPerSecond: 500000, audioBitsPerSecond: 32000 });
+  } catch (e) {
+    console.error('Respaldo: no se pudo crear el MediaRecorder', e);
+    respaldoActivo = false;
+    return;
+  }
+  const chunks = [];
+  const urlPromise = pedirUrlSubida(seq); // en paralelo: la hora que anota el servidor ≈ inicio de la grabación
+  const cerrado = new Promise((resolve) => {
+    rec.ondataavailable = (e) => { if (e.data && e.data.size) chunks.push(e.data); };
+    rec.onstop = () => {
+      if (chunks.length) encolarSubida(seq, urlPromise, new Blob(chunks, { type: tipoRespaldo }));
+      resolve();
+    };
+    rec.onerror = (e) => { console.error('Respaldo: error del MediaRecorder', e); };
+  });
+  rec.start();
+  recActual = { rec, cerrado };
+  recTimer = setTimeout(() => { detenerRecorderActual(); iniciarCicloSegmento(); }, segmentoMs);
+}
+
+// Detiene el segmento en curso (dispara el encolado de su subida).
+function detenerRecorderActual() {
+  clearTimeout(recTimer);
+  recTimer = null;
+  const actual = recActual;
+  recActual = null;
+  if (!actual) return Promise.resolve();
+  try { if (actual.rec.state !== 'inactive') actual.rec.stop(); } catch (e) { /* ya estaba detenido */ }
+  return actual.cerrado;
+}
+
+function pausarRespaldo() { return detenerRecorderActual(); }
+function reanudarRespaldo() { if (respaldoActivo) iniciarCicloSegmento(); }
+
+function iniciarRespaldo() {
+  mimeRespaldo = elegirMimeRespaldo();
+  if (!mimeRespaldo) {
+    alert('Ojo: este navegador no puede guardar el respaldo de video que se usa para revisar reportes. La transmisión funciona normal.');
+    return;
+  }
+  tipoRespaldo = mimeRespaldo.indexOf('video/mp4') === 0 ? 'video/mp4' : 'video/webm';
+  respaldoActivo = true;
+  iniciarCicloSegmento();
+}
+
+// Pantalla sobre el video cuando la página se recargó (o se cerró) con el
+// live todavía "en vivo": la cámara hay que volver a abrirla.
+function mostrarPanelReanudar() {
+  const panel = document.getElementById('resume-panel');
+  const btn = document.getElementById('btn-reanudar');
+  if (!panel || !btn) return;
+  panel.style.display = 'flex';
+  btn.addEventListener('click', async () => {
+    btn.disabled = true;
+    btn.textContent = 'Conectando…';
+    try {
+      await iniciarMedios();
+      panel.style.display = 'none';
+      ligarPreview();
+      iniciarRespaldo();
+    } catch (err) {
+      alert(err.message);
+      btn.disabled = false;
+      btn.textContent = 'Reanudar transmisión';
+    }
+  });
 }
 
 // ── Estados de render ──
@@ -622,7 +1058,6 @@ function renderNoPlus() {
 }
 
 async function renderCreateForm() {
-  detenerPlayerSincronizado();
   document.body.classList.remove('live-active');
   subtitle.textContent = 'Nueva transmisión';
   tipoSeleccionado = 'vivo';
@@ -634,21 +1069,15 @@ async function renderCreateForm() {
       <p class="hint">Muestra tus productos a tus compradores en tiempo real, con chat en vivo para que aparten lo que les guste.</p>
 
       <div class="field-group">
-        <label><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" aria-hidden="true"><use href="#ic-signal"/></svg> Cómo transmitir en vivo</label>
+        <label><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" aria-hidden="true"><use href="#ic-signal"/></svg> Cómo funciona</label>
         <div class="tipo-detalle no-indent" style="margin-top:6px;">
-          <p style="margin:0 0 8px;">Sigue estos pasos <strong>antes</strong> de pegar tu link, o el video no se va a poder mostrar en Z&amp;R. <strong>Repítelos cada vez que vayas a transmitir</strong> — Facebook no guarda esta configuración de una transmisión a otra:</p>
+          <p style="margin:0 0 8px;">Vas a transmitir <strong>directo desde esta página</strong>, con la cámara de tu celular. Sin Facebook, sin Chrome de escritorio y sin copiar links.</p>
           <ul style="margin:0 0 10px;">
-            <li>Abre Chrome tú misma (el ícono de Chrome, no la app de Facebook).</li>
-            <li>Toca el botón de abajo para copiar el enlace, y pégalo en la barra de direcciones de Chrome.</li>
-            <li>Toca los tres puntos ⋮ y activa <strong>"Solicitar sitio para computadora"</strong>.</li>
-            <li>En "Configuración del stream", cambia la privacidad de <strong>"Solo yo"</strong> a <strong>"Público"</strong>.</li>
-            <li>Activa el interruptor <strong>"Insertar video en vivo"</strong> (aparece solo cuando ya es Público).</li>
-            <li>Transmite normal. Cuando quieras el link, toca los tres puntos de tu publicación en vivo y elige <strong>"Insertar"</strong> — copia ese link y pégalo aquí abajo.</li>
+            <li>Conéctate a WiFi (o usa datos ilimitados) y deja la pantalla encendida.</li>
+            <li>Cuando toques <strong>Iniciar</strong>, el navegador te va a pedir permiso para usar la cámara y el micrófono.</li>
+            <li>No cierres esta página mientras transmites.</li>
           </ul>
-          <div style="display:flex; align-items:center; gap:8px; background:rgba(0,0,0,.15); border-radius:8px; padding:8px 10px;">
-            <code id="fb-producer-url" style="flex:1; font-size:12px; overflow-x:auto; white-space:nowrap; color:var(--color-text-secondary,inherit);">https://web.facebook.com/live/producer</code>
-            <button type="button" id="btn-copiar-fb-producer" style="flex-shrink:0; font-size:12px; font-weight:700; border:none; border-radius:6px; padding:6px 10px; background:var(--color-accent-solid); color:#fff; cursor:pointer;">Copiar</button>
-          </div>
+          <p style="margin:0;">Por seguridad, ZNR guarda una copia de baja calidad de tu transmisión por unas horas. Solo se conservan unos minutos si un comprador reporta algo.</p>
         </div>
       </div>
 
@@ -659,12 +1088,6 @@ async function renderCreateForm() {
       <div class="field-group">
         <label>Descripción (opcional)</label>
         <textarea id="f-desc" maxlength="200" placeholder="¿Qué vas a mostrar hoy?"></textarea>
-      </div>
-      <div class="field-group">
-        <label>Link de tu transmisión en vivo</label>
-        <input type="text" id="f-facebook" placeholder="https://www.facebook.com/.../videos/... o /watch/live/?v=...">
-        <div class="error-msg" id="f-facebook-error" style="display:none;"></div>
-        <p class="hint" style="margin-top:6px;">Debe ser el link de "Insertar" que copiaste tras activar Público + Insertar video en vivo (ver pasos arriba). Si no hiciste esos pasos, tus compradores van a ver "Video no disponible".</p>
       </div>
       <div class="field-group">
         <label>Orientación de tu video</label>
@@ -678,7 +1101,7 @@ async function renderCreateForm() {
             <span><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" aria-hidden="true"><use href="#ic-portrait"/></svg> Vertical</span>
           </label>
         </div>
-        <p class="hint" style="margin-top:6px;">Elige vertical si grabaste con el celular en modo retrato (como TikTok o Reels). Tus compradores van a ver el video más grande y el chat va a flotar encima con un fondo semitransparente.</p>
+        <p class="hint" style="margin-top:6px;">Elige vertical si vas a transmitir con el celular en modo retrato (como TikTok o Reels). Tus compradores van a ver el video más grande y el chat va a flotar encima con un fondo semitransparente.</p>
       </div>
       <div class="field-group">
         <label>Productos que vas a mostrar</label>
@@ -690,20 +1113,6 @@ async function renderCreateForm() {
       <button class="btn-live primary" id="btn-crear-sesion">Crear transmisión</button>
       <div class="error-msg" id="f-general-error" style="display:none;"></div>
     </div>`;
-
-  const btnCopiarFbProducer = document.getElementById('btn-copiar-fb-producer');
-  if (btnCopiarFbProducer) {
-    btnCopiarFbProducer.addEventListener('click', async () => {
-      const url = document.getElementById('fb-producer-url').textContent;
-      try {
-        await navigator.clipboard.writeText(url);
-        btnCopiarFbProducer.textContent = '¡Copiado!';
-        setTimeout(() => { btnCopiarFbProducer.textContent = 'Copiar'; }, 1500);
-      } catch (e) {
-        alert('No se pudo copiar automáticamente. Copia este enlace manualmente:\n' + url);
-      }
-    });
-  }
 
   document.querySelectorAll('input[name="orientacion"]').forEach(radio => {
     radio.addEventListener('change', () => {
@@ -765,22 +1174,11 @@ async function loadProductGrid() {
 async function crearSesion() {
   const titulo = document.getElementById('f-titulo').value.trim();
   const desc = document.getElementById('f-desc').value.trim();
-  const facebook = document.getElementById('f-facebook').value.trim();
   const btn = document.getElementById('btn-crear-sesion');
-  const fbError = document.getElementById('f-facebook-error');
   const genError = document.getElementById('f-general-error');
-  fbError.style.display = 'none';
   genError.style.display = 'none';
 
   if (!titulo) { genError.textContent = 'Ponle un título a tu transmisión.'; genError.style.display = 'block'; return; }
-  if (!facebook) { fbError.textContent = 'Pega el link de tu video o live de Facebook (o YouTube, temporalmente).'; fbError.style.display = 'block'; return; }
-  // TODO: quitar YouTube y volver a exigir solo Facebook cuando ya no haga falta para pruebas
-  if (!/facebook\.com|fb\.watch|youtube\.com|youtu\.be/i.test(facebook)) {
-    fbError.textContent = 'Ese link no parece ser de Facebook ni de YouTube. Revisa que lo hayas copiado bien.';
-    fbError.style.display = 'block';
-    return;
-  }
-
   btn.disabled = true;
   btn.textContent = 'Creando…';
 
@@ -789,7 +1187,6 @@ async function crearSesion() {
       action: 'crearSesionLive',
       vendorToken: vendorSession.token,
       titulo, descripcion: desc,
-      facebook_link: facebook,
       tipo: tipoSeleccionado,
       orientacion: orientacionSeleccionada,
       productos_ids: Array.from(selectedProductIds).join(';')
@@ -813,7 +1210,6 @@ async function crearSesion() {
 }
 
 function renderScheduled() {
-  detenerPlayerSincronizado();
   document.body.classList.remove('live-active');
   subtitle.textContent = 'Lista para iniciar';
   const shareUrl = getComprobadorUrl(currentSesion.id);
@@ -829,7 +1225,7 @@ function renderScheduled() {
         <button id="btn-copy">Copiar</button>
       </div>
 
-      <p class="hint">Cuando estés lista: abre Facebook, empieza tu transmisión en vivo, y regresa aquí a tocar "Iniciar".</p>
+      <p class="hint">Cuando estés lista, toca "Iniciar": se abre tu cámara y empiezas a transmitir al momento. Acepta el permiso de cámara y micrófono cuando el navegador lo pida y deja la pantalla encendida.</p>
 
       <button class="btn-live primary" id="btn-iniciar"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" aria-hidden="true"><use href="#ic-signal"/></svg> Iniciar transmisión</button>
       <div style="height:8px;"></div>
@@ -846,6 +1242,20 @@ function renderScheduled() {
   });
 
   document.getElementById('btn-iniciar').addEventListener('click', async () => {
+    const btn = document.getElementById('btn-iniciar');
+    const textoOriginal = btn.innerHTML;
+    btn.disabled = true;
+    btn.textContent = 'Conectando cámara…';
+    const restaurar = () => { btn.disabled = false; btn.innerHTML = textoOriginal; };
+
+    try {
+      await iniciarMedios();
+    } catch (err) {
+      alert(err.message);
+      restaurar();
+      return;
+    }
+
     try {
       const resp = await apiFetch({ action: 'actualizarEstadoLive', vendorToken: vendorSession.token, id: currentSesion.id, estado: 'en_vivo' });
       if (resp.ok) {
@@ -853,11 +1263,16 @@ function renderScheduled() {
         currentSesion.fecha_inicio = resp.fecha_inicio || new Date().toISOString();
         if (!allProducts.length) await fetchAllProducts();
         renderLive();
+        iniciarRespaldo();
       } else {
+        await detenerTransmision();
         alert('No se pudo iniciar: ' + (resp.error || 'error desconocido'));
+        restaurar();
       }
     } catch (err) {
+      await detenerTransmision();
       alert('Error de conexión al iniciar. Intenta de nuevo.');
+      restaurar();
     }
   });
 
@@ -969,7 +1384,15 @@ async function renderLiveFull() {
 
     <div class="live-content-row">
       <div class="live-products-col">
-        <div class="video-box" id="vendor-video-slot"></div>
+        <div class="video-box" id="vendor-video-slot">
+          <video id="vendor-preview" autoplay muted playsinline></video>
+          <div class="vid-aviso" id="conn-aviso"></div>
+          <button type="button" class="btn-camara" id="btn-camara">🔄 Cámara</button>
+          <div class="resume-panel" id="resume-panel">
+            <div>Tu transmisión se interrumpió (recargaste la página o se cerró). Tus compradores ya no te ven.</div>
+            <button type="button" class="btn-live primary" id="btn-reanudar">Reanudar transmisión</button>
+          </div>
+        </div>
         <h2>Producto que estás mostrando</h2>
         <p class="hint">Tócalo para destacarlo con botón de compra.</p>
         <div class="product-grid" id="live-product-grid">
@@ -1012,6 +1435,10 @@ IDs cargados: ${esc(allProducts.map(p => p.id).join(', '))}</div>`
 
   document.getElementById('btn-viewers').addEventListener('click', mostrarEspectadores);
 
+  document.getElementById('btn-camara').addEventListener('click', cambiarCamara);
+  if (transmitiendo && localStream) ligarPreview();
+  else mostrarPanelReanudar();
+
   document.querySelectorAll('#live-product-grid .product-chip').forEach(chip => {
     chip.addEventListener('click', async () => {
       document.querySelectorAll('#live-product-grid .product-chip').forEach(c => c.classList.remove('selected'));
@@ -1030,8 +1457,6 @@ IDs cargados: ${esc(allProducts.map(p => p.id).join(', '))}</div>`
   await certificarVendedorEnLive(currentSesion.id);
   setupChat(currentSesion.id, vendorSession.nombre, true);
   setupContadorEspectadores(currentSesion.id);
-
-  renderFacebookVideo('vendor-video-slot', currentSesion.facebook_link);
 }
 
 // ── Cierre de transmisión: registra ventas, genera la página de
@@ -1039,7 +1464,8 @@ IDs cargados: ${esc(allProducts.map(p => p.id).join(', '))}</div>`
 // en este navegador para poder volver a abrirla después. ──
 async function finalizarTransmision(finBtn) {
   if (finBtn) { finBtn.disabled = true; finBtn.textContent = 'Finalizando…'; }
-  detenerPlayerSincronizado();
+  await detenerTransmision(); // corta cámara y Cloudflare, y sube el último segmento del respaldo
+  try { localStorage.removeItem('znr_live_seq_' + currentSesion.id); } catch (e) { /* sin storage */ }
 
   let entregaUrl = null;
 
@@ -1183,7 +1609,6 @@ async function crearPaginaEntregas(ventas) {
 }
 
 function renderEnded(entregaUrl) {
-  detenerPlayerSincronizado();
   document.body.classList.remove('live-active');
   subtitle.textContent = 'Finalizada';
   wrap.innerHTML = `
