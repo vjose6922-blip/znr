@@ -458,7 +458,7 @@ function vigilarVideo() {
     if (!v || !whepActivo || whepConectando || !v.srcObject) return;
     // En pausa (autoplay bloqueado o pestaña oculta) no es un corte de red: solo se intenta reanudar.
     if (v.paused) { v.play().catch(() => {}); return; }
-    if (v.currentTime === whepUltimoT) {
+    if (!v.videoWidth || v.currentTime === whepUltimoT) {
       whepCongelado++;
       if (whepCongelado >= 3) {
         whepCongelado = 0;
@@ -484,7 +484,7 @@ function iniciarReproductorWHEP(containerId, whepUrl) {
     <div class="video-estado" id="video-estado">Conectando video…</div>
     <button type="button" class="btn-sonido" id="btn-sonido">🔇 Activar sonido</button>`;
   const video = document.getElementById('live-video');
-  video.onplaying = () => estadoVideo(null);
+  video.onresize = () => video.videoWidth && estadoVideo(null);
   video.onvolumechange = actualizarBotonSonido;
   document.getElementById('btn-sonido').addEventListener('click', () => {
     sonidoActivado = true;
