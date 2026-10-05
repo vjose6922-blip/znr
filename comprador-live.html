@@ -287,7 +287,7 @@ const VENDEDORES_ACTIONS_CLIVE = ['verificarSesionVendedor'];
 async function apiFetch(data, method = 'GET') {
   const API_BASE = AUTH_ACTIONS_CLIVE.includes(data && data.action) ? AUTH_API_URL_CLIVE
     : VENDEDORES_ACTIONS_CLIVE.includes(data && data.action) ? VENDEDORES_API_URL_CLIVE
-    : (data && data.action === 'productosPorVendedor') ? CATALOGO_API_URL_CLIVE : LIVE_API_URL_CLIVE;
+    : (data && ['productosPorVendedor', 'obtenerProductosPorIds'].includes(data.action)) ? CATALOGO_API_URL_CLIVE : LIVE_API_URL_CLIVE;
   const params = new URLSearchParams();
   Object.entries(data || {}).forEach(([k, v]) => {
     if (v !== undefined && v !== null) params.append(k, v);
@@ -963,6 +963,15 @@ function renderLive() {
   }
 }
 
+// Pide por id el producto destacado si no vino en la lista general (esa lista se corta en 50).
+async function asegurarProducto(id) {
+  if (!id || productosMap[id]) return;
+  try {
+    const r = await apiFetch({ action: 'obtenerProductosPorIds', ids: JSON.stringify([id]) }, 'GET');
+    if (r.productos && r.productos[0]) productosMap[id] = r.productos[0];
+  } catch (e) { /* se reintenta en el siguiente ciclo */ }
+}
+
 function renderProductoActual() {
   const slot = document.getElementById('producto-slot');
   if (!slot) return;
@@ -1041,6 +1050,7 @@ function startPolling() {
       }
       if (nueva.producto_actual_id !== sesion.producto_actual_id) {
         sesion.producto_actual_id = nueva.producto_actual_id;
+        await asegurarProducto(sesion.producto_actual_id);
         renderProductoActual();
       }
       // Si el vendedor re-publicó con otra URL (o la nuestra venía vacía), reconectar con la nueva.
@@ -1098,6 +1108,7 @@ async function init() {
     if (sesion.estado === 'terminado') { renderEnded(); return; }
     if (sesion.estado === 'programado') { renderScheduledWait(); return; }
 
+    await asegurarProducto(sesion.producto_actual_id);
     renderLive();
     startPolling();
 
