@@ -286,6 +286,7 @@
   .live-products-col {
     flex: 1 1 56%; min-width: 0; min-height: 0; overflow-y: auto; padding: 10px 6px 14px 12px;
   }
+  .live-products-col .video-box { position: sticky; top: 0; z-index: 3; }
   .live-products-col h2 { font-size: 13px; margin: 0 0 4px; }
   .live-products-col .hint { font-size: 11px; margin: 0 0 8px; }
   .live-products-col .product-grid {
@@ -378,7 +379,7 @@
 </script>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-app.js";
-import { getDatabase, ref, push, onValue, query, limitToLast, update, get } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-database.js";
+import { getDatabase, ref, push, onValue, query, limitToLast, update, get, set } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-database.js";
 import {
   initializeAuth,
   getAuth,
@@ -518,11 +519,12 @@ function getComprobadorUrl(id) {
 
 // ── Espectadores (presencia en tiempo real, vía Firebase) ──
 function setupContadorEspectadores(liveId) {
-  const countEl = document.getElementById('viewer-count');
+  if (presenceUnsub) presenceUnsub();
   presenceUnsub = onValue(ref(db, `presencia/${liveId}`), (snap) => {
     const data = snap.val() || {};
     lastViewers = Object.values(data).sort((a, b) => (b.ts || 0) - (a.ts || 0));
-    if (countEl) countEl.textContent = lastViewers.length;
+    const el = document.getElementById('viewer-count');
+    if (el) el.textContent = lastViewers.length;
   }, (err) => console.error('setupContadorEspectadores falló (revisa las reglas de Firebase):', err));
 }
 
@@ -1137,7 +1139,8 @@ async function fetchAllProducts() {
     const resp = await apiFetch({
       action: 'misProductosComunidad',
       vendorToken: vendorSession.token,
-      limit: 50
+      estado: 'aprobado',
+      limit: 200
     }, 'GET');
     if (resp.ok && resp.products) allProducts = resp.products;
   } catch (err) {
@@ -1450,6 +1453,8 @@ IDs cargados: ${esc(allProducts.map(p => p.id).join(', '))}</div>`
       const anterior = currentSesion.producto_actual_id, id = chip.dataset.id;
       const marcar = (x) => document.querySelectorAll('#live-product-grid .product-chip').forEach((c) => c.classList.toggle('selected', c.dataset.id === String(x)));
       currentSesion.producto_actual_id = id; marcar(id);
+      const p = misProductos.find(x => String(x.id) === String(id)) || {};
+      set(ref(db, `live_producto/${currentSesion.id}`), { id: String(id), nombre: p.nombre || '', precio: Number(p.precio) || 0, imagen1: p.imagen1 || '', ts: Date.now() }).catch(() => {});
       let r = null, motivo = '';
       try { r = await apiFetch({ action: 'actualizarEstadoLive', vendorToken: vendorSession.token, id: currentSesion.id, producto_actual_id: id }); }
       catch (e) { motivo = e.message; }
