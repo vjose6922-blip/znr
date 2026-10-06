@@ -348,15 +348,7 @@
     .profile-products {
       margin-top: 28px;
     }
-    .profile-products h2 {
-      font-size: 18px;
-      font-weight: 700;
-      margin-bottom: 16px;
-      color: var(--color-text-main);
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
+    
     .profile-products-grid {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
@@ -551,14 +543,9 @@
     
 
     /* ── Filtros de productos (buscar / ordenar / disponibilidad) ── */
-    .profile-products-header {
-      display: flex;
-      align-items: baseline;
-      justify-content: space-between;
-      gap: 10px;
-    }
+   
     .profile-products-toolbar {
-      margin: 14px 0 18px;
+      margin: 4px 0 18px;
       display: flex;
       flex-direction: column;
       gap: 8px;
@@ -1210,10 +1197,7 @@ const infoBits = [
             </div>
 
             <div class="profile-products">
-              <div class="profile-products-header">
-                <h2>Productos <span id="profile-products-count">(${productos.filter(p => Number(p.stock || 0) > 0).length})</span></h2>
-              </div>
-              ${productToolbarHtml}
+            ${productToolbarHtml}
               <div class="profile-products-grid" id="profile-products-grid"></div>
               <div class="profile-load-more-wrap" id="profile-load-more-wrap"></div>
             </div>
@@ -1561,7 +1545,6 @@ const infoBits = [
         function renderProductsGrid() {
           const gridEl = document.getElementById('profile-products-grid');
           const loadMoreWrap = document.getElementById('profile-load-more-wrap');
-          const countEl = document.getElementById('profile-products-count');
           if (!gridEl) return;
 
           if (productos.length === 0) {
@@ -1571,12 +1554,7 @@ const infoBits = [
           }
 
           const filtered = getFilteredProducts();
-const conStock = productos.filter(p => Number(p.stock || 0) > 0).length;
-if (countEl) {
-  countEl.textContent = filtered.length === conStock
-    ? `(${conStock})`
-    : `(${filtered.length} de ${conStock})`;
-}
+
 
           const filtersActive = productFilterState.search.trim() !== ''
   || productFilterState.sort !== 'relevancia';
