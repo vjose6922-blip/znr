@@ -343,42 +343,7 @@
       fill: currentColor;
     }
 
-    .profile-wa-fab {
-      position: fixed;
-      right: 16px;
-      bottom: 86px;
-      z-index: 40;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      padding: 13px 20px;
-      border-radius: 30px;
-      background: #25D366;
-      color: #fff;
-      font-weight: 700;
-      font-size: 14px;
-      text-decoration: none;
-      box-shadow: 0 8px 24px rgba(37,211,102,0.45);
-      opacity: 0;
-      transform: translateY(12px);
-      pointer-events: none;
-      transition: opacity 0.25s, transform 0.25s;
-    }
-    .profile-wa-fab.is-visible {
-      opacity: 1;
-      transform: translateY(0);
-      pointer-events: auto;
-    }
-    .profile-wa-fab svg {
-      width: 20px;
-      height: 20px;
-      fill: currentColor;
-      flex-shrink: 0;
-    }
-    @media (max-width: 480px) {
-      .profile-wa-fab span { display: none; }
-      .profile-wa-fab { padding: 14px; border-radius: 50%; }
-    }
+   
 
     .profile-products {
       margin-top: 28px;
@@ -583,9 +548,7 @@
       padding: 10px 28px;
       font-size: 13px;
     }
-    .profile-product-hidden {
-      display: none;
-    }
+    
 
     /* ── Filtros de productos (buscar / ordenar / disponibilidad) ── */
     .profile-products-header {
@@ -625,36 +588,7 @@
       color: var(--color-text-main);
       font-size: 12.5px;
     }
-    .profile-products-toggles {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-    }
-    .profile-toggle-chip {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      padding: 7px 13px;
-      border-radius: 30px;
-      border: 1.5px solid var(--color-border-subtle);
-      background: var(--color-surface-2);
-      color: var(--color-text-main);
-      font-size: 12.5px;
-      font-weight: 600;
-      cursor: pointer;
-      white-space: nowrap;
-      user-select: none;
-      transition: background 0.2s, color 0.2s, border-color 0.2s;
-    }
-    .profile-toggle-chip input {
-      accent-color: var(--color-accent-solid, var(--color-accent-solid));
-      cursor: pointer;
-    }
-    .profile-toggle-chip.is-active {
-      background: linear-gradient(135deg, #7c3aed, #a855f7);
-      border-color: transparent;
-      color: #fff;
-    }
+  
     .profile-clear-filters-btn {
       margin-top: 10px;
       padding: 8px 18px;
@@ -1277,7 +1211,7 @@ const infoBits = [
 
             <div class="profile-products">
               <div class="profile-products-header">
-                <h2>Productos <span id="profile-products-count">(${productos.length})</span></h2>
+                <h2>Productos <span id="profile-products-count">(${productos.filter(p => Number(p.stock || 0) > 0).length})</span></h2>
               </div>
               ${productToolbarHtml}
               <div class="profile-products-grid" id="profile-products-grid"></div>
@@ -1637,15 +1571,16 @@ const infoBits = [
           }
 
           const filtered = getFilteredProducts();
-          if (countEl) {
-            countEl.textContent = filtered.length === productos.length
-              ? `(${productos.length})`
-              : `(${filtered.length} de ${productos.length})`;
-          }
+const conStock = productos.filter(p => Number(p.stock || 0) > 0).length;
+if (countEl) {
+  countEl.textContent = filtered.length === conStock
+    ? `(${conStock})`
+    : `(${filtered.length} de ${conStock})`;
+}
 
           const filtersActive = productFilterState.search.trim() !== ''
   || productFilterState.sort !== 'relevancia';
-            || productFilterState.onlyDonativo;
+    
           const clearActiveBtn = document.getElementById('profile-clear-filters-active');
           if (clearActiveBtn) clearActiveBtn.style.display = filtersActive ? '' : 'none';
 
