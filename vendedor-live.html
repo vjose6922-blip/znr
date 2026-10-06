@@ -185,7 +185,7 @@
   .video-box iframe { width: 100%; height: 100%; border: 0; display: block; }
   .video-box video { width: 100%; height: 100%; object-fit: contain; display: block; background: #000; }
   .vid-aviso {
-    display: none; position: absolute; left: 8px; right: 8px; top: 8px; z-index: 2;
+    display: none; position: absolute; left: 8px; right: 8px; top: 44px; z-index: 2;
     background: rgba(0,0,0,.72); color: #fff; font-size: 11px; line-height: 1.35;
     padding: 6px 10px; border-radius: 8px; text-align: center;
   }
@@ -283,24 +283,25 @@
   .live-bottom-fixed { flex-shrink: 0; padding: 0 12px 10px; }
   .live-bottom-fixed .chat-panel { height: 30vh; min-height: 180px; max-height: 300px; }
 
-  /* ── Debajo del video: productos a la izquierda, chat a la
-     derecha, uno junto al otro para aprovechar mejor la pantalla ── */
-  .live-content-row { flex: 1; min-height: 0; display: flex; flex-direction: row; }
-  .live-products-col {
-    flex: 1 1 56%; min-width: 0; min-height: 0; overflow-y: auto; padding: 10px 6px 14px 12px;
+  /* ── Pantalla del live: video arriba (con los controles encima), carrusel
+     de productos en una fila, y el chat ocupando todo el ancho abajo ── */
+  .live-video { border-radius: 0; margin-bottom: 0; flex-shrink: 0; cursor: pointer; }
+  .vid-top { position: absolute; left: 8px; top: 8px; z-index: 2; display: flex; align-items: center; gap: 6px; }
+  .vid-top .status-dot { margin: 0 2px; }
+  .vid-info {
+    display: none; position: absolute; left: 0; right: 0; top: 0; z-index: 1; padding: 44px 12px 24px;
+    background: linear-gradient(rgba(0,0,0,.8), transparent); color: #fff; pointer-events: none;
   }
-  .live-products-col .video-box { position: sticky; top: 0; z-index: 3; }
-  .live-products-col h2 { font-size: 13px; margin: 0 0 4px; }
-  .live-products-col .hint { font-size: 11px; margin: 0 0 8px; }
-  .live-products-col .product-grid {
-    grid-template-columns: repeat(2, 1fr); gap: 6px;
-    max-height: none; overflow-y: visible;
+  .vid-info.on { display: block; }
+  .vid-info strong { display: block; font-size: 15px; }
+  .vid-info span { font-size: 12px; opacity: .85; }
+  .carrusel {
+    flex-shrink: 0; display: flex; gap: 8px; overflow-x: auto; scroll-snap-type: x proximity;
+    padding: 8px 12px; border-bottom: 1px solid var(--color-border-subtle);
   }
-  .live-chat-col {
-    flex: 1 1 44%; min-width: 0; min-height: 0; display: flex; flex-direction: column;
-    border-left: 1px solid var(--color-border-subtle);
-  }
-  .live-chat-col .chat-panel { flex: 1; min-height: 0; height: auto; }
+  .carrusel .product-chip { flex: 0 0 72px; width: 72px; scroll-snap-align: start; }
+  .live-chat-col { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+  .live-chat-col .chat-panel { flex: 1; min-height: 0; height: auto; border-radius: 0; }
 
   .live-info-row {
     display: flex; align-items: center; gap: 10px;
@@ -927,65 +928,50 @@ async function renderLiveFull() {
   const descLinea = currentSesion.descripcion || 'Transmisión en vivo';
 
   wrap.innerHTML = `
-    <div class="live-top-fixed">
-      <div class="live-info-row">
-        <div class="live-info-text">
-          <div class="li-title-line">
-            <span class="status-dot"></span>
-            <strong class="li-title">${esc(currentSesion.titulo || '')}</strong>
-          </div>
-          <div class="li-sub-line">
-            <span class="li-desc">${esc(descLinea)}</span>
-            <button class="li-views" id="btn-viewers">${Icon('eye')} <span id="viewer-count">0</span></button>
-          </div>
-        </div>
-        <button id="btn-copy" class="btn-copy-icon" title="Copiar link para compradores">${Icon('link')}</button>
+    <div class="video-box live-video" id="vendor-video-slot">
+      <video id="vendor-preview" autoplay muted playsinline></video>
+      <div class="vid-top">
+        <span class="status-dot"></span>
+        <button type="button" class="btn-camara" id="btn-viewers">${Icon('eye')} <span id="viewer-count">0</span></button>
+        <button type="button" class="btn-camara" id="btn-copy" title="Copiar link para compradores">${Icon('link')}</button>
+      </div>
+      <div class="vid-info" id="vid-info"><strong>${esc(currentSesion.titulo || '')}</strong><span>${esc(descLinea)}</span></div>
+      <div class="vid-aviso" id="conn-aviso"></div>
+      <div class="vu" id="vu"><i id="vu-bar"></i></div>
+      <div class="vid-btns">
+        <button type="button" class="btn-camara" id="btn-otro">📱 Otro equipo</button>
+        <button type="button" class="btn-camara" id="btn-camara">🔄 Cámara</button>
+      </div>
+      <div class="resume-panel" id="resume-panel">
+        <div>Tu transmisión se interrumpió (recargaste la página o se cerró la cámara). Tus compradores ya no te ven.</div>
+        <button type="button" class="btn-live primary" id="btn-reanudar">Reanudar transmisión</button>
       </div>
     </div>
 
-    <div class="live-content-row">
-      <div class="live-products-col">
-        <div class="video-box" id="vendor-video-slot">
-          <video id="vendor-preview" autoplay muted playsinline></video>
-          <div class="vid-aviso" id="conn-aviso"></div>
-          <div class="vu" id="vu"><i id="vu-bar"></i></div>
-          <div class="vid-btns">
-            <button type="button" class="btn-camara" id="btn-otro">📱 Otro equipo</button>
-            <button type="button" class="btn-camara" id="btn-camara">🔄 Cámara</button>
-          </div>
-          <div class="resume-panel" id="resume-panel">
-            <div>Tu transmisión se interrumpió (recargaste la página o se cerró la cámara). Tus compradores ya no te ven.</div>
-            <button type="button" class="btn-live primary" id="btn-reanudar">Reanudar transmisión</button>
-          </div>
+    <div class="carrusel" id="live-product-grid">
+      ${misProductos.length ? misProductos.map(p => `
+        <div class="product-chip ${String(p.id) === String(currentSesion.producto_actual_id) ? 'selected' : ''}" data-id="${esc(p.id)}">
+          <img src="${esc(p.imagen1 || 'https://placehold.co/200x200')}" alt="${esc(p.nombre)}" loading="lazy">
+          <div class="chip-name">${esc(p.nombre)}</div>
         </div>
-        <h2>Producto que estás mostrando</h2>
-        <p class="hint">Tócalo para destacarlo con botón de compra.</p>
-        <div class="product-grid" id="live-product-grid">
-          ${misProductos.length ? misProductos.map(p => `
-            <div class="product-chip ${String(p.id) === String(currentSesion.producto_actual_id) ? 'selected' : ''}" data-id="${esc(p.id)}">
-              <img src="${esc(p.imagen1 || 'https://placehold.co/200x200')}" alt="${esc(p.nombre)}" loading="lazy">
-              <div class="chip-name">${esc(p.nombre)}</div>
-            </div>
-          `).join('') : (String(currentSesion.productos_ids || '').trim()
-              ? `<div class="chat-empty" style="text-align:left; font-size:11px; font-family:monospace; white-space:pre-wrap;">${Icon('error')} Diagnóstico: guardaste productos pero no coinciden con tu catálogo cargado.
+      `).join('') : (String(currentSesion.productos_ids || '').trim()
+          ? `<div class="chat-empty" style="text-align:left; font-size:11px; font-family:monospace; white-space:pre-wrap;">${Icon('error')} Diagnóstico: guardaste productos pero no coinciden con tu catálogo cargado.
 productos_ids guardado: "${esc(String(currentSesion.productos_ids))}"
 productos cargados (allProducts): ${allProducts.length}
 IDs cargados: ${esc(allProducts.map(p => p.id).join(', '))}</div>`
-              : '<div class="chat-empty">No seleccionaste productos al crear la transmisión.</div>')}
-        </div>
-      </div>
+          : '<div class="chat-empty">No seleccionaste productos al crear la transmisión.</div>')}
+    </div>
 
-      <div class="live-chat-col">
-        <div class="chat-panel">
-          <div class="chat-panel-header">
-            <span>Chat</span>
-            <button id="btn-finalizar" class="btn-finalizar-mini">${Icon('stop')} Finalizar</button>
-          </div>
-          <div class="chat-messages" id="chat-messages"><div class="chat-empty">Aún no hay mensajes.</div></div>
-          <div class="chat-input-row">
-            <input type="text" id="chat-input" placeholder="Responde…" maxlength="300">
-            <button id="chat-send"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" aria-hidden="true"><use href="#ic-arrow-right"/></svg></button>
-          </div>
+    <div class="live-chat-col">
+      <div class="chat-panel">
+        <div class="chat-panel-header">
+          <span>Chat</span>
+          <button id="btn-finalizar" class="btn-finalizar-mini">${Icon('stop')} Finalizar</button>
+        </div>
+        <div class="chat-messages" id="chat-messages"><div class="chat-empty">Aún no hay mensajes.</div></div>
+        <div class="chat-input-row">
+          <input type="text" id="chat-input" placeholder="Responde…" maxlength="300">
+          <button id="chat-send"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" aria-hidden="true"><use href="#ic-arrow-right"/></svg></button>
         </div>
       </div>
     </div>
@@ -999,6 +985,18 @@ IDs cargados: ${esc(allProducts.map(p => p.id).join(', '))}</div>`
   });
 
   document.getElementById('btn-viewers').addEventListener('click', mostrarEspectadores);
+
+  // Tocar el video muestra el título y la descripción unos segundos.
+  const info = document.getElementById('vid-info');
+  let infoTimer;
+  document.getElementById('vendor-video-slot').addEventListener('click', (e) => {
+    if (e.target.closest('button')) return;
+    clearTimeout(infoTimer);
+    info.classList.toggle('on');
+    if (info.classList.contains('on')) infoTimer = setTimeout(() => info.classList.remove('on'), 5000);
+  });
+  const activo = document.querySelector('#live-product-grid .product-chip.selected');
+  if (activo) activo.scrollIntoView({ inline: 'center', block: 'nearest' });
 
   document.getElementById('btn-camara').onclick = () => (verActivo ? alternarSonido() : cambiarCamara());
   document.getElementById('btn-otro').onclick = () => (verActivo ? volverAGrabarAqui() : enlazarDispositivo());
