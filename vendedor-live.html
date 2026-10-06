@@ -119,6 +119,29 @@
     color: #fff; font-size: 10px; padding: 10px 6px 4px; line-height: 1.2;
   }
 
+  .faq-item {
+    border: 1px solid var(--color-border-subtle); border-radius: var(--radius-md);
+    background: var(--color-surface-2); padding: 10px 12px; margin-bottom: 8px;
+  }
+  .faq-item.activa { border-color: var(--color-accent-solid); }
+  .faq-head { display: flex; align-items: center; gap: 10px; }
+  .field-group .faq-head input[type="checkbox"] {
+    width: 18px; height: 18px; padding: 0; margin: 0; flex-shrink: 0;
+    accent-color: var(--color-accent-solid);
+  }
+  .faq-head .faq-q {
+    flex: 1; font-size: 13px; font-weight: 600; line-height: 1.35;
+    color: var(--color-text-primary); cursor: pointer;
+  }
+  .field-group .faq-head input.faq-q-input { flex: 1; width: auto; padding: 8px 10px; font-size: 13px; }
+  .faq-quitar {
+    background: none; border: none; color: var(--color-text-soft);
+    font-size: 20px; line-height: 1; padding: 0 4px; cursor: pointer;
+  }
+  .faq-resp { display: none; margin-top: 8px; }
+  .faq-item.activa .faq-resp { display: block; }
+  .field-group .faq-resp textarea { min-height: 56px; font-size: 13px; }
+
   .btn-live {
     width: 100%; border: none; border-radius: var(--radius-pill);
     padding: 14px; font-size: 15px; font-weight: 700; cursor: pointer;
@@ -236,6 +259,7 @@
   .chat-msg .author { font-weight: 700; color: var(--color-accent); margin-right: 6px; }
   .chat-msg .text { color: var(--color-text-primary); }
   .chat-msg.mine .author { color: var(--color-primary); }
+  .chat-msg.faq { border-left: 2px solid var(--color-accent); padding-left: 8px; }
   .chat-empty { text-align: center; color: var(--color-text-soft); font-size: 12px; margin-top: auto; margin-bottom: auto; }
   .chat-input-row { display: flex; gap: 8px; padding: 10px; border-top: 1px solid var(--color-border-subtle); flex-shrink: 0; }
   .chat-input-row input {
@@ -582,6 +606,24 @@ let lastViewers = [];
 let tipoSeleccionado = 'vivo'; // única opción disponible: transmisión en vivo real
 let orientacionSeleccionada = 'horizontal';
 
+// Preguntas frecuentes: el vendedor activa las que quiere y escribe la
+// respuesta antes de crear el live. Solo las activas viajan en crearSesionLive.
+const FAQ_SUGERIDAS = [
+  '¿Cuánto cuesta el envío?',
+  '¿Entregan en mi zona?',
+  '¿Qué métodos de pago aceptan?',
+  '¿Cuánto tiempo me apartan el producto?',
+  '¿En qué horario entregan?',
+  '¿Aceptan cambios o devoluciones?',
+  '¿Los productos son nuevos o usados?'
+];
+const FAQ_MAX = 10;
+let faqItems = [];
+let faqSeq = 0;
+function faqNueva(pregunta, custom) {
+  return { uid: 'f' + (++faqSeq), pregunta, respuesta: '', activa: false, custom: !!custom };
+}
+
 function esc(s) {
   const d = document.createElement('div');
   d.textContent = s == null ? '' : String(s);
@@ -686,6 +728,7 @@ async function renderCreateForm() {
   subtitle.textContent = 'Nueva transmisión';
   tipoSeleccionado = 'vivo';
   orientacionSeleccionada = 'horizontal';
+  faqItems = FAQ_SUGERIDAS.map(q => faqNueva(q, false));
 
   wrap.innerHTML = `
     <div class="live-card">
@@ -734,6 +777,13 @@ async function renderCreateForm() {
         </div>
       </div>
 
+      <div class="field-group">
+        <label>Preguntas frecuentes (opcional)</label>
+        <p class="hint" style="margin-bottom:10px;">Activa las preguntas que tus compradores podrán tocar durante el live y escribe tu respuesta. Al tocarla, la pregunta y tu respuesta aparecen en el chat para todos.</p>
+        <div id="faq-list"></div>
+        <button type="button" class="btn-live ghost" id="btn-faq-add">Agregar otra pregunta</button>
+      </div>
+
       <button class="btn-live primary" id="btn-crear-sesion">Crear transmisión</button>
       <div class="error-msg" id="f-general-error" style="display:none;"></div>
     </div>`;
@@ -747,7 +797,59 @@ async function renderCreateForm() {
   });
 
   document.getElementById('btn-crear-sesion').addEventListener('click', crearSesion);
+  document.getElementById('btn-faq-add').addEventListener('click', () => {
+    if (faqItems.length >= FAQ_MAX) return;
+    const nueva = faqNueva('', true);
+    nueva.activa = true;
+    faqItems.push(nueva);
+    renderFaqList();
+    const input = document.querySelector(`.faq-item[data-uid="${nueva.uid}"] .faq-q-input`);
+    if (input) input.focus();
+  });
+  renderFaqList();
   loadProductGrid();
+}
+
+function renderFaqList() {
+  const list = document.getElementById('faq-list');
+  if (!list) return;
+  list.innerHTML = faqItems.map(f => `
+    <div class="faq-item ${f.activa ? 'activa' : ''}" data-uid="${f.uid}">
+      <div class="faq-head">
+        <input type="checkbox" class="faq-check" ${f.activa ? 'checked' : ''} aria-label="Habilitar esta pregunta">
+        ${f.custom
+          ? `<input type="text" class="faq-q-input" maxlength="80" placeholder="Escribe tu pregunta">`
+          : `<span class="faq-q">${esc(f.pregunta)}</span>`}
+        ${f.custom ? '<button type="button" class="faq-quitar" aria-label="Quitar pregunta">×</button>' : ''}
+      </div>
+      <div class="faq-resp">
+        <textarea maxlength="250" placeholder="Tu respuesta">${esc(f.respuesta)}</textarea>
+      </div>
+    </div>`).join('');
+
+  list.querySelectorAll('.faq-item').forEach(el => {
+    const f = faqItems.find(x => x.uid === el.dataset.uid);
+    if (!f) return;
+    const check = el.querySelector('.faq-check');
+    const setActiva = (v) => { f.activa = v; check.checked = v; el.classList.toggle('activa', v); };
+    check.addEventListener('change', () => setActiva(check.checked));
+    const qSpan = el.querySelector('.faq-q');
+    if (qSpan) qSpan.addEventListener('click', () => setActiva(!f.activa));
+    const qInput = el.querySelector('.faq-q-input');
+    if (qInput) {
+      qInput.value = f.pregunta; // por propiedad: esc() no escapa comillas dobles
+      qInput.addEventListener('input', () => { f.pregunta = qInput.value; });
+    }
+    el.querySelector('textarea').addEventListener('input', (e) => { f.respuesta = e.target.value; });
+    const quitar = el.querySelector('.faq-quitar');
+    if (quitar) quitar.addEventListener('click', () => {
+      faqItems = faqItems.filter(x => x.uid !== f.uid);
+      renderFaqList();
+    });
+  });
+
+  const addBtn = document.getElementById('btn-faq-add');
+  if (addBtn) addBtn.disabled = faqItems.length >= FAQ_MAX;
 }
 
 async function fetchAllProducts() {
@@ -804,6 +906,20 @@ async function crearSesion() {
   genError.style.display = 'none';
 
   if (!titulo) { genError.textContent = 'Ponle un título a tu transmisión.'; genError.style.display = 'block'; return; }
+
+  const faqActivas = faqItems.filter(f => f.activa);
+  for (const f of faqActivas) {
+    if (!f.pregunta.trim()) {
+      genError.textContent = 'Escribe el texto de la pregunta que agregaste, o quítala.';
+      genError.style.display = 'block';
+      return;
+    }
+    if (!f.respuesta.trim()) {
+      genError.textContent = `Escribe tu respuesta a "${f.pregunta.trim()}" o desactiva la pregunta.`;
+      genError.style.display = 'block';
+      return;
+    }
+  }
   btn.disabled = true;
   btn.textContent = 'Creando…';
 
@@ -814,7 +930,8 @@ async function crearSesion() {
       titulo, descripcion: desc,
       tipo: tipoSeleccionado,
       orientacion: orientacionSeleccionada,
-      productos_ids: Array.from(selectedProductIds).join(';')
+      productos_ids: Array.from(selectedProductIds).join(';'),
+      faq: JSON.stringify(faqActivas.map(f => ({ pregunta: f.pregunta.trim(), respuesta: f.respuesta.trim() })))
     });
 
     if (!resp.ok) {
@@ -1298,7 +1415,7 @@ async function finalizarTransmision(finBtn) {
   try {
     const snap = await withTimeout(get(ref(db, `chats/${currentSesion.id}/messages`)), 5000);
     const data = snap.val() || {};
-    const vendidos = Object.values(data).filter(m => m.vendido && !m.isVendor);
+    const vendidos = Object.values(data).filter(m => m.vendido && !m.isVendor && !m.faq);
 
     // El teléfono/dirección/horario/GPS ya no viajan en el mensaje de
     // chat — se piden en bloque al backend (que lee contactos/{liveId}
@@ -1511,7 +1628,7 @@ function setupChat(liveId, myName, isVendor) {
           <span style="font-size:10px; color:var(--color-text-soft);">${esc(prod.nombre)}</span>
         </div>` : '';
       return `
-      <div class="chat-msg ${m.author === myName ? 'mine' : ''}" data-key="${esc(key)}" style="${!m.isVendor ? 'cursor:pointer;' : ''}">
+      <div class="chat-msg ${m.author === myName ? 'mine' : ''}${m.faq ? ' faq' : ''}" data-key="${esc(key)}" style="${!m.isVendor && !m.faq ? 'cursor:pointer;' : ''}">
         <span class="author">${esc(m.author)}${m.isVendor ? ' ' + Icon('shopping-bag') : ''}:</span>
         <span class="text">${esc(m.text)}</span>
         ${m.vendido ? `<span class="vendido-tag" style="display:inline-block;margin-left:6px;font-size:10px;font-weight:700;background:rgba(74,222,128,.15);color:#4ade80;padding:2px 7px;border-radius:999px;">${Icon('check')} Vendido</span>` : ''}
@@ -1524,7 +1641,7 @@ function setupChat(liveId, myName, isVendor) {
       messagesEl.querySelectorAll('.chat-msg[data-key]').forEach(el => {
         const key = el.dataset.key;
         const msg = data[key];
-        if (msg.isVendor) return;
+        if (msg.isVendor || msg.faq) return;
         el.addEventListener('click', () => marcarVendido(liveId, key, msg));
       });
     }

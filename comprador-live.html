@@ -120,6 +120,20 @@
     display: flex; align-items: center; justify-content: center; flex-shrink: 0;
   }
 
+  .chat-msg.faq { border-left: 2px solid var(--color-accent); padding-left: 8px; }
+  .faq-row {
+    display: flex; gap: 6px; padding: 8px 10px 0; overflow-x: auto; flex-shrink: 0;
+    -webkit-overflow-scrolling: touch; scrollbar-width: none;
+  }
+  .faq-row::-webkit-scrollbar { display: none; }
+  .faq-chip {
+    flex-shrink: 0; white-space: nowrap; cursor: pointer;
+    background: var(--color-surface); color: var(--color-text-primary);
+    border: 1px solid var(--color-border-subtle); border-radius: var(--radius-pill);
+    padding: 6px 12px; font-size: 12px; font-weight: 600; font-family: inherit;
+  }
+  .faq-chip:disabled { opacity: .5; cursor: default; }
+
   .center-card { max-width: 480px; margin: 60px auto; padding: 0 20px; text-align: center; }
   .center-card .icon { font-size: 44px; margin-bottom: 12px; }
   .center-card h2 { color: var(--color-text-primary); margin: 0 0 8px; }
@@ -902,8 +916,14 @@ function renderLive() {
   document.body.classList.add('live-active');
   const esVertical = sesion.orientacion === 'vertical';
 
+  const faqLista = Array.isArray(sesion.faq) ? sesion.faq : [];
+  const faqMarkup = faqLista.length
+    ? `<div class="faq-row" id="faq-row">${faqLista.map(f => `<button type="button" class="faq-chip" data-id="${esc(f.id)}">${esc(f.pregunta)}</button>`).join('')}</div>`
+    : '';
+
   const chatMarkup = `
     <div class="chat-messages" id="chat-messages"><div class="chat-empty">Sé el primero en comentar 👋</div></div>
+    ${faqMarkup}
     <div class="chat-input-row">
       <input type="text" id="chat-input" placeholder="Escribe un comentario…" maxlength="300">
       <button id="chat-send"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" aria-hidden="true"><use href="#ic-arrow-right"/></svg></button>
@@ -955,6 +975,7 @@ function renderLive() {
   setupContadorEspectadores();
 
   document.getElementById('chat-send').addEventListener('click', () => enviarMensaje());
+  document.querySelectorAll('.faq-chip').forEach(btn => btn.addEventListener('click', () => preguntarFaq(btn)));
   document.getElementById('chat-input').addEventListener('keydown', (e) => { if (e.key === 'Enter') enviarMensaje(); });
 
   if (!sesion.playbackUrl && sesion.facebook_link && sesion.fuente !== 'znr') {
@@ -1018,6 +1039,25 @@ function enviarMensaje(textoDirecto) {
   });
 }
 
+// Pregunta frecuente: el servidor publica en el chat la pregunta (a tu nombre)
+// y la respuesta del vendedor, para que todos la vean.
+async function preguntarFaq(btn) {
+  const faqId = btn.dataset.id;
+  if (!faqId || btn.disabled) return;
+  if (!identity || !identity.nombre) { askIdentity(() => preguntarFaq(btn)); return; }
+  if (!authUid) { alert('Un momento, tu sesión aún se está preparando — intenta de nuevo.'); return; }
+  btn.disabled = true;
+  try {
+    const resp = await apiFetch({
+      action: 'preguntarFaqLive', liveId, faqId, uid: authUid, author: identity.nombre
+    }, 'POST');
+    if (!resp.ok) alert(resp.error || 'No se pudo enviar la pregunta.');
+  } catch (err) {
+    alert('No se pudo enviar la pregunta. Revisa tu conexión e intenta de nuevo.');
+  }
+  setTimeout(() => { btn.disabled = false; }, 3000);
+}
+
 function setupProductoEnVivo() {
   onValue(ref(db, `live_producto/${liveId}`), (snap) => {
     const p = snap.val();
@@ -1037,7 +1077,7 @@ function setupChat() {
     if (!data) { messagesEl.innerHTML = '<div class="chat-empty">Sé el primero en comentar 👋</div>'; return; }
     const msgs = Object.values(data).sort((a, b) => (a.ts || 0) - (b.ts || 0)).slice(-100);
     messagesEl.innerHTML = msgs.map(m => `
-      <div class="chat-msg ${identity && m.author === identity.nombre ? 'mine' : ''}">
+      <div class="chat-msg ${identity && m.author === identity.nombre ? 'mine' : ''}${m.faq ? ' faq' : ''}">
         <span class="author">${esc(m.author)}${m.isVendor ? ' ' + Icon('shopping-bag') : ''}:</span>
         <span class="text">${esc(m.text)}</span>
         ${m.vendido ? '<span class="vendido-tag">' + Icon('check') + ' Vendido</span>' : ''}
