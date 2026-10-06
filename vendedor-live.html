@@ -1066,19 +1066,80 @@ IDs cargados: ${esc(allProducts.map(p => p.id).join(', '))}</div>`
   if (transmitiendo && localStream) ligarPreview();
   else mostrarPanelReanudar();
 
+  // Avisa a los compradores en tiempo real (RTDB). Antes el error se tragaba en
+  // silencio (.catch(() => {})); ahora se registra y, si fue por permisos o porque
+  // la certificación del vendedor nunca se completó, se re-certifica y se reintenta.
+  let ultimoErrorRTDB = '';
+  const publicarProductoRTDB = async (id, p, tsFijo) => {
+    p = p || {};
+    // Las reglas de RTDB exigen: nombre string ≤120, imagen1 string ≤600, precio número.
+    // Se normaliza para que un nombre numérico, o una URL de imagen muy larga, no hagan
+    // que Firebase rechace toda la escritura.
+    const precio = Number(p.precio);
+    const imagen = String(p.imagen1 || '');
+    const payload = {
+      id: String(id).slice(0, 100),
+      nombre: String(p.nombre || '').slice(0, 120),
+      precio: Number.isFinite(precio) ? precio : 0,
+      imagen1: imagen.length <= 600 ? imagen : '',
+      ts: tsFijo || Date.now()
+    };
+    const destino = () => ref(db, `live_producto/${currentSesion.id}`);
+    try {
+      await set(destino(), payload);
+      ultimoErrorRTDB = '';
+      return true;
+    } catch (e) {
+      ultimoErrorRTDB = (e.code || '') + ' ' + (e.message || '');
+      console.error('❌ live_producto: set falló →', ultimoErrorRTDB, '| uid:', authUid, '| liveId:', currentSesion.id, '| payload:', payload);
+      liveIdsCertificados.delete(currentSesion.id);
+      if (await certificarVendedorEnLive(currentSesion.id)) {
+        try { await set(destino(), { ...payload, ts: Date.now() }); ultimoErrorRTDB = ''; return true; }
+        catch (e2) {
+          ultimoErrorRTDB = (e2.code || '') + ' ' + (e2.message || '') + ' (tras re-certificar)';
+          console.error('❌ live_producto: falló también tras re-certificar →', ultimoErrorRTDB);
+        }
+      } else {
+        ultimoErrorRTDB += ' | certificarVendedorLive no devolvió ok';
+      }
+      return false;
+    }
+  };
+
   document.querySelectorAll('#live-product-grid .product-chip').forEach(chip => {
     chip.addEventListener('click', async () => {
       const anterior = currentSesion.producto_actual_id, id = chip.dataset.id;
       const marcar = (x) => document.querySelectorAll('#live-product-grid .product-chip').forEach((c) => c.classList.toggle('selected', c.dataset.id === String(x)));
       currentSesion.producto_actual_id = id; marcar(id);
       const p = misProductos.find(x => String(x.id) === String(id)) || {};
-      set(ref(db, `live_producto/${currentSesion.id}`), { id: String(id), nombre: p.nombre || '', precio: Number(p.precio) || 0, imagen1: p.imagen1 || '', ts: Date.now() }).catch(() => {});
+      const tsDestacado = Date.now();
+      // Camino 1: el navegador escribe directo en RTDB (rápido).
+      const rtdbOk = publicarProductoRTDB(id, p, tsDestacado);
       let r = null, motivo = '';
-      try { r = await apiFetch({ action: 'actualizarEstadoLive', vendorToken: vendorSession.token, id: currentSesion.id, producto_actual_id: id }); }
+      // Camino 2: el servidor guarda el producto y TAMBIÉN lo publica en RTDB, sin
+      // depender del uid anónimo de este navegador.
+      try {
+        r = await apiFetch({
+          action: 'actualizarEstadoLive', vendorToken: vendorSession.token, id: currentSesion.id,
+          producto_actual_id: id,
+          producto_nombre: p.nombre || '', producto_precio: Number(p.precio) || 0,
+          producto_imagen1: p.imagen1 || '', producto_ts: tsDestacado
+        });
+      }
       catch (e) { motivo = e.message; }
       if (!r || !r.ok) {
         currentSesion.producto_actual_id = anterior; marcar(anterior);
         alert('No se pudo destacar el producto: ' + ((r && r.error) || motivo || 'sin respuesta del servidor'));
+        // dejar a los compradores con el producto anterior, igual que el vendedor
+        if (anterior) publicarProductoRTDB(anterior, misProductos.find(x => String(x.id) === String(anterior)));
+      } else if (!(await rtdbOk)) {
+        // El navegador no pudo escribir en RTDB. Si el servidor sí lo publicó (r.rtdb),
+        // los compradores ya lo ven: solo queda el aviso en consola. Si tampoco, sí se avisa.
+        if (r.rtdb === true) {
+          console.warn('⚠️ live_producto: falló desde el navegador pero el servidor lo publicó →', ultimoErrorRTDB);
+        } else {
+          alert('El producto se guardó, pero no se pudo avisar en tiempo real a los compradores.\n\nMotivo: ' + (ultimoErrorRTDB || 'desconocido'));
+        }
       }
     });
   });
