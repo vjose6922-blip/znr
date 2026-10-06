@@ -1343,32 +1343,23 @@ img.src = url;
 });
 }
 
-window.handleFileSelect = function(n, input) {
-    const files = input.files;
-    if (!files || files.length === 0) return;
+window.handleFileSelect = async function(n, input) {
+    const files = Array.from(input.files || []).slice(0, 4 - n);   // máx. hasta el slot 3
+    input.value = '';
+    if (!files.length) return;
 
-    if (n === 1 && files[0] && typeof window.sugerirYAplicar === 'function') {
+    if (n === 1 && typeof window.sugerirYAplicar === 'function') {
         window.sugerirYAplicar(files[0]);
     }
 
-    const vendorUploadFn = async (file, slot) => {
-        return await uploadSingleImage(file);
-    };
-
-    const onSuccess = (slot, url) => {
-        uploadedImages[slot] = url;
-        selectedFiles[slot] = null;
-        console.log(`Imagen ${slot} subida, URL guardada en uploadedImages`);
-    };
-
-    const onProgress = (slot, percent) => {
-        const progressId = `progress-image-upload-${slot}`;
-        const progress = document.getElementById(progressId);
-        if (progress) progress.style.width = percent + '%';
-    };
-
-    window.uploadImagesInQueue(files, n, vendorUploadFn, onProgress, onSuccess);
-    input.value = '';
+    // Quita el fondo si la casilla está marcada (bg-remove.js); las fotos se suben al publicar (submitProduct)
+    const lista = window.znrProcesarFotos ? await window.znrProcesarFotos(files) : files;
+    lista.forEach((f, i) => {
+        if (!f) return;
+        selectedFiles[n + i] = f;
+        uploadedImages[n + i] = null;
+        setSlotPreview(n + i, URL.createObjectURL(f));
+    });
 };
 
 function setSlotPreview(n, src) {
@@ -1537,11 +1528,13 @@ showLoader('Subiendo imágenes...');
 const btn = document.getElementById('submit-product-btn');
 if (btn) btn.disabled = true;
 try {
+const pendientes = [1, 2, 3].filter(n => selectedFiles[n] && !uploadedImages[n]?.startsWith('http')).length;
+let subidas = 0;
 for (const n of [1, 2, 3]) {
 const file = selectedFiles[n];
 console.log(` Slot ${n}: archivo =`, file ? file.name : 'ninguno', '| uploadedImages previo =', uploadedImages[n]);
 if (file && !uploadedImages[n]?.startsWith('http')) {
-console.log(` Subiendo imagen ${n}...`);
+showLoader(`Subiendo imagen ${++subidas} de ${pendientes}...`);
 uploadedImages[n] = await uploadSingleImage(file);
 console.log(` Imagen ${n} subida: ${uploadedImages[n]}`);
 } else {

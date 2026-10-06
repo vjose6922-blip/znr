@@ -4,7 +4,7 @@
  <meta charset="UTF-8">
  <meta http-equiv="Content-Security-Policy" content="
  default-src 'self';
- script-src 'self' 'unsafe-inline' https://www.gstatic.com https://apis.google.com https://cdn.jsdelivr.net https://*.googleapis.com;
+ script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' https://www.gstatic.com https://apis.google.com https://cdn.jsdelivr.net https://*.googleapis.com;
  style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://*.googleapis.com;
  img-src 'self' data: blob:
         https://lh3.googleusercontent.com
@@ -361,9 +361,7 @@ h3 {
  </div>
  </div>
 
-  
-  
-  
+  <label style="display:flex;align-items:center;gap:8px;margin-top:10px;font-size:13px;cursor:pointer"><input type="checkbox" id="chk-quitar-fondo" style="width:20px;height:20px;margin:0;flex:none"> Quitar fondo y poner blanco</label>
   <p style="font-size:11px;color:#aaa;margin-top:6px">Sube fotos reales de tu producto. Puedes seleccionar varias a la vez. Imágenes claras y bien iluminadas aumentan tus ventas.</p>
  </div>
 
@@ -582,6 +580,7 @@ h3 {
  <script type="module" src="webauthn-client.js"></script>
  <script src="icons.js" defer></script>
  <script src="common.js" defer></script>
+ <script src="bg-remove.js" defer></script>
  <script src="cover-portada.js" defer></script>
  <script src="znr-devconsole.js" defer></script>
  <script src="notification-center.js" defer></script>
