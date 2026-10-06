@@ -189,8 +189,11 @@
     background: rgba(0,0,0,.72); color: #fff; font-size: 11px; line-height: 1.35;
     padding: 6px 10px; border-radius: 8px; text-align: center;
   }
+  .vid-btns { position: absolute; right: 8px; bottom: 8px; z-index: 2; display: flex; gap: 6px; }
+  .vu { display: none; position: absolute; left: 0; right: 0; bottom: 0; height: 4px; background: rgba(255,255,255,.15); z-index: 2; }
+  .vu i { display: block; height: 100%; width: 0; background: #4ade80; transition: width .12s; }
   .btn-camara {
-    position: absolute; right: 8px; bottom: 8px; z-index: 2; border: none;
+    border: none;
     border-radius: var(--radius-pill); padding: 6px 10px; font-size: 11px; font-weight: 700;
     background: rgba(0,0,0,.6); color: #fff; cursor: pointer;
   }
@@ -377,6 +380,7 @@
     }
   })();
 </script>
+<script src="live-publisher.js"></script>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-app.js";
 import { getDatabase, ref, push, onValue, query, limitToLast, update, get, set } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-database.js";
@@ -488,17 +492,24 @@ async function apiFetch(data, method = 'POST') {
   return JSON.parse(await res.text());
 }
 
-function withTimeout(promise, ms) {
-  return Promise.race([
-    promise,
-    new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), ms))
-  ]);
-}
-
 const wrap = document.getElementById('live-wrap');
 const subtitle = document.getElementById('header-subtitle');
 let vendorSession = null;
 let currentSesion = null;
+window.LP = {
+  sesion: () => currentSesion,
+  credenciales: async () => {
+    let c;
+    try { c = await apiFetch({ action: 'obtenerCredencialesTransmision', vendorToken: vendorSession.token, id: currentSesion.id }); }
+    catch (e) { throw new Error('Error de conexión. Intenta de nuevo.'); }
+    if (!c.ok) throw new Error(c.error || 'No se pudo preparar la transmisión.');
+    return { whipUrl: c.whipUrl, segundos: c.segmentoSegundos, playbackUrl: c.playbackUrl };
+  },
+  urlSubida: async (seq, tipo) => {
+    const r = await apiFetch({ action: 'obtenerUrlSubidaSegmento', vendorToken: vendorSession.token, liveId: currentSesion.id, seq, contentType: tipo });
+    return r.ok ? r.uploadUrl : null;
+  }
+};
 let selectedProductIds = new Set();
 let allProducts = [];
 let chatUnsub = null;
@@ -555,465 +566,6 @@ function mostrarEspectadores() {
   overlay.addEventListener('click', (e) => { if (e.target === overlay) document.body.removeChild(overlay); });
 }
 
-// ── Transmisión dentro de ZNR: cámara + WHIP (Cloudflare Stream) ──
-// El vendedor publica su cámara por WebRTC (WHIP) a un live input de
-// Cloudflare; los compradores lo ven por WHEP en comprador-live.html.
-// Cloudflare NO graba las transmisiones WebRTC, así que además se guarda
-// una copia de baja calidad en segmentos (ver "Respaldo de video") que
-// el backend usa para armar el clip de un reporte.
-
-let localStream = null;
-let pcActual = null;
-let whipUrl = null;
-let transmitiendo = false;
-let camaraFacing = 'environment'; // primero la trasera: lo normal es mostrar productos
-let cambiandoCamara = false;
-let reconectando = false;
-let discTimer = null;
-let wakeLock = null;
-let segmentoMs = 30000;
-
-function videoConstraints(facing) {
-  const vertical = currentSesion && currentSesion.orientacion === 'vertical';
-  return {
-    facingMode: { ideal: facing },
-    width: { ideal: vertical ? 720 : 1280 },
-    height: { ideal: vertical ? 1280 : 720 },
-    frameRate: { ideal: 24, max: 30 }
-  };
-}
-
-function errorCamara(e) {
-  const n = e && e.name;
-  if (n === 'NotAllowedError' || n === 'SecurityError') return new Error('Permite el acceso a la cámara y al micrófono en tu navegador para poder transmitir.');
-  if (n === 'NotFoundError' || n === 'OverconstrainedError') return new Error('No encontramos una cámara o micrófono disponible en este dispositivo.');
-  if (n === 'NotReadableError' || n === 'AbortError') return new Error('La cámara o el micrófono están siendo usados por otra app. Ciérrala e intenta de nuevo.');
-  return new Error('No se pudo abrir la cámara: ' + ((e && e.message) || 'error desconocido'));
-}
-
-async function pedirCamara(facing) {
-  try {
-    return await navigator.mediaDevices.getUserMedia({
-      video: videoConstraints(facing),
-      audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true }
-    });
-  } catch (e) {
-    throw errorCamara(e);
-  }
-}
-
-async function pedirVideoTrack(facing) {
-  const s = await navigator.mediaDevices.getUserMedia({ video: videoConstraints(facing), audio: false });
-  return s.getVideoTracks()[0];
-}
-
-function ligarPreview() {
-  const v = document.getElementById('vendor-preview');
-  if (!v || !localStream) return;
-  v.srcObject = localStream;
-  v.muted = true;
-  v.playsInline = true;
-  v.play().catch(() => {});
-  v.style.transform = camaraFacing === 'user' ? 'scaleX(-1)' : 'none'; // la frontal se ve como espejo
-}
-
-function avisoVideo(msg, onClick) {
-  const el = document.getElementById('conn-aviso');
-  if (!el) return;
-  if (!msg) { el.style.display = 'none'; el.textContent = ''; el.onclick = null; el.style.cursor = ''; return; }
-  el.textContent = msg;
-  el.style.display = 'block';
-  el.onclick = onClick || null;
-  el.style.cursor = onClick ? 'pointer' : '';
-}
-
-function esperarIce(pc, ms) {
-  return new Promise((resolve) => {
-    if (pc.iceGatheringState === 'complete') { resolve(); return; }
-    const fin = () => { clearTimeout(t); pc.removeEventListener('icegatheringstatechange', check); resolve(); };
-    const check = () => { if (pc.iceGatheringState === 'complete') fin(); };
-    const t = setTimeout(fin, ms);
-    pc.addEventListener('icegatheringstatechange', check);
-  });
-}
-
-function esperarConexion(pc, ms) {
-  return new Promise((resolve, reject) => {
-    if (pc.connectionState === 'connected') { resolve(); return; }
-    const t = setTimeout(() => { pc.removeEventListener('connectionstatechange', check); reject(new Error('timeout')); }, ms);
-    const check = () => {
-      const st = pc.connectionState;
-      if (st === 'connected') { clearTimeout(t); pc.removeEventListener('connectionstatechange', check); resolve(); }
-      else if (st === 'failed' || st === 'closed') { clearTimeout(t); pc.removeEventListener('connectionstatechange', check); reject(new Error('conexión ' + st)); }
-    };
-    pc.addEventListener('connectionstatechange', check);
-  });
-}
-
-function cerrarPC() {
-  if (!pcActual) return;
-  try { pcActual.onconnectionstatechange = null; pcActual.close(); } catch (e) { /* ya estaba cerrada */ }
-  pcActual = null;
-}
-
-function limitarBitrate(pc) {
-  // Tope de 1.5 Mbps al video en vivo para que no compita de más con la
-  // subida del respaldo. No es crítico: si el navegador no lo permite, sigue.
-  try {
-    pc.getSenders().forEach((sender) => {
-      if (!sender.track || sender.track.kind !== 'video') return;
-      const params = sender.getParameters();
-      if (!params.encodings || !params.encodings.length) params.encodings = [{}];
-      params.encodings[0].maxBitrate = 1500000;
-      sender.setParameters(params).catch(() => {});
-    });
-  } catch (e) { /* no crítico */ }
-}
-
-// Publica localStream a Cloudflare por WHIP (offer SDP -> answer SDP).
-async function conectarWHIP() {
-  cerrarPC();
-  const pc = new RTCPeerConnection({
-    iceServers: [{ urls: 'stun:stun.cloudflare.com:3478' }],
-    bundlePolicy: 'max-bundle'
-  });
-  pcActual = pc;
-  // Cloudflare solo acepta H264 Constrained Baseline (42e01f) en WebRTC
-  const h264 = (RTCRtpSender.getCapabilities('video')?.codecs || [])
-    .filter((c) => c.mimeType === 'video/H264' && /profile-level-id=42e01f/.test(c.sdpFmtpLine));
-  localStream.getTracks().forEach((track) => {
-    const t = pc.addTransceiver(track, { direction: 'sendonly', streams: [localStream] });
-    if (track.kind === 'video' && h264.length) t.setCodecPreferences(h264);
-  });
-  try {
-    await pc.setLocalDescription(await pc.createOffer());
-    await esperarIce(pc, 4000);
-    const res = await fetch(whipUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/sdp' },
-      body: pc.localDescription.sdp
-    });
-    if (!res.ok) throw new Error('El servidor de video respondió ' + res.status);
-    await pc.setRemoteDescription({ type: 'answer', sdp: await res.text() });
-    await esperarConexion(pc, 12000);
-  } catch (err) {
-    if (pcActual === pc) cerrarPC();
-    throw err;
-  }
-  limitarBitrate(pc);
-  vigilarPC(pc);
-}
-
-function vigilarPC(pc) {
-  pc.onconnectionstatechange = () => {
-    if (pc !== pcActual || !transmitiendo) return;
-    const st = pc.connectionState;
-    if (st === 'connected') {
-      clearTimeout(discTimer);
-      avisoVideo(null);
-    } else if (st === 'disconnected') {
-      avisoVideo('Conexión inestable… reconectando el video.');
-      clearTimeout(discTimer);
-      discTimer = setTimeout(() => {
-        if (pc === pcActual && pc.connectionState !== 'connected') reconectar();
-      }, 5000);
-    } else if (st === 'failed') {
-      reconectar();
-    }
-  };
-}
-
-// Si se cae el WiFi o los datos, vuelve a publicar a la MISMA url de
-// Cloudflare. La cámara y el respaldo siguen corriendo mientras tanto.
-async function reconectar() {
-  if (reconectando || !transmitiendo) return;
-  reconectando = true;
-  avisoVideo('Reconectando el video…');
-  for (let i = 0; i < 6 && transmitiendo; i++) {
-    try {
-      await conectarWHIP();
-      avisoVideo(null);
-      reconectando = false;
-      return;
-    } catch (e) {
-      console.error('reconectar: intento ' + (i + 1) + ' falló', e);
-      await new Promise((r) => setTimeout(r, 2000 * (i + 1)));
-    }
-  }
-  reconectando = false;
-  if (transmitiendo) avisoVideo('Se perdió la conexión del video. Toca aquí para reintentar.', reconectar);
-}
-
-async function pedirWakeLock() {
-  try {
-    if ('wakeLock' in navigator) wakeLock = await navigator.wakeLock.request('screen');
-  } catch (e) { /* no todos los navegadores lo permiten */ }
-}
-
-// Camera + credenciales + WHIP. Lanza Error con mensaje listo para mostrar.
-async function iniciarMedios() {
-  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || !window.RTCPeerConnection) {
-    throw new Error('Este navegador no permite transmitir desde ZNR. Usa Chrome en Android o un Safari actualizado en iPhone.');
-  }
-  const stream = await pedirCamara(camaraFacing); // primero la cámara: si la niegan, no se gasta nada en el servidor
-  let cred;
-  try {
-    cred = await apiFetch({ action: 'obtenerCredencialesTransmision', vendorToken: vendorSession.token, id: currentSesion.id });
-  } catch (e) {
-    stream.getTracks().forEach((t) => t.stop());
-    throw new Error('Error de conexión. Intenta de nuevo.');
-  }
-  if (!cred.ok) {
-    stream.getTracks().forEach((t) => t.stop());
-    throw new Error(cred.error || 'No se pudo preparar la transmisión.');
-  }
-  whipUrl = cred.whipUrl;
-  segmentoMs = (Number(cred.segmentoSegundos) || 30) * 1000;
-  localStream = stream;
-  try {
-    await conectarWHIP();
-  } catch (e) {
-    console.error('conectarWHIP falló:', e);
-    liberarMedios();
-    throw new Error('No se pudo conectar el video. Revisa tu internet e intenta de nuevo.');
-  }
-  transmitiendo = true;
-  pedirWakeLock();
-  return true;
-}
-
-function liberarMedios() {
-  transmitiendo = false;
-  clearTimeout(discTimer);
-  cerrarPC();
-  if (localStream) { localStream.getTracks().forEach((t) => t.stop()); localStream = null; }
-}
-
-// Cierra todo: corta el respaldo (esperando hasta 8 s a que termine de
-// subir el último segmento), la conexión a Cloudflare y la cámara.
-async function detenerTransmision() {
-  transmitiendo = false;
-  respaldoActivo = false;
-  clearTimeout(discTimer);
-  try { await withTimeout(detenerRecorderActual(), 3000); } catch (e) { /* se sigue igual */ }
-  if (subidasPendientes.size) {
-    try { await withTimeout(Promise.allSettled([...subidasPendientes]), 8000); } catch (e) { /* se sigue sin esperar más */ }
-  }
-  liberarMedios();
-  if (wakeLock) { try { await wakeLock.release(); } catch (e) { /* ya liberado */ } wakeLock = null; }
-  const v = document.getElementById('vendor-preview');
-  if (v) v.srcObject = null;
-}
-
-function cambiarTracksEnPC(nuevoStream) {
-  if (!pcActual) return;
-  pcActual.getSenders().forEach((sender) => {
-    const kind = sender.track && sender.track.kind;
-    if (!kind) return;
-    const t = nuevoStream.getTracks().find((x) => x.kind === kind);
-    if (t) sender.replaceTrack(t).catch((e) => console.error('replaceTrack falló:', e));
-  });
-}
-
-// Frontal <-> trasera sin cortar la transmisión. En muchos Android hay que
-// soltar la cámara actual antes de abrir la otra.
-async function cambiarCamara() {
-  if (!transmitiendo || !localStream || cambiandoCamara) return;
-  cambiandoCamara = true;
-  const btn = document.getElementById('btn-camara');
-  if (btn) btn.disabled = true;
-  const destino = camaraFacing === 'user' ? 'environment' : 'user';
-  await pausarRespaldo();
-  const viejoVideo = localStream.getVideoTracks()[0];
-  if (viejoVideo) viejoVideo.stop();
-  let video = null;
-  try {
-    video = await pedirVideoTrack(destino);
-    camaraFacing = destino;
-  } catch (e) {
-    try { video = await pedirVideoTrack(camaraFacing); }
-    catch (e2) { avisoVideo('No se pudo cambiar de cámara. Toca 🔄 Cámara para reintentar.'); }
-  }
-  if (video) {
-    localStream = new MediaStream([video, ...localStream.getAudioTracks()]);
-    cambiarTracksEnPC(localStream);
-    ligarPreview();
-    avisoVideo(null);
-  }
-  reanudarRespaldo();
-  cambiandoCamara = false;
-  if (btn) btn.disabled = false;
-}
-
-// Algunos celulares cortan la cámara si la pestaña pasa a segundo plano.
-// Al volver, si las pistas murieron, se vuelve a abrir.
-async function reabrirCamara() {
-  if (!transmitiendo || !localStream || cambiandoCamara) return;
-  const v = localStream.getVideoTracks()[0];
-  const a = localStream.getAudioTracks()[0];
-  if (v && v.readyState === 'live' && (!a || a.readyState === 'live')) return;
-  cambiandoCamara = true;
-  try {
-    await pausarRespaldo();
-    const nuevo = await pedirCamara(camaraFacing);
-    const viejo = localStream;
-    localStream = nuevo;
-    cambiarTracksEnPC(nuevo);
-    ligarPreview();
-    viejo.getTracks().forEach((t) => t.stop());
-    avisoVideo(null);
-  } catch (e) {
-    avisoVideo('No se pudo reactivar la cámara. Toca 🔄 Cámara para reintentar.');
-  }
-  reanudarRespaldo();
-  cambiandoCamara = false;
-}
-
-document.addEventListener('visibilitychange', () => {
-  if (document.visibilityState !== 'visible' || !transmitiendo) return;
-  pedirWakeLock();
-  reabrirCamara();
-});
-
-window.addEventListener('beforeunload', (e) => {
-  if (transmitiendo) { e.preventDefault(); e.returnValue = ''; }
-});
-
-// ── Respaldo de video para reportes ──
-// Copia de baja calidad (~500 kbps) grabada en el celular, partida en
-// segmentos de 30 s que se suben a un bucket privado con URLs firmadas.
-// Cada segmento es un archivo independiente (se reinicia el MediaRecorder
-// en cada corte), así el backend puede sacar la ventana de unos minutos
-// alrededor de un reporte. Si algo falla aquí, la transmisión sigue.
-
-let respaldoActivo = false;
-let recTimer = null;
-let recActual = null; // { rec, cerrado: Promise }
-let mimeRespaldo = null;
-let tipoRespaldo = null; // 'video/webm' | 'video/mp4'
-let ultimaSeq = -1;
-const subidasPendientes = new Set();
-
-function elegirMimeRespaldo() {
-  if (typeof MediaRecorder === 'undefined') return null;
-  const candidatos = [
-    'video/webm;codecs=vp8,opus', 'video/webm;codecs=vp9,opus', 'video/webm',
-    'video/mp4;codecs=avc1.42E01E,mp4a.40.2', 'video/mp4'
-  ];
-  for (const c of candidatos) {
-    try { if (MediaRecorder.isTypeSupported(c)) return c; } catch (e) { /* siguiente */ }
-  }
-  return null;
-}
-
-// Número de segmento = segundos desde el inicio del live, y nunca menor
-// al último que se usó (se guarda en este navegador por si la vendedora
-// recarga y reanuda: así no se pisa un segmento ya subido).
-function siguienteSeq() {
-  const clave = 'znr_live_seq_' + (currentSesion && currentSesion.id);
-  const inicio = currentSesion && currentSesion.fecha_inicio ? new Date(currentSesion.fecha_inicio).getTime() : NaN;
-  const base = Number.isFinite(inicio) ? Math.floor((Date.now() - inicio) / 1000) : 0;
-  let guardada = -1;
-  try {
-    const raw = localStorage.getItem(clave);
-    if (raw !== null && Number.isFinite(Number(raw))) guardada = Number(raw);
-  } catch (e) { /* sin storage: se usa solo el tiempo transcurrido */ }
-  ultimaSeq = Math.max(base, ultimaSeq + 1, guardada + 1, 0);
-  try { localStorage.setItem(clave, String(ultimaSeq)); } catch (e) { /* sin storage */ }
-  return ultimaSeq;
-}
-
-async function pedirUrlSubida(seq) {
-  try {
-    const resp = await apiFetch({
-      action: 'obtenerUrlSubidaSegmento',
-      vendorToken: vendorSession.token,
-      liveId: currentSesion.id,
-      seq,
-      contentType: tipoRespaldo
-    });
-    return resp.ok ? resp.uploadUrl : null;
-  } catch (e) {
-    return null;
-  }
-}
-
-function encolarSubida(seq, urlPromise, blob) {
-  if (subidasPendientes.size >= 20) {
-    console.warn('Respaldo: cola de subida llena, se descarta el segmento', seq);
-    return;
-  }
-  const p = (async () => {
-    let url = await urlPromise;
-    for (let intento = 0; intento < 4; intento++) {
-      try {
-        if (!url) url = await pedirUrlSubida(seq);
-        if (!url) throw new Error('sin URL de subida');
-        const res = await fetch(url, { method: 'PUT', headers: { 'Content-Type': tipoRespaldo }, body: blob });
-        if (res.ok) return true;
-        throw new Error('PUT ' + res.status);
-      } catch (e) {
-        url = null; // si la URL falló o caducó, se pide una nueva
-        await new Promise((r) => setTimeout(r, 1500 * (intento + 1)));
-      }
-    }
-    console.warn('Respaldo: no se pudo subir el segmento', seq);
-    return false;
-  })().finally(() => subidasPendientes.delete(p));
-  subidasPendientes.add(p);
-}
-
-function iniciarCicloSegmento() {
-  if (!respaldoActivo || !localStream || !mimeRespaldo) return;
-  const seq = siguienteSeq();
-  let rec;
-  try {
-    rec = new MediaRecorder(localStream, { mimeType: mimeRespaldo, videoBitsPerSecond: 500000, audioBitsPerSecond: 32000 });
-  } catch (e) {
-    console.error('Respaldo: no se pudo crear el MediaRecorder', e);
-    respaldoActivo = false;
-    return;
-  }
-  const chunks = [];
-  const urlPromise = pedirUrlSubida(seq); // en paralelo: la hora que anota el servidor ≈ inicio de la grabación
-  const cerrado = new Promise((resolve) => {
-    rec.ondataavailable = (e) => { if (e.data && e.data.size) chunks.push(e.data); };
-    rec.onstop = () => {
-      if (chunks.length) encolarSubida(seq, urlPromise, new Blob(chunks, { type: tipoRespaldo }));
-      resolve();
-    };
-    rec.onerror = (e) => { console.error('Respaldo: error del MediaRecorder', e); };
-  });
-  rec.start();
-  recActual = { rec, cerrado };
-  recTimer = setTimeout(() => { detenerRecorderActual(); iniciarCicloSegmento(); }, segmentoMs);
-}
-
-// Detiene el segmento en curso (dispara el encolado de su subida).
-function detenerRecorderActual() {
-  clearTimeout(recTimer);
-  recTimer = null;
-  const actual = recActual;
-  recActual = null;
-  if (!actual) return Promise.resolve();
-  try { if (actual.rec.state !== 'inactive') actual.rec.stop(); } catch (e) { /* ya estaba detenido */ }
-  return actual.cerrado;
-}
-
-function pausarRespaldo() { return detenerRecorderActual(); }
-function reanudarRespaldo() { if (respaldoActivo) iniciarCicloSegmento(); }
-
-function iniciarRespaldo() {
-  mimeRespaldo = elegirMimeRespaldo();
-  if (!mimeRespaldo) {
-    alert('Ojo: este navegador no puede guardar el respaldo de video que se usa para revisar reportes. La transmisión funciona normal.');
-    return;
-  }
-  tipoRespaldo = mimeRespaldo.indexOf('video/mp4') === 0 ? 'video/mp4' : 'video/webm';
-  respaldoActivo = true;
-  iniciarCicloSegmento();
-}
-
 // Pantalla sobre el video cuando la página se recargó (o se cerró) con el
 // live todavía "en vivo": la cámara hay que volver a abrirla.
 function mostrarPanelReanudar() {
@@ -1021,7 +573,7 @@ function mostrarPanelReanudar() {
   const btn = document.getElementById('btn-reanudar');
   if (!panel || !btn) return;
   panel.style.display = 'flex';
-  btn.addEventListener('click', async () => {
+  btn.onclick = async () => {
     btn.disabled = true;
     btn.textContent = 'Conectando…';
     try {
@@ -1034,7 +586,7 @@ function mostrarPanelReanudar() {
       btn.disabled = false;
       btn.textContent = 'Reanudar transmisión';
     }
-  });
+  };
 }
 
 // ── Estados de render ──
@@ -1396,9 +948,13 @@ async function renderLiveFull() {
         <div class="video-box" id="vendor-video-slot">
           <video id="vendor-preview" autoplay muted playsinline></video>
           <div class="vid-aviso" id="conn-aviso"></div>
-          <button type="button" class="btn-camara" id="btn-camara">🔄 Cámara</button>
+          <div class="vu" id="vu"><i id="vu-bar"></i></div>
+          <div class="vid-btns">
+            <button type="button" class="btn-camara" id="btn-otro">📱 Otro equipo</button>
+            <button type="button" class="btn-camara" id="btn-camara">🔄 Cámara</button>
+          </div>
           <div class="resume-panel" id="resume-panel">
-            <div>Tu transmisión se interrumpió (recargaste la página o se cerró). Tus compradores ya no te ven.</div>
+            <div>Tu transmisión se interrumpió (recargaste la página o se cerró la cámara). Tus compradores ya no te ven.</div>
             <button type="button" class="btn-live primary" id="btn-reanudar">Reanudar transmisión</button>
           </div>
         </div>
@@ -1444,7 +1000,8 @@ IDs cargados: ${esc(allProducts.map(p => p.id).join(', '))}</div>`
 
   document.getElementById('btn-viewers').addEventListener('click', mostrarEspectadores);
 
-  document.getElementById('btn-camara').addEventListener('click', cambiarCamara);
+  document.getElementById('btn-camara').onclick = () => (verActivo ? alternarSonido() : cambiarCamara());
+  document.getElementById('btn-otro').onclick = () => (verActivo ? volverAGrabarAqui() : enlazarDispositivo());
   if (transmitiendo && localStream) ligarPreview();
   else mostrarPanelReanudar();
 
@@ -1473,12 +1030,143 @@ IDs cargados: ${esc(allProducts.map(p => p.id).join(', '))}</div>`
   await certificarVendedorEnLive(currentSesion.id);
   setupChat(currentSesion.id, vendorSession.nombre, true);
   setupContadorEspectadores(currentSesion.id);
+  setupControl();
+}
+
+// ── 2º dispositivo que solo graba ──
+// live_control/{liveId} (RTDB) coordina los dos equipos:
+//   cam: 'pide' (el 2º quiere publicar) → 'libre' (este equipo soltó la cámara) → 'on' | 'off'
+//   pedir: 'finalizar' (lo pide el 2º) | 'soltar' (lo pide este equipo) | 'terminado'
+// Mientras el otro equipo graba, este se vuelve espectador (silencio por defecto).
+let ctrlUnsub = null, verActivo = false, verPC = null, verTimer = null, detenerVU = null, volviendo = false, finalizando = false, modalCamara = null;
+const ctrlRef = () => ref(db, `live_control/${currentSesion.id}`);
+
+function setupControl() {
+  if (ctrlUnsub) ctrlUnsub();
+  ctrlUnsub = onValue(ctrlRef(), async (snap) => {
+    const c = snap.val() || {};
+    if (c.cam === 'pide') {
+      await detenerTransmision(); // suelta cámara y Cloudflare antes de que el otro equipo publique
+      update(ctrlRef(), { cam: 'libre', ts: Date.now() }).catch(() => {});
+    } else if ((c.cam === 'libre' || c.cam === 'on') && !verActivo && !finalizando) {
+      entrarModoVer();
+    } else if (c.cam === 'off' && verActivo) {
+      salirModoVer();
+      mostrarPanelReanudar();
+      if (volviendo) { volviendo = false; document.getElementById('btn-reanudar').click(); }
+    }
+    if (c.pedir === 'finalizar' && !finalizando && Date.now() - (c.ts || 0) < 60000) {
+      update(ctrlRef(), { pedir: '' }).catch(() => {});
+      finalizarTransmision(document.getElementById('btn-finalizar'));
+    }
+  });
+}
+
+async function entrarModoVer() {
+  verActivo = true;
+  if (modalCamara) { modalCamara.remove(); modalCamara = null; }
+  const panel = document.getElementById('resume-panel');
+  if (panel) panel.style.display = 'none';
+  document.getElementById('btn-camara').textContent = '🔇 Sonido';
+  document.getElementById('btn-otro').textContent = '📱 Grabar aquí';
+  document.getElementById('vu').style.display = 'block';
+  const v = document.getElementById('vendor-preview');
+  v.style.transform = 'none';
+  v.muted = true;
+  let url;
+  try { url = (await LP.credenciales()).playbackUrl; } catch (e) { return avisoVideo('No se pudo cargar la vista del live.'); }
+  const conectar = async () => {
+    if (!verActivo) return;
+    clearTimeout(verTimer);
+    if (verPC) verPC.close();
+    const pc = verPC = new RTCPeerConnection({ iceServers: [{ urls: 'stun:stun.cloudflare.com:3478' }], bundlePolicy: 'max-bundle' });
+    pc.addTransceiver('video', { direction: 'recvonly' });
+    pc.addTransceiver('audio', { direction: 'recvonly' });
+    const entrante = new MediaStream(); // video y audio juntos en el <video> (Chrome si no, el medidor de audio queda mudo)
+    pc.ontrack = (e) => {
+      entrante.addTrack(e.track);
+      if (v.srcObject !== entrante) v.srcObject = entrante;
+      v.play().catch(() => {});
+      if (e.track.kind === 'video') avisoVideo(null);
+      else { if (detenerVU) detenerVU(); detenerVU = medidorAudio(entrante, document.getElementById('vu-bar')); }
+    };
+    pc.onconnectionstatechange = () => {
+      if (pc === verPC && ['failed', 'disconnected'].includes(pc.connectionState)) verTimer = setTimeout(conectar, 3000);
+    };
+    try {
+      await pc.setLocalDescription(await pc.createOffer());
+      await esperarIce(pc, 3000);
+      const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/sdp' }, body: pc.localDescription.sdp });
+      if (!res.ok) throw new Error('WHEP ' + res.status);
+      await pc.setRemoteDescription({ type: 'answer', sdp: await res.text() });
+    } catch (e) {
+      avisoVideo('Esperando la señal del otro dispositivo…');
+      verTimer = setTimeout(conectar, 3000);
+    }
+  };
+  avisoVideo('Conectando con el otro dispositivo…');
+  conectar();
+}
+
+function salirModoVer() {
+  verActivo = false;
+  clearTimeout(verTimer);
+  if (verPC) { verPC.close(); verPC = null; }
+  if (detenerVU) { detenerVU(); detenerVU = null; }
+  const v = document.getElementById('vendor-preview');
+  if (v) v.srcObject = null;
+  const b = (id) => document.getElementById(id);
+  if (!b('btn-camara')) return;
+  b('btn-camara').textContent = '🔄 Cámara';
+  b('btn-otro').textContent = '📱 Otro equipo';
+  b('vu').style.display = 'none';
+  avisoVideo(null);
+}
+
+function alternarSonido() {
+  const v = document.getElementById('vendor-preview');
+  v.muted = !v.muted;
+  document.getElementById('btn-camara').textContent = v.muted ? '🔇 Sonido' : '🔊 Sonido';
+}
+
+function volverAGrabarAqui() {
+  if (!confirm('El otro dispositivo dejará de grabar y este volverá a transmitir. ¿Continuar?')) return;
+  volviendo = true;
+  update(ctrlRef(), { pedir: 'soltar', ts: Date.now() }).catch(() => { volviendo = false; });
+}
+
+// Link + QR de un solo uso (10 min) para abrir camara-live.html en el otro equipo.
+async function enlazarDispositivo() {
+  const r = await apiFetch({ action: 'crearEnlaceCamara', vendorToken: vendorSession.token, id: currentSesion.id }).catch(() => null);
+  if (!r || !r.ok) return alert((r && r.error) || 'No se pudo crear el enlace. Revisa tu conexión.');
+  if (!window.qrcode) await new Promise((ok) => { const s = document.createElement('script'); s.src = 'qr.js'; s.onload = s.onerror = ok; document.head.appendChild(s); });
+  const url = `${location.origin}${location.pathname.replace('vendedor-live.html', 'camara-live.html')}?id=${currentSesion.id}#${r.token}`;
+  let qr = '';
+  if (window.qrcode) { const q = qrcode(0, 'L'); q.addData(url); q.make(); qr = q.createSvgTag({ cellSize: 4, margin: 2, scalable: true }); }
+  modalCamara = document.createElement('div');
+  modalCamara.className = 'sheet-overlay';
+  modalCamara.innerHTML = `
+    <div class="sheet-panel">
+      <h2>📱 Grabar con otro dispositivo</h2>
+      <p class="hint">Abre este link en el otro equipo (o escanea el QR). Este dispositivo pasará a ver la transmisión. El link sirve una vez y vence en 10 min.</p>
+      <div style="width:180px;margin:0 auto 10px;background:#fff;padding:4px;border-radius:8px;">${qr}</div>
+      <input type="text" id="cam-url" readonly value="${esc(url)}">
+      <button class="btn-live primary" id="cam-copy">Copiar link</button>
+      <button class="cerrar" id="cam-cerrar">Cerrar</button>
+    </div>`;
+  document.body.appendChild(modalCamara);
+  const cerrar = () => { if (modalCamara) { modalCamara.remove(); modalCamara = null; } };
+  document.getElementById('cam-cerrar').onclick = cerrar;
+  document.getElementById('cam-copy').onclick = (e) => { navigator.clipboard.writeText(url).catch(() => {}); e.target.textContent = '¡Copiado!'; };
+  modalCamara.onclick = (e) => { if (e.target === modalCamara) cerrar(); };
 }
 
 // ── Cierre de transmisión: registra ventas, genera la página de
 // entregas (100% local, sin backend) y guarda un historial liviano
 // en este navegador para poder volver a abrirla después. ──
 async function finalizarTransmision(finBtn) {
+  finalizando = true;
+  salirModoVer();
   if (finBtn) { finBtn.disabled = true; finBtn.textContent = 'Finalizando…'; }
   await detenerTransmision(); // corta cámara y Cloudflare, y sube el último segmento del respaldo
   try { localStorage.removeItem('znr_live_seq_' + currentSesion.id); } catch (e) { /* sin storage */ }
@@ -1562,6 +1250,7 @@ async function finalizarTransmision(finBtn) {
     alert('Ojo: no se pudo confirmar el cierre con el servidor (revisa tu conexión). Si al recargar la página sigue apareciendo como "en vivo", entra de nuevo y dale Finalizar otra vez.');
   }
 
+  update(ctrlRef(), { pedir: 'terminado', ts: Date.now() }).catch(() => {}); // el 2º dispositivo se apaga solo
   if (chatUnsub) chatUnsub();
   if (presenceUnsub) { presenceUnsub(); presenceUnsub = null; }
   renderEnded(entregaUrl);

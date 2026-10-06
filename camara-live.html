@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="Content-Security-Policy" content="
+ default-src 'self';
+ script-src 'self' 'unsafe-inline' https://www.gstatic.com https://apis.google.com https://*.firebaseio.com;
+ style-src 'self' 'unsafe-inline';
+ img-src 'self' data: blob: https://lh3.googleusercontent.com https://drive.google.com https://placehold.co https://via.placeholder.com https://*.fbcdn.net https://firebasestorage.googleapis.com https://*.firebasestorage.app https://storage.googleapis.com ;
+ connect-src 'self' https://script.google.com https://catalogo-api-1038143238323.us-central1.run.app https://script.googleusercontent.com https://ventas-api-1038143238323.us-central1.run.app https://wttr.in https://www.gstatic.com https://apis.google.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firebaseinstallations.googleapis.com https://fcmregistrations.googleapis.com  https://registrar-token-fcm-1038143238323.us-central1.run.app https://ventas-api-1038143238323.us-central1.run.app https://auth-api-1038143238323.us-central1.run.app https://vendedores-api-1038143238323.us-central1.run.app https://live-api-1038143238323.us-central1.run.app https://firebase.googleapis.com https://znr-live-default-rtdb.firebaseio.com wss://znr-live-default-rtdb.firebaseio.com https://*.firebaseio.com wss://*.firebaseio.com https://nominatim.openstreetmap.org https://*.cloudflarestream.com https://storage.googleapis.com https://admin-api-1038143238323.us-central1.run.app https://tienda-znr-api-1038143238323.us-central1.run.app ;
+ font-src 'self';
+ media-src 'self' blob:;
+ frame-src https://apis.google.com https://*.firebaseio.com;
+ frame-ancestors 'none';
+ object-src 'none';
+ base-uri 'self';
+ worker-src 'self' blob:;
+ child-src 'self' blob:;
+">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Cámara — Z&R Live</title>
+<style>
+  body { margin: 0; background: #111; color: #fff; font-family: system-ui, sans-serif; }
+  #app { max-width: 640px; margin: 0 auto; padding: 12px; }
+  .top { display: flex; justify-content: space-between; gap: 8px; font-size: 14px; margin-bottom: 8px; }
+  .video-box { position: relative; width: 100%; aspect-ratio: 16/9; max-height: 70vh; margin: 0 auto; background: #000; border-radius: 12px; overflow: hidden; }
+  .video-box video { width: 100%; height: 100%; object-fit: contain; display: block; }
+  .vid-aviso { display: none; position: absolute; left: 8px; right: 8px; top: 8px; z-index: 2; background: rgba(0,0,0,.72); font-size: 12px; padding: 6px 10px; border-radius: 8px; text-align: center; }
+  .vu { display: none; position: absolute; left: 0; right: 0; bottom: 0; height: 5px; background: rgba(255,255,255,.15); }
+  .vu i { display: block; height: 100%; width: 0; background: #4ade80; transition: width .12s; }
+  #msg { min-height: 18px; margin: 10px 0; font-size: 13px; text-align: center; color: #ccc; }
+  button { width: 100%; margin-bottom: 8px; padding: 13px; border: 0; border-radius: 10px; font-size: 15px; font-weight: 700; background: #2a2d34; color: #fff; }
+  button.main { background: #e11d48; }
+  button:disabled { opacity: .5; }
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="top"><strong id="titulo">Cámara del live</strong><span id="estado"></span></div>
+  <div class="video-box" id="box">
+    <video id="vendor-preview" autoplay muted playsinline></video>
+    <div class="vid-aviso" id="conn-aviso"></div>
+    <div class="vu" id="vu"><i id="vu-bar"></i></div>
+  </div>
+  <div id="msg">Este dispositivo solo graba: el chat y los productos siguen en el principal.</div>
+  <button class="main" id="btn-go">Empezar a grabar</button>
+  <button id="btn-cam" hidden>🔄 Cambiar cámara</button>
+  <button id="btn-dejar" hidden>Dejar de grabar</button>
+  <button id="btn-fin" hidden>Finalizar transmisión</button>
+</div>
+<script src="live-publisher.js"></script>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-app.js";
+import { getDatabase, ref, onValue, update, set, onDisconnect } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-database.js";
+import { initializeAuth, getAuth, indexedDBLocalPersistence, browserLocalPersistence, browserSessionPersistence, signInAnonymously } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-auth.js";
+
+const fbApp = initializeApp({
+  apiKey: "AIzaSyAaOe_lxLdQtTFCtw2BDR8KZRSafEMkkes", authDomain: "znr-live.firebaseapp.com",
+  databaseURL: "https://znr-live-default-rtdb.firebaseio.com", projectId: "znr-live",
+  storageBucket: "znr-live.firebasestorage.app", messagingSenderId: "1038143238323",
+  appId: "1:1038143238323:web:5171b9dd8823628086c0c6"
+});
+const db = getDatabase(fbApp);
+let auth;
+try { auth = initializeAuth(fbApp, { persistence: [indexedDBLocalPersistence, browserLocalPersistence, browserSessionPersistence] }); }
+catch (e) { auth = getAuth(fbApp); }
+const authReady = new Promise((ok) => auth.onAuthStateChanged((u) => u && ok(u.uid)));
+signInAnonymously(auth).catch((e) => console.error('signInAnonymously falló:', e));
+
+const LIVE_API = "https://live-api-1038143238323.us-central1.run.app";
+const api = async (data) => JSON.parse(await (await fetch(LIVE_API, { method: 'POST', body: new URLSearchParams(data) })).text());
+const $ = (id) => document.getElementById(id);
+const msg = (t) => { $('msg').textContent = t; };
+const liveId = new URLSearchParams(location.search).get('id');
+const token = location.hash.slice(1);
+history.replaceState(null, '', location.pathname + location.search); // el token no se queda en la barra
+const KEY = 'znr_camara_' + liveId;
+let ses = null, detenerVU = null, finTimer = null, escuchando = false;
+try { ses = JSON.parse(sessionStorage.getItem(KEY) || 'null'); } catch (e) { /* sin storage */ }
+const ctrl = ref(db, `live_control/${liveId}`);
+const botones = (grabando) => {
+  $('btn-go').hidden = grabando;
+  ['btn-cam', 'btn-dejar', 'btn-fin'].forEach((id) => { $(id).hidden = !grabando; });
+  $('vu').style.display = grabando ? 'block' : 'none';
+};
+
+// Le pide al principal que suelte la cámara antes de publicar (Cloudflare acepta un solo publicador).
+// Si no responde en 8 s se sigue: significa que nadie está publicando.
+async function pedirCamaraLibre() {
+  await set(ctrl, { cam: 'pide', pedir: '', ts: Date.now() });
+  await new Promise((ok) => {
+    const t = setTimeout(() => { off(); ok(); }, 8000);
+    const off = onValue(ctrl, (s) => { if ((s.val() || {}).cam === 'libre') { clearTimeout(t); off(); ok(); } });
+  });
+}
+
+window.LP = {
+  sesion: () => ({ id: liveId, orientacion: ses && ses.orientacion, fecha_inicio: ses && ses.fecha_inicio }),
+  credenciales: async () => { await pedirCamaraLibre(); return { whipUrl: ses.whipUrl, segundos: ses.segmentoSegundos }; },
+  urlSubida: async (seq, tipo) => {
+    const r = await api({ action: 'obtenerUrlSubidaSegmento', camaraKey: ses.camaraKey, liveId, seq, contentType: tipo });
+    return r.ok ? r.uploadUrl : null;
+  }
+};
+
+async function apagar(texto) {
+  await detenerTransmision();
+  if (detenerVU) { detenerVU(); detenerVU = null; }
+  botones(false);
+  msg(texto);
+}
+
+async function soltar() {
+  await apagar('Dejaste de grabar. El dispositivo principal puede volver a transmitir.');
+  update(ctrl, { cam: 'off', pedir: '' }).catch(() => {});
+  onDisconnect(ref(db, `live_control/${liveId}/cam`)).cancel().catch(() => {});
+  $('btn-go').textContent = 'Volver a grabar aquí';
+  $('btn-go').hidden = false;
+}
+
+function escucharControl() {
+  if (escuchando) return;
+  escuchando = true;
+  onValue(ctrl, (s) => {
+    const c = s.val() || {};
+    if (c.pedir === 'soltar' && transmitiendo) soltar();
+    if (c.pedir === 'terminado') { clearTimeout(finTimer); try { sessionStorage.removeItem(KEY); } catch (e) { /* ok */ } apagar('La transmisión terminó. Ya puedes cerrar esta página.'); }
+  });
+}
+
+$('btn-go').onclick = async () => {
+  $('btn-go').disabled = true;
+  try {
+    if (!liveId) throw new Error('Link incompleto. Genera uno nuevo desde el dispositivo principal.');
+    const uid = await authReady;
+    if (token) {
+      const r = await api({ action: 'unirCamara', id: liveId, token, uid });
+      if (r.ok) { ses = r; try { sessionStorage.setItem(KEY, JSON.stringify(r)); } catch (e) { /* ok */ } }
+      else if (!ses) throw new Error(r.error);
+    }
+    if (!ses) throw new Error('El link no es válido o ya venció. Genera uno nuevo desde el dispositivo principal.');
+    $('titulo').textContent = ses.titulo || 'Cámara del live';
+    $('box').style.aspectRatio = ses.orientacion === 'vertical' ? '9/16' : '16/9';
+    msg('Conectando…');
+    await iniciarMedios();
+    ligarPreview();
+    iniciarRespaldo();
+    detenerVU = medidorAudio(localStream, $('vu-bar'));
+    update(ctrl, { cam: 'on', ts: Date.now() });
+    onDisconnect(ref(db, `live_control/${liveId}/cam`)).set('off'); // si se cierra la página, el principal lo sabe
+    escucharControl();
+    botones(true);
+    msg('Grabando. Si la barra de audio se pone roja, el micrófono dejó de captar sonido.');
+  } catch (e) {
+    update(ctrl, { cam: 'off' }).catch(() => {}); // por si el principal ya había soltado su cámara
+    msg(e.message || 'No se pudo iniciar.');
+  }
+  $('btn-go').disabled = false;
+};
+
+$('btn-cam').onclick = cambiarCamara;
+$('btn-dejar').onclick = () => { if (confirm('¿Dejar de grabar? El dispositivo principal tendrá que volver a transmitir.')) soltar(); };
+$('btn-fin').onclick = async () => {
+  if (!confirm('¿Finalizar la transmisión para todos?')) return;
+  msg('Pidiendo al dispositivo principal que finalice…');
+  await update(ctrl, { pedir: 'finalizar', ts: Date.now() }).catch(() => {});
+  clearTimeout(finTimer);
+  finTimer = setTimeout(() => msg('El dispositivo principal no respondió. Revisa que siga abierto y con internet, e inténtalo de nuevo.'), 20000);
+};
+
+if (!liveId) msg('Link incompleto. Genera uno nuevo desde el dispositivo principal.');
+else if (!token && !ses) msg('Escanea el QR o abre el link desde el dispositivo principal.');
+else if (!token && ses) $('btn-go').textContent = 'Reanudar grabación';
+</script>
+</body>
+</html>
