@@ -31,6 +31,18 @@
 <style>
   .entregas-wrap { max-width: 640px; margin: 0 auto; padding: 16px; padding-bottom: 80px; }
 
+  /* Barra de progreso global */
+  .progress-bar {
+    height: 6px; border-radius: 3px;
+    background: var(--color-surface-2); overflow: hidden;
+    margin-bottom: 12px;
+  }
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #4ade80, #22c55e);
+    transition: width .4s ease;
+  }
+
   .resumen-bar { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 12px; }
   .resumen-chip {
     text-align: center; padding: 8px 4px;
@@ -70,7 +82,7 @@
     display: flex; align-items: center; gap: 10px; padding: 12px 14px; cursor: pointer;
   }
   .card-header .ch-info { flex: 1; min-width: 0; }
-  .card-header h2 { margin: 0; font-size: 14.5px; color: var(--color-text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .card-header h2 { margin: 0; font-size: 15px; letter-spacing: -.01em; color: var(--color-text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .card-header .ch-total { font-size: 12px; color: var(--color-text-soft); }
   .card-header .chevron { color: var(--color-text-soft); transition: transform .2s ease; flex-shrink: 0; }
   .entrega-card.expanded .chevron { transform: rotate(180deg); }
@@ -79,17 +91,27 @@
 
   .entrega-card .tel-link { font-size: 13px; color: var(--color-accent); text-decoration: none; }
 
+  /* Pastilla de estado con dot + pulso para en-ruta/cerca */
   .estado-pill {
+    display: inline-flex; align-items: center; gap: 6px;
     font-size: 9.5px; font-weight: 700; letter-spacing: .02em;
     padding: 4px 9px; border-radius: var(--radius-pill); white-space: nowrap; flex-shrink: 0;
+  }
+  .estado-pill::before {
+    content: ''; width: 6px; height: 6px; border-radius: 50%;
+    background: currentColor;
+    box-shadow: 0 0 0 3px color-mix(in srgb, currentColor 25%, transparent);
   }
   .estado-pill.pendiente { background: rgba(251,191,36,.15); color: #fbbf24; }
   .estado-pill.preparando { background: rgba(251,146,60,.15); color: #fb923c; }
   .estado-pill.en-ruta { background: rgba(96,165,250,.15); color: #60a5fa; }
   .estado-pill.cerca { background: rgba(192,132,252,.15); color: #c084fc; }
   .estado-pill.entregado { background: rgba(74,222,128,.15); color: #4ade80; }
+  .estado-pill.cerca::before,
+  .estado-pill.en-ruta::before { animation: pillPulse 1.6s ease-in-out infinite; }
+  @keyframes pillPulse { 50% { opacity: .35; } }
 
-  .entrega-detail { font-size: 13px; color: var(--color-text-soft); margin: 2px 0; line-height: 1.4; }
+  .entrega-detail { font-size: 13px; color: var(--color-text-soft); margin: 2px 0; line-height: 1.55; }
   .entrega-detail b { color: var(--color-text-primary); font-weight: 600; }
 
   .items-list { margin: 10px 0; padding: 10px 12px; background: var(--color-surface-2); border-radius: var(--radius-md); }
@@ -132,30 +154,86 @@
   .entrega-card.dragging { opacity: .4; }
   .orden-num {
     display: inline-flex; align-items: center; justify-content: center;
-    width: 20px; height: 20px; border-radius: 50%; background: var(--color-surface-2);
-    color: var(--color-text-soft); font-size: 10.5px; font-weight: 700; flex-shrink: 0;
+    width: 26px; height: 26px; border-radius: 50%;
+    background: var(--color-accent-solid, #ec4899);
+    color: #fff; font-size: 12px; font-weight: 800; flex-shrink: 0;
   }
 
+  /* ============================================================
+     MODAL DE RUTA — PANTALLA COMPLETA + BOTTOM SHEET
+     ============================================================ */
   .route-modal-overlay {
-    position: fixed; inset: 0; background: rgba(0,0,0,.6); z-index: 200;
-    display: flex; align-items: flex-end; justify-content: center;
+    position: fixed; inset: 0; background: #000; z-index: 200;
+    display: flex; align-items: stretch; justify-content: center;
   }
   .route-modal {
-    background: var(--color-surface); width: 100%; max-width: 640px;
-    border-radius: 18px 18px 0 0; max-height: 92vh; display: flex; flex-direction: column;
-    overflow: hidden;
+    position: relative;
+    width: 100%; max-width: 640px;
+    background: var(--color-surface); overflow: hidden;
   }
+  #route-map { position: absolute; inset: 0; z-index: 0; }
+
   .route-modal-header {
+    position: absolute; top: 12px; left: 12px; right: 12px; z-index: 500;
     display: flex; justify-content: space-between; align-items: center;
-    padding: 14px 16px; border-bottom: 1px solid var(--color-border-subtle);
+    padding: 10px 14px; margin: 0;
+    background: color-mix(in srgb, var(--color-surface) 86%, transparent);
+    backdrop-filter: blur(14px) saturate(1.6);
+    -webkit-backdrop-filter: blur(14px) saturate(1.6);
+    border: 1px solid var(--color-border-subtle);
+    border-radius: 14px;
+    box-shadow: 0 6px 20px rgba(0,0,0,.22);
   }
-  .route-modal-header h3 { margin: 0; font-size: 15px; color: var(--color-text-primary); }
-  .route-note { margin: 0; padding: 8px 16px; font-size: 12px; color: #fbbf24; background: rgba(251,191,36,.1); }
-  .route-note-info { color: var(--color-text-soft); background: transparent; padding-top: 0; }
-  .route-modal-close { background: none; border: none; color: var(--color-text-soft); font-size: 20px; cursor: pointer; }
-  #route-map { width: 100%; height: 45vh; }
-  .route-list { overflow-y: auto; padding: 10px 16px 20px; }
-  .route-list-item { display: flex; gap: 10px; align-items: flex-start; padding: 8px 0; border-bottom: 1px solid var(--color-border-subtle); }
+  .route-modal-header h3 {
+    margin: 0; font-size: 14.5px; color: var(--color-text-primary);
+    display: flex; align-items: center; gap: 6px;
+  }
+  .route-modal-close {
+    background: none; border: none; color: var(--color-text-soft);
+    font-size: 22px; line-height: 1; cursor: pointer; padding: 0 4px;
+  }
+
+  .route-note {
+    position: absolute; left: 12px; right: 12px; z-index: 500;
+    margin: 0; padding: 8px 14px; font-size: 12px;
+    background: color-mix(in srgb, var(--color-surface) 86%, transparent);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border-radius: 10px;
+    box-shadow: 0 4px 14px rgba(0,0,0,.15);
+  }
+  .route-note-info { top: 68px; color: var(--color-text-soft); }
+  #route-note { top: 108px; color: #fbbf24; background: rgba(251,191,36,.85); }
+
+  /* Bottom sheet de paradas */
+  .route-list-sheet {
+    position: absolute; left: 0; right: 0; bottom: 0; z-index: 500;
+    background: var(--color-surface);
+    border-radius: 18px 18px 0 0;
+    box-shadow: 0 -10px 30px rgba(0,0,0,.25);
+    max-height: 55vh;
+    display: flex; flex-direction: column;
+    transition: max-height .3s cubic-bezier(.2,.7,.3,1);
+    padding-bottom: env(safe-area-inset-bottom, 0);
+  }
+  .route-list-sheet.collapsed { max-height: 58px; }
+  .sheet-handle {
+    padding: 12px 0 8px; text-align: center; cursor: pointer;
+    flex-shrink: 0; user-select: none; touch-action: manipulation;
+  }
+  .sheet-handle::before {
+    content: ''; display: inline-block; width: 42px; height: 4px;
+    border-radius: 2px;
+    background: var(--color-text-soft); opacity: .45;
+  }
+  .sheet-title {
+    font-size: 12px; font-weight: 600; color: var(--color-text-soft);
+    text-align: center; padding: 0 16px 8px;
+    text-transform: uppercase; letter-spacing: .04em;
+  }
+  .route-list-sheet.collapsed .sheet-title { padding-bottom: 4px; }
+  .route-list { overflow-y: auto; padding: 0 16px 20px; }
+  .route-list-item { display: flex; gap: 10px; align-items: flex-start; padding: 10px 0; border-bottom: 1px solid var(--color-border-subtle); }
   .route-list-item:last-child { border-bottom: none; }
   .route-list-item .rli-num {
     width: 22px; height: 22px; border-radius: 50%; background: var(--color-accent-solid, #ec4899);
@@ -163,6 +241,11 @@
   }
   .route-list-item .rli-nombre { font-size: 13.5px; color: var(--color-text-primary); font-weight: 600; }
   .route-list-item .rli-dir { font-size: 12px; color: var(--color-text-soft); }
+
+  /* Ajuste fino de controles Leaflet para que no choquen con el header */
+  .route-modal .leaflet-top.leaflet-left { top: 70px; }
+  .route-modal .leaflet-top.leaflet-right { top: 70px; }
+  .route-modal .leaflet-bottom.leaflet-right { bottom: 62px; }
 
   .center-card { max-width: 480px; margin: 60px auto; padding: 0 20px; text-align: center; }
   .center-card .icon { font-size: 44px; margin-bottom: 12px; }
@@ -196,17 +279,15 @@
 <main class="entregas-wrap" id="entregas-wrap"><div class="loading-spinner"></div></main>
 
 
-
 <script src="znr-devconsole.js"></script>
 
 
- 
 <script>
 (function() {
   'use strict';
 
   async function apiFetch(data, method = 'GET') {
-    const API_BASE = "https://live-api-1038143238323.us-central1.run.app"; // TODO: pegar la URL real tras el deploy
+    const API_BASE = "https://live-api-1038143238323.us-central1.run.app";
     const params = new URLSearchParams();
     Object.entries(data || {}).forEach(([k, v]) => {
       if (v !== undefined && v !== null) params.append(k, v);
@@ -246,12 +327,9 @@
         <h2>No pudimos cargar esta entrega</h2>
         <p>${esc(msg || 'Pide al vendedor que te comparta el link de nuevo.')}</p>
       </div>`;
-}
+  }
 
   function mapsUrl(g) {
-    // Navegación real turn-by-turn (respeta calles de sentido contrario,
-    // tráfico en vivo, etc.) — no la línea recta/OSRM del mapa en pantalla,
-    // que es solo referencia visual del recorrido, nunca para guiar al manejar.
     if (typeof g.lat === 'number' && typeof g.lng === 'number') {
       return `https://www.google.com/maps/dir/?api=1&destination=${g.lat},${g.lng}&travelmode=driving`;
     }
@@ -266,8 +344,10 @@
     const entregados = entrega.grupos.filter(g => g.estado === 'entregado').length;
     const enRuta = entrega.grupos.filter(g => g.estado === 'en-ruta' || g.estado === 'cerca').length;
     const pendientes = total - entregados - enRuta;
+    const pct = total ? (entregados / total) * 100 : 0;
     return `
       <button class="btn-refrescar" id="btn-refrescar"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" aria-hidden="true"><use href="#ic-refresh"/></svg> Actualizar</button>
+      <div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>
       <div class="resumen-bar">
         <div class="resumen-chip"><span class="num">${total}</span><span class="lbl">Total</span></div>
         <div class="resumen-chip ruta"><span class="num">${enRuta}</span><span class="lbl">En ruta</span></div>
@@ -283,24 +363,24 @@
   const ESTADOS_CONOCIDOS = ['pendiente', 'preparando', 'en-ruta', 'cerca', 'entregado'];
 
   function ESTADO_LABEL(estado) {
-  return {
-    pendiente: [Icon('clock'), 'PENDIENTE'],
-    preparando: [Icon('box'), 'PREPARANDO'],
-    'en-ruta': [Icon('map-pin'), 'EN RUTA'],
-    cerca: [Icon('map-pin'), 'CERCA'],
-    entregado: [Icon('check'), 'ENTREGADO'],
-  }[estado];
-}
+    return {
+      pendiente: [Icon('clock'), 'PENDIENTE'],
+      preparando: [Icon('box'), 'PREPARANDO'],
+      'en-ruta': [Icon('map-pin'), 'EN RUTA'],
+      cerca: [Icon('map-pin'), 'CERCA'],
+      entregado: [Icon('check'), 'ENTREGADO'],
+    }[estado];
+  }
 
   function renderGrupo(g, idx) {
-  const estado = ESTADOS_CONOCIDOS.includes(g.estado) ? g.estado : 'pendiente';
-  const url = mapsUrl(g);
-  const compartiendo = !!watchers[g.compradorKey];
-  const puedeEditar = estado !== 'entregado';
-  const enCamino = estado === 'en-ruta' || estado === 'cerca';
-  const [ico, label] = ESTADO_LABEL(estado);
-  const abierta = expandedKeys.has(g.compradorKey);
-  return `
+    const estado = ESTADOS_CONOCIDOS.includes(g.estado) ? g.estado : 'pendiente';
+    const url = mapsUrl(g);
+    const compartiendo = !!watchers[g.compradorKey];
+    const puedeEditar = estado !== 'entregado';
+    const enCamino = estado === 'en-ruta' || estado === 'cerca';
+    const [ico, label] = ESTADO_LABEL(estado);
+    const abierta = expandedKeys.has(g.compradorKey);
+    return `
     <div class="entrega-card ${estado === 'entregado' ? 'is-entregado' : ''} ${abierta ? 'expanded' : ''}" data-key="${esc(g.compradorKey)}" draggable="${estado === 'entregado' ? 'false' : 'true'}">
       <div class="card-header" data-action="toggle-card">
         ${estado !== 'entregado' ? `<span class="drag-handle" title="Arrastra para reordenar">⠿</span>` : `<span class="orden-num">${idx + 1}</span>`}
@@ -342,7 +422,7 @@
         </div>
       </div>
     </div>`;
-}
+  }
 
   function gruposOrdenados() {
     return entrega.grupos.slice().sort((a, b) => (a.orden ?? 999) - (b.orden ?? 999));
@@ -477,10 +557,7 @@
     );
   }
 
-  // --- Modal de ruta completa (Leaflet + ruta real por calles vía OSRM) ---
-  // OSRM demo público, sin API key: se manda en tramos de 25 paradas (con
-  // solape de 1 punto entre tramos) para no romper si algún día hay una
-  // ruta muy larga. Si falla o no hay servicio, se cae a línea recta.
+  // --- Modal de ruta completa (pantalla completa + bottom-sheet + OSRM) ---
   async function trazarRutaCalles(latlngs) {
     if (latlngs.length < 2) return null;
     const CHUNK = 25;
@@ -496,7 +573,7 @@
       }));
       return tramos.reduce((acc, tramo, i) => i === 0 ? tramo : acc.concat(tramo.slice(1)), []);
     } catch (err) {
-      return null; // sin ruta por calles disponible ahora, quien llama cae a línea recta
+      return null;
     }
   }
 
@@ -506,27 +583,31 @@
     overlay.className = 'route-modal-overlay';
     overlay.innerHTML = `
       <div class="route-modal">
-        <div class="route-modal-header">
-          <h3>${Icon('map-pin')} Ruta completa (${puntos.length} paradas)</h3>
-          <button class="route-modal-close" id="route-modal-close">&times;</button>
-        </div>
-        <p class="route-note route-note-info">Tu punto morado se va acercando solo, la ruta se recalcula cada 15s.</p>
-        <p class="route-note" id="route-note" style="display:none;"></p>
         <div id="route-map"></div>
-        <div class="route-list">
-          ${puntos.length ? puntos.map((g, i) => `
-            <div class="route-list-item">
-              <span class="rli-num">${i + 1}</span>
-              <div><div class="rli-nombre">${esc(g.compradorNombre)}</div><div class="rli-dir">${esc(g.compradorDireccion || 'Sin dirección')}</div></div>
-            </div>`).join('') : '<p style="color:var(--color-text-soft); text-align:center; padding:20px;">Ninguna entrega pendiente tiene ubicación guardada todavía.</p>'}
+        <div class="route-modal-header">
+          <h3>${Icon('map-pin')} Ruta (${puntos.length} parada${puntos.length === 1 ? '' : 's'})</h3>
+          <button class="route-modal-close" id="route-modal-close" aria-label="Cerrar">&times;</button>
+        </div>
+        <p class="route-note route-note-info">Tu punto morado se mueve solo · recalcula cada 15s</p>
+        <p class="route-note" id="route-note" style="display:none;"></p>
+        <div class="route-list-sheet" id="route-sheet">
+          <div class="sheet-handle" id="sheet-handle" role="button" aria-label="Mostrar u ocultar paradas"></div>
+          <div class="sheet-title">${puntos.length} parada${puntos.length === 1 ? '' : 's'} · toca para ${'expandir'}</div>
+          <div class="route-list">
+            ${puntos.length ? puntos.map((g, i) => `
+              <div class="route-list-item">
+                <span class="rli-num">${i + 1}</span>
+                <div><div class="rli-nombre">${esc(g.compradorNombre)}</div><div class="rli-dir">${esc(g.compradorDireccion || 'Sin dirección')}</div></div>
+              </div>`).join('') : '<p style="color:var(--color-text-soft); text-align:center; padding:20px;">Ninguna entrega pendiente tiene ubicación guardada todavía.</p>'}
+          </div>
         </div>
       </div>`;
     document.body.appendChild(overlay);
 
     let map = null, repMarker = null, line = null, watchId = null;
     let ultimoCalculo = 0;
-    let fitAutoPendiente = true; // se apaga en cuanto tenemos tu posición GPS real una vez
-    let followMode = true; // true = el mapa te sigue solo; se apaga si arrastras el mapa a mano
+    let fitAutoPendiente = true;
+    let followMode = true;
     const REFRESH_MS = 15000;
 
     function cerrar() {
@@ -537,26 +618,42 @@
     document.getElementById('route-modal-close').addEventListener('click', cerrar);
     overlay.addEventListener('click', e => { if (e.target === overlay) cerrar(); });
 
+    // Toggle del bottom-sheet
+    const sheet = document.getElementById('route-sheet');
+    const sheetTitle = sheet.querySelector('.sheet-title');
+    document.getElementById('sheet-handle').addEventListener('click', () => {
+      sheet.classList.toggle('collapsed');
+      const colapsado = sheet.classList.contains('collapsed');
+      sheetTitle.textContent = `${puntos.length} parada${puntos.length === 1 ? '' : 's'} · toca para ${colapsado ? 'expandir' : 'ocultar'}`;
+    });
+
     if (!puntos.length || typeof L === 'undefined') return;
+
+    function calcularPadding() {
+      // Padding asimétrico: deja libre arriba el header+nota y abajo el sheet
+      const h = window.innerHeight;
+      const sheetH = sheet.classList.contains('collapsed') ? 70 : Math.min(h * 0.55, 380);
+      return {
+        paddingTopLeft: [30, 100],
+        paddingBottomRight: [30, sheetH + 20]
+      };
+    }
 
     function recalcular(repLatLng) {
       const paradas = puntos.map(g => [g.lat, g.lng]);
       const todos = repLatLng ? [repLatLng, ...paradas] : paradas;
       trazarRutaCalles(todos).then(ruta => {
-        if (!map) return; // el modal ya se cerró mientras esperábamos la respuesta
+        if (!map) return;
         line.setLatLngs(ruta || todos);
         line.setStyle({ dashArray: ruta ? null : '6 6' });
         if (fitAutoPendiente) {
-          map.fitBounds(ruta || todos, { padding: [30, 30] });
-          // Una vez que ya centramos con tu GPS real (no solo con las paradas),
-          // dejamos de mover la vista sola en cada recálculo de 15s — así
-          // puedes acercarte a una calle y que se quede ahí.
+          map.fitBounds(ruta || todos, calcularPadding());
           if (repLatLng) fitAutoPendiente = false;
         }
         const note = document.getElementById('route-note');
         if (note) {
           note.style.display = ruta ? 'none' : 'block';
-          note.textContent = 'No se pudo calcular la ruta por calles ahora mismo — se muestra la línea directa entre paradas.';
+          note.textContent = 'No se pudo calcular la ruta por calles — se muestra la línea directa.';
         }
       });
     }
@@ -578,7 +675,7 @@
           btn.onclick = () => {
             followMode = true;
             if (repMarker) map.panTo(repMarker.getLatLng());
-            else if (line) map.fitBounds(line.getBounds(), { padding: [30, 30] });
+            else if (line) map.fitBounds(line.getBounds(), calcularPadding());
           };
           return btn;
         },
@@ -588,17 +685,22 @@
     }
 
     setTimeout(() => {
-      map = L.map('route-map');
+      map = L.map('route-map', { zoomControl: false });
+      L.control.zoom({ position: 'topleft' }).addTo(map);
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; OpenStreetMap', maxZoom: 19 }).addTo(map);
+
       const latlngs = puntos.map(g => [g.lat, g.lng]);
       latlngs.forEach((ll, i) => L.marker(ll).addTo(map).bindPopup(`${i + 1}. ${puntos[i].compradorNombre}`));
       line = L.polyline(latlngs, { color: '#ec4899', weight: 3, dashArray: '6 6' }).addTo(map);
-      map.fitBounds(latlngs, { padding: [30, 30] });
+
+      // Importante: invalidateSize antes del primer fitBounds — el contenedor
+      // acaba de pasar de "modal pequeño" a pantalla completa y Leaflet
+      // puede tener medidas cacheadas del momento en que se creó.
+      map.invalidateSize();
+      map.fitBounds(latlngs, calcularPadding());
       mostrarBotonRecentrar();
-      // Si el usuario arrastra el mapa a mano, soltamos el seguimiento
-      // automático hasta que vuelva a pulsar el botón "◎".
       map.on('dragstart', () => { followMode = false; });
-      recalcular(null); // primer trazo, todavía sin GPS propio
+      recalcular(null);
 
       if (!navigator.geolocation) return;
       const repIcon = L.divIcon({
@@ -611,9 +713,6 @@
         if (!repMarker) repMarker = L.marker(repLatLng, { icon: repIcon }).addTo(map).bindPopup('Tú');
         else {
           repMarker.setLatLng(repLatLng);
-          // Modo "seguir": el mapa se recentra en tu posición sin tocar el
-          // zoom, pero solo mientras followMode siga activo (se apaga si
-          // arrastras el mapa a mano; se reactiva con el botón "◎").
           if (followMode) map.panTo(repLatLng, { animate: true, duration: 0.5 });
         }
         const ahora = Date.now();
@@ -642,11 +741,6 @@
     }
   }
 
-  // Botón unificado "Iniciar ruta / compartir ubicación": pone el
-  // pedido en en-ruta, avisa al cliente (push + WhatsApp con el link
-  // de seguimiento) y empieza a mandar la ubicación del repartidor
-  // cada 5s. Volver a darle click detiene todo y regresa a pendiente
-  // (si no se marcó como entregado mientras tanto).
   async function toggleRuta(key, btn) {
     if (watchers[key]) {
       navigator.geolocation.clearWatch(watchers[key]);
@@ -666,7 +760,7 @@
     watchers[key] = navigator.geolocation.watchPosition(
       (pos) => {
         const ahora = Date.now();
-        if (ahora - ultimoEnvio < 5000) return; // manda al servidor como máximo cada 5s
+        if (ahora - ultimoEnvio < 5000) return;
         ultimoEnvio = ahora;
         apiFetch({
           action: 'actualizarUbicacionRepartidor',
@@ -715,9 +809,7 @@
     }
   }
 
-  // --- Modo offline: cache del último listado + cola de cambios pendientes en localStorage.
-  // La cola dedupea por "compradorKey:tipo" (estado/ubicación) así solo se guarda y
-  // manda el último valor de cada uno, no un historial de cada click o cada GPS.
+  // --- Modo offline: cache del último listado + cola de cambios pendientes ---
   const cacheKey = () => 'zr_entregas_cache_' + liveId;
   const queueKey = () => 'zr_entregas_queue_' + liveId;
   const loadQueue = () => { try { return JSON.parse(localStorage.getItem(queueKey())) || []; } catch (e) { return []; } };
@@ -727,23 +819,20 @@
     q.push({ action, extra, dedupeKey });
     saveQueue(q);
     headerSubtitle.textContent = `Sin conexión — ${q.length} cambio${q.length !== 1 ? 's' : ''} pendiente${q.length !== 1 ? 's' : ''}`;
-    // Deja el reintento en manos del Service Worker (evento 'sync'): sigue
-    // funcionando aunque la pestaña quede en segundo plano, no solo con
-    // el evento 'online' del documento.
     navigator.serviceWorker?.ready.then(reg => reg.sync?.register('sync-entregas')).catch(() => {});
   }
   navigator.serviceWorker?.addEventListener('message', e => { if (e.data?.type === 'SYNC_ENTREGAS') sync(); });
   async function sync() {
     if (!navigator.onLine) return;
     let q = loadQueue();
-    if (!q.length) return; // nada pendiente: no hay nada que sincronizar ni por qué recargar
+    if (!q.length) return;
     for (const item of q.slice()) {
       try {
         const resp = await apiFetch({ action: item.action, liveId, ...item.extra }, 'POST');
         if (resp.ok) { q = q.filter(x => x !== item); saveQueue(q); }
-      } catch (err) { break; } // seguimos sin conexión, se reintenta después
+      } catch (err) { break; }
     }
-    if (!loadQueue().length) cargar(); // se vació la cola: refresca con datos reales del servidor
+    if (!loadQueue().length) cargar();
   }
   window.addEventListener('online', sync);
 
@@ -751,7 +840,7 @@
     const grupo = entrega.grupos.find(g => String(g.compradorKey) === String(key));
     if (!grupo || grupo.estado === nuevoEstado) return;
 
-    grupo.estado = nuevoEstado; // optimista, se mantiene aunque falle: se encola
+    grupo.estado = nuevoEstado;
     render();
 
     try {
@@ -785,7 +874,7 @@
         const pendientes = loadQueue().length;
         headerSubtitle.textContent = pendientes ? `Sin conexión — ${pendientes} cambio(s) pendiente(s)` : 'Sin conexión — mostrando datos guardados';
     }
-}
+  }
 
   cargar();
 })();
