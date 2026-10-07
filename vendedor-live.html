@@ -260,6 +260,59 @@
   .chat-msg .text { color: var(--color-text-primary); }
   .chat-msg.mine .author { color: var(--color-primary); }
   .chat-msg.faq { border-left: 2px solid var(--color-accent); padding-left: 8px; }
+  /* mantener presionado un mensaje marca/desmarca vendido: sin selección de texto ni menú del navegador */
+  body.live-active .chat-messages .chat-msg {
+    -webkit-user-select: none; user-select: none; -webkit-touch-callout: none;
+  }
+
+  /* categorías del live (pestañas sobre el carrusel) y botón de ocultar artículo */
+  .carrusel-box { flex-shrink: 0; min-width: 0; }
+  .cat-tabs {
+    min-width: 0; display: flex; gap: 6px; overflow-x: auto; padding: 8px 12px 0;
+    scrollbar-width: none; -webkit-overflow-scrolling: touch;
+  }
+  .cat-tabs::-webkit-scrollbar { display: none; }
+  .cat-tab {
+    flex-shrink: 0; white-space: nowrap; cursor: pointer; font-family: inherit;
+    background: var(--color-surface); color: var(--color-text-soft);
+    border: 1px solid var(--color-border-subtle); border-radius: 999px;
+    padding: 5px 12px; font-size: 12px; font-weight: 600;
+  }
+  .cat-tab.on { background: var(--color-accent-solid); border-color: var(--color-accent-solid); color: #fff; }
+  .cat-tab.ocultos { margin-left: auto; }
+  .carrusel .chip-ocultar, .carrusel .chip-mostrar {
+    position: absolute; top: 4px; left: 4px; z-index: 2; border: none; cursor: pointer;
+    background: rgba(0,0,0,.65); color: #fff; padding: 0; font-family: inherit;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .carrusel .chip-ocultar { width: 22px; height: 22px; border-radius: 50%; }
+  .carrusel .chip-mostrar { height: 20px; padding: 0 8px; border-radius: 999px; font-size: 10px; font-weight: 700; }
+  .carrusel .product-chip.oculto img { opacity: .45; }
+
+  /* categorías al crear el live */
+  .cat-row {
+    display: flex; align-items: center; gap: 8px; margin-bottom: 8px; padding: 6px 10px;
+    border: 1px solid var(--color-border-subtle); border-radius: var(--radius-md);
+    background: var(--color-surface-2); cursor: pointer;
+  }
+  .cat-row.activa { border-color: var(--color-accent-solid); }
+  .cat-row .cat-dot {
+    width: 14px; height: 14px; border-radius: 50%; flex-shrink: 0;
+    border: 2px solid var(--color-border-subtle);
+  }
+  .cat-row.activa .cat-dot { border-color: var(--color-accent-solid); background: var(--color-accent-solid); }
+  .field-group .cat-row input.cat-nombre { flex: 1; width: auto; min-width: 0; padding: 6px 8px; font-size: 13px; }
+  .cat-row .cat-count { font-size: 11px; color: var(--color-text-soft); flex-shrink: 0; }
+  .cat-row .cat-quitar {
+    background: none; border: none; color: var(--color-text-soft);
+    font-size: 20px; line-height: 1; padding: 0 4px; cursor: pointer;
+  }
+  .cat-badge {
+    position: absolute; top: 4px; left: 4px; z-index: 1; max-width: calc(100% - 34px);
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    background: rgba(0,0,0,.7); color: #fff; font-size: 9px; font-weight: 700;
+    padding: 2px 6px; border-radius: 999px;
+  }
   .chat-empty { text-align: center; color: var(--color-text-soft); font-size: 12px; margin-top: auto; margin-bottom: auto; }
   .chat-input-row { display: flex; gap: 8px; padding: 10px; border-top: 1px solid var(--color-border-subtle); flex-shrink: 0; }
   .chat-input-row input {
@@ -409,7 +462,7 @@
       padding-left: env(safe-area-inset-left, 0px); padding-right: env(safe-area-inset-right, 0px);
     }
     .live-video { grid-column: 1; grid-row: 1; aspect-ratio: auto; height: 100%; max-height: none; }
-    .carrusel { grid-column: 1; grid-row: 2; }
+    .carrusel-box { grid-column: 1; grid-row: 2; }
     .live-chat-col { grid-column: 2; grid-row: 1 / span 2; border-left: 1px solid var(--color-border-subtle); }
   }
 </style>
@@ -624,6 +677,14 @@ function faqNueva(pregunta, custom) {
   return { uid: 'f' + (++faqSeq), pregunta, respuesta: '', activa: false, custom: !!custom };
 }
 
+// Categorías: se arman al crear el live con los productos ya elegidos. Cada
+// producto pertenece a una sola categoría (catAsign: productId → catId).
+const CAT_MAX = 10;
+let categoriasForm = [];   // [{ id, nombre }]
+let catAsign = new Map();
+let catActivaId = null;
+let catSeq = 0;
+
 function esc(s) {
   const d = document.createElement('div');
   d.textContent = s == null ? '' : String(s);
@@ -729,6 +790,7 @@ async function renderCreateForm() {
   tipoSeleccionado = 'vivo';
   orientacionSeleccionada = 'horizontal';
   faqItems = FAQ_SUGERIDAS.map(q => faqNueva(q, false));
+  categoriasForm = []; catAsign = new Map(); catActivaId = null;
 
   wrap.innerHTML = `
     <div class="live-card">
@@ -778,6 +840,14 @@ async function renderCreateForm() {
       </div>
 
       <div class="field-group">
+        <label>Categorías (opcional)</label>
+        <p class="hint" style="margin-bottom:10px;">Agrupa los productos que elegiste, por ejemplo "Nuevos" y "Usados". En el live decides qué categoría mostrar en el carrusel. Crea una categoría, tócala para activarla y toca los productos que van en ella.</p>
+        <div id="cat-list"></div>
+        <button type="button" class="btn-live ghost" id="btn-cat-add">Nueva categoría</button>
+        <div class="product-grid" id="cat-grid" style="margin-top:10px;"></div>
+      </div>
+
+      <div class="field-group">
         <label>Preguntas frecuentes (opcional)</label>
         <p class="hint" style="margin-bottom:10px;">Activa las preguntas que tus compradores podrán tocar durante el live y escribe tu respuesta. Al tocarla, la pregunta y tu respuesta aparecen en el chat para todos.</p>
         <div id="faq-list"></div>
@@ -806,8 +876,91 @@ async function renderCreateForm() {
     const input = document.querySelector(`.faq-item[data-uid="${nueva.uid}"] .faq-q-input`);
     if (input) input.focus();
   });
+  document.getElementById('btn-cat-add').addEventListener('click', () => {
+    if (categoriasForm.length >= CAT_MAX) return;
+    const nueva = { id: 'k' + (++catSeq), nombre: 'Categoría ' + (categoriasForm.length + 1) };
+    categoriasForm.push(nueva);
+    catActivaId = nueva.id;
+    renderCatList();
+    renderCatGrid();
+    const input = document.querySelector(`.cat-row[data-id="${nueva.id}"] .cat-nombre`);
+    if (input) { input.focus(); input.select(); }
+  });
   renderFaqList();
+  renderCatList();
+  renderCatGrid();
   loadProductGrid();
+}
+
+function renderCatList() {
+  const list = document.getElementById('cat-list');
+  if (!list) return;
+  const cuenta = (id) => Array.from(catAsign.values()).filter(v => v === id).length;
+  list.innerHTML = categoriasForm.map(c => `
+    <div class="cat-row ${c.id === catActivaId ? 'activa' : ''}" data-id="${c.id}">
+      <span class="cat-dot"></span>
+      <input type="text" class="cat-nombre" maxlength="30" placeholder="Nombre de la categoría">
+      <span class="cat-count">${cuenta(c.id)} art.</span>
+      <button type="button" class="cat-quitar" aria-label="Quitar categoría">×</button>
+    </div>`).join('');
+
+  list.querySelectorAll('.cat-row').forEach(el => {
+    const c = categoriasForm.find(x => x.id === el.dataset.id);
+    if (!c) return;
+    const input = el.querySelector('.cat-nombre');
+    input.value = c.nombre; // por propiedad: esc() no escapa comillas dobles
+    const activar = () => {
+      if (catActivaId === c.id) return;
+      catActivaId = c.id;
+      list.querySelectorAll('.cat-row').forEach(r => r.classList.toggle('activa', r.dataset.id === c.id));
+      renderCatGrid();
+    };
+    el.addEventListener('click', (e) => { if (!e.target.closest('.cat-quitar')) activar(); });
+    input.addEventListener('focus', activar);
+    input.addEventListener('input', () => { c.nombre = input.value; renderCatGrid(); });
+    el.querySelector('.cat-quitar').addEventListener('click', () => {
+      categoriasForm = categoriasForm.filter(x => x.id !== c.id);
+      for (const [pid, cid] of Array.from(catAsign.entries())) if (cid === c.id) catAsign.delete(pid);
+      if (catActivaId === c.id) catActivaId = categoriasForm.length ? categoriasForm[categoriasForm.length - 1].id : null;
+      renderCatList();
+      renderCatGrid();
+    });
+  });
+
+  const addBtn = document.getElementById('btn-cat-add');
+  if (addBtn) addBtn.disabled = categoriasForm.length >= CAT_MAX;
+}
+
+function renderCatGrid() {
+  const grid = document.getElementById('cat-grid');
+  if (!grid) return;
+  const elegidos = allProducts.filter(p => selectedProductIds.has(String(p.id)));
+  if (!categoriasForm.length || !elegidos.length) {
+    grid.innerHTML = `<div class="chat-empty" style="grid-column:1/-1;">${
+      !elegidos.length ? 'Elige productos arriba para poder agruparlos.' : 'Crea una categoría para empezar a agrupar.'}</div>`;
+    return;
+  }
+  grid.innerHTML = elegidos.map(p => {
+    const cid = catAsign.get(String(p.id));
+    const cat = cid ? categoriasForm.find(c => c.id === cid) : null;
+    return `
+      <div class="product-chip ${cid && cid === catActivaId ? 'selected' : ''}" data-id="${esc(p.id)}">
+        <img src="${esc(p.imagen1 || 'https://placehold.co/200x200')}" alt="${esc(p.nombre)}" loading="lazy">
+        ${cat ? `<span class="cat-badge">${esc(cat.nombre)}</span>` : ''}
+        <div class="chip-name">${esc(p.nombre)}</div>
+      </div>`;
+  }).join('');
+
+  grid.querySelectorAll('.product-chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      if (!catActivaId) return;
+      const id = chip.dataset.id;
+      if (catAsign.get(id) === catActivaId) catAsign.delete(id);
+      else catAsign.set(id, catActivaId);
+      renderCatList();
+      renderCatGrid();
+    });
+  });
 }
 
 function renderFaqList() {
@@ -886,11 +1039,14 @@ async function loadProductGrid() {
         const id = chip.dataset.id;
         if (selectedProductIds.has(id)) {
           selectedProductIds.delete(id);
+          catAsign.delete(id);
           chip.classList.remove('selected');
         } else {
           selectedProductIds.add(id);
           chip.classList.add('selected');
         }
+        renderCatList();
+        renderCatGrid();
       });
     });
   } catch (err) {
@@ -920,6 +1076,24 @@ async function crearSesion() {
       return;
     }
   }
+
+  const catsPayload = [];
+  for (const c of categoriasForm) {
+    const nombre = c.nombre.trim();
+    const productos = Array.from(catAsign.entries())
+      .filter(([pid, cid]) => cid === c.id && selectedProductIds.has(pid)).map(([pid]) => pid);
+    if (!nombre) {
+      genError.textContent = 'Ponle nombre a cada categoría, o quítala.';
+      genError.style.display = 'block';
+      return;
+    }
+    if (!productos.length) {
+      genError.textContent = `La categoría "${nombre}" no tiene artículos. Agrégale o quítala.`;
+      genError.style.display = 'block';
+      return;
+    }
+    catsPayload.push({ nombre, productos });
+  }
   btn.disabled = true;
   btn.textContent = 'Creando…';
 
@@ -931,7 +1105,8 @@ async function crearSesion() {
       tipo: tipoSeleccionado,
       orientacion: orientacionSeleccionada,
       productos_ids: Array.from(selectedProductIds).join(';'),
-      faq: JSON.stringify(faqActivas.map(f => ({ pregunta: f.pregunta.trim(), respuesta: f.respuesta.trim() })))
+      faq: JSON.stringify(faqActivas.map(f => ({ pregunta: f.pregunta.trim(), respuesta: f.respuesta.trim() }))),
+      categorias: JSON.stringify(catsPayload)
     });
 
     if (!resp.ok) {
@@ -1128,18 +1303,16 @@ async function renderLiveFull() {
       </div>
     </div>
 
+    <div class="carrusel-box">
+    <div class="cat-tabs" id="cat-tabs" style="display:none;"></div>
     <div class="carrusel" id="live-product-grid">
-      ${misProductos.length ? misProductos.map(p => `
-        <div class="product-chip ${String(p.id) === String(currentSesion.producto_actual_id) ? 'selected' : ''}" data-id="${esc(p.id)}">
-          <img src="${esc(p.imagen1 || 'https://placehold.co/200x200')}" alt="${esc(p.nombre)}" loading="lazy">
-          <div class="chip-name">${esc(p.nombre)}</div>
-        </div>
-      `).join('') : (String(currentSesion.productos_ids || '').trim()
+      ${misProductos.length ? '' : (String(currentSesion.productos_ids || '').trim()
           ? `<div class="chat-empty" style="text-align:left; font-size:11px; font-family:monospace; white-space:pre-wrap;">${Icon('error')} Diagnóstico: guardaste productos pero no coinciden con tu catálogo cargado.
 productos_ids guardado: "${esc(String(currentSesion.productos_ids))}"
 productos cargados (allProducts): ${allProducts.length}
 IDs cargados: ${esc(allProducts.map(p => p.id).join(', '))}</div>`
           : '<div class="chat-empty">No seleccionaste productos al crear la transmisión.</div>')}
+    </div>
     </div>
 
     <div class="live-chat-col">
@@ -1175,6 +1348,87 @@ IDs cargados: ${esc(allProducts.map(p => p.id).join(', '))}</div>`
     info.classList.toggle('on');
     if (info.classList.contains('on')) infoTimer = setTimeout(() => info.classList.remove('on'), 5000);
   });
+  // ── Categorías y artículos ocultos del carrusel ──
+  // Las categorías vienen de la sesión (las armó el vendedor al crear el live).
+  // Los ocultos son solo de este panel (no afectan a los compradores) y se
+  // guardan en este navegador para que sobrevivan a una recarga.
+  const EYE_OFF = '<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>';
+  const catsLive = Array.isArray(currentSesion.categorias) ? currentSesion.categorias : [];
+  const catDeProducto = new Map();
+  catsLive.forEach(c => (c.productos_ids || []).forEach(id => catDeProducto.set(String(id), c.id)));
+  const haySinCat = catsLive.length > 0 && misProductos.some(p => !catDeProducto.has(String(p.id)));
+  const kOcultos = `znr_live_ocultos_${currentSesion.id}`, kCat = `znr_live_cat_${currentSesion.id}`;
+  let ocultos = new Set();
+  try { ocultos = new Set(JSON.parse(localStorage.getItem(kOcultos) || '[]').map(String)); } catch (e) {}
+  let catSel = null;
+  try { catSel = localStorage.getItem(kCat); } catch (e) {}
+  const catValida = (k) => k === 'todos' || (k === 'sin' && haySinCat) || catsLive.some(c => c.id === k);
+  if (!catSel || !catValida(catSel)) catSel = catsLive.length ? catsLive[0].id : 'todos';
+  let verOcultos = false;
+
+  const pintarTabs = () => {
+    const tabs = document.getElementById('cat-tabs');
+    if (!tabs) return;
+    if (!catsLive.length && !ocultos.size) { tabs.style.display = 'none'; tabs.innerHTML = ''; return; }
+    tabs.style.display = '';
+    const items = [];
+    if (catsLive.length) {
+      catsLive.forEach(c => items.push([c.id, c.nombre]));
+      if (haySinCat) items.push(['sin', 'Sin categoría']);
+      items.push(['todos', 'Todos']);
+    }
+    tabs.innerHTML = items.map(([k, n]) =>
+      `<button type="button" class="cat-tab ${catSel === k ? 'on' : ''}" data-cat="${esc(k)}">${esc(n)}</button>`).join('')
+      + (ocultos.size ? `<button type="button" class="cat-tab ocultos ${verOcultos ? 'on' : ''}" data-ocultos="1">Ocultos (${ocultos.size})</button>` : '');
+  };
+
+  const pintarCarrusel = () => {
+    const grid = document.getElementById('live-product-grid');
+    if (!grid || !misProductos.length) return;
+    const enCat = (p) => catSel === 'todos' ? true
+      : catSel === 'sin' ? !catDeProducto.has(String(p.id))
+      : catDeProducto.get(String(p.id)) === catSel;
+    const visibles = misProductos.filter(p => enCat(p) && ocultos.has(String(p.id)) === verOcultos);
+    if (!visibles.length) {
+      grid.innerHTML = `<div class="chat-empty">${verOcultos ? 'No hay artículos ocultos aquí.'
+        : (misProductos.some(enCat) ? 'Ocultaste todos los artículos de esta categoría.' : 'No hay artículos en esta categoría.')}</div>`;
+      return;
+    }
+    grid.innerHTML = visibles.map(p => `
+      <div class="product-chip ${String(p.id) === String(currentSesion.producto_actual_id) ? 'selected' : ''}${verOcultos ? ' oculto' : ''}" data-id="${esc(p.id)}">
+        <img src="${esc(p.imagen1 || 'https://placehold.co/200x200')}" alt="${esc(p.nombre)}" loading="lazy">
+        <div class="chip-name">${esc(p.nombre)}</div>
+        ${verOcultos
+          ? `<button type="button" class="chip-mostrar" data-id="${esc(p.id)}">Mostrar</button>`
+          : `<button type="button" class="chip-ocultar" data-id="${esc(p.id)}" title="Ocultar (sin stock)" aria-label="Ocultar artículo">${EYE_OFF}</button>`}
+      </div>`).join('');
+  };
+
+  const alternarOculto = (id, ocultar) => {
+    if (ocultar) ocultos.add(String(id)); else ocultos.delete(String(id));
+    if (!ocultos.size) verOcultos = false;
+    try { localStorage.setItem(kOcultos, JSON.stringify(Array.from(ocultos))); } catch (e) {}
+    pintarTabs();
+    pintarCarrusel();
+  };
+
+  const catTabsEl = document.getElementById('cat-tabs');
+  if (catTabsEl) catTabsEl.addEventListener('click', (e) => {
+    const b = e.target.closest('.cat-tab');
+    if (!b) return;
+    if (b.dataset.ocultos) {
+      verOcultos = !verOcultos;
+    } else {
+      catSel = b.dataset.cat;
+      try { localStorage.setItem(kCat, catSel); } catch (err) {}
+    }
+    pintarTabs();
+    pintarCarrusel();
+  });
+
+  pintarTabs();
+  pintarCarrusel();
+
   const activo = document.querySelector('#live-product-grid .product-chip.selected');
   if (activo) activo.scrollIntoView({ inline: 'center', block: 'nearest' });
 
@@ -1223,8 +1477,12 @@ IDs cargados: ${esc(allProducts.map(p => p.id).join(', '))}</div>`
     }
   };
 
-  document.querySelectorAll('#live-product-grid .product-chip').forEach(chip => {
-    chip.addEventListener('click', async () => {
+  document.getElementById('live-product-grid').addEventListener('click', async (e) => {
+    const btnOc = e.target.closest('.chip-ocultar, .chip-mostrar');
+    if (btnOc) { alternarOculto(btnOc.dataset.id, btnOc.classList.contains('chip-ocultar')); return; }
+    const chip = e.target.closest('.product-chip');
+    if (!chip || verOcultos) return; // en la vista de ocultos solo se puede "Mostrar"
+    {
       const anterior = currentSesion.producto_actual_id, id = chip.dataset.id;
       const marcar = (x) => document.querySelectorAll('#live-product-grid .product-chip').forEach((c) => c.classList.toggle('selected', c.dataset.id === String(x)));
       currentSesion.producto_actual_id = id; marcar(id);
@@ -1258,7 +1516,7 @@ IDs cargados: ${esc(allProducts.map(p => p.id).join(', '))}</div>`
           alert('El producto se guardó, pero no se pudo avisar en tiempo real a los compradores.\n\nMotivo: ' + (ultimoErrorRTDB || 'desconocido'));
         }
       }
-    });
+    }
   });
 
   document.getElementById('btn-finalizar').addEventListener('click', () => {
@@ -1592,6 +1850,10 @@ function renderEnded(entregaUrl) {
 }
 
 function marcarVendido(liveId, key, msg) {
+  // El mensaje escrito a mano ya no muestra la foto del artículo, así que el aviso
+  // dice a qué artículo se va a registrar la venta (el que estaba destacado al escribirlo).
+  const prodMsg = msg.producto_id ? allProducts.find(p => String(p.id) === String(msg.producto_id)) : null;
+  const art = prodMsg ? `\nArtículo: ${prodMsg.nombre}` : '\n(No había artículo destacado cuando escribió)';
   if (msg.vendido) {
     if (confirm(`¿Quitar el marcado de vendido a "${msg.text}" de ${msg.author}?`)) {
       update(ref(db, `chats/${liveId}/messages/${key}`), { vendido: false }).catch(err => {
@@ -1601,7 +1863,7 @@ function marcarVendido(liveId, key, msg) {
     }
     return;
   }
-  if (confirm(`¿Marcar "${msg.text}" de ${msg.author} como vendido?`)) {
+  if (confirm(`¿Marcar "${msg.text}" de ${msg.author} como vendido?${art}`)) {
     update(ref(db, `chats/${liveId}/messages/${key}`), { vendido: true }).catch(err => {
       console.error('marcarVendido falló:', err);
       alert('No se pudo marcar como vendido: ' + err.message);
@@ -1616,13 +1878,21 @@ function setupChat(liveId, myName, isVendor) {
   const sendBtn = document.getElementById('chat-send');
   const chatRef = query(ref(db, `chats/${liveId}/messages`), limitToLast(100));
 
+  let ultimaData = {};
   chatUnsub = onValue(chatRef, (snapshot) => {
     const data = snapshot.val();
+    ultimaData = data || {};
     if (!data) { messagesEl.innerHTML = '<div class="chat-empty">Aún no hay mensajes.</div>'; return; }
     const entries = Object.entries(data).sort((a, b) => (a[1].ts || 0) - (b[1].ts || 0));
     messagesEl.innerHTML = entries.map(([key, m]) => {
       const prod = m.producto_id ? allProducts.find(p => String(p.id) === String(m.producto_id)) : null;
-      const prodTag = prod ? `
+      // La foto del artículo solo se muestra si el comprador usó el botón (el texto es
+      // la palabra del artículo) o si ya lo marcaste como vendido. Lo que se escribe a
+      // mano ("hola") no cuenta como intento de compra. Tus propios mensajes nunca la llevan.
+      const palabraProd = prod ? String(prod.nombre || '').trim().split(/\s+/)[0].toUpperCase() : '';
+      const mostrarProd = prod && !m.isVendor && !m.faq
+        && (m.vendido || String(m.text || '').trim().toUpperCase() === palabraProd);
+      const prodTag = mostrarProd ? `
         <div style="display:flex; align-items:center; gap:5px; margin-top:3px; opacity:.8;">
           <img src="${esc(prod.imagen1 || 'https://placehold.co/40x40')}" style="width:16px;height:16px;border-radius:4px;object-fit:cover;">
           <span style="font-size:10px; color:var(--color-text-soft);">${esc(prod.nombre)}</span>
@@ -1636,19 +1906,45 @@ function setupChat(liveId, myName, isVendor) {
       </div>`;
     }).join('');
     messagesEl.scrollTop = messagesEl.scrollHeight;
-
-    if (isVendor) {
-      messagesEl.querySelectorAll('.chat-msg[data-key]').forEach(el => {
-        const key = el.dataset.key;
-        const msg = data[key];
-        if (msg.isVendor || msg.faq) return;
-        el.addEventListener('click', () => marcarVendido(liveId, key, msg));
-      });
-    }
   }, (err) => {
     console.error('setupChat onValue falló (revisa las reglas de Firebase):', err);
     messagesEl.innerHTML = `<div class="chat-empty">No se pudo cargar el chat: ${esc(err.message)}</div>`;
   });
+
+  // Tocar o mantener presionado un mensaje del comprador marca/desmarca "vendido"
+  // (siempre con confirmación). Se escucha en el contenedor, no en cada mensaje,
+  // para que un mensaje nuevo que repinta el chat no cancele un toque a medias.
+  if (isVendor) {
+    const accionar = (key) => {
+      const msg = ultimaData[key];
+      if (!msg || msg.isVendor || msg.faq) return;
+      marcarVendido(liveId, key, msg);
+    };
+    let pressTimer = null, pressKey = null, pressDisparado = false, px = 0, py = 0;
+    const cancelar = () => { clearTimeout(pressTimer); pressTimer = null; };
+    messagesEl.addEventListener('pointerdown', (e) => {
+      const el = e.target.closest('.chat-msg[data-key]');
+      pressDisparado = false;
+      cancelar();
+      if (!el) return;
+      pressKey = el.dataset.key; px = e.clientX; py = e.clientY;
+      pressTimer = setTimeout(() => {
+        pressTimer = null; pressDisparado = true;
+        if (navigator.vibrate) navigator.vibrate(30);
+        accionar(pressKey);
+      }, 600);
+    });
+    messagesEl.addEventListener('pointermove', (e) => {
+      if (pressTimer && (Math.abs(e.clientX - px) > 10 || Math.abs(e.clientY - py) > 10)) cancelar();
+    });
+    ['pointerup', 'pointercancel', 'pointerleave'].forEach(t => messagesEl.addEventListener(t, cancelar));
+    messagesEl.addEventListener('click', (e) => {
+      if (pressDisparado) { pressDisparado = false; return; } // ese toque ya fue el "mantener presionado"
+      const el = e.target.closest('.chat-msg[data-key]');
+      if (el) accionar(el.dataset.key);
+    });
+    messagesEl.addEventListener('contextmenu', (e) => e.preventDefault());
+  }
 
   function send() {
     const text = inputEl.value.trim();
