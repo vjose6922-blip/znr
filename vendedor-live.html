@@ -268,10 +268,8 @@
   /* categorías del live (pestañas sobre el carrusel) y botón de ocultar artículo */
   .carrusel-box { flex-shrink: 0; min-width: 0; }
   .cat-tabs {
-    min-width: 0; display: flex; gap: 6px; overflow-x: auto; padding: 8px 12px 0;
-    scrollbar-width: none; -webkit-overflow-scrolling: touch;
+    min-width: 0; display: flex; flex-wrap: wrap; gap: 6px; padding: 8px 12px 0;
   }
-  .cat-tabs::-webkit-scrollbar { display: none; }
   .cat-tab {
     flex-shrink: 0; white-space: nowrap; cursor: pointer; font-family: inherit;
     background: var(--color-surface); color: var(--color-text-soft);
@@ -1388,9 +1386,12 @@ IDs cargados: ${esc(allProducts.map(p => p.id).join(', '))}</div>`
     const enCat = (p) => catSel === 'todos' ? true
       : catSel === 'sin' ? !catDeProducto.has(String(p.id))
       : catDeProducto.get(String(p.id)) === catSel;
-    const visibles = misProductos.filter(p => enCat(p) && ocultos.has(String(p.id)) === verOcultos);
+    // La vista "Ocultos" junta los de todas las categorías; la normal filtra por la categoría elegida.
+    const visibles = verOcultos
+      ? misProductos.filter(p => ocultos.has(String(p.id)))
+      : misProductos.filter(p => enCat(p) && !ocultos.has(String(p.id)));
     if (!visibles.length) {
-      grid.innerHTML = `<div class="chat-empty">${verOcultos ? 'No hay artículos ocultos aquí.'
+      grid.innerHTML = `<div class="chat-empty">${verOcultos ? 'No hay artículos ocultos.'
         : (misProductos.some(enCat) ? 'Ocultaste todos los artículos de esta categoría.' : 'No hay artículos en esta categoría.')}</div>`;
       return;
     }
@@ -1405,11 +1406,25 @@ IDs cargados: ${esc(allProducts.map(p => p.id).join(', '))}</div>`
   };
 
   const alternarOculto = (id, ocultar) => {
-    if (ocultar) ocultos.add(String(id)); else ocultos.delete(String(id));
+    if (ocultar) {
+      ocultos.add(String(id));
+    } else {
+      // Al regresarlo se sale de la vista "Ocultos" y se va a su categoría, para verlo de inmediato.
+      ocultos.delete(String(id));
+      verOcultos = false;
+      if (catSel !== 'todos') {
+        catSel = catDeProducto.get(String(id)) || 'sin';
+        try { localStorage.setItem(kCat, catSel); } catch (e) {}
+      }
+    }
     if (!ocultos.size) verOcultos = false;
     try { localStorage.setItem(kOcultos, JSON.stringify(Array.from(ocultos))); } catch (e) {}
     pintarTabs();
     pintarCarrusel();
+    if (!ocultar) {
+      const chip = document.querySelector(`#live-product-grid .product-chip[data-id="${CSS.escape(String(id))}"]`);
+      if (chip) chip.scrollIntoView({ inline: 'center', block: 'nearest' });
+    }
   };
 
   const catTabsEl = document.getElementById('cat-tabs');
