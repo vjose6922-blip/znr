@@ -27,6 +27,7 @@
 <link rel="preload" href="styles.css" as="style">
 <link rel="stylesheet" href="styles.css">
 <script src="api-config.js"></script>
+<script type="module" src="fcm-init.js"></script>
 <script src="icons.js" defer></script>
 <style>
   .live-wrap { max-width: 640px; margin: 0 auto; padding: 0 0 40px; }
@@ -207,6 +208,10 @@
   }
   .hour-row { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 8px; margin-bottom: 10px; }
   .hour-row span { color: var(--color-text-soft); font-size: 13px; }
+  .idn-pw-note { margin: 0 0 10px !important; font-size: 12px !important; }
+  .idn-pw-link { margin: 0 0 10px !important; font-size: 12.5px !important; color: var(--color-accent-solid); font-weight: 600; cursor: pointer; }
+  .idn-pw-link.soft { color: var(--color-text-soft); font-weight: 400; }
+  .idn-err { margin: 0 0 10px !important; font-size: 12.5px !important; min-height: 15px; color: #f87171 !important; }
   .gps-status { margin: 0 0 12px; font-size: 12px; min-height: 15px; color: var(--color-text-soft); }
   .gps-status.ok { color: #4ade80; }
   .gps-status.error { color: #f87171; }
@@ -297,7 +302,11 @@ const LIVE_API_URL_CLIVE = "https://live-api-1038143238323.us-central1.run.app";
 const AUTH_API_URL_CLIVE = "https://auth-api-1038143238323.us-central1.run.app";
 const VENDEDORES_API_URL_CLIVE = "https://vendedores-api-1038143238323.us-central1.run.app";
 const AUTH_ACTIONS_CLIVE = ['leerPerfilComprador', 'guardarPerfilComprador'];
-const VENDEDORES_ACTIONS_CLIVE = ['verificarSesionVendedor'];
+const VENDEDORES_ACTIONS_CLIVE = ['verificarSesionVendedor', 'registrarComprador', 'loginComprador', 'verificarSesionComprador', 'sesionCompradorDesdeVendedor', 'solicitarResetComprador'];
+// Se llenan en init() con la sesión de vendedor ya verificada (si el teléfono del
+// comprador es el de su cuenta, se le abre sesión de comprador sin pedir contraseña).
+let vendorTokenCLive = '';
+let vendorTelCLive = '';
 async function apiFetch(data, method = 'GET') {
   const API_BASE = AUTH_ACTIONS_CLIVE.includes(data && data.action) ? AUTH_API_URL_CLIVE
     : VENDEDORES_ACTIONS_CLIVE.includes(data && data.action) ? VENDEDORES_API_URL_CLIVE
@@ -756,6 +765,14 @@ function askIdentity(onDone) {
       <input type="text" id="idn-nombre" placeholder="Nombre y apellido" maxlength="40" value="${esc(prev.nombre || '')}">
       <label for="idn-tel">Tu teléfono</label>
       <input type="tel" id="idn-tel" placeholder="10 dígitos" maxlength="10" value="${esc(prev.telefono || '')}">
+      <div id="idn-pw-wrap">
+        <label for="idn-pw">Contraseña</label>
+        <p class="idn-pw-note" id="idn-pw-note"></p>
+        <input type="password" id="idn-pw" autocomplete="current-password">
+        <input type="password" id="idn-pw2" placeholder="Repite la contraseña" autocomplete="new-password">
+        <p class="idn-pw-link" id="idn-pw-sw"></p>
+        <p class="idn-pw-link soft" id="idn-pw-olv">¿Olvidaste tu contraseña?</p>
+      </div>
       <button type="button" class="btn-gps" id="idn-gps-btn">${gpsIconSvg} Obtener mi ubicación (obligatorio)</button>
       <p class="gps-status" id="idn-gps-status">Necesitamos tu ubicación GPS para poder entregarte — toca el botón y acepta el permiso.</p>
       <label>Días disponibles</label>
@@ -770,6 +787,7 @@ function askIdentity(onDone) {
       </div>
       <label for="idn-dir">Entregar en otra ubicación (opcional)</label>
       <textarea id="idn-dir" placeholder="Solo si quieres dejar instrucciones o pedir que se entregue en un lugar distinto a tu ubicación GPS…" maxlength="200">${esc(prev.nota || '')}</textarea>
+      <p class="idn-err" id="idn-err"></p>
       <button id="idn-btn">Entrar al chat</button>
     </div>`;
   document.body.appendChild(overlay);
@@ -777,6 +795,69 @@ function askIdentity(onDone) {
   document.getElementById('idn-close-btn').addEventListener('click', () => {
     window.location.href = 'lives.html';
   });
+
+  // ── Sesión de comprador (teléfono + contraseña), igual que el comprador
+  // normal de Comunidad: sin esto las notificaciones de este pedido (stock
+  // confirmado, en camino, entregado) no le llegan a nadie. ──
+  let modoNuevo = true;   // true = crear contraseña, false = iniciar sesión
+  let forzarPw = false;   // la sesión guardada expiró: pedir contraseña sí o sí
+  const elTel = document.getElementById('idn-tel');
+  const elPwWrap = document.getElementById('idn-pw-wrap');
+  const elPw = document.getElementById('idn-pw');
+  const elPw2 = document.getElementById('idn-pw2');
+  const elErr = document.getElementById('idn-err');
+  const telDigitos = () => elTel.value.replace(/\D/g, '');
+  const sesionLocalPara = (t) => (localStorage.getItem('client_phone') || '').replace(/\D/g, '') === t && !!localStorage.getItem('comprador_token');
+  const esTelDelVendedor = (t) => !!vendorTokenCLive && !!vendorTelCLive && t === vendorTelCLive;
+
+  function pintarPw() {
+    const t = telDigitos();
+    const sinPw = !forzarPw && t.length === 10 && (sesionLocalPara(t) || esTelDelVendedor(t));
+    elPwWrap.style.display = sinPw ? 'none' : '';
+    elPw2.style.display = modoNuevo ? '' : 'none';
+    document.getElementById('idn-pw-olv').style.display = modoNuevo ? 'none' : '';
+    document.getElementById('idn-pw-note').textContent = modoNuevo
+      ? 'Crea una contraseña (mín. 6): protege tus notificaciones y pagos.'
+      : 'Escribe la contraseña de tu cuenta (si eres vendedor, la de tu cuenta de vendedor).';
+    elPw.placeholder = modoNuevo ? 'Crea una contraseña' : 'Tu contraseña';
+    document.getElementById('idn-pw-sw').textContent = modoNuevo ? '¿Ya tienes cuenta? Inicia sesión' : '¿Primera vez? Crea tu contraseña';
+  }
+  document.getElementById('idn-pw-sw').addEventListener('click', () => { modoNuevo = !modoNuevo; elErr.textContent = ''; pintarPw(); });
+  document.getElementById('idn-pw-olv').addEventListener('click', async () => {
+    const t = telDigitos();
+    if (t.length !== 10) { elErr.textContent = 'Escribe primero tu teléfono de 10 dígitos.'; return; }
+    await apiFetch({ action: 'solicitarResetComprador', telefono: t }, 'POST').catch(() => {});
+    elErr.style.color = '#4ade80';
+    elErr.textContent = 'Listo. El administrador te contactará por WhatsApp con un código nuevo.';
+  });
+  elTel.addEventListener('input', () => { forzarPw = false; pintarPw(); });
+  pintarPw();
+
+  // Devuelve { token } o { error }.
+  async function conseguirSesion(tel) {
+    if (!forzarPw && sesionLocalPara(tel)) {
+      const guardado = localStorage.getItem('comprador_token');
+      const v = await apiFetch({ action: 'verificarSesionComprador', telefono: tel, compradorToken: guardado }, 'POST').catch(() => null);
+      if (!v) return { error: 'Sin conexión. Intenta de nuevo.' };
+      if (v.ok) return { token: guardado };
+      localStorage.removeItem('comprador_token');
+      forzarPw = true; pintarPw();
+      return { error: 'Tu sesión expiró. Escribe tu contraseña.' };
+    }
+    if (!forzarPw && esTelDelVendedor(tel)) {
+      const r = await apiFetch({ action: 'sesionCompradorDesdeVendedor', vendorToken: vendorTokenCLive }, 'POST').catch(() => null);
+      if (r && r.ok && r.token) return { token: r.token };
+      return { error: (r && r.error) || 'No se pudo abrir tu sesión. Intenta de nuevo.' };
+    }
+    const pw = elPw.value;
+    if (!pw) return { error: 'Escribe tu contraseña.' };
+    if (modoNuevo && pw !== elPw2.value) return { error: 'Las contraseñas no coinciden.' };
+    const r = await apiFetch({ action: modoNuevo ? 'registrarComprador' : 'loginComprador', telefono: tel, password: pw }, 'POST')
+      .catch(() => ({ error: 'Sin conexión. Intenta de nuevo.' }));
+    if (r.ok && r.token) return { token: r.token };
+    if (r.existe) { modoNuevo = false; pintarPw(); }
+    return { error: r.error || 'No se pudo continuar. Intenta de nuevo.' };
+  }
 
   const diasSeleccionados = new Set(prevDias);
   overlay.querySelectorAll('.day-btn').forEach(btn => {
@@ -837,7 +918,9 @@ function askIdentity(onDone) {
     }, { enableHighAccuracy: true, timeout: 10000 });
   });
 
-  document.getElementById('idn-btn').addEventListener('click', () => {
+  document.getElementById('idn-btn').addEventListener('click', async () => {
+    elErr.style.color = '';
+    elErr.textContent = '';
     const nombre = document.getElementById('idn-nombre').value.trim();
     const tel = document.getElementById('idn-tel').value.replace(/\D/g, '');
     const dias = DIAS_SEMANA.filter(d => diasSeleccionados.has(d));
@@ -856,6 +939,17 @@ function askIdentity(onDone) {
       alert('Necesitamos tu ubicación para continuar — toca "Obtener mi ubicación" y acepta el permiso de tu navegador.');
       return;
     }
+    const btnEntrar = document.getElementById('idn-btn');
+    const textoBtn = btnEntrar.textContent;
+    btnEntrar.disabled = true; btnEntrar.textContent = 'Verificando…';
+    const sesion = await conseguirSesion(tel);
+    btnEntrar.disabled = false; btnEntrar.textContent = textoBtn;
+    if (sesion.error) { elErr.textContent = sesion.error; return; }
+    // Mismas llaves que el comprador normal (common.js), así la cuenta,
+    // la campanita y el push funcionan igual en todo el sitio.
+    localStorage.setItem('client_phone', tel);
+    localStorage.setItem('comprador_token', sesion.token);
+
     const horario = `${dias.join(', ')} · ${horaDesde} a ${horaHasta}`;
     identity = {
       nombre, telefono: tel, horario, dias, horaDesde, horaHasta, nota,
@@ -867,6 +961,11 @@ function askIdentity(onDone) {
     guardarPerfilRemoto(identity, actualizarUbicacionPerfil);
     actualizarPresenciaNombre();
     document.body.removeChild(overlay);
+    // Registra este dispositivo para recibir push de su pedido (stock
+    // confirmado, en camino, entregado). Si ya dio permiso, solo registra el token.
+    if (typeof window.solicitarPermisoNotificacionesSiFalta === 'function') {
+      window.solicitarPermisoNotificacionesSiFalta('cliente', tel);
+    }
     onDone();
   });
 }
@@ -1131,6 +1230,8 @@ async function init() {
     if (!sesionVendedor.ok) { renderRequiereVendedor(); return; }
     vendorNombre = sesionVendedor.nombre || '';
     vendorTelefono = sesionVendedor.telefono || '';
+    vendorTokenCLive = vendorToken;
+    vendorTelCLive = String(vendorTelefono).replace(/\D/g, '');
   } catch (err) {
     renderRequiereVendedor();
     return;
@@ -1161,7 +1262,13 @@ async function init() {
     renderLive();
     startPolling();
 
-    if (!identity || typeof identity.lat !== 'number' || typeof identity.lng !== 'number' || !identity.horario) {
+    // Además de nombre/GPS/horario, hace falta sesión de comprador para ese
+    // teléfono (contraseña): sin ella no llegarían las notificaciones.
+    const telIdentidad = String((identity && identity.telefono) || '').replace(/\D/g, '');
+    const sesionCompradorOk = telIdentidad.length === 10
+      && (localStorage.getItem('client_phone') || '').replace(/\D/g, '') === telIdentidad
+      && !!localStorage.getItem('comprador_token');
+    if (!identity || typeof identity.lat !== 'number' || typeof identity.lng !== 'number' || !identity.horario || !sesionCompradorOk) {
       askIdentity(() => {});
     }
   } catch (err) {

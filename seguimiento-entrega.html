@@ -9,7 +9,7 @@
  script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net;
  style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net;
  img-src 'self' data: blob: https://*.tile.openstreetmap.org https://cdn.jsdelivr.net https://firebasestorage.googleapis.com https://*.firebasestorage.app https://storage.googleapis.com ;
- connect-src 'self' https://live-api-1038143238323.us-central1.run.app https://*.tile.openstreetmap.org;
+ connect-src 'self' https://live-api-1038143238323.us-central1.run.app https://vendedores-api-1038143238323.us-central1.run.app https://ventas-api-1038143238323.us-central1.run.app https://*.tile.openstreetmap.org;
  font-src 'self';
  frame-src 'none';
  frame-ancestors 'none';
@@ -63,6 +63,52 @@
   .track-error {
     text-align: center; padding: 40px 20px; color: var(--color-text-soft);
   }
+
+  /* ── Pagar mi pedido ── */
+  #pago-zone:empty { display: none; }
+  #pago-zone { margin-bottom: 14px; }
+  .btn-pagar, .pago-btn {
+    width: 100%; border: none; border-radius: var(--radius-pill, 999px);
+    padding: 13px; font-size: 14px; font-weight: 700; cursor: pointer;
+    background: var(--gradient-accent, #7c3aed); color: #fff; font-family: inherit;
+  }
+  .btn-pagar:disabled, .pago-btn:disabled { opacity: .6; cursor: default; }
+  .pago-btn.sec {
+    background: var(--color-surface-2); color: var(--color-text-primary);
+    border: 1px solid var(--color-border-subtle);
+  }
+  .pago-panel {
+    background: var(--color-surface-2); border: 1px solid var(--color-border-subtle);
+    border-radius: var(--radius-lg); padding: 16px; display: flex; flex-direction: column; gap: 10px;
+  }
+  .pago-titulo { font-size: 15px; font-weight: 700; color: var(--color-text-primary); }
+  .pago-total { font-size: 18px; font-weight: 800; color: var(--color-text-primary); }
+  .pago-resumen { font-size: 12.5px; color: var(--color-text-soft); margin-top: -6px; }
+  .pago-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; color: var(--color-text-soft); }
+  .pago-clabe {
+    font-family: 'Courier New', monospace; font-size: 17px; font-weight: 700; letter-spacing: .05em;
+    word-break: break-all; color: var(--color-text-primary);
+  }
+  a.pago-btn { display: block; text-align: center; text-decoration: none; box-sizing: border-box; }
+  .pago-nota { font-size: 11.5px; color: var(--color-text-soft); text-align: center; margin: 0; }
+
+  .pago-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,.7); z-index: 300;
+    display: flex; align-items: center; justify-content: center; padding: 20px;
+  }
+  .pago-modal {
+    background: var(--color-surface); border-radius: var(--radius-lg); padding: 20px;
+    width: 100%; max-width: 380px; box-sizing: border-box; display: flex; flex-direction: column; gap: 10px;
+  }
+  .pago-modal h2 { margin: 0; font-size: 16px; color: var(--color-text-primary); }
+  .pago-modal p { margin: 0; font-size: 13px; color: var(--color-text-soft); }
+  .pago-modal input {
+    width: 100%; box-sizing: border-box; padding: 12px 14px; border-radius: var(--radius-md);
+    border: 1px solid var(--color-border-subtle); background: var(--color-surface-2);
+    color: var(--color-text-primary); font-size: 14px; font-family: inherit;
+  }
+  .pago-err { color: #f87171; font-size: 12.5px; min-height: 1.1em; }
+  .pago-link { color: var(--color-accent-solid, #a78bfa); font-size: 12.5px; cursor: pointer; text-align: center; }
 </style>
 </head>
 <body>
@@ -74,6 +120,7 @@
   </div>
   <div id="banner"></div>
   <p class="eta-note" id="eta-note"></p>
+  <div id="pago-zone"></div>
   <div id="map"></div>
   <p class="track-note">El mapa se actualiza solo cada pocos segundos mientras tengas esta página abierta — no hace falta que la recargues.</p>
 </div>
@@ -81,6 +128,8 @@
 <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
 const API_BASE = "https://live-api-1038143238323.us-central1.run.app"; // TODO: pegar la URL real tras el deploy
+const VENDEDORES_API = "https://vendedores-api-1038143238323.us-central1.run.app";
+const VENTAS_API = "https://ventas-api-1038143238323.us-central1.run.app";
 
 const params = new URLSearchParams(location.search);
 const liveId = params.get('live');
@@ -231,7 +280,13 @@ const ESTADO_BANNER = {
 };
 
 function actualizarBanner(entrega) {
-  const [clase, texto] = ESTADO_BANNER[entrega.estado] || ESTADO_BANNER.pendiente;
+  let [clase, texto] = ESTADO_BANNER[entrega.estado] || ESTADO_BANNER.pendiente;
+  // El estado de entrega sigue en "pendiente" aunque el vendedor ya confirmó
+  // el stock — ese aviso ya no debe decir "esperando confirmación".
+  if ((entrega.estado || 'pendiente') === 'pendiente' && entrega.pedidoConfirmado) {
+    clase = 'preparando';
+    texto = '✅ El vendedor confirmó tu pedido — pronto saldrá a entregarse';
+  }
 
   if (entrega.estado === 'en-ruta' && typeof entrega.repartidorLat === 'number') {
     bannerEl.innerHTML = `<div class="estado-banner en-camino">🛵 El repartidor está en camino – puedes ver su ubicación en el mapa</div>`;
@@ -242,6 +297,181 @@ function actualizarBanner(entrega) {
   if (entrega.estado === 'entregado' && pollTimer) { clearInterval(pollTimer); pollTimer = null; }
 }
 
+// ── Pagar mi pedido ──────────────────────────────────────────────────
+// El botón solo aparece cuando el vendedor ya confirmó el stock, tiene al
+// menos una forma de pago y el pedido no está entregado (lo decide el
+// backend con un booleano). Los datos reales de pago (CLABE, link, tarjeta)
+// SOLO se piden con la sesión del comprador (teléfono + contraseña): tener
+// el link de seguimiento no basta para verlos.
+const pagoZone = document.getElementById('pago-zone');
+let pagoUI = null;          // null | 'boton' | 'panel'
+let pagoDescartado = false; // el backend dijo que ya no hay nada que pagar
+
+async function postForm(base, data) {
+  const res = await fetch(base, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams(data).toString()
+  });
+  return res.json();
+}
+
+function pedirMetodosPago() {
+  return postForm(API_BASE, {
+    action: 'obtenerMetodosPagoEntrega', liveId, compradorKey,
+    compradorToken: localStorage.getItem('comprador_token') || ''
+  });
+}
+
+function limpiarPago() { pagoZone.innerHTML = ''; pagoUI = null; }
+
+function actualizarPago(entrega) {
+  const debeMostrar = !pagoDescartado && entrega.pagoDisponible === true && entrega.estado !== 'entregado';
+  if (!debeMostrar) { limpiarPago(); return; }
+  if (pagoUI) return; // ya está el botón (o el panel abierto): el poll no lo repinta
+  pintarBotonPagar();
+}
+
+function pintarBotonPagar() {
+  pagoZone.innerHTML = '';
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = 'btn-pagar';
+  btn.textContent = '💳 Pagar mi pedido';
+  btn.addEventListener('click', () => abrirPago(btn));
+  pagoZone.appendChild(btn);
+  pagoUI = 'boton';
+}
+
+async function abrirPago(btn) {
+  const textoOriginal = btn.textContent;
+  btn.disabled = true; btn.textContent = 'Cargando…';
+  try {
+    let r = await pedirMetodosPago();
+    if (r.requiereLogin) {
+      btn.disabled = false; btn.textContent = textoOriginal;
+      if (!(await pedirLoginComprador())) return;
+      btn.disabled = true; btn.textContent = 'Cargando…';
+      r = await pedirMetodosPago();
+    }
+    if (!r.ok) { alert(r.error || 'No se pudieron cargar las formas de pago.'); btn.disabled = false; btn.textContent = textoOriginal; return; }
+    if (!r.mostrar) { pagoDescartado = true; limpiarPago(); return; } // nada que pagar: se oculta todo
+    pintarPanelPago(r);
+  } catch (err) {
+    console.error('abrirPago falló:', err);
+    alert('No se pudieron cargar las formas de pago. Intenta de nuevo.');
+    btn.disabled = false; btn.textContent = textoOriginal;
+  }
+}
+
+function elPago(tag, cls, texto) {
+  const el = document.createElement(tag);
+  if (cls) el.className = cls;
+  if (texto != null) el.textContent = texto;
+  return el;
+}
+
+function pintarPanelPago(r) {
+  pagoZone.innerHTML = '';
+  const panel = elPago('div', 'pago-panel');
+  panel.appendChild(elPago('div', 'pago-titulo', r.vendedorNombre ? `Pagar a ${r.vendedorNombre}` : 'Pagar mi pedido'));
+  panel.appendChild(elPago('div', 'pago-total', `Total: $${Number(r.total || 0).toLocaleString()} MXN`));
+  if (r.resumen) panel.appendChild(elPago('div', 'pago-resumen', r.resumen));
+
+  const m = r.metodos || {};
+  if (m.clabe) {
+    panel.appendChild(elPago('div', 'pago-label', 'Transferencia (CLABE)'));
+    panel.appendChild(elPago('div', 'pago-clabe', m.clabe));
+    const copiar = elPago('button', 'pago-btn sec', 'Copiar CLABE');
+    copiar.type = 'button';
+    copiar.addEventListener('click', async () => {
+      try { await navigator.clipboard.writeText(m.clabe); copiar.textContent = '¡Copiada!'; }
+      catch (_) { copiar.textContent = 'Copia la CLABE de arriba'; }
+      setTimeout(() => { copiar.textContent = 'Copiar CLABE'; }, 1800);
+    });
+    panel.appendChild(copiar);
+  }
+  if (m.linkPago && /^https?:\/\//i.test(m.linkPago)) {
+    const a = elPago('a', 'pago-btn sec', 'Ir al link de pago del vendedor');
+    a.href = m.linkPago; a.target = '_blank'; a.rel = 'noopener noreferrer';
+    panel.appendChild(a);
+  }
+  if (m.tarjeta) {
+    const t = elPago('button', 'pago-btn', '💳 Pagar con tarjeta');
+    t.type = 'button';
+    t.addEventListener('click', async () => {
+      t.disabled = true; t.textContent = 'Generando link de pago…';
+      try {
+        const res = await postForm(VENTAS_API, { action: 'crearPreferenciaComunidad', requestId: r.requestId, vendedor_uid: r.vendedorUid });
+        if (res.ok && res.url) { window.location.href = res.url; return; }
+        alert(res.error || 'No se pudo generar el link de pago');
+      } catch (_) { alert('No se pudo generar el link de pago'); }
+      t.disabled = false; t.textContent = '💳 Pagar con tarjeta';
+    });
+    panel.appendChild(t);
+  }
+  panel.appendChild(elPago('p', 'pago-nota', 'Estos datos solo los ves tú, con tu sesión.'));
+  const cerrar = elPago('button', 'pago-btn sec', 'Cerrar');
+  cerrar.type = 'button';
+  cerrar.addEventListener('click', () => { limpiarPago(); pintarBotonPagar(); });
+  panel.appendChild(cerrar);
+  pagoZone.appendChild(panel);
+  pagoUI = 'panel';
+}
+
+// Login mínimo (teléfono del pedido + contraseña de comprador). Devuelve
+// true si quedó una sesión válida guardada en localStorage.
+function pedirLoginComprador() {
+  return new Promise((resolve) => {
+    const tel = /^\d{10}$/.test(compradorKey)
+      ? compradorKey
+      : String(localStorage.getItem('client_phone') || '').replace(/\D/g, '');
+    const overlay = elPago('div', 'pago-overlay');
+    const modal = elPago('div', 'pago-modal');
+    modal.appendChild(elPago('h2', null, 'Inicia sesión para pagar'));
+    modal.appendChild(elPago('p', null, 'Por seguridad, las formas de pago solo se muestran con tu contraseña de comprador.'));
+    const inTel = elPago('input'); inTel.type = 'tel'; inTel.inputMode = 'numeric'; inTel.maxLength = 10;
+    inTel.placeholder = 'Tu teléfono (10 dígitos)'; inTel.value = tel; inTel.autocomplete = 'tel';
+    const inPw = elPago('input'); inPw.type = 'password'; inPw.placeholder = 'Tu contraseña'; inPw.autocomplete = 'current-password';
+    const err = elPago('div', 'pago-err');
+    const ok = elPago('button', 'pago-btn', 'Continuar'); ok.type = 'button';
+    const olv = elPago('div', 'pago-link', '¿Olvidaste tu contraseña?');
+    const cancel = elPago('button', 'pago-btn sec', 'Cancelar'); cancel.type = 'button';
+    [inTel, inPw, err, ok, olv, cancel].forEach(n => modal.appendChild(n));
+    overlay.appendChild(modal);
+    document.body.appendChild(overlay);
+    setTimeout(() => (inTel.value ? inPw : inTel).focus(), 50);
+
+    const cerrar = (v) => { overlay.remove(); resolve(v); };
+    cancel.addEventListener('click', () => cerrar(false));
+    inPw.addEventListener('keydown', (e) => { if (e.key === 'Enter') ok.click(); });
+    olv.addEventListener('click', async () => {
+      const t = inTel.value.replace(/\D/g, '');
+      if (t.length !== 10) { err.style.color = '#f87171'; err.textContent = 'Escribe primero tu número de 10 dígitos.'; return; }
+      await postForm(VENDEDORES_API, { action: 'solicitarResetComprador', telefono: t }).catch(() => {});
+      err.style.color = '#4ade80';
+      err.textContent = 'Listo. El administrador te contactará por WhatsApp con un código nuevo.';
+    });
+    ok.addEventListener('click', async () => {
+      const t = inTel.value.replace(/\D/g, '');
+      err.style.color = '#f87171';
+      if (t.length !== 10) { err.textContent = 'Número inválido. Debe tener 10 dígitos.'; return; }
+      if (!inPw.value) { err.textContent = 'Escribe tu contraseña.'; return; }
+      ok.disabled = true; err.textContent = '';
+      const r = await postForm(VENDEDORES_API, { action: 'loginComprador', telefono: t, password: inPw.value })
+        .catch(() => ({ error: 'Sin conexión. Intenta de nuevo.' }));
+      ok.disabled = false;
+      if (r.ok && r.token) {
+        localStorage.setItem('client_phone', t);
+        localStorage.setItem('comprador_token', r.token);
+        cerrar(true);
+        return;
+      }
+      err.textContent = r.error || 'No se pudo iniciar sesión.';
+    });
+  });
+}
+
 async function cargar() {
   try {
     const resp = await apiFetch('obtenerEntregaPorClave');
@@ -250,6 +480,7 @@ async function cargar() {
     tituloEl.textContent = 'Seguimiento de tu pedido';
     subEl.textContent = e.vendedorNombre ? `De ${e.vendedorNombre}` : '';
     actualizarBanner(e);
+    actualizarPago(e);
     actualizarETA(e);
     actualizarMapa(e);
   } catch (err) {
