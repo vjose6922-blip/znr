@@ -788,7 +788,7 @@ async function renderCreateForm() {
   tipoSeleccionado = 'vivo';
   orientacionSeleccionada = 'horizontal';
   faqItems = FAQ_SUGERIDAS.map(q => faqNueva(q, false));
-  categoriasForm = []; catAsign = new Map(); catActivaId = null;
+  categoriasForm = []; catAsign = new Map(); catActivaId = null; miniaturaData = '';
 
   wrap.innerHTML = `
     <div class="live-card">
@@ -815,6 +815,16 @@ async function renderCreateForm() {
       <div class="field-group">
         <label>Descripción (opcional)</label>
         <textarea id="f-desc" maxlength="200" placeholder="¿Qué vas a mostrar hoy?"></textarea>
+      </div>
+      <div class="field-group">
+        <label>Fecha y hora de inicio (opcional)</label>
+        <input type="datetime-local" id="f-fecha">
+        <p class="hint" style="margin-top:6px;">Si la pones, tu transmisión aparece en "Próximas transmisiones" para que tus compradores pidan que les avisen cuando empiece.</p>
+      </div>
+      <div class="field-group">
+        <label>Foto de portada (opcional)</label>
+        <input type="file" id="f-foto" accept="image/*">
+        <img id="f-foto-prev" alt="" style="display:none;width:100%;max-height:160px;object-fit:cover;border-radius:12px;margin-top:8px;">
       </div>
       <div class="field-group">
         <label>Orientación de tu video</label>
@@ -865,6 +875,11 @@ async function renderCreateForm() {
   });
 
   document.getElementById('btn-crear-sesion').addEventListener('click', crearSesion);
+  document.getElementById('f-foto').addEventListener('change', async (e) => {
+    const prev = document.getElementById('f-foto-prev');
+    miniaturaData = e.target.files[0] ? await comprimirImagen(e.target.files[0]).catch(() => '') : '';
+    prev.src = miniaturaData; prev.style.display = miniaturaData ? 'block' : 'none';
+  });
   document.getElementById('btn-faq-add').addEventListener('click', () => {
     if (faqItems.length >= FAQ_MAX) return;
     const nueva = faqNueva('', true);
@@ -1052,6 +1067,14 @@ async function loadProductGrid() {
   }
 }
 
+let miniaturaData = '';
+async function comprimirImagen(file, max = 640) {
+  const bmp = await createImageBitmap(file), k = Math.min(1, max / Math.max(bmp.width, bmp.height));
+  const c = Object.assign(document.createElement('canvas'), { width: Math.round(bmp.width * k), height: Math.round(bmp.height * k) });
+  c.getContext('2d').drawImage(bmp, 0, 0, c.width, c.height);
+  return c.toDataURL('image/jpeg', 0.8);
+}
+
 async function crearSesion() {
   const titulo = document.getElementById('f-titulo').value.trim();
   const desc = document.getElementById('f-desc').value.trim();
@@ -1100,6 +1123,8 @@ async function crearSesion() {
       action: 'crearSesionLive',
       vendorToken: vendorSession.token,
       titulo, descripcion: desc,
+      fecha_programada: document.getElementById('f-fecha').value ? new Date(document.getElementById('f-fecha').value).toISOString() : '',
+      miniatura: miniaturaData,
       tipo: tipoSeleccionado,
       orientacion: orientacionSeleccionada,
       productos_ids: Array.from(selectedProductIds).join(';'),
@@ -1133,6 +1158,7 @@ function renderScheduled() {
       <span class="status-badge scheduled"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" aria-hidden="true"><use href="#ic-calendar"/></svg> PROGRAMADO</span>
       <h2 style="margin-top:12px;">${esc(currentSesion.titulo)}</h2>
       <p class="hint">${esc(currentSesion.descripcion || 'Sin descripción')}</p>
+      ${currentSesion.fecha_programada ? `<p class="hint"><strong>Inicio programado:</strong> ${new Date(currentSesion.fecha_programada).toLocaleString('es-MX', { weekday: 'long', day: 'numeric', month: 'long', hour: 'numeric', minute: '2-digit' })}</p>` : ''}
 
       <label style="display:block; font-size:12px; font-weight:600; color:var(--color-text-soft); text-transform:uppercase; letter-spacing:.05em; margin-bottom:6px;">Link para tus compradores</label>
       <div class="share-box">

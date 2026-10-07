@@ -24,6 +24,7 @@
    https://firebaseinstallations.googleapis.com
    https://fcmregistrations.googleapis.com
    https://registrar-token-fcm-1038143238323.us-central1.run.app
+   https://live-api-1038143238323.us-central1.run.app
    https://ventas-api-1038143238323.us-central1.run.app
    https://vendedores-api-1038143238323.us-central1.run.app
    https://catalogo-api-1038143238323.us-central1.run.app
@@ -855,6 +856,7 @@
   <script src="cover-portada.js" defer></script>
   <script src="znr-devconsole.js" defer></script>
   <script src="notification-center.js" defer></script>
+  <script src="live-notif.js" defer></script>
   <script src="error-monitor.js" defer></script>
   <script src="cache-manager.js" defer></script>
 
@@ -1182,6 +1184,7 @@ const infoBits = [
               ${confiableBadgeHtml}
             </div>
             <div id="profile-rating-slot" style="margin:2px 0 6px;font-size:13px;color:#888;"></div>
+            ${isPlus && window.znrLiveNotif ? znrLiveNotif.boton('vendedor', v.uid, 'Avisarme cuando transmita') : ''}
 
             <div class="profile-accordion">
               <div class="acc-tabs" role="tablist" id="acc-tabs-list">
