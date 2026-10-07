@@ -315,10 +315,17 @@
   'use strict';
 
   const params0 = new URLSearchParams(location.search);
+  // Código de acceso del repartidor (?id=...&t=CODIGO): se guarda en el
+  // dispositivo para que sobreviva a recargas, a la cola offline y a abrir la
+  // página sin el parámetro. Si el vendedor lo cambia, el servidor lo rechaza
+  // (requiereCodigo) y aquí se borra.
+  const tokKey = 'zr_entregas_t_' + params0.get('id');
+  if (params0.get('t')) { try { localStorage.setItem(tokKey, params0.get('t')); } catch (e) { /* sin storage */ } }
+  const tokenEntregas = () => params0.get('t') || localStorage.getItem(tokKey) || '';
   async function apiFetch(data, method = 'GET') {
     const API_BASE = "https://live-api-1038143238323.us-central1.run.app";
     const params = new URLSearchParams();
-    Object.entries({ ...data, token: params0.get('t') }).forEach(([k, v]) => {
+    Object.entries({ ...data, token: tokenEntregas() }).forEach(([k, v]) => {
       if (v !== undefined && v !== null) params.append(k, v);
     });
     let res;
@@ -565,7 +572,7 @@
           <h3>${Icon('map-pin')} Ruta (${puntos.length} parada${puntos.length === 1 ? '' : 's'})</h3>
           <button class="route-modal-close" id="route-modal-close" aria-label="Cerrar">&times;</button>
         </div>
-        <p class="route-note route-note-info">Tu punto morado se mueve solo · recalcula cada 15s</p>
+        <p class="route-note route-note-info" id="route-gps-note">Buscando tu ubicación…</p>
         <p class="route-note" id="route-note" style="display:none;"></p>
         <div class="route-list-sheet" id="route-sheet">
           <div class="sheet-handle" id="sheet-handle" role="button" aria-label="Mostrar u ocultar paradas"></div>
@@ -602,17 +609,33 @@
       sheet.classList.toggle('collapsed');
       const colapsado = sheet.classList.contains('collapsed');
       sheetTitle.textContent = `${puntos.length} parada${puntos.length === 1 ? '' : 's'} · toca para ${colapsado ? 'expandir' : 'ocultar'}`;
+      // Espera a que termine la animación del sheet (.3s) y re-centra si sigues en modo seguir
+      setTimeout(() => { if (map && followMode && repMarker) map.panTo(desplazarCentro(repMarker.getLatLng()), { animate: true, duration: 0.4 }); }, 320);
     });
 
     if (!puntos.length || typeof L === 'undefined') return;
 
     function calcularPadding() {
-      const h = window.innerHeight;
-      const sheetH = sheet.classList.contains('collapsed') ? 70 : Math.min(h * 0.55, 380);
+      const sheetH = sheet.offsetHeight || (sheet.classList.contains('collapsed') ? 70 : Math.min(window.innerHeight * 0.55, 380));
       return {
         paddingTopLeft: [30, 100],
         paddingBottomRight: [30, sheetH + 20]
       };
+    }
+
+    // El bottom-sheet (y el encabezado) tapan parte del mapa: el "centro" de lo que
+    // realmente se ve NO es el centro del contenedor. setView/panTo a secas dejaban
+    // tu punto justo debajo del sheet; aquí se desplaza el centro para que tu punto
+    // quede en medio de la zona visible.
+    function desplazarCentro(latlng, zoom) {
+      const z = zoom != null ? zoom : map.getZoom();
+      const pad = calcularPadding();
+      const dy = (pad.paddingBottomRight[1] - pad.paddingTopLeft[1]) / 2;
+      return map.unproject(map.project(latlng, z).add([0, dy]), z);
+    }
+    function centrarEn(latlng, zoom, animate) {
+      const z = zoom != null ? zoom : map.getZoom();
+      map.setView(desplazarCentro(latlng, z), z, { animate });
     }
 
     function recalcular(repLatLng) {
@@ -654,7 +677,7 @@
               // Al reactivar seguimiento, subimos el zoom a nivel calle
               // (mínimo 15) para que realmente se vea el punto morado, no
               // una vista de ciudad entera donde el punto es una mota.
-              map.setView(repMarker.getLatLng(), Math.max(map.getZoom(), 15), { animate: true });
+              centrarEn(repMarker.getLatLng(), Math.max(map.getZoom(), 15), true);
             } else if (line) {
               map.fitBounds(line.getBounds(), calcularPadding());
             }
@@ -683,7 +706,8 @@
       map.on('dragstart', () => { followMode = false; });
       recalcular(null);
 
-      if (!navigator.geolocation) return;
+      const gpsNote = document.getElementById('route-gps-note');
+      if (!navigator.geolocation) { if (gpsNote) gpsNote.textContent = 'Tu navegador no soporta geolocalización.'; return; }
       const repIcon = L.divIcon({
         className: '', html: '<div style="width:14px;height:14px;border-radius:50%;background:#c084fc;border:2px solid #fff;box-shadow:0 0 0 2px #c084fc;"></div>',
         iconSize: [14, 14], iconAnchor: [7, 7]
@@ -703,17 +727,21 @@
             // Apago fitAutoPendiente AQUÍ (antes de que OSRM responda) para
             // que el fitBounds de recalcular() no vuelva a alejar la vista.
             fitAutoPendiente = false;
-            map.setView(repLatLng, 15, { animate: true });
+            centrarEn(repLatLng, 15, true);
           } else {
-            map.panTo(repLatLng, { animate: true, duration: 0.5 });
+            map.panTo(desplazarCentro(repLatLng), { animate: true, duration: 0.5 });
           }
         }
+        if (primeraVez && gpsNote) gpsNote.textContent = 'Tu punto morado se mueve solo · recalcula cada 15s';
 
         const ahora = Date.now();
         if (ahora - ultimoCalculo < REFRESH_MS) return;
         ultimoCalculo = ahora;
         recalcular(repLatLng);
-      }, () => {}, { enableHighAccuracy: true, maximumAge: 5000 });
+      }, (err) => {
+        // Antes el error se tragaba en silencio y el mapa se quedaba sin centrar sin explicar por qué.
+        if (gpsNote && err && err.code === 1) gpsNote.textContent = 'Activa el permiso de ubicación del navegador para ver tu punto en el mapa.';
+      }, { enableHighAccuracy: true, maximumAge: 5000 });
     }, 50);
   }
 
@@ -854,6 +882,10 @@
     if (!silent) wrap.innerHTML = '<div class="loading-spinner"></div>';
     try {
       const resp = await apiFetch({ action: 'obtenerEntregasLive', liveId });
+      if (resp.requiereCodigo) { // link sin código o código cambiado: no se enseña ni lo guardado sin conexión
+        localStorage.removeItem(cacheKey()); localStorage.removeItem(tokKey);
+        renderInvalido(resp.error); return;
+      }
       if (!resp.ok) { if (!silent) renderInvalido(resp.error || 'Error al cargar los datos'); return; }
       const txt = JSON.stringify(resp), igual = txt === localStorage.getItem(cacheKey());
       localStorage.setItem(cacheKey(), txt);

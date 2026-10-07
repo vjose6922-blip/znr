@@ -149,12 +149,6 @@ let repartidorMarker = null;
 let pollTimer = null;
 let followMode = true; // true = el mapa sigue al repartidor solo; se apaga si arrastras el mapa a mano
 
-async function apiFetch(action, extra) {
-  const p = new URLSearchParams({ action, liveId, compradorKey, ...extra });
-  const res = await fetch(`${API_BASE}?${p.toString()}`);
-  return res.json();
-}
-
 function renderError(msg) {
   if (pollTimer) clearInterval(pollTimer);
   wrap.innerHTML = `<div class="track-error">${msg}</div>`;
@@ -428,8 +422,8 @@ function pedirLoginComprador() {
       : String(localStorage.getItem('client_phone') || '').replace(/\D/g, '');
     const overlay = elPago('div', 'pago-overlay');
     const modal = elPago('div', 'pago-modal');
-    modal.appendChild(elPago('h2', null, 'Inicia sesión para pagar'));
-    modal.appendChild(elPago('p', null, 'Por seguridad, las formas de pago solo se muestran con tu contraseña de comprador.'));
+    modal.appendChild(elPago('h2', null, 'Inicia sesión'));
+    modal.appendChild(elPago('p', null, 'Por seguridad, el seguimiento de tu pedido y sus formas de pago solo se muestran con tu contraseña de comprador.'));
     const inTel = elPago('input'); inTel.type = 'tel'; inTel.inputMode = 'numeric'; inTel.maxLength = 10;
     inTel.placeholder = 'Tu teléfono (10 dígitos)'; inTel.value = tel; inTel.autocomplete = 'tel';
     const inPw = elPago('input'); inPw.type = 'password'; inPw.placeholder = 'Tu contraseña'; inPw.autocomplete = 'current-password';
@@ -472,9 +466,27 @@ function pedirLoginComprador() {
   });
 }
 
+// El seguimiento ya no es público: se pide con la sesión de comprador del
+// teléfono dueño del pedido (teléfono + contraseña, se pide una vez por dispositivo).
+let esperandoLogin = false;
+async function exigirLogin() {
+  esperandoLogin = true;
+  if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
+  const ok = await pedirLoginComprador();
+  esperandoLogin = false;
+  if (ok) { cargar(); pollTimer = setInterval(cargar, 5000); return; }
+  wrap.innerHTML = '<div class="track-error">Para ver el seguimiento de tu pedido necesitas iniciar sesión.<br><br><button type="button" class="btn-pagar" id="btn-login-seg">Iniciar sesión</button></div>';
+  document.getElementById('btn-login-seg').addEventListener('click', () => location.reload());
+}
+
 async function cargar() {
+  if (esperandoLogin) return;
   try {
-    const resp = await apiFetch('obtenerEntregaPorClave');
+    const resp = await postForm(API_BASE, {
+      action: 'obtenerEntregaPorClave', liveId, compradorKey,
+      compradorToken: localStorage.getItem('comprador_token') || ''
+    });
+    if (resp.requiereLogin) { await exigirLogin(); return; }
     if (!resp.ok) { renderError('No se encontró esta entrega. Puede que el link haya caducado.'); return; }
     const e = resp.entrega;
     tituloEl.textContent = 'Seguimiento de tu pedido';

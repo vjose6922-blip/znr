@@ -152,6 +152,24 @@
   .btn-live:disabled { opacity: .5; cursor: not-allowed; }
   .btn-live.primary { background: var(--gradient-accent); color: #fff; }
   .btn-live.danger { background: #ef4444; color: #fff; }
+  /* ── Resumen de ventas por comprador ── */
+  .rv-card { padding: 14px; margin-bottom: 12px; }
+  .rv-head { display: flex; flex-direction: column; gap: 2px; margin-bottom: 8px; }
+  .rv-head strong { font-size: 14px; color: var(--color-text-primary); }
+  .rv-head span { font-size: 12px; color: var(--color-text-soft); }
+  .rv-head span.warn { color: #f59e0b; }
+  .rv-item { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-top: 1px solid var(--color-border-subtle, rgba(255,255,255,.08)); }
+  .rv-item img { width: 40px; height: 40px; border-radius: 8px; object-fit: cover; flex-shrink: 0; background: rgba(255,255,255,.06); }
+  .rv-info { flex: 1; min-width: 0; }
+  .rv-info .n { font-size: 13px; font-weight: 600; color: var(--color-text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .rv-info .p { font-size: 12px; color: var(--color-text-soft); }
+  .rv-item.out .n, .rv-item.out .p { text-decoration: line-through; opacity: .55; }
+  .rv-item .tag-sin { display: none; font-size: 10.5px; font-weight: 700; color: #f87171; }
+  .rv-item.out .tag-sin { display: inline; }
+  .rv-x { border: 1px solid #ef4444; background: transparent; color: #ef4444; border-radius: 8px; padding: 6px 9px; font-size: 11.5px; font-weight: 700; cursor: pointer; flex-shrink: 0; font-family: inherit; }
+  .rv-item.out .rv-x { border-color: var(--color-border-subtle, #888); color: var(--color-text-soft); }
+  .rv-sub { text-align: right; font-size: 12.5px; font-weight: 700; color: var(--color-text-primary); padding-top: 8px; border-top: 1px solid var(--color-border-subtle, rgba(255,255,255,.08)); }
+  .rv-resumen { font-size: 13px; color: var(--color-text-soft); margin: 0 0 12px; line-height: 1.5; }
   .btn-live.ghost {
     background: var(--color-surface-2); color: var(--color-text-primary);
     border: 1px solid var(--color-border-subtle);
@@ -1714,7 +1732,7 @@ async function finalizarTransmision(finBtn) {
   await detenerTransmision(); // corta cámara y Cloudflare, y sube el último segmento del respaldo
   try { localStorage.removeItem('znr_live_seq_' + currentSesion.id); } catch (e) { /* sin storage */ }
 
-  let entregaUrl = null;
+  let revision = null; // borrador de ventas por revisar (lo arma cerrarVentasLive)
 
   try {
     const snap = await withTimeout(get(ref(db, `chats/${currentSesion.id}/messages`)), 5000);
@@ -1751,8 +1769,7 @@ async function finalizarTransmision(finBtn) {
         comprador_nota: c.nota || '',
         comprador_horario: c.horario || '',
         comprador_lat: (typeof c.lat === 'number') ? c.lat : null,
-        comprador_lng: (typeof c.lng === 'number') ? c.lng : null,
-        comprador_direccion: '' // se llena abajo con lo que regrese cerrarVentasLive
+        comprador_lng: (typeof c.lng === 'number') ? c.lng : null
       };
     });
 
@@ -1762,24 +1779,21 @@ async function finalizarTransmision(finBtn) {
       // fijo de 8s no alcanza si hay varios, así que crece con la
       // cantidad de compradores únicos.
       const timeoutCierre = Math.max(8000, 3000 + uidsConVenta.length * 1300);
+      // Ya no crea pedidos ni tarjetas en vendedor.html: guarda un borrador
+      // "por revisar" agrupado por comprador (con la dirección ya
+      // geocodificada) que se muestra en el resumen de abajo.
       const resp = await withTimeout(apiFetch({
         action: 'cerrarVentasLive',
         vendorToken: vendorSession.token,
+        liveId: currentSesion.id,
+        liveTitulo: currentSesion.titulo || '',
         ventas: JSON.stringify(ventas)
       }), timeoutCierre);
       if (resp.ok) {
-        alert(`${resp.added} venta(s) de ${resp.compradores} comprador(es) enviadas a tus notificaciones para confirmar.`);
-        // La dirección legible ya se calculó una sola vez adentro de
-        // cerrarVentasLive (reverse geocoding) — se reutiliza aquí para
-        // no volver a llamar a Nominatim al armar la página de entregas.
-        const direcciones = resp.direcciones || {};
-        ventas.forEach(v => {
-          v.comprador_direccion = direcciones[v.comprador_telefono || ''] || '';
-        });
+        revision = resp.revision || null;
       } else {
         alert('No se pudieron registrar las ventas: ' + (resp.error || 'error desconocido') + '. Puedes revisarlas manualmente en el chat.');
       }
-      entregaUrl = await crearPaginaEntregas(ventas);
     }
   } catch (err) {
     console.error('finalizarTransmision: no se pudieron leer los "vendidos" (revisa las reglas de Firebase):', err);
@@ -1796,67 +1810,141 @@ async function finalizarTransmision(finBtn) {
   update(ctrlRef(), { pedir: 'terminado', ts: Date.now() }).catch(() => {}); // el 2º dispositivo se apaga solo
   if (chatUnsub) chatUnsub();
   if (presenceUnsub) { presenceUnsub(); presenceUnsub = null; }
-  renderEnded(entregaUrl);
+  if (revision && revision.grupos && revision.grupos.length) renderResumenVentas(revision);
+  else renderEnded(null);
 }
 
-// ── Arma el paquete de entrega (agrupado por comprador) y lo guarda
-// en el backend (hoja Entregas_Live). El link que se comparte solo
-// lleva el id del 00000
-// y el estado ENTREGADO/PENDIENTE queda guardado, no solo local. ──
-async function crearPaginaEntregas(ventas) {
-  try {
-    const grupos = {};
-    ventas.forEach(v => {
-      const key = v.comprador_telefono || ('sin_tel_' + v.comprador_nombre);
-      if (!grupos[key]) {
-        grupos[key] = {
-          key: key,
-          nombre: v.comprador_nombre || 'Comprador',
-          telefono: v.comprador_telefono || '',
-          direccion: v.comprador_direccion || '', // ya viene reverse-geocodificada desde cerrarVentasLive
-          nota: v.comprador_nota || '',
-          horario: v.comprador_horario || '',
-          lat: (typeof v.comprador_lat === 'number') ? v.comprador_lat : null,
-          lng: (typeof v.comprador_lng === 'number') ? v.comprador_lng : null,
-          items: [],
-          total: 0
-        };
-      }
-      const prod = allProducts.find(p => String(p.id) === String(v.productId));
-      const precio = prod ? (Number(prod.precio) || 0) : 0;
-      grupos[key].items.push({ nombre: (prod && prod.nombre) || 'Producto', precio });
-      grupos[key].total += precio;
+// El link del repartidor lleva el código de acceso del live (&t=...).
+function entregasUrlDe(liveId, token) {
+  return `${location.origin}${location.pathname.replace('vendedor-live.html', 'entregas-live.html')}?id=${encodeURIComponent(liveId)}${token ? '&t=' + encodeURIComponent(token) : ''}`;
+}
+
+// ── Resumen de ventas del live, agrupado por comprador. Aquí el vendedor
+// quita los artículos que no tiene en existencia (error humano) y confirma:
+// al confirmar se notifica a cada comprador y se genera la página de
+// entregas. Reemplaza a las tarjetas "Tienes una venta por confirmar". ──
+function renderResumenVentas(rev) {
+  document.body.classList.remove('live-active');
+  subtitle.textContent = 'Resumen de ventas';
+  const grupos = rev.grupos || [];
+  const excluidos = new Set(); // `${indiceGrupo}|${indiceArticulo}`
+  const fmt = (n) => '$' + Number(n || 0).toLocaleString('es-MX');
+  const escA = (v) => esc(v).replace(/"/g, '&quot;');
+
+  function pintar() {
+    let totalArt = 0, totalMonto = 0, sinStock = 0, compradoresOk = 0;
+    const tarjetas = grupos.map((g, gi) => {
+      let subtotal = 0, quedan = 0;
+      const filas = (g.items || []).map((it, i) => {
+        const out = excluidos.has(`${gi}|${i}`);
+        if (out) sinStock++; else { subtotal += Number(it.precio) || 0; quedan++; totalArt++; }
+        return `<div class="rv-item${out ? ' out' : ''}">
+          <img src="${escA(it.imagen || 'https://placehold.co/40x40')}" alt="">
+          <div class="rv-info">
+            <div class="n">${esc(it.nombre)}${it.talla ? ' · ' + esc(it.talla) : ''}</div>
+            <div class="p">${fmt(it.precio)} <span class="tag-sin">· Sin stock</span></div>
+          </div>
+          <button type="button" class="rv-x" data-g="${gi}" data-i="${i}">${out ? 'Deshacer' : '✕ Sin stock'}</button>
+        </div>`;
+      }).join('');
+      totalMonto += subtotal;
+      if (quedan) compradoresOk++;
+      return `<div class="live-card rv-card">
+        <div class="rv-head">
+          <strong>${esc(g.nombre || 'Comprador')}</strong>
+          ${g.telefono ? `<span>${esc(g.telefono)}</span>` : `<span class="warn">Sin teléfono: no recibirá notificación</span>`}
+        </div>
+        ${filas}
+        <div class="rv-sub">${quedan ? 'Subtotal ' + fmt(subtotal) : 'Sin artículos: se le avisará que no hubo stock'}</div>
+      </div>`;
+    }).join('');
+
+    wrap.innerHTML = `
+      <div class="live-card center-text" style="margin-bottom:12px;">
+        <h2>Resumen de ventas</h2>
+        <p class="rv-resumen">${esc(rev.liveTitulo || 'Tu transmisión')}<br>
+          Revisa lo vendido por comprador. Si algún artículo no lo tienes en existencia, quítalo con <b>✕ Sin stock</b>:
+          su stock quedará en 0 y le avisaremos al comprador cuál no había.</p>
+      </div>
+      ${tarjetas}
+      <div class="live-card center-text">
+        <p class="rv-resumen" style="margin:0 0 12px;">
+          <b>${compradoresOk}</b> comprador(es) · <b>${totalArt}</b> artículo(s) · <b>${fmt(totalMonto)}</b>
+          ${sinStock ? `<br><span style="color:#f87171;">${sinStock} artículo(s) sin stock</span>` : ''}
+        </p>
+        <button class="btn-live primary" id="rv-confirmar">Confirmar y enviar a compradores</button>
+        <div style="height:8px;"></div>
+        <button class="btn-live ghost" id="rv-despues">Hacerlo después</button>
+      </div>`;
+
+    wrap.querySelectorAll('.rv-x').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const gi = Number(btn.dataset.g), i = Number(btn.dataset.i), id = `${gi}|${i}`;
+        if (excluidos.has(id)) { excluidos.delete(id); pintar(); return; }
+        const it = grupos[gi].items[i];
+        if (confirm(`¿Marcar "${it.nombre}" como sin existencia?\n\nAl confirmar el resumen su stock quedará en 0 y se le avisará a ${grupos[gi].nombre || 'el comprador'}.`)) {
+          excluidos.add(id); pintar();
+        }
+      });
     });
 
-    const gruposArr = Object.values(grupos);
-    if (!gruposArr.length) return null;
+    document.getElementById('rv-despues').addEventListener('click', () => renderEnded(null, true));
+    document.getElementById('rv-confirmar').addEventListener('click', async (e) => {
+      const btn = e.currentTarget;
+      if (!compradoresOk && !sinStock) return;
+      const avisoSin = sinStock ? `\n• ${sinStock} artículo(s) quedarán con stock 0 y se avisará a los compradores` : '';
+      if (!confirm(`¿Confirmar y enviar?\n\n• ${compradoresOk} comprador(es) recibirán el detalle de su compra${avisoSin}`)) return;
+      btn.disabled = true; btn.textContent = 'Confirmando…';
+      const excluir = [...excluidos].map((id) => {
+        const [gi, i] = id.split('|').map(Number);
+        return { key: grupos[gi].key, i };
+      });
+      try {
+        const resp = await withTimeout(apiFetch({
+          action: 'confirmarVentasLive',
+          vendorToken: vendorSession.token,
+          liveId: rev.liveId,
+          excluir: JSON.stringify(excluir)
+        }), 40000);
+        if (!resp.ok) {
+          alert(resp.error || 'No se pudo confirmar. Intenta de nuevo.');
+          btn.disabled = false; btn.textContent = 'Confirmar y enviar a compradores';
+          return;
+        }
+        let msg = `${resp.confirmados} compra(s) confirmada(s) y notificada(s).`;
+        if (resp.articulosSinStock) msg += ` ${resp.articulosSinStock} artículo(s) quedaron sin stock.`;
+        if (resp.sinTelefono) msg += ` ${resp.sinTelefono} comprador(es) no tienen teléfono y no se les pudo avisar.`;
+        alert(msg);
+        renderEnded(resp.confirmados > 0 ? entregasUrlDe(rev.liveId, resp.entregasToken) : null);
+      } catch (err) {
+        console.error('confirmarVentasLive falló:', err);
+        alert('No se recibió respuesta a tiempo (revisa tu conexión). Puede que ya se haya procesado: revisa "Entregas de tus transmisiones" en tu panel antes de intentarlo otra vez.');
+        btn.disabled = false; btn.textContent = 'Confirmar y enviar a compradores';
+      }
+    });
+  }
+  pintar();
+}
 
-    // Normalmente cada grupo ya trae "direccion" pre-calculada (ver
-    // finalizarTransmision), así que esto no debería necesitar
-    // geocodificar de nuevo — el margen extra es solo por si algún
-    // grupo llegó sin ella y el backend tiene que hacerlo de respaldo.
-    const timeoutEntregas = Math.max(8000, 3000 + gruposArr.length * 1300);
-    const resp = await withTimeout(apiFetch({
-      action: 'guardarEntregasLive',
-      vendorToken: vendorSession.token,
-      liveId: currentSesion.id,
-      liveTitulo: currentSesion.titulo || '',
-      grupos: JSON.stringify(gruposArr)
-    }), timeoutEntregas);
-
-    if (!resp.ok) {
-      console.error('guardarEntregasLive falló:', resp.error);
-      return null;
-    }
-
-    return `${location.origin}${location.pathname.replace('vendedor-live.html', 'entregas-live.html')}?id=${encodeURIComponent(currentSesion.id)}`;
+// Reabre el resumen de un live cuyas ventas quedaron por revisar
+// (vendedor-live.html?revisar=<liveId>, desde "Entregas de tus transmisiones").
+async function abrirRevisionVentas(liveId) {
+  wrap.innerHTML = '<div class="loading-spinner"></div>';
+  try {
+    const resp = await apiFetch({ action: 'obtenerRevisionVentasLive', vendorToken: vendorSession.token, liveId });
+    if (resp.ok && resp.revision) { renderResumenVentas(resp.revision); return; }
+    const msg = resp.ok
+      ? (resp.yaConfirmada ? 'Las ventas de este live ya fueron confirmadas.' : 'No hay ventas por revisar para este live.')
+      : (resp.error || 'No se pudo cargar el resumen.');
+    wrap.innerHTML = `<div class="live-card center-text"><h2>Resumen de ventas</h2><p class="hint">${esc(msg)}</p><button class="btn-live primary" id="rv-volver">Volver</button></div>`;
+    document.getElementById('rv-volver').addEventListener('click', () => { history.replaceState(null, '', location.pathname); cargarSesionActual(); });
   } catch (err) {
-    console.error('crearPaginaEntregas falló:', err);
-    return null;
+    wrap.innerHTML = `<div class="live-card center-text"><h2>Resumen de ventas</h2><p class="hint">Error de conexión al cargar el resumen.</p><button class="btn-live primary" id="rv-volver">Reintentar</button></div>`;
+    document.getElementById('rv-volver').addEventListener('click', () => abrirRevisionVentas(liveId));
   }
 }
 
-function renderEnded(entregaUrl) {
+function renderEnded(entregaUrl, pendienteRevision) {
   document.body.classList.remove('live-active');
   subtitle.textContent = 'Finalizada';
   wrap.innerHTML = `
@@ -1864,6 +1952,7 @@ function renderEnded(entregaUrl) {
       <div class="upsell-icon"><svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" aria-hidden="true"><use href="#ic-check"/></svg></div>
       <h2>Transmisión finalizada</h2>
       <p class="hint">¡Buen trabajo! Cuando quieras, puedes crear una nueva transmisión.</p>
+      ${pendienteRevision ? `<p class="hint" style="text-align:left;">${Icon('box')} Tus ventas quedaron <b>por revisar</b>. Cuando quieras, entra a «Entregas de tus transmisiones» en tu panel para revisarlas y confirmarlas; los compradores no recibirán nada hasta entonces.</p>` : ''}
       ${entregaUrl ? `
         <p class="hint" style="text-align:left;">${Icon('box')} Ya puedes coordinar las entregas de esta transmisión. Comparte este link con tu repartidor si lo necesitas:</p>
         <div class="share-box">
@@ -2045,6 +2134,9 @@ async function init() {
   if (!vendorSession || !vendorSession.token) { renderNoSession(); return; }
 
   if (vendorSession.plan !== 'plus') { renderNoPlus(); return; }
+
+  const revisarId = new URLSearchParams(location.search).get('revisar');
+  if (revisarId) { await abrirRevisionVentas(revisarId); return; }
 
   await cargarSesionActual();
 }

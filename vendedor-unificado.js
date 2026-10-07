@@ -602,7 +602,9 @@ async function loadVendorSaleNotifications() {
       data = await apiCall({ action: 'listarNotificacionesVentaComunidad', vendorToken: vendorSession.token });
     }
     if (!data || !data.ok) return;
-    renderVendorSaleNotifications(data.notificaciones || []);
+    // Las ventas de un live (origenLive) ya no se confirman con tarjetas aquí:
+    // se revisan en el resumen al terminar el live (vendedor-live.html).
+    renderVendorSaleNotifications((data.notificaciones || []).filter(n => !n.origenLive));
   } catch (e) {
     console.error('No se pudieron cargar las notificaciones de venta:', e);
   }
@@ -3278,7 +3280,8 @@ window.openEntregasLiveModal = async function() {
     if (!resp.ok) { lista.textContent = 'Error: ' + (resp.error || 'no se pudo cargar'); return; }
 
     const lives = resp.lives || [];
-    if (lives.length === 0) {
+    const revisiones = resp.revisiones || [];
+    if (lives.length === 0 && revisiones.length === 0) {
       lista.innerHTML = '<p style="color:#aaa;text-align:center;padding:12px 0;">Aún no has cerrado ninguna transmisión con ventas.<br><small>Al finalizar un live con productos vendidos, aparecerá aquí.</small></p>';
       return;
     }
@@ -3290,7 +3293,8 @@ window.openEntregasLiveModal = async function() {
     const renderLive = l => {
       const total = l.grupos.length;
       const entregados = l.grupos.filter(g => g.estado === 'entregado').length;
-      const url = `entregas-live.html?id=${encodeURIComponent(l.liveId)}`;
+      // El link del repartidor lleva el código de acceso del live (&t=...).
+      const url = `entregas-live.html?id=${encodeURIComponent(l.liveId)}${l.tokenEntregas ? '&t=' + encodeURIComponent(l.tokenEntregas) : ''}`;
       const pct = total ? Math.round((entregados / total) * 100) : 0;
       return `<div style="padding:12px 0;border-bottom:1px solid #f5f5f5;">
         <div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start;">
@@ -3302,8 +3306,34 @@ window.openEntregasLiveModal = async function() {
           style="display:inline-block;padding:8px 14px;border-radius:8px;background:#fff7ed;border:1.5px solid #fb923c;color:#c2410c;font-size:.8rem;font-weight:700;text-decoration:none;">
           Ver / actualizar entregas ${Icon('arrow-right',{size:13})}
         </a>
+        <button type="button" data-copiar-entregas="${esc(url)}"
+          style="margin-left:6px;padding:8px 12px;border-radius:8px;background:#fff;border:1.5px solid #ddd;color:#555;font-size:.8rem;font-weight:700;cursor:pointer;">
+          Copiar link para el repartidor
+        </button>
       </div>`;
     };
+    lista.addEventListener('click', e => {
+      const b = e.target.closest('[data-copiar-entregas]');
+      if (!b) return;
+      const abs = new URL(b.dataset.copiarEntregas, location.href).href;
+      navigator.clipboard.writeText(abs).then(() => {
+        const t = b.textContent; b.textContent = '¡Copiado!';
+        setTimeout(() => { b.textContent = t; }, 1500);
+      }).catch(() => { prompt('Copia este link:', abs); });
+    });
+
+    // Lives cuyas ventas siguen sin confirmar: se reabre el resumen.
+    const renderRevision = r => `<div style="padding:12px;margin-bottom:8px;border-radius:12px;background:#fff7ed;border:1.5px solid #fb923c;">
+        <div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start;">
+          <strong style="font-size:.87rem;">${esc(r.liveTitulo || 'Transmisión')}</strong>
+          <span style="font-size:.7rem;color:#aaa;white-space:nowrap;">${r.fecha ? new Date(r.fecha).toLocaleDateString('es-MX') : ''}</span>
+        </div>
+        <div style="font-size:.78rem;color:#c2410c;margin:4px 0 8px;">Ventas por revisar: ${r.compradores} comprador(es) · ${r.articulos} artículo(s). Tus compradores no recibirán nada hasta que confirmes.</div>
+        <a href="vendedor-live.html?revisar=${encodeURIComponent(r.liveId)}"
+          style="display:inline-block;padding:8px 14px;border-radius:8px;background:#fb923c;color:#fff;font-size:.8rem;font-weight:700;text-decoration:none;">
+          Revisar y confirmar ventas ${Icon('arrow-right',{size:13})}
+        </a>
+      </div>`;
 
     let mostrados = 0;
     const pintarPagina = () => {
@@ -3320,7 +3350,7 @@ window.openEntregasLiveModal = async function() {
       }
     };
 
-    lista.innerHTML = '';
+    lista.innerHTML = revisiones.map(renderRevision).join('');
     if (lives.length > PAGE_SIZE) {
       const btnWrap = document.createElement('div');
       btnWrap.id = 'entregas-live-ver-mas-wrap';
