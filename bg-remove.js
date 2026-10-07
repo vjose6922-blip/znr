@@ -63,6 +63,16 @@
     return sesion;
   }
 
+  // Caja del producto en el recorte (alpha > 128); ignora motas de pocos píxeles. null si no hay producto.
+  function cajaProducto(a, w, h) {
+    var cols = new Uint32Array(w), rows = new Uint32Array(h), x, y;
+    for (y = 0; y < h; y++) for (x = 0; x < w; x++) if (a[(y * w + x) * 4 + 3] > 128) { cols[x]++; rows[y]++; }
+    var mc = Math.max(2, h * 0.005), mr = Math.max(2, w * 0.005), x0 = -1, x1 = -1, y0 = -1, y1 = -1;
+    for (x = 0; x < w; x++) if (cols[x] >= mc) { if (x0 < 0) x0 = x; x1 = x; }
+    for (y = 0; y < h; y++) if (rows[y] >= mr) { if (y0 < 0) y0 = y; y1 = y; }
+    return (x0 < 0 || y0 < 0 || (x1 - x0 + 1) * (y1 - y0 + 1) < 0.02 * w * h) ? null : [x0, y0, x1 + 1, y1 + 1];
+  }
+
   async function procesar(file) {
     var s = await cargarModelo();
     paso(0.15);
@@ -133,13 +143,18 @@
     recorte.width = w; recorte.height = h;
     recorte.getContext('2d').putImageData(im, 0, 0);
 
-    // Fondo blanco
+    // Fondo blanco, producto centrado y acercado en cuadrado 1:1 (margen 8 %, sin ampliar más de 2x)
+    var cj = cajaProducto(im.data, w, h);
+    var lado = cj ? Math.round(Math.max(cj[2] - cj[0], cj[3] - cj[1]) * 1.16) : 0;
+    var S = cj ? Math.min(MAX_LADO, lado * 2) : 0;
     var fin = document.createElement('canvas');
-    fin.width = w; fin.height = h;
+    fin.width = cj ? S : w; fin.height = cj ? S : h;
     var ctx = fin.getContext('2d');
+    ctx.imageSmoothingQuality = 'high';
     ctx.fillStyle = '#fff';
-    ctx.fillRect(0, 0, w, h);
-    ctx.drawImage(recorte, 0, 0);
+    ctx.fillRect(0, 0, fin.width, fin.height);
+    if (cj) ctx.drawImage(recorte, (cj[0] + cj[2]) / 2 - lado / 2, (cj[1] + cj[3]) / 2 - lado / 2, lado, lado, 0, 0, S, S);
+    else ctx.drawImage(recorte, 0, 0);
 
     var blob = await new Promise(function (res) { fin.toBlob(res, 'image/jpeg', 0.92); });
     if (!blob) throw new Error('No se pudo generar la imagen final.');
