@@ -899,7 +899,37 @@ document.addEventListener('DOMContentLoaded', () => {
             <p id="settings-webauthn-msg" style="text-align:center;font-size:.8rem;margin:8px 0 0;min-height:18px;"></p>
           </div>
 
-          <div style="margin-top:16px;padding-top:16px;border-top:1px solid #eee;">
+                </div>
+      </div>
+
+      <!-- ── Sección colapsable: Métodos de pago ── -->
+      <div class="settings-section">
+        <button class="settings-section-toggle" onclick="toggleSettingsSection(this)">
+          <span><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" aria-hidden="true"><use href="#ic-credit-card"/></svg> Métodos de pago</span>
+          <svg class="toggle-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <div class="settings-section-body" style="display:none;">
+          <p style="font-size:.78rem;color:#888;margin:0 0 14px;line-height:1.5;">
+            Configura cómo quieres recibir los pagos de tus ventas en Comunidad. Puedes usar varios a la vez; el comprador elegirá.
+          </p>
+
+          <label style="font-size:.8rem;color:#555;display:block;margin-bottom:4px;">CLABE interbancaria <span style="color:#aaa;">(18 dígitos)</span></label>
+          <input id="settings-clabe" type="text" inputmode="numeric" maxlength="18" placeholder="000000000000000000"
+            style="width:100%;box-sizing:border-box;padding:9px 12px;border-radius:10px;border:1px solid #ddd;font-size:.9rem;margin-bottom:4px;outline:none;letter-spacing:1px;">
+          <p style="margin:0 0 12px;font-size:.73rem;color:#aaa;">Se la mostraremos al comprador cuando elija pagarte por transferencia.</p>
+
+          <label style="font-size:.8rem;color:#555;display:block;margin-bottom:4px;">Link de pago <span style="color:#aaa;">(opcional)</span></label>
+          <input id="settings-link-pago" type="url" maxlength="300" placeholder="https://mpago.la/... o tu link de pago"
+            style="width:100%;box-sizing:border-box;padding:9px 12px;border-radius:10px;border:1px solid #ddd;font-size:.9rem;margin-bottom:4px;outline:none;">
+          <p style="margin:0 0 14px;font-size:.73rem;color:#aaa;">Mercado Pago, PayPal, etc. Se mostrará como botón de pago alternativo.</p>
+
+          <button onclick="guardarMetodosPago()" id="btn-guardar-metodos-pago"
+            style="width:100%;padding:11px;border-radius:10px;border:none;background:#7c3aed;color:#fff;font-size:.9rem;font-weight:700;cursor:pointer;">
+            Guardar métodos de pago
+          </button>
+          <p id="settings-metodos-pago-msg" style="text-align:center;font-size:.8rem;margin:8px 0 0;min-height:18px;"></p>
+
+          <div style="margin-top:18px;padding-top:16px;border-top:1px solid #eee;">
             <label style="font-size:.8rem;color:#555;display:block;margin-bottom:8px;">💳 Cobrar con tarjeta en tus ventas de Comunidad</label>
             <p style="font-size:.78rem;color:#888;margin:0 0 10px;">Conecta tu propia cuenta de Mercado Pago — el dinero cae directo a ti, Z&R no se queda con nada de esta venta.</p>
             <div id="mp-conexion-estado" style="font-size:.85rem;color:#777;margin-bottom:10px;">Cargando...</div>
