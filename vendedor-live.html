@@ -29,6 +29,7 @@
 <link rel="stylesheet" href="styles.css">
 <script src="api-config.js"></script>
 <script src="icons.js" defer></script>
+<script type="module" src="fcm-init.js"></script>
 <style>
   .live-wrap { max-width: 640px; margin: 0 auto; padding: 16px; padding-bottom: 100px; }
 
@@ -819,7 +820,7 @@ async function renderCreateForm() {
       <div class="field-group">
         <label>Fecha y hora de inicio (opcional)</label>
         <input type="datetime-local" id="f-fecha">
-        <p class="hint" style="margin-top:6px;">Si la pones, tu transmisión aparece en "Próximas transmisiones" para que tus compradores pidan que les avisen cuando empiece.</p>
+        <p class="hint" style="margin-top:6px;">Si la pones (máximo 29 días), tu transmisión aparece en "Próximas transmisiones" y te avisamos 15 minutos antes para que alistes todo.</p>
       </div>
       <div class="field-group">
         <label>Foto de portada (opcional)</label>
@@ -875,6 +876,10 @@ async function renderCreateForm() {
   });
 
   document.getElementById('btn-crear-sesion').addEventListener('click', crearSesion);
+  // Al poner fecha se pide permiso de push (gesto del usuario) para avisarle 15 min antes.
+  document.getElementById('f-fecha').addEventListener('change', (e) => {
+    if (e.target.value) window.solicitarPermisoNotificacionesSiFalta?.('vendedor', vendorSession.uid);
+  });
   document.getElementById('f-foto').addEventListener('change', async (e) => {
     const prev = document.getElementById('f-foto-prev');
     miniaturaData = e.target.files[0] ? await comprimirImagen(e.target.files[0]).catch(() => '') : '';
