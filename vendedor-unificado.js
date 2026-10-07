@@ -46,6 +46,7 @@ const MAPA_ACCIONES_MIGRADAS = {
   mpDesconectar: VENDEDORES_API_URL,
   crearPreferenciaComunidad: VENTAS_API_URL,
   cambiarPasswordVendedor: VENDEDORES_API_URL,
+  actualizarMetodosPago: VENDEDORES_API_URL,
   solicitarResetPasswordVendedor: VENDEDORES_API_URL,
   actualizarPerfilVendedor: VENDEDORES_API_URL,
   marcarChecklistDescartado: VENDEDORES_API_URL,
@@ -398,7 +399,9 @@ checklistDismissed: !!res.checklistDismissed,
 fechaRegistro: res.fechaRegistro || '',
 coverBg: res.coverBg || '',
 coverIcons: res.coverIcons || '',
-coverIconColor: res.coverIconColor || ''
+coverIconColor: res.coverIconColor || '',
+clabe: res.clabe || '',           
+linkPago: res.linkPago || ''   
 };
 localStorage.setItem('vendor_session', JSON.stringify(vendorSession));
 
@@ -1685,6 +1688,7 @@ window.closeSettingsModal = function() { closeSettingsModal(); };
 window.guardarPerfil      = function() { guardarPerfil(); };
 window.guardarPassword    = function() { guardarPassword(); };
 window.solicitarPlanPlus  = function() { solicitarPlanPlus(); };
+  
 
 function getInitials(nombre) {
 if (!nombre) return '?';
@@ -1879,6 +1883,13 @@ function openSettingsModal(expandirPlan) {
     const savedIcons = typeof parseCoverIcons === 'function' ? parseCoverIcons(vendorSession.coverIcons) : [];
     applyCoverBackground(coverBgEl, vendorSession.coverBg, savedIcons, vendorSession.coverIconColor);
   }
+
+  const clabeInput = document.getElementById('settings-clabe');
+if (clabeInput) clabeInput.value = vendorSession.clabe || '';
+const linkPagoInput = document.getElementById('settings-link-pago');
+if (linkPagoInput) linkPagoInput.value = vendorSession.linkPago || '';
+const metodosMsg = document.getElementById('settings-metodos-pago-msg');
+if (metodosMsg) metodosMsg.textContent = '';
 
   document.getElementById('settings-header-name').textContent = vendorSession.nombre || '';
   const planEl = document.getElementById('settings-header-plan');
@@ -2082,6 +2093,58 @@ async function submitForgotPassword() {
 }
 
 window.closeForgotPasswordModal = closeForgotPasswordModal;
+
+
+async function guardarMetodosPago() {
+  if (!vendorSession || !vendorSession.token) return;
+  const btn = document.getElementById('btn-guardar-metodos-pago');
+  const msg = document.getElementById('settings-metodos-pago-msg');
+  const clabe    = (document.getElementById('settings-clabe')?.value || '').replace(/\D/g, '');
+  const linkPago = (document.getElementById('settings-link-pago')?.value || '').trim();
+
+  msg.textContent = '';
+
+  if (clabe && clabe.length !== 18) {
+    msg.style.color = '#dc2626';
+    msg.textContent = 'La CLABE debe tener exactamente 18 dígitos.';
+    return;
+  }
+  if (linkPago && !/^https?:\/\/.+/i.test(linkPago)) {
+    msg.style.color = '#dc2626';
+    msg.textContent = 'El link de pago debe comenzar con http:// o https://';
+    return;
+  }
+
+  btn.disabled = true; btn.textContent = 'Guardando...';
+  try {
+    const res = await apiCall({
+      action: 'actualizarMetodosPago',
+      vendorToken: vendorSession.token,
+      clabe,
+      linkPago
+    });
+    if (!res.ok) {
+      msg.style.color = '#dc2626';
+      msg.textContent = res.error || 'No se pudieron guardar los métodos de pago.';
+      return;
+    }
+
+    vendorSession.clabe    = clabe;
+    vendorSession.linkPago = linkPago;
+    try { localStorage.setItem('vendor_session', JSON.stringify(vendorSession)); } catch(e) {}
+
+    msg.style.color = '#16a34a';
+    msg.innerHTML = Icon('check') + ' Métodos de pago guardados';
+  } catch (e) {
+    msg.style.color = '#dc2626';
+    msg.textContent = 'Error de red.';
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Guardar métodos de pago';
+  }
+}
+window.guardarMetodosPago = guardarMetodosPago;
+  
 
 async function guardarPerfil() {
   const btn = document.getElementById('btn-guardar-perfil');
