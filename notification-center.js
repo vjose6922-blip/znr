@@ -21,6 +21,7 @@
     cuenta_rechazada:       { grupo: 'cuenta',  icono: Icon('ban') },
     cuenta_suspendida:      { grupo: 'cuenta',  icono: Icon('ban') },
     cuenta_reactivada:      { grupo: 'cuenta',  icono: Icon('refresh') },
+    live_15min:             { grupo: 'cuenta',  icono: Icon('bell') },
     producto_aprobado:      { grupo: 'cuenta',  icono: Icon('check') },
     producto_rechazado:     { grupo: 'cuenta',  icono: Icon('ban') },
     producto_reportado:     { grupo: 'cuenta',  icono: Icon('flag') },
