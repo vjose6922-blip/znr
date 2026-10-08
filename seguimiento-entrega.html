@@ -8,7 +8,7 @@
  default-src 'self';
  script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net;
  style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net;
- img-src 'self' data: blob: https://*.tile.openstreetmap.org https://cdn.jsdelivr.net https://firebasestorage.googleapis.com https://*.firebasestorage.app https://storage.googleapis.com ;
+ img-src 'self' data: blob: https://*.tile.openstreetmap.org https://api.mapbox.com https://cdn.jsdelivr.net https://firebasestorage.googleapis.com https://*.firebasestorage.app https://storage.googleapis.com ;
  connect-src 'self' https://live-api-1038143238323.us-central1.run.app https://vendedores-api-1038143238323.us-central1.run.app https://ventas-api-1038143238323.us-central1.run.app https://*.tile.openstreetmap.org;
  font-src 'self';
  frame-src 'none';
@@ -44,6 +44,10 @@
   .estado-banner.esperando { background: rgba(251,191,36,.15); color: #fbbf24; }
   .estado-banner.preparando { background: rgba(251,146,60,.15); color: #fb923c; }
   .estado-banner.cerca { background: rgba(192,132,252,.15); color: #c084fc; }
+
+  .codigo-box { text-align: center; padding: 14px; margin-bottom: 14px; border-radius: var(--radius-md); border: 2px dashed var(--color-border-subtle); }
+  .codigo-box small { display: block; font-size: 12px; color: var(--color-text-soft); line-height: 1.4; }
+  .codigo-box strong { display: block; font-size: 34px; letter-spacing: .3em; margin: 4px 0 6px 0.3em; color: var(--color-text-primary); }
 
   .eta-note {
     text-align: center; font-size: 13px; color: var(--color-text-soft);
@@ -119,6 +123,7 @@
     <p id="th-sub"></p>
   </div>
   <div id="banner"></div>
+  <div id="codigo-zone"></div>
   <p class="eta-note" id="eta-note"></p>
   <div id="pago-zone"></div>
   <div id="map"></div>
@@ -127,6 +132,10 @@
 
 <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
+const MAPBOX_PK = ''; // token PÚBLICO (pk.…) de Mapbox, restringido a tu dominio. Vacío = usa OSM.
+const baseMapa = () => MAPBOX_PK
+  ? L.tileLayer(`https://api.mapbox.com/styles/v1/mapbox/streets-v12/tiles/512/{z}/{x}/{y}@2x?access_token=${MAPBOX_PK}`, { tileSize: 512, zoomOffset: -1, maxZoom: 19, attribution: '&copy; Mapbox &copy; OpenStreetMap' })
+  : L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; OpenStreetMap', maxZoom: 19 });
 const API_BASE = "https://live-api-1038143238323.us-central1.run.app"; // TODO: pegar la URL real tras el deploy
 const VENDEDORES_API = "https://vendedores-api-1038143238323.us-central1.run.app";
 const VENTAS_API = "https://ventas-api-1038143238323.us-central1.run.app";
@@ -156,10 +165,7 @@ function renderError(msg) {
 
 function initMap(lat, lng) {
   map = L.map('map', { zoomControl: true }).setView([lat, lng], 15);
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '&copy; OpenStreetMap',
-    maxZoom: 19
-  }).addTo(map);
+  baseMapa().addTo(map);
   // Si el comprador arrastra el mapa a mano, soltamos el seguimiento
   // automático hasta que vuelva a pulsar el botón "◎".
   map.on('dragstart', () => { followMode = false; });
@@ -272,6 +278,14 @@ const ESTADO_BANNER = {
   cerca: ['cerca', '📍 El repartidor está cerca de tu ubicación'],
   entregado: ['entregado', '✅ ¡Tu pedido ya fue entregado! 🎉'],
 };
+
+// Código que el cliente le dicta al repartidor al recibir (prueba de entrega).
+function actualizarCodigo(e) {
+  const hay = e.codigoEntrega && e.estado !== 'entregado'; // el backend ya lo omite al entregar
+  document.getElementById('codigo-zone').innerHTML = hay
+    ? `<div class="codigo-box"><small>Tu código de entrega</small><strong>${String(e.codigoEntrega).replace(/\D/g, '')}</strong><small>Díselo al repartidor solo cuando tengas tu pedido en la mano.</small></div>`
+    : '';
+}
 
 function actualizarBanner(entrega) {
   let [clase, texto] = ESTADO_BANNER[entrega.estado] || ESTADO_BANNER.pendiente;
@@ -492,6 +506,7 @@ async function cargar() {
     tituloEl.textContent = 'Seguimiento de tu pedido';
     subEl.textContent = e.vendedorNombre ? `De ${e.vendedorNombre}` : '';
     actualizarBanner(e);
+    actualizarCodigo(e);
     actualizarPago(e);
     actualizarETA(e);
     actualizarMapa(e);
