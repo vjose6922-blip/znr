@@ -741,7 +741,7 @@ function horaOpts(sel) {
   return HORAS_DIA.map(h => `<option value="${h}"${sel === h ? ' selected' : ''}>${h}</option>`).join('');
 }
 
-function askIdentity(onDone) {
+function askIdentity(onDone, motivo) {
   const prev = identity || {};
   const prevDias = prev.dias || [];
   let gpsCoords = null; // el GPS SIEMPRE se exige fresco en esta sesión, nunca se acepta solo el guardado
@@ -757,7 +757,9 @@ function askIdentity(onDone) {
       <div class="identity-sheet-header">
         <div>
           <h2>Únete al chat</h2>
-          <p>Para comentar y apartar productos necesitamos tu ubicación, para poder llegar a entregarte. Dinos también quién eres y en qué horario.</p>
+          <p>${motivo === 'compra'
+            ? 'El vendedor te marcó una compra. Necesitamos tus datos de entrega para avisarte y llevártela: tu ubicación, quién eres y en qué horario.'
+            : 'Para comentar y apartar productos necesitamos tu ubicación, para poder llegar a entregarte. Dinos también quién eres y en qué horario.'}</p>
         </div>
         <button type="button" class="btn-close" id="idn-close-btn" aria-label="Cerrar">✕</button>
       </div>
@@ -993,7 +995,7 @@ function guardarPerfilRemoto(idn, actualizarUbicacion) {
 // con su vendorToken), al cerrar la transmisión.
 async function guardarContacto(idn) {
   await authReady;
-  if (!liveId || !authUid) return;
+  if (!liveId || !authUid) return false;
   const payload = {
     action: 'registrarContactoLive',
     liveId,
@@ -1006,8 +1008,121 @@ async function guardarContacto(idn) {
     payload.lat = idn.lat;
     payload.lng = idn.lng;
   }
-  apiFetch(payload, 'POST').catch(err => {
-    console.error('guardarContacto falló:', err);
+  // Hasta 4 intentos con pausa creciente: antes era un solo envío que, si fallaba por mala
+  // conexión, dejaba a este comprador sin contacto en el live sin avisar a nadie.
+  const pausas = [0, 1500, 4000, 9000];
+  for (let i = 0; i < pausas.length; i++) {
+    if (pausas[i]) await new Promise(r => setTimeout(r, pausas[i]));
+    try {
+      const resp = await apiFetch(payload, 'POST');
+      if (resp && resp.ok) {
+        // Marca "este dispositivo ya dejó su contacto en ESTE live" (para no volver a preguntar al recargar)
+        try { localStorage.setItem('znr_contacto_live_' + liveId, '1'); } catch (e) { /* sin storage */ }
+        return true;
+      }
+    } catch (err) {
+      console.error(`guardarContacto: intento ${i + 1} falló:`, err);
+    }
+  }
+  // Sin éxito tras los reintentos: un último intento cuando el teléfono recupere la conexión.
+  if (!esperandoConexionContacto) {
+    esperandoConexionContacto = true;
+    window.addEventListener('online', () => { esperandoConexionContacto = false; guardarContacto(idn); }, { once: true });
+  }
+  return false;
+}
+let esperandoConexionContacto = false;
+
+// ── Autocorrección: si al comprador le marcan algo como "Vendido" y su contacto NO quedó
+// registrado en este live, se arregla en ese momento (mientras sigue conectado). ──
+let asegurandoContacto = false;
+let ultimoIntentoContacto = 0;
+async function asegurarContactoLive() {
+  if (asegurandoContacto || !liveId) return;
+  if (localStorage.getItem('znr_contacto_live_' + liveId) === '1') return; // ya está registrado
+  if (document.querySelector('.identity-overlay')) return;                  // ya hay un aviso/formulario abierto
+  if (Date.now() - ultimoIntentoContacto < 20000) return;                   // no insistir en bucle si falla
+  asegurandoContacto = true;
+  ultimoIntentoContacto = Date.now();
+  try {
+    const idn = getIdentity() || identity;
+    const tel = String((idn && idn.telefono) || '').replace(/\D/g, '');
+    const completo = idn && typeof idn.lat === 'number' && typeof idn.lng === 'number' && idn.horario;
+    const sesionOk = tel.length === 10
+      && (localStorage.getItem('client_phone') || '').replace(/\D/g, '') === tel
+      && !!localStorage.getItem('comprador_token');
+    if (completo && sesionOk) {
+      identity = idn;
+      await guardarContacto(identity); // con reintentos; si no se logra, vuelve a intentarlo en el siguiente cambio del chat
+      return;
+    }
+    // Faltan datos o sesión: formulario completo, explicando por qué aparece
+    askIdentity(() => {}, 'compra');
+  } finally {
+    asegurandoContacto = false;
+  }
+}
+
+// ── Comprador que regresa con sus datos guardados ──
+// En vez del formulario completo, una pregunta corta: "¿siguen igual tus datos?".
+// Sí → se abre el modal completo. "Por ahora no" → se sigue con lo guardado y se
+// registra su contacto en este live. Se pregunta UNA vez por live en este dispositivo.
+async function gestionarDatosGuardados() {
+  if (localStorage.getItem('znr_contacto_live_' + liveId) === '1') return; // ya quedó registrado en este live (p. ej. recargó)
+  identity = await datosGuardadosVigentes();
+  const quiereActualizar = await preguntarActualizarDatos(identity);
+  if (quiereActualizar) { askIdentity(() => {}); return; } // el modal completo registra el contacto al enviarse
+  try { localStorage.setItem('znr_chat_identity', JSON.stringify(identity)); } catch (e) { /* sin storage */ }
+  guardarContacto(identity);
+}
+
+// Los datos más recientes: el perfil del comprador en el servidor (lo actualiza
+// cualquier compra desde cualquier dispositivo) y, si no hay perfil o tarda, la copia local.
+async function datosGuardadosVigentes() {
+  const base = { ...identity };
+  const tel = String(base.telefono || '').replace(/\D/g, '');
+  if (tel.length !== 10) return base;
+  try {
+    const resp = await Promise.race([
+      apiFetch({ action: 'leerPerfilComprador', telefono: tel, compradorToken: localStorage.getItem('comprador_token') || '' }, 'GET'),
+      new Promise(r => setTimeout(() => r(null), 4000))
+    ]);
+    const p = resp && resp.ok ? resp.perfil : null;
+    if (p) {
+      if (typeof p.lat === 'number' && typeof p.lng === 'number') { base.lat = p.lat; base.lng = p.lng; }
+      if (Array.isArray(p.dias) && p.dias.length) base.dias = p.dias;
+      if (p.horaDesde) base.horaDesde = p.horaDesde;
+      if (p.horaHasta) base.horaHasta = p.horaHasta;
+      if (typeof p.nota === 'string') base.nota = p.nota;
+      if ((base.dias || []).length && base.horaDesde && base.horaHasta) {
+        base.horario = `${base.dias.join(', ')} · ${base.horaDesde} a ${base.horaHasta}`;
+      }
+    }
+  } catch (e) { /* sin perfil: se usan los datos locales */ }
+  return base;
+}
+
+// true = quiere actualizar algún dato (abrir el modal completo); false = seguir con lo guardado.
+function preguntarActualizarDatos(idn) {
+  return new Promise((resolve) => {
+    const tel = String(idn.telefono || '').replace(/\D/g, '');
+    const ov = document.createElement('div');
+    ov.className = 'identity-overlay';
+    ov.innerHTML = `
+      <div class="identity-sheet">
+        <h2>¿Tus datos de entrega siguen igual?</h2>
+        <p>Usaremos los que ya tienes guardados:<br>
+          <b>${esc(idn.nombre || '')}</b> · tel. ***${esc(tel.slice(-4))}<br>
+          ${esc(idn.horario || '')}<br>
+          Ubicación: la que guardaste la última vez.</p>
+        <button type="button" id="dg-actualizar">Actualizar mis datos</button>
+        <div style="height:8px;"></div>
+        <button type="button" class="btn-gps" id="dg-seguir">Por ahora no, seguir con estos</button>
+      </div>`;
+    document.body.appendChild(ov);
+    const fin = (v) => { ov.remove(); resolve(v); };
+    ov.querySelector('#dg-actualizar').addEventListener('click', () => fin(true));
+    ov.querySelector('#dg-seguir').addEventListener('click', () => fin(false));
   });
 }
 
@@ -1174,6 +1289,8 @@ function setupChat() {
   onValue(ref(db, `chats/${liveId}/messages`), (snapshot) => {
     const data = snapshot.val();
     if (!data) { messagesEl.innerHTML = '<div class="chat-empty">Sé el primero en comentar 👋</div>'; return; }
+    // Revisa TODOS los mensajes (no solo los últimos 100): si alguno mío está "Vendido", se asegura mi contacto.
+    if (Object.values(data).some(m => m.vendido && m.uid && m.uid === authUid)) asegurarContactoLive();
     const msgs = Object.values(data).sort((a, b) => (a.ts || 0) - (b.ts || 0)).slice(-100);
     messagesEl.innerHTML = msgs.map(m => `
       <div class="chat-msg ${identity && m.author === identity.nombre ? 'mine' : ''}${m.faq ? ' faq' : ''}">
@@ -1271,11 +1388,10 @@ async function init() {
     if (!identity || typeof identity.lat !== 'number' || typeof identity.lng !== 'number' || !identity.horario || !sesionCompradorOk) {
       askIdentity(() => {});
     } else {
-      // Comprador que regresa (sus datos ya estaban guardados en este dispositivo):
-      // el modal no sale, y el contacto se registra POR LIVE (lives_contactos/{liveId}),
-      // así que hay que reenviarlo aquí o este live se queda sin su teléfono/ubicación
-      // y no podrá recibir notificaciones ni seguimiento. Es idempotente (merge).
-      guardarContacto(identity);
+      // Comprador que regresa (datos ya guardados en este dispositivo): el contacto se
+      // registra POR LIVE (lives_contactos/{liveId}); si no se registra aquí, este live se
+      // queda sin su teléfono/ubicación y no podrá recibir notificaciones ni seguimiento.
+      gestionarDatosGuardados();
     }
   } catch (err) {
     renderNotFound();
