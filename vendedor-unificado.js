@@ -74,6 +74,9 @@ const MAPA_ACCIONES_MIGRADAS = {
   obtenerEstadisticasVendedor: "https://ventas-api-1038143238323.us-central1.run.app",
   obtenerUltimoInformeSemanal: VENTAS_API_URL,
   obtenerMisEntregasLive: LIVE_API_URL,
+  regenerarCodigoEntrega: LIVE_API_URL,
+  confirmarEntregaManual: LIVE_API_URL,
+  regenerarTokenEntregas: LIVE_API_URL,
 };
 function resolverApiUrl(action) {
   return MAPA_ACCIONES_MIGRADAS[action] || API_BASE;
@@ -3296,7 +3299,19 @@ window.openEntregasLiveModal = async function() {
       // El link del repartidor lleva el código de acceso del live (&t=...).
       const url = `entregas-live.html?id=${encodeURIComponent(l.liveId)}${l.tokenEntregas ? '&t=' + encodeURIComponent(l.tokenEntregas) : ''}`;
       const pct = total ? Math.round((entregados / total) * 100) : 0;
-      return `<div style="padding:12px 0;border-bottom:1px solid #f5f5f5;">
+      const btnMini = 'padding:6px 10px;border-radius:8px;background:#fff;border:1.5px solid #ddd;color:#555;font-size:.74rem;font-weight:700;cursor:pointer;';
+      const pend = l.grupos.filter(g => g.estado !== 'entregado');
+      const detalle = pend.length ? `<details style="margin-top:10px;font-size:.8rem;">
+          <summary style="cursor:pointer;color:#888;font-weight:700;">Pendientes (${pend.length}) · código de entrega</summary>
+          ${pend.map(g => `<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 0;border-bottom:1px dashed #eee;">
+            <span>${esc(g.compradorNombre)}</span>
+            <span style="display:flex;gap:6px;flex-shrink:0;">
+              <button type="button" data-cod-regen data-live="${esc(l.liveId)}" data-key="${esc(g.compradorKey)}" style="${btnMini}">Nuevo código</button>
+              <button type="button" data-cod-manual data-live="${esc(l.liveId)}" data-key="${esc(g.compradorKey)}" data-nombre="${esc(g.compradorNombre)}" style="${btnMini}color:#c2410c;border-color:#fb923c;">Entregar sin código</button>
+            </span></div>`).join('')}
+          <p style="margin:8px 0 0;color:#aaa;line-height:1.4;">El código nuevo le llega solo al comprador. Usa "Entregar sin código" únicamente si ya recibió su pedido y no puede dictarlo; queda registrado.</p>
+        </details>` : '';
+      return `<div data-live-block style="padding:12px 0;border-bottom:1px solid #f5f5f5;">
         <div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start;">
           <strong style="font-size:.87rem;">${esc(l.liveTitulo || 'Transmisión')}</strong>
           <span style="font-size:.7rem;color:#aaa;white-space:nowrap;">${new Date(l.fecha).toLocaleDateString('es-MX')}</span>
@@ -3310,6 +3325,8 @@ window.openEntregasLiveModal = async function() {
           style="margin-left:6px;padding:8px 12px;border-radius:8px;background:#fff;border:1.5px solid #ddd;color:#555;font-size:.8rem;font-weight:700;cursor:pointer;">
           Copiar link para el repartidor
         </button>
+        <button type="button" data-cambiar-link="${esc(l.liveId)}" style="margin-top:6px;${btnMini}">Cambiar link del repartidor</button>
+        ${detalle}
       </div>`;
     };
     lista.addEventListener('click', e => {
@@ -3320,6 +3337,41 @@ window.openEntregasLiveModal = async function() {
         const t = b.textContent; b.textContent = '¡Copiado!';
         setTimeout(() => { b.textContent = t; }, 1500);
       }).catch(() => { prompt('Copia este link:', abs); });
+    });
+
+    // Acciones sobre el código de entrega y el link del repartidor
+    lista.addEventListener('click', async e => {
+      const b = e.target.closest('[data-cod-regen],[data-cod-manual],[data-cambiar-link]');
+      if (!b || b.disabled) return;
+      const d = b.dataset, original = b.textContent;
+      try {
+        if ('codRegen' in d) {
+          b.disabled = true; b.textContent = 'Enviando…';
+          const r = await apiCall({ action: 'regenerarCodigoEntrega', vendorToken: vendorSession.token, liveId: d.live, compradorKey: d.key });
+          if (!r.ok) throw new Error(r.error);
+          b.textContent = r.notificado ? 'Enviado al comprador' : 'Sin teléfono: no se pudo avisar';
+        } else if ('codManual' in d) {
+          if (!confirm(`¿Confirmar que ${d.nombre} ya recibió su pedido? Se marcará como entregado sin código y quedará registrado.`)) return;
+          b.disabled = true; b.textContent = 'Guardando…';
+          const r = await apiCall({ action: 'confirmarEntregaManual', vendorToken: vendorSession.token, liveId: d.live, compradorKey: d.key });
+          if (!r.ok) throw new Error(r.error);
+          window.openEntregasLiveModal(); // recarga la lista con el estado nuevo
+        } else {
+          if (!confirm('El link actual del repartidor dejará de funcionar y tendrás que pasarle el nuevo. ¿Continuar?')) return;
+          b.disabled = true; b.textContent = 'Cambiando…';
+          const r = await apiCall({ action: 'regenerarTokenEntregas', vendorToken: vendorSession.token, liveId: d.cambiarLink });
+          if (!r.ok) throw new Error(r.error);
+          const url = `entregas-live.html?id=${encodeURIComponent(d.cambiarLink)}&t=${encodeURIComponent(r.tokenEntregas)}`;
+          const bloque = b.closest('[data-live-block]');
+          bloque.querySelector('a[href^="entregas-live"]').href = url;
+          bloque.querySelector('[data-copiar-entregas]').dataset.copiarEntregas = url;
+          b.textContent = 'Listo: copia el link nuevo';
+        }
+      } catch (err) {
+        alert(err.message || 'No se pudo completar la acción.');
+        b.textContent = original;
+      }
+      b.disabled = false;
     });
 
     // Lives cuyas ventas siguen sin confirmar: se reabre el resumen.
