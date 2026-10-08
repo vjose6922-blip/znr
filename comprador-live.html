@@ -1270,6 +1270,12 @@ async function init() {
       && !!localStorage.getItem('comprador_token');
     if (!identity || typeof identity.lat !== 'number' || typeof identity.lng !== 'number' || !identity.horario || !sesionCompradorOk) {
       askIdentity(() => {});
+    } else {
+      // Comprador que regresa (sus datos ya estaban guardados en este dispositivo):
+      // el modal no sale, y el contacto se registra POR LIVE (lives_contactos/{liveId}),
+      // así que hay que reenviarlo aquí o este live se queda sin su teléfono/ubicación
+      // y no podrá recibir notificaciones ni seguimiento. Es idempotente (merge).
+      guardarContacto(identity);
     }
   } catch (err) {
     renderNotFound();
