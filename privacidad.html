@@ -97,6 +97,16 @@
       margin-top: 8px;
     }
 
+    .legal-highlight {
+      background: #f5f0ff;
+      border-left: 3px solid var(--color-accent, #3b1f5f);
+      border-radius: 0 12px 12px 0;
+      padding: 12px 16px;
+      margin: 12px 0;
+      font-size: 13px;
+      color: var(--color-accent, #3b1f5f);
+    }
+
     
     [data-theme="dark"] .legal-section {
       background: var(--color-surface);
@@ -137,91 +147,146 @@
 
   <div class="legal-hero">
     <h1> Política de Privacidad</h1>
-    <p>Última actualización: julio 2026</p>
+    <p>Última actualización: octubre 2026</p>
   </div>
 
   <div class="legal-container">
-    <p class="legal-updated">Esta política aplica a todos los usuarios de Z&R y la Comunidad de Vendedores.</p>
+    <p class="legal-updated">Esta política aplica a todos los usuarios de Z&R: compradores, vendedores de Z&R Comunidad y beneficiarios.</p>
 
     <div class="legal-section">
-      <h2> 1. Información que recopilamos</h2>
-      <p>En Z&R recopilamos únicamente la información necesaria para brindarte el servicio:</p>
+      <h2> 1. Responsable de tus datos</h2>
+      <p>Z&R (Nuevo Laredo, Tamaulipas, México) es responsable del tratamiento de tus datos personales conforme a la Ley Federal de Protección de Datos Personales en Posesión de los Particulares. Para cualquier tema de privacidad escríbenos a <strong>znrcomunity@gmail.com</strong> o por WhatsApp (sección 12).</p>
+    </div>
+
+    <div class="legal-section">
+      <h2> 2. Datos que recopilamos</h2>
+      <p><strong>Si compras:</strong></p>
       <ul>
-        <li><strong>Número de teléfono:</strong> cuando realizas una solicitud de compra, para contactarte vía WhatsApp con el resumen de tu pedido.</li>
-	<li><strong>Direccíon particular:</strong> se envia la direccion proporcionada al vendedor para que entregue el articulo en las puertas de tu casa.</li>
-        <li><strong>Ubicación de entrega:</strong> si compras durante una transmisión en vivo, guardamos la ubicación aproximada (latitud/longitud) que proporcionas para que el vendedor coordine la entrega.</li>
-        <li><strong>Datos de vendedor:</strong> nombre, teléfono y contraseña (cifrada) al registrarte como vendedor en Z&R Comunidad.</li>
-        <li><strong>Datos de beneficiario:</strong> si te registras para recibir donaciones, guardamos tu historia, cuenta bancaria y datos de contacto para gestionar las donaciones.</li>
-        <li><strong>Información de productos:</strong> imágenes y datos de productos subidos por vendedores registrados.</li>
-        <li><strong>Calificaciones y comentarios:</strong> si compras un producto de la Comunidad, puedes calificarlo del 1 al 5 y dejar un comentario, visible públicamente en el perfil del vendedor.</li>
-        <li><strong>Datos de uso:</strong> páginas visitadas y preferencias guardadas solamente en tu dispositivo.</li>
+        <li><strong>Cuenta de comprador:</strong> número de teléfono y contraseña (cifrada), para proteger tus pedidos y notificaciones.</li>
+        <li><strong>Datos de entrega:</strong> dirección, días y horario disponibles, notas de entrega y, si lo autorizas, tu ubicación GPS (latitud/longitud). Se comparten con el vendedor y el repartidor para entregarte el pedido.</li>
+        <li><strong>Ciudad:</strong> la que eliges o la más cercana a tu ubicación si usas el GPS para detectarla (en ese caso no guardamos tus coordenadas).</li>
+        <li><strong>Calificaciones y comentarios:</strong> visibles públicamente en el perfil del vendedor.</li>
+        <li><strong>Transmisiones en vivo:</strong> nombre y teléfono que indiques para participar, mensajes del chat, tu presencia en la transmisión (contador de espectadores) y los reportes que envíes.</li>
+      </ul>
+      <p><strong>Si eres vendedor:</strong></p>
+      <ul>
+        <li>Nombre, teléfono, contraseña (cifrada), ciudad, foto de perfil, punto de entrega y descripción de tu negocio.</li>
+        <li>CLABE o cuenta bancaria, si decides capturarla para recibir pagos o renovar tu plan.</li>
+        <li>Productos, imágenes y datos de venta; estado de tu suscripción Plan Plus.</li>
+        <li>Tu cuenta de Mercado Pago, si decides conectarla para recibir pagos con tarjeta (solo recibimos la autorización de conexión, nunca tu contraseña de Mercado Pago).</li>
+        <li><strong>Huella o biometría del dispositivo:</strong> si activas el acceso con huella, tu huella nunca sale de tu teléfono. Guardamos únicamente una llave pública y el nombre del dispositivo (por ejemplo, "Pixel 7").</li>
+        <li><strong>Transmisiones en vivo:</strong> video y audio de tu transmisión, y una copia de respaldo de baja calidad en segmentos de 30 segundos guardada en almacenamiento privado, usada únicamente para revisar reportes.</li>
+        <li><strong>Ubicación en tiempo real durante entregas:</strong> si inicias una entrega, tu posición se comparte con el comprador de ese pedido mientras dure la entrega.</li>
+      </ul>
+      <p><strong>Si eres beneficiario:</strong> tu historia, cuenta bancaria y datos de contacto, para gestionar las donaciones.</p>
+      <p><strong>De forma automática:</strong></p>
+      <ul>
+        <li><strong>Notificaciones push:</strong> un identificador del dispositivo (token) y el tipo de navegador, para enviarte avisos de tus pedidos.</li>
+        <li><strong>Registro de errores:</strong> al fallar la app guardamos el mensaje de error, la pantalla donde ocurrió y un fragmento del tipo de navegador. No incluye contenido de tus pedidos.</li>
+        <li><strong>Datos técnicos de conexión:</strong> dirección IP y datos básicos del dispositivo que los proveedores de la sección 5 reciben al atender tus solicitudes.</li>
+      </ul>
+      <div class="legal-highlight">
+        Los datos de cuenta bancaria y ubicación son especialmente delicados. Solo los pedimos cuando son necesarios y puedes negarte a darlos; algunas funciones (como recibir pagos o ver tu entrega en el mapa) dependerán de ello.
+      </div>
+    </div>
+
+    <div class="legal-section">
+      <h2> 3. Permisos de tu dispositivo</h2>
+      <p>Solo pedimos permisos cuando usas la función que los necesita, y puedes revocarlos en los ajustes de tu navegador o teléfono:</p>
+      <ul>
+        <li><strong>Ubicación:</strong> detectar tu ciudad, indicar tu dirección de entrega, y compartir tu ruta si eres repartidor.</li>
+        <li><strong>Cámara y micrófono:</strong> transmitir en vivo (vendedores) y tomar fotos de productos o buscar por foto.</li>
+        <li><strong>Notificaciones:</strong> avisos de pedidos, pagos y transmisiones.</li>
+        <li><strong>Huella digital:</strong> acceso rápido a tu cuenta de vendedor.</li>
       </ul>
     </div>
 
     <div class="legal-section">
-      <h2> 2. Cómo usamos tu información</h2>
-      <p>La información recopilada se usa exclusivamente para:</p>
+      <h2> 4. Para qué usamos tu información</h2>
       <ul>
-        <li>Procesar y confirmar solicitudes de compra.</li>
-        <li>Enviarte el resumen de tu pedido y enlace de pago vía WhatsApp.</li>
-        <li>Gestionar tu cuenta de vendedor en Z&R Comunidad.</li>
-        <li>Mejorar la experiencia de navegación y funcionamiento de la aplicación.</li>
+        <li>Procesar solicitudes de compra, enviarte el resumen y el enlace de pago, y coordinar la entrega.</li>
+        <li>Gestionar tu cuenta, tu suscripción y tus cobros.</li>
+        <li>Operar las transmisiones en vivo, la moderación y la atención de reportes.</li>
+        <li>Enviarte notificaciones sobre tus pedidos y cuenta.</li>
+        <li>Sugerir categorías de producto y habilitar la búsqueda por foto (ver sección 6).</li>
+        <li>Detectar y corregir fallas, y prevenir fraude y abuso.</li>
       </ul>
+      <p>No usamos tus datos para publicidad ni los vendemos.</p>
     </div>
 
     <div class="legal-section">
-      <h2> 3. Compartición de datos con terceros</h2>
-      <p>Z&R no vende ni comparte tu información personal con terceros, excepto en los siguientes casos necesarios para el funcionamiento del servicio:</p>
+      <h2> 5. Con quién compartimos datos</h2>
+      <p>Compartimos datos solo cuando es necesario para prestar el servicio:</p>
       <ul>
-        <li><strong>Google:</strong> almacenamiento de productos, pedidos y datos de vendedores en la nube de Google.</li>
-        <li><strong>MercadoPago:</strong> procesamiento de pagos. Tu información de pago es manejada directamente por MercadoPago bajo sus propias políticas.</li>
-        <li><strong>WhatsApp:</strong> envío de confirmaciones de pedido al número que proporcionas.</li>
+        <li><strong>Vendedores y repartidores:</strong> tu nombre, teléfono, dirección, horario y ubicación de entrega, únicamente de los pedidos que les corresponden.</li>
+        <li><strong>Google (Firebase y Google Cloud):</strong> autenticación, base de datos, almacenamiento de imágenes y videos, funciones del servidor y notificaciones push.</li>
+        <li><strong>Cloudflare:</strong> transmisión de video y audio de las sesiones en vivo.</li>
+        <li><strong>Mercado Pago:</strong> procesamiento de pagos y conexión de cuentas de vendedor, bajo sus propias políticas.</li>
+        <li><strong>WhatsApp (Meta):</strong> mensajes y confirmaciones que envías o recibes a través de la plataforma.</li>
+        <li><strong>Algolia:</strong> búsqueda del catálogo de Comunidad (recibe el texto que buscas y los datos públicos de los productos).</li>
+        <li><strong>OpenStreetMap:</strong> convertir coordenadas en dirección y mostrar mapas (recibe las coordenadas consultadas y tu IP).</li>
+        <li><strong>jsDelivr (CDN):</strong> carga de librerías de la app (mapas, búsqueda, códigos QR, reconocimiento de imágenes); recibe tu IP al descargarlas.</li>
+        <li><strong>wttr.in:</strong> consulta del clima para sugerencias de outfits, con coordenadas fijas de la ciudad base (no envía tu ubicación; recibe tu IP).</li>
+        <li><strong>Autoridades:</strong> cuando una ley u orden de autoridad competente lo exija.</li>
       </ul>
+      <p>No usamos herramientas de analítica ni publicidad de terceros.</p>
     </div>
 
     <div class="legal-section">
-      <h2> 4. Cookies y almacenamiento local</h2>
-      <p>Z&R utiliza almacenamiento local en tu dispositivo para:</p>
+      <h2> 6. Inteligencia artificial en tu dispositivo</h2>
+      <p>La sugerencia automática de categoría al subir una foto y la búsqueda por foto se ejecutan <strong>dentro de tu navegador</strong>: la imagen que eliges no se envía a servidores de inteligencia artificial. Solo se calcula una "huella visual" numérica para comparar con los productos del catálogo. Las sugerencias pueden fallar, así que revísalas antes de publicar.</p>
+    </div>
+
+    <div class="legal-section">
+      <h2> 7. Almacenamiento local</h2>
+      <p>Z&R no usa cookies de seguimiento. Usa el almacenamiento de tu navegador para recordar:</p>
       <ul>
-        <li>Guardar tu carrito de compras.</li>
-        <li>Caché de productos para mejorar la velocidad de carga.</li>
+        <li>Tu sesión (comprador, vendedor o administrador) y tu aceptación de este aviso.</li>
+        <li>Tu carrito, ciudad, tema claro/oscuro y diseño de pantalla.</li>
+        <li>Tus datos de entrega (dirección, horario, notas, ubicación) para no capturarlos de nuevo.</li>
+        <li>Tu nombre y teléfono en transmisiones en vivo, y las calificaciones ya enviadas.</li>
+        <li>Lista de favoritos y productos vistos recientemente.</li>
+        <li>Caché de productos y del clima, y una cola temporal de errores pendientes de enviar.</li>
       </ul>
+      <p>Puedes borrarlos en cualquier momento desde los ajustes de tu navegador; tendrás que volver a iniciar sesión.</p>
     </div>
 
     <div class="legal-section">
-      <h2> 5. Seguridad de tu información</h2>
-      <p>Tomamos medidas para proteger tu información:</p>
+      <h2> 8. Cuánto tiempo conservamos tus datos</h2>
+      <p>Conservamos tus datos mientras tengas cuenta activa o mientras sean necesarios para las finalidades de esta política. Las copias de respaldo de transmisiones se conservan solo el tiempo necesario para atender reportes. Al eliminar tu cuenta se borran tus productos, imágenes, transmisiones y entregas asociadas. Por motivos contables, los pedidos y donaciones ya procesados se conservan anonimizados (sin nombre, teléfono ni imágenes).</p>
+    </div>
+
+    <div class="legal-section">
+      <h2> 9. Seguridad</h2>
       <ul>
-        <li>Las contraseñas de vendedores se almacenan cifradas.</li>
+        <li>Las contraseñas se almacenan cifradas.</li>
+        <li>Las comunicaciones viajan por conexión cifrada (HTTPS).</li>
+        <li>Los respaldos de video se guardan en almacenamiento privado con enlaces firmados temporales.</li>
+        <li>El acceso con huella usa llaves públicas; tu huella nunca sale de tu dispositivo.</li>
       </ul>
-      <p>Sin embargo, ningún sistema es 100% seguro. Te recomendamos no compartir tus credenciales de vendedor con nadie.</p>
+      <p>Ningún sistema es 100% seguro. No compartas tus credenciales con nadie.</p>
     </div>
 
     <div class="legal-section">
-      <h2> 6. Tus derechos</h2>
-      <p>Como usuario tienes derecho a:</p>
+      <h2> 10. Tus derechos (ARCO)</h2>
+      <p>Tienes derecho a <strong>acceder</strong> a tus datos, <strong>rectificarlos</strong>, <strong>cancelarlos</strong> y <strong>oponerte</strong> a su uso, así como a revocar tu consentimiento en cualquier momento. Para ejercerlos:</p>
       <ul>
-        <li>Solicitar la eliminación de tu número de teléfono de nuestros registros.</li>
-        <li>Eliminar tu cuenta de vendedor y todos tus datos de forma inmediata y permanente desde la propia app, en Ajustes → Zona de peligro. Un administrador también puede realizar esta acción a tu solicitud.</li>
-        <li>Conocer qué datos tenemos sobre ti.</li>
+        <li>Vendedores: elimina tu cuenta y todos tus datos de forma inmediata y permanente en Ajustes → Zona de peligro.</li>
+        <li>Compradores y demás usuarios: escríbenos a <strong>znrcomunity@gmail.com</strong> o por WhatsApp indicando tu nombre y teléfono registrado.</li>
+        <li>Puedes quitar los permisos de ubicación, cámara y notificaciones desde tu dispositivo.</li>
       </ul>
-      <p>Al eliminar tu cuenta se borran de inmediato tus productos, imágenes, sesiones en vivo y entregas asociadas. Por motivos contables, los pedidos y donaciones ya procesados se conservan de forma anonimizada (sin tu nombre, teléfono ni imágenes), únicamente como registro de la transacción.</p>
-      <p>Para cualquier otra solicitud sobre tus datos, contáctanos vía WhatsApp.</p>
+      <p>Si consideras que tu derecho no fue atendido, puedes acudir a la Secretaría Anticorrupción y Buen Gobierno, autoridad en protección de datos personales.</p>
     </div>
 
     <div class="legal-section">
-      <h2> 7. Menores de edad</h2>
-      <p>Z&R no está dirigido a menores de 13 años. No recopilamos intencionalmente información de menores. Si eres padre o tutor y crees que tu hijo nos ha proporcionado información, contáctanos para eliminarla.</p>
+      <h2> 11. Menores de edad y cambios</h2>
+      <p>Z&R no está dirigido a menores de 13 años y no recopilamos sus datos intencionalmente. Los menores de 18 deben usarlo con supervisión de su madre, padre o tutor. Si crees que un menor nos dio información, contáctanos para eliminarla.</p>
+      <p>Podemos actualizar esta política; publicaremos la nueva versión con su fecha en esta página y, si el cambio es importante o implica un uso distinto de tus datos, pediremos de nuevo tu consentimiento.</p>
     </div>
 
     <div class="legal-section">
-      <h2> 8. Cambios a esta política</h2>
-      <p>Podemos actualizar esta política ocasionalmente. Te notificaremos de cambios significativos actualizando la fecha en la parte superior. El uso continuado de Z&R después de los cambios implica aceptación de la nueva política.</p>
-    </div>
-
-    <div class="legal-section">
-      <h2> 9. Contacto</h2>
-      <p>Si tienes preguntas sobre esta política de privacidad, contáctanos directamente:</p>
+      <h2> 12. Contacto</h2>
+      <p>Si tienes preguntas sobre esta política, contáctanos:</p>
       <a href="https://wa.me/528671781272?text=Hola,%20tengo%20una%20pregunta%20sobre%20la%20privacidad%20en%20Z%26R" class="legal-contact-btn" target="_blank" rel="noopener"> Contactar por WhatsApp</a>
     </div>
   </div>
