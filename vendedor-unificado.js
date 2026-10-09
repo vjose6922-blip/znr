@@ -571,7 +571,11 @@ checkStockBanner();
 checkInsigniaSolidarioChip();
 renderVendorPlanPanel();
 loadVendorSaleNotifications();
-setTimeout(loadInformeSemanal, 4000);
+// Desde la notificación "Tu informe semanal está listo" (vendedor.html?informe=1) se muestra
+// de inmediato y aunque ya se hubiera cerrado antes.
+const _forzarInforme = new URLSearchParams(location.search).get('informe') === '1';
+if (_forzarInforme) loadInformeSemanal(true);
+else setTimeout(loadInformeSemanal, 4000);
 if (!window._vsnPollingStarted) {
   window._vsnPollingStarted = true;
  
@@ -708,12 +712,12 @@ if (btn && window.withButtonLoading) await window.withButtonLoading(btn, runFn, 
 else await runFn();
 }
 
-async function loadInformeSemanal() {
+async function loadInformeSemanal(forzar) {
   const el = document.getElementById('informe-semanal-card');
   if (!el || !vendorSession || !vendorSession.uid) return;
 
   const cacheKey = 'zr_vendor_informe_cache_' + vendorSession.uid;
-  const cached = _getDailyCache(cacheKey);
+  const cached = forzar ? _DAILY_CACHE_MISS : _getDailyCache(cacheKey);
   if (cached !== _DAILY_CACHE_MISS) {
     if (cached && cached.informe) renderInformeSemanal(cached.informe);
     else el.innerHTML = '';
@@ -723,8 +727,12 @@ async function loadInformeSemanal() {
   try {
     const data = await apiCall({ action: 'obtenerUltimoInformeSemanal', vendorToken: vendorSession.token });
     _setDailyCache(cacheKey, (data && data.ok) ? { informe: data.informe || null } : null);
-    if (!data || !data.ok || !data.informe) { el.innerHTML = ''; return; }
-    renderInformeSemanal(data.informe);
+    if (!data || !data.ok || !data.informe) {
+      el.innerHTML = '';
+      if (forzar) renderInformeSemanal({ resumen_texto: 'Todavía no tienes un informe semanal. Se genera cada semana si tuviste ventas entregadas.', fecha_generado: new Date().toISOString(), vendor_uid: 'sin-informe' }, true);
+      return;
+    }
+    renderInformeSemanal(data.informe, forzar);
   } catch (e) {
     console.error('No se pudo cargar el informe semanal:', e);
   }
@@ -732,19 +740,22 @@ async function loadInformeSemanal() {
 
 const INFORME_SEMANAL_DISMISS_KEY = 'znr_informe_semanal_cerrado';
 
-function renderInformeSemanal(informe) {
+function renderInformeSemanal(informe, forzar) {
   const el = document.getElementById('informe-semanal-card');
   if (!el) return;
 
   const fechaGenerado = new Date(informe.fecha_generado);
   const diasDesde = (Date.now() - fechaGenerado.getTime()) / 86400000;
-  if (isNaN(diasDesde) || diasDesde > 10) { el.innerHTML = ''; return; }
+  // Normalmente solo se muestra si tiene ≤10 días y no se cerró; con forzar (viene de la
+  // notificación) se muestra siempre, pero si la fecha es inválida no se muestra nada.
+  if (isNaN(diasDesde) || (!forzar && diasDesde > 10)) { el.innerHTML = ''; return; }
 
   const informeId = `${informe.vendor_uid}_${informe.fecha_generado}`;
-  if (localStorage.getItem(INFORME_SEMANAL_DISMISS_KEY) === informeId) {
+  if (!forzar && localStorage.getItem(INFORME_SEMANAL_DISMISS_KEY) === informeId) {
     el.innerHTML = '';
     return;
   }
+  if (forzar) { try { history.replaceState(null, '', location.pathname); } catch (_) {} } // limpia ?informe=1
 
   el.innerHTML = `
     <div class="informe-semanal-flotante" id="informe-semanal-flotante">

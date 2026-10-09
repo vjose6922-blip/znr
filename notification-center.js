@@ -19,6 +19,7 @@
     pedido_en_ruta:         { grupo: 'pedidos', icono: Icon('truck') },
     compra_live:            { grupo: 'pedidos', icono: Icon('shopping-bag') },
     entrega_live_completada:{ grupo: 'pedidos', icono: Icon('check') },
+    pago_duplicado:         { grupo: 'pedidos', icono: Icon('flag') },
     pedido_entregado:       { grupo: 'pedidos', icono: Icon('mail') },
     cuenta_aprobada:        { grupo: 'cuenta',  icono: Icon('sparkles') },
     cuenta_rechazada:       { grupo: 'cuenta',  icono: Icon('ban') },
@@ -559,9 +560,14 @@ const PICKUP_HORAS = ['9:00 AM','10:00 AM','11:00 AM','12:00 PM','1:00 PM','2:00
       // confirmado, sin stock, etc.), esas no necesitan botón.
       let urlEspecifica = '';
       try { if (n.url && new URL(n.url).search) urlEspecifica = n.url; } catch (_) {}
-      const abrirBtn = urlEspecifica
+      let abrirBtn = urlEspecifica
         ? `<a class="nc-maps-btn" href="${urlEspecifica}" target="_blank" rel="noopener" onclick="event.stopPropagation()">${Icon('link')} Abrir</a>`
         : '';
+      // El informe semanal siempre abre el informe (vendedor.html?informe=1), también las
+      // notificaciones viejas cuya URL era solo vendedor.html y no mostraban ningún botón.
+      if (n.tipo === 'informe_semanal') {
+        abrirBtn = `<a class="nc-maps-btn" href="vendedor.html?informe=1" onclick="event.stopPropagation()">${Icon('stats')} Ver informe</a>`;
+      }
       // Pedido de Comunidad para RECOGER (no calificó para domicilio): se
       // le pregunta al comprador la hora a la que va a pasar, ya justo
       // aquí en la notificación — antes de esto no tiene caso preguntar,
