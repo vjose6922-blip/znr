@@ -2816,7 +2816,7 @@ window.verMisEstadisticas = async function(forceRefresh) {
       rData = await window.znrFirestore.getCalificacionesVendedor(vendorSession.uid);
     }
     if (!rData || !rData.ok) {
-      const rUrl = `${window.API_URL}?${new URLSearchParams({ action: 'obtenerCalificacionesVendedor', vendedor_uid: vendorSession.uid })}`;
+      const rUrl = `${window.VENDEDORES_API_URL}?${new URLSearchParams({ action: 'obtenerCalificacionesVendedor', vendedor_uid: vendorSession.uid })}`;
       const rRes = await fetch(rUrl);
       rData = await rRes.json();
     }
@@ -2860,7 +2860,13 @@ function _renderMisStats(result, grid, ratingSlot, ventasSlot) {
       <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:14px;padding:12px;text-align:center;">
         <div style="font-size:20px;font-weight:800;color:#b45309;">${Icon('star')} ${r.promedio}</div>
         <div style="font-size:11px;color:#92400e;">${r.total} calificación${r.total === 1 ? '' : 'es'} de compradores</div>
+        <div style="font-size:11px;color:#b45309;font-weight:700;margin-top:4px;">Ver reseñas ›</div>
       </div>`;
+    ratingSlot.firstElementChild.style.cursor = 'pointer';
+    ratingSlot.firstElementChild.onclick = async () => {
+      const d = window.znrFirestore && window.znrFirestore.getCalificacionesVendedor ? await window.znrFirestore.getCalificacionesVendedor(vendorSession.uid) : null;
+      window.verResenasVendedor(d && d.ok ? d : r, 'Mis reseñas');
+    };
   } else {
     ratingSlot.innerHTML = `<p style="text-align:center;font-size:12px;color:#aaa;">Aún no tienes calificaciones</p>`;
   }

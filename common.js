@@ -4116,3 +4116,25 @@ window.cargarStockVivo = async function (ciudad) {
   } catch (e) { /* sin red o sin regla: se usa el stock del snapshot */ }
 };
 window.stockVivo = (p) => { const v = window.STOCK_VIVO[p.id]; return v === undefined ? p.stock : v; };
+
+// Ventana de reseñas de un vendedor. data = { promedio, total, detalle:[{calificacion, comentario, fecha}] }
+// (lo que devuelve znrFirestore.getCalificacionesVendedor). Solo trae los últimos comentarios guardados.
+window.verResenasVendedor = function (data, titulo) {
+  document.getElementById('modal-resenas')?.remove();
+  const lista = (data && data.detalle) || [];
+  const ov = document.createElement('div');
+  ov.id = 'modal-resenas';
+  ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:20000;display:flex;align-items:center;justify-content:center;padding:16px';
+  ov.innerHTML = `<div style="background:var(--color-surface-1,#fff);color:var(--color-text-primary,#222);border-radius:18px;width:100%;max-width:440px;max-height:80vh;overflow:auto;padding:18px;box-sizing:border-box">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><h3 style="margin:0;font-size:17px">${escapeHtml(titulo || 'Reseñas')}</h3><button type="button" aria-label="Cerrar" style="border:0;background:none;color:inherit;font-size:22px;cursor:pointer">×</button></div>
+    <p style="margin:6px 0 10px;font-size:13px;color:#f59e0b;font-weight:700">★ ${escapeHtml(data && data.promedio)} <span style="color:#888;font-weight:400">· ${Number(data && data.total) || 0} calificaciones</span></p>
+    ${lista.length ? lista.map(r => {
+      const n = Math.max(0, Math.min(5, Math.round(Number(r.calificacion) || 0)));
+      const d = new Date(r.fecha);
+      return `<div style="border-top:1px solid rgba(128,128,128,.25);padding:10px 0"><div style="color:#f59e0b;letter-spacing:1px">${'★'.repeat(n)}${'☆'.repeat(5 - n)} <span style="color:#888;font-size:11px;letter-spacing:0">${isNaN(d) ? '' : d.toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric' })}</span></div><p style="margin:4px 0 0;font-size:14px;white-space:pre-wrap;word-break:break-word">${escapeHtml(r.comentario)}</p></div>`;
+    }).join('') + '<p style="margin:10px 0 0;font-size:11px;color:#888">Se muestran los comentarios más recientes.</p>'
+    : '<p style="font-size:13px;color:#888">Aún no hay comentarios escritos.</p>'}
+  </div>`;
+  ov.addEventListener('click', (e) => { if (e.target === ov || e.target.tagName === 'BUTTON') ov.remove(); });
+  document.body.appendChild(ov);
+};

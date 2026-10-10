@@ -939,9 +939,9 @@
 
       const PRODUCTS_PAGE_SIZE = 12;
 
-      async function cargarCalificacionVendedor(uid) {
+      async function cargarCalificacionVendedor(uid, nombre) {
         const slot = document.getElementById('profile-rating-slot');
-        if (!slot || !uid || !window.API_URL) return;
+        if (!slot || !uid) return;
         try {
           let data = null;
           if (window.znrFirestore && window.znrFirestore.getCalificacionesVendedor) {
@@ -952,7 +952,8 @@
             data = await res.json();
           }
           if (data.ok && data.total > 0) {
-            slot.innerHTML = `<span style="color:#f59e0b;">${Icon('star')} ${data.promedio}</span> · ${data.total} calificación${data.total === 1 ? '' : 'es'}`;
+            slot.innerHTML = `<button type="button" style="background:none;border:0;padding:0;font:inherit;color:inherit;cursor:pointer;"><span style="color:#f59e0b;">${Icon('star')} ${data.promedio}</span> · ${data.total} calificación${data.total === 1 ? '' : 'es'} · <u>Ver reseñas</u></button>`;
+            slot.firstElementChild.onclick = () => window.verResenasVendedor(data, 'Reseñas' + (nombre ? ' de ' + nombre : ''));
           }
         } catch (e) { /* silencioso */ }
       }
@@ -1214,7 +1215,7 @@ const infoBits = [
           applyCoverBackground(coverEl, v.cover_bg, coverIcons, v.cover_icon_color);
         }
 
-        cargarCalificacionVendedor(v.uid);
+        cargarCalificacionVendedor(v.uid, v.nombre);
         cargarPestanaFundacion(v);
         cargarInsigniaDonador(v);
 
