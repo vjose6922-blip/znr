@@ -175,6 +175,7 @@ function construir() {
   ui.msgs = h("div", { class: "pp-msgs" });
   ui.cierre = h("div", { class: "pp-pagos" });
   ui.pagos = h("div", { class: "pp-pagos" });
+  ui.entrega = h("div", { class: "pp-pagos" });
   ui.acciones = h("div", { class: "pp-actions" });
   ui.rapidas = h("div", { class: "pp-quick" });
   ui.cerrado = h("div", { class: "pp-closed", style: "display:none", text: "Este pedido ya está cerrado." });
@@ -187,7 +188,7 @@ function construir() {
   ui.btnMenu = h("button", { class: "pp-back", type: "button", title: "Más opciones", "aria-label": "Más opciones", text: "⋯" });
   ui.btnMenu.addEventListener("click", abrirMenu);
   const cab = h("div", { class: "pp-head" }, volver, h("div", { class: "pp-head-info" }, ui.titulo, ui.sub), ui.badge, ui.btnMenu);
-  app.replaceChildren(cab, ui.pasos, ui.aviso, ui.ref, ui.msgs, ui.cierre, ui.pagos, ui.acciones, ui.rapidas, ui.cerrado, ui.comp);
+  app.replaceChildren(cab, ui.pasos, ui.aviso, ui.ref, ui.msgs, ui.cierre, ui.pagos, ui.entrega, ui.acciones, ui.rapidas, ui.cerrado, ui.comp);
 
   ui.ta.addEventListener("input", () => { ui.ta.style.height = "auto"; ui.ta.style.height = Math.min(ui.ta.scrollHeight, 120) + "px"; });
   ui.ta.addEventListener("keydown", (e) => {
@@ -363,6 +364,7 @@ function renderTodo() {
   renderEncabezado();
   renderCierre();
   renderPagos();
+  renderEntrega();
   renderAcciones();
   renderMensajes();
 }
@@ -525,6 +527,89 @@ function renderPagos() {
   }
   ui.pagos.appendChild(caja);
   ui.pagos.style.display = "";
+}
+
+// ---------------------------------------------------------------- entrega (pedido listo)
+
+const HORAS = ["9:00 AM", "10:00 AM", "11:00 AM", "12:00 PM", "1:00 PM", "2:00 PM", "3:00 PM", "4:00 PM", "5:00 PM", "6:00 PM", "7:00 PM", "8:00 PM"];
+let guardados = null; // promesa con los datos de entrega que el comprador ya tiene guardados
+
+const horarioTxt = (d) => [d.dias.join(", "), d.desde && d.hasta ? d.desde + " – " + d.hasta : ""].filter(Boolean).join(" · ");
+
+function leerGuardados() {
+  if (guardados) return guardados;
+  const L = (k) => localStorage.getItem(k) || "";
+  const arma = (dir, dias, desde, hasta, nota) => ({ direccion: dir || "", dias: dias || [], desde: desde || "", hasta: hasta || "", nota: nota || "" });
+  return (guardados = (async () => {
+    if (L("client_address")) return arma(L("client_address"), L("client_days").split(",").filter(Boolean), L("client_hour_from"), L("client_hour_to"), L("client_note"));
+    try {
+      const q = new URLSearchParams({ action: "leerPerfilComprador", telefono: identidad.tel, compradorToken: L("comprador_token") });
+      const r = await (await fetch(window.AUTH_API_URL + "?" + q)).json();
+      const p = r.ok && r.perfil;
+      return p ? arma(p.direccion, p.dias, p.horaDesde, p.horaHasta, p.nota) : arma();
+    } catch (_) { return arma(); }
+  })());
+}
+
+// Manda los datos al vendedor (llegan como mensaje del chat) y los deja guardados para la próxima.
+async function mandarDatos(d, btn) {
+  if (!(await hacer(btn, "guardarEntregaPedido", { direccion: d.direccion, horario: horarioTxt(d), nota: d.nota }))) return false;
+  const L = localStorage;
+  L.setItem("client_address", d.direccion); L.setItem("client_hour_from", d.desde); L.setItem("client_hour_to", d.hasta); L.setItem("client_note", d.nota);
+  guardados = Promise.resolve(d);
+  fetch(window.AUTH_API_URL, { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: new URLSearchParams({
+    action: "guardarPerfilComprador", telefono: identidad.tel, compradorToken: L.getItem("comprador_token") || "",
+    direccion: d.direccion, dias: d.dias.join(","), horaDesde: d.desde, horaHasta: d.hasta, nota: d.nota }).toString() }).catch(() => {});
+  toast("Datos enviados al vendedor");
+  return true;
+}
+
+function abrirFormEntrega(d) {
+  const sel = (v, ph) => h("select", {}, h("option", { value: "", text: ph }), HORAS.map((x) => h("option", { value: x, text: x, selected: x === v })));
+  const dir = h("textarea", { maxlength: "250", placeholder: "Calle, número, colonia, ciudad…" }); dir.value = d.direccion;
+  const nota = h("textarea", { maxlength: "300", placeholder: "Ej: tocar el timbre 2 veces" }); nota.value = d.nota;
+  const desde = sel(d.desde, "Desde"), hasta = sel(d.hasta, "Hasta"), err = h("div", { class: "err" });
+  ventana("Datos de entrega", h("div", {}, h("label", { text: "Dirección" }), dir, h("label", { text: "Horario" }), h("div", { class: "row" }, desde, hasta), h("label", { text: "Comentarios" }), nota, err), [
+    ["Cancelar", "", (b, cerrar) => cerrar()],
+    ["Guardar y enviar", "primary", async (b, cerrar) => {
+      if (dir.value.trim().length < 5) { err.textContent = "Escribe tu dirección."; return; }
+      if (await mandarDatos({ ...d, direccion: dir.value.trim(), desde: desde.value, hasta: hasta.value, nota: nota.value.trim() }, b)) cerrar();
+    }]
+  ]);
+}
+
+function renderEntrega() {
+  ui.entrega.replaceChildren();
+  const info = pedido.entregaInfo, en = pedido.entrega;
+  if (estadoEfectivo() !== "listo" || !info) { ui.entrega.style.display = "none"; return; }
+  ui.entrega.style.display = "";
+  const comprador = identidad.rol === "comprador", dom = info.domicilio;
+  const caja = h("div", { class: "pp-pago" }, h("h4", { text: dom ? "Entrega a domicilio" : "Recoger el pedido" }));
+  const hint = (t) => caja.appendChild(h("p", { class: "pp-hint", text: t }));
+  const btn = (txt, clase, fn) => { const b = h("button", { class: "pp-btn " + clase, type: "button", text: txt }); b.addEventListener("click", () => fn(b)); return b; };
+  const fila = (...bs) => caja.appendChild(h("div", { class: "row" }, ...bs));
+  ui.entrega.appendChild(caja);
+  if (!dom && info.punto) hint("Punto de recolección: " + info.punto);
+
+  if (!comprador) {
+    hint(!en ? (dom ? "Esperando que el cliente confirme sus datos de entrega." : "Esperando la hora a la que pasará el cliente.")
+      : en.tipo === "recoleccion" ? "El cliente pasa a las " + en.hora : en.direccion + (en.horario ? " · " + en.horario : "") + (en.nota ? " · " + en.nota : ""));
+  } else if (!dom) {
+    const sel = h("select", {}, HORAS.map((x) => h("option", { value: x, text: x, selected: !!en && en.hora === x })));
+    hint(en ? "Pasas por tu pedido a las " + en.hora + "." : "Avisa a qué hora pasas por él.");
+    fila(sel, btn(en ? "Cambiar hora" : "Avisar", "primary", async (b) => { if (await hacer(b, "guardarEntregaPedido", { hora: sel.value })) toast("Hora enviada al vendedor"); }));
+  } else if (en) {
+    hint(en.direccion + (en.horario ? " · " + en.horario : "") + (en.nota ? " · " + en.nota : ""));
+    fila(btn("Actualizar datos", "", async () => abrirFormEntrega(await leerGuardados())));
+  } else {
+    leerGuardados().then((d) => {
+      if (!d.direccion) { hint("Dinos dónde entregarte tu pedido."); fila(btn("Agregar datos de entrega", "primary", () => abrirFormEntrega(d))); return; }
+      hint("¿Usar estos datos de entrega?");
+      caja.appendChild(h("dl", { class: "pp-datos" }, h("dt", { text: "Dirección" }), h("dd", { text: d.direccion }),
+        horarioTxt(d) ? [h("dt", { text: "Horario" }), h("dd", { text: horarioTxt(d) })] : null, d.nota ? [h("dt", { text: "Nota" }), h("dd", { text: d.nota })] : null));
+      fila(btn("Sí, usar estos datos", "primary", (b) => mandarDatos(d, b)), btn("Cambiar datos", "", () => abrirFormEntrega(d)));
+    });
+  }
 }
 
 // ---------------------------------------------------------------- confianza (fase 3)
