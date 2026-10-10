@@ -4168,3 +4168,5 @@ window.verResenasVendedor = function (data, titulo) {
   ov.addEventListener('click', (e) => { if (e.target === ov || e.target.tagName === 'BUTTON') ov.remove(); });
   document.body.appendChild(ov);
 };
+
+(()=>{const f=()=>{const m=document.querySelector('meta[name=theme-color]');if(m)m.content=document.documentElement.dataset.theme==='dark'?'#1e2128':'#ffffff'};f();new MutationObserver(f).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']})})();
