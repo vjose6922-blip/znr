@@ -161,6 +161,15 @@ async function hacer(btn, action, extra) {
   }
 }
 
+// Tarjeta plegable (ocupa una sola línea hasta que se toca). Recuerda si estaba abierta entre renders.
+const abiertas = {};
+function plegable(clave, resumen) {
+  const d = h("details", { class: "pp-pago pp-fold" }, h("summary", { text: resumen }));
+  d.open = !!abiertas[clave];
+  d.addEventListener("toggle", () => { abiertas[clave] = d.open; });
+  return d;
+}
+
 // ---------------------------------------------------------------- esqueleto
 
 const ui = {};
@@ -444,10 +453,15 @@ async function verDatosPago(tipo, destino, btn) {
 }
 
 function miniaturaComprobante(url) {
-  if (!url) return null;
+  if (!url) return h("span");
   const img = h("img", { class: "pp-comprobante", src: url, alt: "Comprobante de pago", loading: "lazy" });
   img.addEventListener("click", () => verFoto(url));
   return img;
+}
+
+async function pagarEfectivo(tipo, btn) {
+  if (!(await confirmar("Pago en efectivo", "¿Confirmas que ya le pagaste " + (tipo === "anticipo" ? "el anticipo" : "el restante") + " en efectivo al vendedor? Él lo confirmará aquí.", "Sí, ya pagué", "primary"))) return;
+  if (await hacer(btn, "reportarPago", { tipo, metodo: "efectivo" })) toast("Aviso enviado. El vendedor lo confirmará.");
 }
 
 function noRecibido(tipo) {
@@ -483,7 +497,8 @@ function renderPagos() {
   if (a) resumen.push("Anticipo " + dinero(a.monto) + " · " + (PAGADO.includes(a.estado) ? "✔ pagado" : a.estado === "por_confirmar" ? "por confirmar" : "pendiente"));
   if (r) resumen.push((a ? "Restante " : "Total ") + dinero(r.monto) + " · " + (PAGADO.includes(r.estado) ? "✔ pagado" : r.estado === "por_confirmar" ? "por confirmar" : "al entregar"));
 
-  const caja = h("div", { class: "pp-pago" }, h("div", { class: "pp-pago-res", text: resumen.join("  ·  ") }));
+  const caja = plegable("pagos", act ? (act.tipo === "anticipo" ? "Anticipo" : "Pago restante") + " · " + dinero(act.pago.monto) + (act.pago.estado === "por_confirmar" ? " · por confirmar" : " · pendiente") : resumen.join("  ·  "));
+  caja.appendChild(h("div", { class: "pp-pago-res", text: resumen.join("  ·  ") }));
 
   if (act) {
     const { tipo, pago } = act;
@@ -493,17 +508,19 @@ function renderPagos() {
       if (pago.estado === "pendiente") {
         const venc = tipo === "anticipo" ? ms(pedido.expiraEn) : 0;
         caja.appendChild(h("p", { class: "pp-hint", text: tipo === "anticipo"
-          ? "Paga por transferencia y sube tu comprobante." + (venc ? " Tienes hasta el " + diaLargo(venc) + "." : "")
+          ? "Paga por transferencia y sube tu comprobante, o en efectivo directo con el vendedor." + (venc ? " Tienes hasta el " + diaLargo(venc) + "." : "")
           : "Págalo en efectivo al recibir tu pedido, o por transferencia subiendo tu comprobante." }));
         const datos = h("div", { class: "pp-pago-datos" });
         const bVer = h("button", { class: "pp-btn", type: "button", text: "Ver datos para transferir" });
         bVer.addEventListener("click", () => verDatosPago(tipo, datos, bVer));
         const bYa = h("button", { class: "pp-btn primary", type: "button", text: "Ya pagué · subir comprobante" });
         bYa.addEventListener("click", () => subirComprobante(tipo, bYa));
-        caja.append(h("div", { class: "row" }, bVer, bYa), datos);
+        const bEf = h("button", { class: "pp-btn", type: "button", text: "Ya pagué en efectivo" });
+        bEf.addEventListener("click", () => pagarEfectivo(tipo, bEf));
+        caja.append(h("div", { class: "row" }, bVer, bYa, bEf), datos);
         if (pago.ultimoRechazo) caja.appendChild(h("p", { class: "pp-hint bad", text: "El vendedor no encontró tu pago anterior: " + pago.ultimoRechazo.motivo }));
       } else {
-        caja.appendChild(h("p", { class: "pp-hint", text: "Comprobante enviado. Esperando que el vendedor confirme tu pago." }));
+        caja.appendChild(h("p", { class: "pp-hint", text: (pago.metodo === "efectivo" ? "Avisaste que pagaste en efectivo." : "Comprobante enviado.") + " Esperando que el vendedor confirme tu pago." }));
         caja.appendChild(miniaturaComprobante(pago.comprobante));
       }
     } else if (pago.estado === "pendiente") {
@@ -514,10 +531,10 @@ function renderPagos() {
       b.addEventListener("click", () => confirmarRecibido(tipo, "efectivo", b));
       caja.appendChild(h("div", { class: "row" }, b));
     } else {
-      caja.appendChild(h("p", { class: "pp-hint", text: "El cliente subió su comprobante. Revisa tu cuenta y confirma." }));
+      caja.appendChild(h("p", { class: "pp-hint", text: pago.metodo === "efectivo" ? "El cliente dice que te pagó en efectivo. Confírmalo cuando lo recibas." : "El cliente subió su comprobante. Revisa tu cuenta y confirma." }));
       caja.appendChild(miniaturaComprobante(pago.comprobante));
       const bOk = h("button", { class: "pp-btn primary", type: "button", text: tipo === "anticipo" ? "Confirmar pago recibido" : "Confirmar y entregar" });
-      bOk.addEventListener("click", () => confirmarRecibido(tipo, "transferencia", bOk));
+      bOk.addEventListener("click", () => confirmarRecibido(tipo, pago.metodo === "efectivo" ? "efectivo" : "transferencia", bOk));
       const bNo = h("button", { class: "pp-btn danger", type: "button", text: "No lo recibí" });
       bNo.addEventListener("click", () => noRecibido(tipo));
       caja.appendChild(h("div", { class: "row" }, bOk, bNo));
@@ -539,9 +556,9 @@ const horarioTxt = (d) => [d.dias.join(", "), d.desde && d.hasta ? d.desde + " �
 function leerGuardados() {
   if (guardados) return guardados;
   const L = (k) => localStorage.getItem(k) || "";
-  const arma = (dir, dias, desde, hasta, nota) => ({ direccion: dir || "", dias: dias || [], desde: desde || "", hasta: hasta || "", nota: nota || "" });
+  const arma = (dir, dias, desde, hasta, nota, lat, lng) => ({ direccion: dir || "", dias: dias || [], desde: desde || "", hasta: hasta || "", nota: nota || "", lat: lat || "", lng: lng || "" });
   return (guardados = (async () => {
-    if (L("client_address")) return arma(L("client_address"), L("client_days").split(",").filter(Boolean), L("client_hour_from"), L("client_hour_to"), L("client_note"));
+    if (L("client_address")) return arma(L("client_address"), L("client_days").split(",").filter(Boolean), L("client_hour_from"), L("client_hour_to"), L("client_note"), L("client_gps_lat"), L("client_gps_lng"));
     try {
       const q = new URLSearchParams({ action: "leerPerfilComprador", telefono: identidad.tel, compradorToken: L("comprador_token") });
       const r = await (await fetch(window.AUTH_API_URL + "?" + q)).json();
@@ -553,13 +570,14 @@ function leerGuardados() {
 
 // Manda los datos al vendedor (llegan como mensaje del chat) y los deja guardados para la próxima.
 async function mandarDatos(d, btn) {
-  if (!(await hacer(btn, "guardarEntregaPedido", { direccion: d.direccion, horario: horarioTxt(d), nota: d.nota }))) return false;
+  if (!(await hacer(btn, "guardarEntregaPedido", { direccion: d.direccion, horario: horarioTxt(d), nota: d.nota, lat: d.lat, lng: d.lng }))) return false;
   const L = localStorage;
   L.setItem("client_address", d.direccion); L.setItem("client_hour_from", d.desde); L.setItem("client_hour_to", d.hasta); L.setItem("client_note", d.nota);
+  if (d.lat) { L.setItem("client_gps_lat", d.lat); L.setItem("client_gps_lng", d.lng); } else { L.removeItem("client_gps_lat"); L.removeItem("client_gps_lng"); }
   guardados = Promise.resolve(d);
   fetch(window.AUTH_API_URL, { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: new URLSearchParams({
     action: "guardarPerfilComprador", telefono: identidad.tel, compradorToken: L.getItem("comprador_token") || "",
-    direccion: d.direccion, dias: d.dias.join(","), horaDesde: d.desde, horaHasta: d.hasta, nota: d.nota }).toString() }).catch(() => {});
+    direccion: d.direccion, dias: d.dias.join(","), horaDesde: d.desde, horaHasta: d.hasta, nota: d.nota, ...(d.lat ? { lat: d.lat, lng: d.lng } : {}) }).toString() }).catch(() => {});
   toast("Datos enviados al vendedor");
   return true;
 }
@@ -569,11 +587,24 @@ function abrirFormEntrega(d) {
   const dir = h("textarea", { maxlength: "250", placeholder: "Calle, número, colonia, ciudad…" }); dir.value = d.direccion;
   const nota = h("textarea", { maxlength: "300", placeholder: "Ej: tocar el timbre 2 veces" }); nota.value = d.nota;
   const desde = sel(d.desde, "Desde"), hasta = sel(d.hasta, "Hasta"), err = h("div", { class: "err" });
-  ventana("Datos de entrega", h("div", {}, h("label", { text: "Dirección" }), dir, h("label", { text: "Horario" }), h("div", { class: "row" }, desde, hasta), h("label", { text: "Comentarios" }), nota, err), [
+  let gps = d.lat ? { lat: d.lat, lng: d.lng } : null; // las coordenadas valen solo mientras la dirección no se edite a mano
+  const bGps = h("button", { class: "pp-btn", type: "button", text: "📍 Usar mi ubicación actual", style: "width:100%;margin-top:6px" });
+  dir.addEventListener("input", () => { gps = null; });
+  bGps.addEventListener("click", () => {
+    if (!navigator.geolocation) { toast("Tu dispositivo no permite obtener la ubicación"); return; }
+    bGps.disabled = true; bGps.textContent = "Obteniendo ubicación…";
+    navigator.geolocation.getCurrentPosition(async ({ coords: c }) => {
+      let txt = c.latitude.toFixed(6) + ", " + c.longitude.toFixed(6);
+      try { const j = await (await fetch("https://nominatim.openstreetmap.org/reverse?format=json&accept-language=es&lat=" + c.latitude + "&lon=" + c.longitude)).json(); if (j.display_name) txt = j.display_name; } catch (_) {}
+      dir.value = txt; gps = { lat: c.latitude, lng: c.longitude };
+      bGps.disabled = false; bGps.textContent = "✔ Ubicación obtenida";
+    }, () => { bGps.disabled = false; bGps.textContent = "📍 Usar mi ubicación actual"; toast("No se pudo obtener tu ubicación. Revisa el permiso del navegador."); }, { enableHighAccuracy: true, timeout: 10000 });
+  });
+  ventana("Datos de entrega", h("div", {}, h("label", { text: "Dirección" }), dir, bGps, h("label", { text: "Horario" }), h("div", { class: "row" }, desde, hasta), h("label", { text: "Comentarios" }), nota, err), [
     ["Cancelar", "", (b, cerrar) => cerrar()],
     ["Guardar y enviar", "primary", async (b, cerrar) => {
       if (dir.value.trim().length < 5) { err.textContent = "Escribe tu dirección."; return; }
-      if (await mandarDatos({ ...d, direccion: dir.value.trim(), desde: desde.value, hasta: hasta.value, nota: nota.value.trim() }, b)) cerrar();
+      if (await mandarDatos({ ...d, direccion: dir.value.trim(), desde: desde.value, hasta: hasta.value, nota: nota.value.trim(), lat: gps ? gps.lat : "", lng: gps ? gps.lng : "" }, b)) cerrar();
     }]
   ]);
 }
@@ -584,7 +615,7 @@ function renderEntrega() {
   if (estadoEfectivo() !== "listo" || !info) { ui.entrega.style.display = "none"; return; }
   ui.entrega.style.display = "";
   const comprador = identidad.rol === "comprador", dom = info.domicilio;
-  const caja = h("div", { class: "pp-pago" }, h("h4", { text: dom ? "Entrega a domicilio" : "Recoger el pedido" }));
+  const caja = plegable("entrega", dom ? "Entrega a domicilio · " + (en ? "datos enviados ✔" : comprador ? "confirma tus datos" : "esperando datos") : "Recoger el pedido · " + (en ? en.hora : comprador ? "elige la hora" : "esperando hora"));
   const hint = (t) => caja.appendChild(h("p", { class: "pp-hint", text: t }));
   const btn = (txt, clase, fn) => { const b = h("button", { class: "pp-btn " + clase, type: "button", text: txt }); b.addEventListener("click", () => fn(b)); return b; };
   const fila = (...bs) => caja.appendChild(h("div", { class: "row" }, ...bs));
@@ -594,6 +625,7 @@ function renderEntrega() {
   if (!comprador) {
     hint(!en ? (dom ? "Esperando que el cliente confirme sus datos de entrega." : "Esperando la hora a la que pasará el cliente.")
       : en.tipo === "recoleccion" ? "El cliente pasa a las " + en.hora : en.direccion + (en.horario ? " · " + en.horario : "") + (en.nota ? " · " + en.nota : ""));
+    if (en && en.lat) caja.appendChild(h("p", { class: "pp-hint" }, h("a", { href: "https://www.google.com/maps?q=" + en.lat + "," + en.lng, target: "_blank", rel: "noopener", text: "Ver ubicación en Maps" })));
   } else if (!dom) {
     const sel = h("select", {}, HORAS.map((x) => h("option", { value: x, text: x, selected: !!en && en.hora === x })));
     hint(en ? "Pasas por tu pedido a las " + en.hora + "." : "Avisa a qué hora pasas por él.");
@@ -628,12 +660,12 @@ function renderCierre() {
   const e = estadoEfectivo();
   if (e !== "entregado") { ui.cierre.style.display = "none"; return; }
   const cal = pedido.calificacion;
-  const caja = h("div", { class: "pp-pago" });
+  const caja = plegable("cierre", cal ? (identidad.rol === "comprador" ? "Tu calificación " : "Calificación del cliente ") + estrellasTxt(cal.estrellas) : identidad.rol === "comprador" ? "⭐ Califica tu pedido" : "Sin calificación todavía");
   if (cal) {
     caja.append(
       h("h4", { text: identidad.rol === "comprador" ? "Tu calificación" : "Calificación del cliente" }),
       h("div", { class: "pp-estrellas fija", text: estrellasTxt(cal.estrellas), "aria-label": cal.estrellas + " de 5 estrellas" }),
-      cal.comentario ? h("p", { class: "pp-hint", text: cal.comentario }) : null);
+      ...(cal.comentario ? [h("p", { class: "pp-hint", text: cal.comentario })] : []));
   } else if (identidad.rol === "comprador") {
     caja.appendChild(h("h4", { text: "¿Cómo te fue con tu pedido?" }));
     const fila = h("div", { class: "pp-estrellas" });
