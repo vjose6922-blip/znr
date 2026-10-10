@@ -572,16 +572,17 @@ const PICKUP_HORAS = ['9:00 AM','10:00 AM','11:00 AM','12:00 PM','1:00 PM','2:00
       // le pregunta al comprador la hora a la que va a pasar, ya justo
       // aquí en la notificación — antes de esto no tiene caso preguntar,
       // porque depende de cuándo respondió el vendedor.
-      const pickupAvisoHtml = (n.tipo === 'confirmacion_vendedor' && meta.calificaEnvio === false && meta.vendedorTel)
+      const esPedidoPers = n.tipo === 'pedido_personalizado_estado' && meta.recoleccion && meta.pedidoId;
+      const pickupAvisoHtml = (esPedidoPers || (n.tipo === 'confirmacion_vendedor' && meta.calificaEnvio === false && meta.vendedorTel))
         ? `<div class="nc-pickup-aviso" onclick="event.stopPropagation()">
              <p class="nc-pickup-aviso-label">🕒 Avisa a qué hora pasas por tu pedido</p>
              <div class="nc-pickup-aviso-row">
-               <select class="nc-pickup-select" data-tel="${meta.vendedorTel}" data-nombre="${(meta.vendedorNombre || '').replace(/"/g, '&quot;')}">
+               <select class="nc-pickup-select" data-tel="${meta.vendedorTel || ''}" data-pedido="${esPedidoPers ? meta.pedidoId : ''}" data-nombre="${(meta.vendedorNombre || '').replace(/"/g, '&quot;')}">
                  ${PICKUP_HORAS.map(h => `<option value="${h}">${h}</option>`).join('')}
                </select>
                <button type="button" class="nc-pickup-btn">💬 Avisar</button>
              </div>
-             <p class="nc-pickup-aviso-note">Se abre WhatsApp con el vendedor. Si no está disponible a esa hora, pueden reagendar directo desde el chat.</p>
+             <p class="nc-pickup-aviso-note">${esPedidoPers ? 'Se lo enviamos al vendedor por el chat del pedido.' : 'Se abre WhatsApp con el vendedor. Si no está disponible a esa hora, pueden reagendar directo desde el chat.'}</p>
            </div>`
         : '';
       // Pago pendiente (OXXO/SPEI vía MercadoPago, checkout de invitado sin
@@ -645,6 +646,14 @@ const PICKUP_HORAS = ['9:00 AM','10:00 AM','11:00 AM','12:00 PM','1:00 PM','2:00
         const select = btn.previousElementSibling;
         const hora = select ? select.value : '';
         const tel = select ? select.dataset.tel : '';
+        const pedidoId = select ? select.dataset.pedido : '';
+        if (pedidoId) {
+          btn.disabled = true;
+          fetch(window.PEDIDOS_API_URL, { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams({ action: 'guardarEntregaPedido', pedidoId, hora, telefono: localStorage.getItem('client_phone') || '', compradorToken: localStorage.getItem('comprador_token') || '' }).toString() })
+            .then(r => r.json()).then(r => { btn.textContent = r.ok ? '✔ Enviado' : (r.error || 'Error'); btn.disabled = !!r.ok; })
+            .catch(() => { btn.textContent = 'Sin conexión'; btn.disabled = false; });
+          return;
+        }
         if (!tel) return;
         const texto = `Hola, buen día 👋 Pasaré a recoger mi pedido a las ${hora}.`;
         window.open(`https://wa.me/52${tel}?text=${encodeURIComponent(texto)}`, '_blank');
