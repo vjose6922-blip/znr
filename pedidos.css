@@ -94,3 +94,33 @@ body { margin: 0; }
 .pp-card small { display: block; font-size: 12px; opacity: .7; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .pp-card .meta { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; flex-shrink: 0; }
 .pp-card .turno { position: absolute; top: 8px; right: 8px; width: 9px; height: 9px; border-radius: 50%; background: #ef4444; }
+
+/* ---- Fase 2: pagos ---- */
+.pp-pagos { padding: 8px 12px 0; }
+.pp-pago { border: 1.5px solid var(--pp-accent); border-radius: 14px; padding: 10px 12px; background: var(--pp-accent-soft); }
+.pp-pago-res { font-size: 12px; font-weight: 600; opacity: .85; }
+.pp-pago h4 { margin: 8px 0 2px; font-size: 15px; }
+.pp-hint { font-size: 12.5px; margin: 4px 0 8px; opacity: .85; }
+.pp-hint.bad { color: #b91c1c; opacity: 1; }
+.pp-pago .row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+.pp-pago-datos { margin-top: 8px; }
+.pp-datos { display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; margin: 8px 0; font-size: 13px; }
+.pp-datos dt { opacity: .65; }
+.pp-datos dd { margin: 0; font-weight: 600; word-break: break-all; }
+.pp-datos dd.clabe { font-family: ui-monospace, Menlo, monospace; font-size: 15px; letter-spacing: .03em; }
+.pp-comprobante { display: block; max-width: 140px; max-height: 120px; border-radius: 8px; margin: 6px 0; cursor: zoom-in; object-fit: cover; }
+.pp-pagomsg { align-self: stretch; padding: 8px 12px; border-radius: 12px; font-size: 13px; background: var(--color-surface-2, #f3f4f6); display: flex; flex-direction: column; gap: 4px; }
+.pp-pagomsg.ok { background: rgba(34,197,94,.12); }
+.pp-pagomsg.bad { background: rgba(239,68,68,.12); }
+.pp-pagomsg img { max-width: 160px; max-height: 130px; border-radius: 8px; cursor: zoom-in; object-fit: cover; }
+.pp-btn:disabled[disabled] { cursor: not-allowed; }
+
+/* ---- Fase 3: calificar, reportar, bloquear ---- */
+.pp-box .row.col { flex-direction: column; }
+.pp-box .row.col .pp-btn { flex: none; }
+.pp-estrellas { display: flex; gap: 4px; margin-top: 6px; }
+.pp-estrellas button { border: 0; background: none; font-size: 32px; line-height: 1; color: #f59e0b; cursor: pointer; padding: 0 2px; }
+.pp-estrellas.fija { font-size: 22px; color: #f59e0b; letter-spacing: 2px; }
+.pp-motivos { display: flex; flex-direction: column; gap: 6px; margin: 8px 0; }
+.pp-motivos button { text-align: left; padding: 10px 12px; border-radius: 10px; border: 1.5px solid var(--color-border-subtle, #d1d5db); background: var(--color-surface-1, #fff); color: inherit; font: inherit; font-size: 14px; cursor: pointer; }
+.pp-motivos button.on { border-color: var(--pp-accent); background: var(--pp-accent-soft); font-weight: 700; }

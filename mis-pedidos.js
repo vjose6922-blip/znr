@@ -57,13 +57,18 @@ function fechaCorta(t) {
 
 function estadoEfectivo(p) {
   const venc = ms(p.expiraEn);
-  if ((p.estado === "solicitado" || p.estado === "cotizado") && venc && venc < Date.now()) return "expirado";
+  const anticipoPendiente = p.estado === "aceptado" && p.pagoAnticipo && p.pagoAnticipo.estado === "pendiente";
+  if ((p.estado === "solicitado" || p.estado === "cotizado" || anticipoPendiente) && venc && venc < Date.now()) return "expirado";
   return p.estado;
 }
 
 const esMiTurno = (p, rol) => {
   const e = estadoEfectivo(p);
-  return rol === "vendedor" ? e === "solicitado" : e === "cotizado";
+  // Pago en juego: anticipo al aceptar, restante cuando el pedido está listo.
+  const pago = e === "aceptado" ? p.pagoAnticipo : e === "listo" ? p.pagoRestante : null;
+  const pagoEstado = pago ? pago.estado : "";
+  if (rol === "vendedor") return e === "solicitado" || pagoEstado === "por_confirmar";
+  return e === "cotizado" || pagoEstado === "pendiente" || (e === "entregado" && !p.calificacion);
 };
 
 function leerSesionVendedor() {
