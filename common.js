@@ -990,7 +990,24 @@ let _modalImages  = [];
 let _modalIndex  = 0;
 let _modalTouchStartX = 0;
 let _modalProduct  = null;
+// Si quien abre el modal no mandó el tipo de venta (hay varios sitios que arman sus propios datos), se completa
+// con el catálogo de Comunidad que ya está en memoria: un artículo "bajo pedido" nunca debe verse como compra normal.
+function _completarVentaPersonalizada(productData, productId) {
+  try {
+    const p = productData;
+    if (!p || p._comunidad !== true || p.TipoVenta || p.tipoVenta) return p;
+    const id = String(productId || p.ID || p.id || '');
+    if (!id) return p;
+    const pool = [].concat(window.communityRandomOrder || [], window.allCommunityProductsIndexed || []);
+    const fila = pool.find(x => x && String(x.id || x.ID) === id);
+    if (!fila || fila.tipoVenta !== 'personalizado') return p;
+    return { ...p, TipoVenta: 'personalizado', TiempoElaboracionDias: Number(fila.tiempoElaboracionDias) || 0,
+      OpcionesPersonalizacion: fila.opcionesPersonalizacion || '', Stock: -1 };
+  } catch (_) { return productData; }
+}
+
 function openImageModal(url, productId = null, allImages = [], productData = null) {
+  productData = _completarVentaPersonalizada(productData, productId);
   const modal  = document.getElementById("image-modal");
   const overlay = document.getElementById("overlay");
   if (!modal) return;
@@ -1240,6 +1257,9 @@ function _renderMagazinePanel(modal) {
     _beneficiarioId: p.beneficiario_id || p._beneficiarioId || '',
     _precioOriginal: p.precio_original || p.PrecioOriginal || 0,
     _montoMinimoEnvio: p.vendedor_monto_minimo_envio || p._montoMinimoEnvio || 0,
+    _tipoVenta: (p.tipoVenta || p.TipoVenta) === 'personalizado' ? 'personalizado' : 'stock',
+    _tiempoElaboracionDias: Number(p.tiempoElaboracionDias || p.TiempoElaboracionDias || 0),
+    _opcionesPersonalizacion: p.opcionesPersonalizacion || p.OpcionesPersonalizacion || '',
   }));
   const currentId  = current ? String(current.ID || current.id || '') : '';
   const currentCat = current ? (current.Categoria || current.categoria || '') : '';
@@ -1274,9 +1294,10 @@ function _renderMagazinePanel(modal) {
         : (p._imagen1 || '');
       const fullImg = getModalImageUrl(p._imagen1);
       const name = (p._nombre || 'Producto').substring(0, 28);
-      const price = typeof formatCurrency === 'function'
+      const esPers = p._tipoVenta === 'personalizado';
+      const price = (esPers ? 'Desde ' : '') + (typeof formatCurrency === 'function'
         ? formatCurrency(p._precio)
-        : `$${p._precio}`;
+        : `$${p._precio}`);
       const safeImg     = thumbImg ? escapeAttr(thumbImg) : 'https://placehold.co/200x200/3b1f5f/white?text=Z%26R';
       const safeFullImg = fullImg  ? escapeAttr(fullImg)  : safeImg;
       const safeName  = typeof escapeHtml === 'function' ? escapeHtml(name) : name;
@@ -1304,6 +1325,9 @@ function _renderMagazinePanel(modal) {
       const safeBenId  = escapeAttr(p._beneficiarioId || '');
       const safePrecioOriginal = escapeAttr(String(p._precioOriginal || 0));
       const safeMontoMinimo = escapeAttr(String(p._montoMinimoEnvio || 0));
+      const safeTipoVenta = escapeAttr(p._tipoVenta || 'stock');
+      const safeDiasElab = escapeAttr(String(p._tiempoElaboracionDias || 0));
+      const safeOpcionesPers = escapeAttr(p._opcionesPersonalizacion || '');
       return `
         <button class="im-related-card"
           data-id="${safeId}"
@@ -1328,6 +1352,9 @@ function _renderMagazinePanel(modal) {
           data-ben-id="${safeBenId}"
           data-precio-original="${safePrecioOriginal}"
           data-monto-minimo="${safeMontoMinimo}"
+          data-tipo-venta="${safeTipoVenta}"
+          data-dias-elab="${safeDiasElab}"
+          data-opciones-pers="${safeOpcionesPers}"
           aria-label="Ver ${safeName}">
           <div class="im-related-img-wrap">
             <img src="${safeImg}" alt="${safeName}" loading="lazy" />
@@ -1350,7 +1377,10 @@ function _renderMagazinePanel(modal) {
         Categoria:  btn.dataset.categoria,
         Talla:  btn.dataset.talla  || '',
         Descripcion: btn.dataset.descripcion || '',
-        Stock:  btn.dataset.stock !== undefined ? Number(btn.dataset.stock) : -1,
+        Stock:  btn.dataset.tipoVenta === 'personalizado' ? -1 : (btn.dataset.stock !== undefined ? Number(btn.dataset.stock) : -1),
+        TipoVenta: btn.dataset.tipoVenta || 'stock',
+        TiempoElaboracionDias: Number(btn.dataset.diasElab || 0),
+        OpcionesPersonalizacion: btn.dataset.opcionesPers || '',
         Badge:  btn.dataset.badge  || '',
         Imagen1:  btn.dataset.imagen1,
         Imagen2:  btn.dataset.imagen2,

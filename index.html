@@ -654,8 +654,10 @@
  const img  = optUrl(p.imagen1 || '', 400) || 'https://placehold.co/300x300/3b1f5f/white?text=Z%26R';
  const allImages = [p.imagen1, p.imagen2, p.imagen3].filter(Boolean).map(u => optUrl(u, 800));
  const price = Number(p.precio || 0).toLocaleString('es-MX', { style:'currency', currency:'MXN', maximumFractionDigits:0 });
+ const esPersonal = p.tipoVenta === 'personalizado';
+ const diasElab = Number(p.tiempoElaboracionDias) || 0;
  const stock = Number(stockVivo(p)) || 0;
- const hasStock = stock > 0;
+ const hasStock = esPersonal ? true : stock > 0;
 
  const card = document.createElement('div');
  card.className = 'product-card';
@@ -670,12 +672,14 @@
  <div class="product-info" style="padding:12px;">
  <div class="product-title-row">
  <h3 class="product-name" style="font-size:14px;">${esc(p.nombre)}</h3>
- <div class="product-price" style="font-size:16px;">${price}</div>
+ <div class="product-price" style="font-size:16px;">${esPersonal ? '<span style="font-size:10px;font-weight:600;opacity:.7;">Desde </span>' : ''}${price}</div>
  </div>
  ${p.vendedor_nombre ? `<div style="font-size:11px;color:var(--color-text-muted);margin-top:2px;"> ${esc(p.vendedor_nombre)}</div>` : ''}
  ${p.talla ? `<div style="font-size:11px;color:var(--color-text-muted);margin-top:2px;">Info: ${esc(p.talla)}</div>` : ''}
  <div style="display:flex;align-items:center;gap:6px;margin-top:6px;">
- ${!hasStock
+ ${esPersonal
+ ? `<span style="color:#a855f7;font-size:11px;font-weight:600;">Bajo pedido${diasElab ? ' · ' + diasElab + (diasElab === 1 ? ' día' : ' días') : ''}</span>`
+ : !hasStock
  ? '<span style="color:var(--color-error);font-size:11px;font-weight:600;">Sin stock</span>'
  : `<span style="color:var(--color-success);font-size:11px;">Stock: ${stock}</span>`}
  </div>
@@ -694,7 +698,7 @@
  data-vendorplan="${esc(p.vendedor_plan || '')}"
  data-vendoruid="${esc(p.vendedor_uid || '')}"
  data-donacion="${p.donado === true || p.donado === 'TRUE' || p.donado === 'true'}"
- data-benid="${esc(String(p.beneficiario_id || ''))}"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" aria-hidden="true"><use href="#ic-plus"/></svg> Agregar</button>
+ data-benid="${esc(String(p.beneficiario_id || ''))}"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" aria-hidden="true"><use href="#ic-plus"/></svg> ${esPersonal ? 'Personalizar' : 'Agregar'}</button>
  </div>
  </div>`;
 
@@ -710,7 +714,10 @@
  Categoria:  p.categoria  || '',
  Talla:  p.talla  || '',
  Descripcion: p.descripcion || '',
- Stock:  stockVivo(p) !== undefined ? Number(stockVivo(p)) : -1,
+ Stock:  esPersonal ? -1 : (stockVivo(p) !== undefined ? Number(stockVivo(p)) : -1),
+ TipoVenta: p.tipoVenta || 'stock',
+ TiempoElaboracionDias: diasElab,
+ OpcionesPersonalizacion: p.opcionesPersonalizacion || '',
  Badge:  p.badge  || '',
  Imagen1:  p.imagen1  || '',
  Imagen2:  p.imagen2  || '',
@@ -731,6 +738,14 @@
 
  card.querySelector('.home-com-add-btn')?.addEventListener('click', async (e) => {
  e.stopPropagation();
+ // Artículo "bajo pedido": no va al carrito, abre la solicitud + chat con el vendedor.
+ if (esPersonal) {
+ if (typeof window.znrPersonalizar === 'function') window.znrPersonalizar({
+ ID: p.id, Nombre: p.nombre, Precio: Number(p.precio), Imagen1: p.imagen1,
+ TiempoElaboracionDias: diasElab, OpcionesPersonalizacion: p.opcionesPersonalizacion || ''
+ });
+ return;
+ }
  if (typeof addToCart === 'function') {
  const btn = e.currentTarget;
  const esDon = btn.dataset.donacion === 'true';

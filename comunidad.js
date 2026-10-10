@@ -778,14 +778,17 @@ function crearMiniCardComunidad(p, badgeHtml) {
     <div style="padding:6px 2px 0;">
       <div style="font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(safeString(p.nombre))}</div>
       ${tieneDescuento ? `<div style="font-size:11px;color:var(--color-text-muted,#888);text-decoration:line-through;">${fmtCurr(original)}</div>` : ''}
-      <div style="font-size:15px;font-weight:800;">${fmtCurr(p.precio)}</div>
+      <div style="font-size:15px;font-weight:800;">${p.tipoVenta === 'personalizado' ? '<span style="font-size:10px;font-weight:600;opacity:.7;">Desde </span>' : ''}${fmtCurr(p.precio)}</div>
     </div>`;
   mini.onclick = () => {
     if (!window.openImageModal) return;
     const allImages = [p.imagen1, p.imagen2, p.imagen3].filter(Boolean);
     abrirDetalleComunidad(img, p.id, allImages, {
       ID: p.id, Nombre: p.nombre || '', Precio: p.precio || 0, Categoria: p.categoria || '',
-      Talla: p.talla || '', Descripcion: p.descripcion || '', Stock: stockVivo(p) !== undefined ? Number(stockVivo(p)) : -1,
+      Talla: p.talla || '', Descripcion: p.descripcion || '',
+      Stock: p.tipoVenta === 'personalizado' ? -1 : (stockVivo(p) !== undefined ? Number(stockVivo(p)) : -1),
+      TipoVenta: p.tipoVenta || 'stock', TiempoElaboracionDias: Number(p.tiempoElaboracionDias) || 0,
+      OpcionesPersonalizacion: p.opcionesPersonalizacion || '',
       Badge: p.badge || '', Imagen1: p.imagen1 || '', Imagen2: p.imagen2 || '', Imagen3: p.imagen3 || '',
       _comunidad: true, _vendedorNombre: p.vendedor_nombre || '', _vendedorUid: p.vendedor_uid || '',
       _vendedorTel: p.vendedor_tel || '', _vendedorLogo: p.vendedor_logo || '', _vendedorPlan: p.vendedor_plan || '',
@@ -947,7 +950,10 @@ function handleInitialHashComunidad(intentos = 0) {
     Categoria: product.categoria || '',
     Talla: product.talla || '',
     Descripcion: product.descripcion || '',
-    Stock: stockVivo(product) !== undefined ? Number(stockVivo(product)) : -1,
+    Stock: product.tipoVenta === 'personalizado' ? -1 : (stockVivo(product) !== undefined ? Number(stockVivo(product)) : -1),
+    TipoVenta: product.tipoVenta || 'stock',
+    TiempoElaboracionDias: Number(product.tiempoElaboracionDias) || 0,
+    OpcionesPersonalizacion: product.opcionesPersonalizacion || '',
     Badge: product.badge || '',
     Imagen1: product.imagen1 || '',
     Imagen2: product.imagen2 || '',
