@@ -5,6 +5,7 @@
   const CATALOGO_API_URL     = 'https://catalogo-api-1038143238323.us-central1.run.app';
   const VENDEDORES_API_URL   = 'https://vendedores-api-1038143238323.us-central1.run.app';
   const VENTAS_API_URL       = 'https://ventas-api-1038143238323.us-central1.run.app';
+  const PEDIDOS_API_URL      = 'https://pedidos-api-1038143238323.us-central1.run.app';
   const BENEFICIARIOS_API_URL= 'https://beneficiarios-api-1038143238323.us-central1.run.app';
   const AUTH_API_URL         = 'https://auth-api-1038143238323.us-central1.run.app';
   const LIVE_API_URL         = 'https://live-api-1038143238323.us-central1.run.app';
@@ -35,6 +36,7 @@
     CATALOGO_API_URL:     { get: () => CATALOGO_API_URL,     configurable: false, enumerable: false },
     VENDEDORES_API_URL:   { get: () => VENDEDORES_API_URL,   configurable: false, enumerable: false },
     VENTAS_API_URL:       { get: () => VENTAS_API_URL,       configurable: false, enumerable: false },
+    PEDIDOS_API_URL:      { get: () => PEDIDOS_API_URL,      configurable: false, enumerable: false },
     BENEFICIARIOS_API_URL:{ get: () => BENEFICIARIOS_API_URL,configurable: false, enumerable: false },
     AUTH_API_URL:         { get: () => AUTH_API_URL,         configurable: false, enumerable: false },
     LIVE_API_URL:         { get: () => LIVE_API_URL,         configurable: false, enumerable: false },

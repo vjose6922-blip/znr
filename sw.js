@@ -55,6 +55,7 @@ const API_DOMAINS      = [
   'catalogo-api-1038143238323.us-central1.run.app',
   'auth-api-1038143238323.us-central1.run.app',
   'ventas-api-1038143238323.us-central1.run.app',
+  'pedidos-api-1038143238323.us-central1.run.app',
   'live-api-1038143238323.us-central1.run.app',
   'admin-api-1038143238323.us-central1.run.app',
   'beneficiarios-api-1038143238323.us-central1.run.app',

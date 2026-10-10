@@ -26,6 +26,7 @@
    https://registrar-token-fcm-1038143238323.us-central1.run.app
    https://live-api-1038143238323.us-central1.run.app
    https://ventas-api-1038143238323.us-central1.run.app
+   https://pedidos-api-1038143238323.us-central1.run.app
    https://vendedores-api-1038143238323.us-central1.run.app
    https://catalogo-api-1038143238323.us-central1.run.app
    https://auth-api-1038143238323.us-central1.run.app
@@ -1264,7 +1265,9 @@ const infoBits = [
           const img = p.imagen1 ? optimizeDriveUrl(p.imagen1, 400) : 'https://placehold.co/200x200/3b1f5f/white?text=Sin+Imagen';
           const allImages = [p.imagen1, p.imagen2, p.imagen3].filter(Boolean).map(u => optimizeDriveUrl(u, 400));
           const stock = Number(p.stock || 0);
-          const hasStock = stock > 0;
+          const esPersonal = p.tipoVenta === 'personalizado';
+          const diasElab = Number(p.tiempoElaboracionDias) || 0;
+          const hasStock = esPersonal ? true : stock > 0;
           const talla = p.talla || '';
           const categoria = p.categoria || '';
           const esConfiable = p.confiable === true || p.confiable === 'true';
@@ -1283,7 +1286,7 @@ const infoBits = [
             : `<img ${imgAttr} alt="${esc(p.nombre)}" onerror="this.src='https://placehold.co/400x400/3b1f5f/white?text=Error'">`;
           const stockLineHtml = `
             <div class="profile-product-stockline">
-              ${hasStock ? `<span class="profile-stock-ok">Stock: ${stock}</span>` : `<span class="profile-stock-out">Sin stock</span>`}
+              ${esPersonal ? `<span class="profile-stock-ok" style="color:#a855f7;">Bajo pedido${diasElab ? ' · ' + diasElab + (diasElab === 1 ? ' día' : ' días') : ''}</span>` : hasStock ? `<span class="profile-stock-ok">Stock: ${stock}</span>` : `<span class="profile-stock-out">Sin stock</span>`}
               ${categoria ? `<span class="profile-product-cat">· ${esc(categoria)}</span>` : ''}
             </div>`;
           return `
@@ -1297,13 +1300,13 @@ const infoBits = [
               <div class="profile-product-info">
                 <div class="profile-product-name" title="${esc(p.nombre)}">${esc(p.nombre)}</div>
                 ${tieneDescuento ? `<div class="profile-product-price-original">${formatCurrency(precioOriginal)}</div>` : ''}
-                <div class="profile-product-price">${formatCurrency(p.precio)}${tieneDescuento ? ` <span class="profile-product-pct">-${pctDescuento}%</span>` : ''}</div>
+                <div class="profile-product-price">${esPersonal ? '<span style="font-size:10px;font-weight:600;opacity:.7;">Desde </span>' : ''}${formatCurrency(p.precio)}${tieneDescuento ? ` <span class="profile-product-pct">-${pctDescuento}%</span>` : ''}</div>
                 ${entregaHtml}
                 ${talla ? `<div class="profile-product-talla">Info: ${esc(talla)}</div>` : ''}
                 ${stockLineHtml}
                 <div class="profile-product-actions">
-                  <button class="profile-product-add" data-id="${esc(p.id)}" data-nombre="${esc(p.nombre)}" data-precio="${p.precio}" data-img="${esc(p.imagen1 || '')}" data-talla="${esc(p.talla || '')}" data-donado="${esDonativo}" data-benid="${esDonativo ? esc(p.beneficiario_id || '') : ''}" ${!hasStock ? 'disabled' : ''}>
-                    ${hasStock ? 'Añadir' : 'Sin stock'}
+                  <button class="profile-product-add" data-id="${esc(p.id)}" data-nombre="${esc(p.nombre)}" data-precio="${p.precio}" data-img="${esc(p.imagen1 || '')}" data-talla="${esc(p.talla || '')}" data-donado="${esDonativo}" data-benid="${esDonativo ? esc(p.beneficiario_id || '') : ''}" data-personalizado="${esPersonal}" data-dias="${diasElab}" data-opciones="${esc(p.opcionesPersonalizacion || '')}" ${!hasStock ? 'disabled' : ''}>
+                    ${hasStock ? (esPersonal ? 'Personalizar' : 'Añadir') : 'Sin stock'}
                   </button>
                   <button type="button" class="profile-product-icon-btn profile-product-report" data-id="${esc(p.id)}" title="Reportar">${Icon('flag')}</button>
                   <button type="button" class="profile-product-icon-btn profile-product-share" data-id="${esc(p.id)}" data-nombre="${esc(p.nombre)}" data-precio="${p.precio}" title="Compartir">${Icon('share')}</button>
@@ -1425,6 +1428,18 @@ const infoBits = [
               const talla = this.dataset.talla;
               const esDonado = this.dataset.donado === 'true';
               const benId = this.dataset.benid || '';
+
+              // Artículos "bajo pedido": no van al carrito, abren la solicitud + chat.
+              if (this.dataset.personalizado === 'true') {
+                if (typeof window.znrPersonalizar === 'function') {
+                  window.znrPersonalizar({
+                    ID: id, Nombre: nombre, Precio: precio, Imagen1: img,
+                    TiempoElaboracionDias: Number(this.dataset.dias) || 0,
+                    OpcionesPersonalizacion: this.dataset.opciones || ''
+                  });
+                }
+                return;
+              }
 
               if (typeof addToCart !== 'function') {
                 alert('Función addToCart no disponible. Recarga la página.');

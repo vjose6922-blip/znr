@@ -245,7 +245,7 @@ window.fetchAndCacheVendorPage = async function(uid, page, limit, status) {
   let myProducts = (data.products || []).filter(p => p.vendedor_uid === uid);
   let total, totalPages;
   if (soloSinStock) {
-    myProducts = myProducts.filter(p => p.estado === 'aprobado' && Number(p.stock || 0) <= 0);
+    myProducts = myProducts.filter(p => p.estado === 'aprobado' && p.tipoVenta !== 'personalizado' && Number(p.stock || 0) <= 0);
     total = myProducts.length;
     totalPages = Math.max(1, Math.ceil(total / limit));
     myProducts = myProducts.slice((page - 1) * limit, page * limit);
@@ -910,8 +910,9 @@ function createVendorProductCard(product) {
   const safeDescripcion = escapeHtml(descripcion || "");
   const safeTalla = escapeHtml(talla || "Sin especificar");
   const safeCategoria = escapeHtml(categoria || "");
+  const esPersonalizado = product.tipoVenta === 'personalizado';
   const stockNum = Number(stock || 0);
-  const isOutOfStock = stockNum <= 0;
+  const isOutOfStock = esPersonalizado ? false : stockNum <= 0;
 
   const card = document.createElement("article");
   card.className = "product-card";
@@ -983,7 +984,10 @@ function createVendorProductCard(product) {
   }
   const stockEl = document.createElement("span");
   stockEl.className = "stock-badge";
-  if (isOutOfStock) {
+  if (esPersonalizado) {
+    const d = Number(product.tiempoElaboracionDias) || 0;
+    stockEl.textContent = ` Bajo pedido${d ? ' · ' + d + (d === 1 ? ' día' : ' días') : ''}`;
+  } else if (isOutOfStock) {
     stockEl.classList.add("out-of-stock");
     stockEl.textContent = " Sin stock";
   } else {
@@ -1200,7 +1204,7 @@ window.checkStockBanner = async function checkStockBanner() {
   if (!el || !vendorSession) return;
   try {
     const res = await apiFetch({ action: 'misProductosComunidad', vendorToken: vendorSession.token, limit: 200, page: 1 }, 'GET');
-    const sinStock = res.ok ? (res.products || []).filter(p => p.estado === 'aprobado' && Number(p.stock || 0) <= 0) : [];
+    const sinStock = res.ok ? (res.products || []).filter(p => p.estado === 'aprobado' && p.tipoVenta !== 'personalizado' && Number(p.stock || 0) <= 0) : [];
     el.innerHTML = !sinStock.length ? '' : `
       <div style="background:#fef2f2;border:1.5px solid #dc2626;border-radius:14px;padding:14px;margin-bottom:16px;">
         <div style="font-weight:800;color:#991b1b;">⚠️ Tienes ${sinStock.length} producto${sinStock.length === 1 ? '' : 's'} sin stock</div>
@@ -1230,6 +1234,18 @@ return url;
 }
 window.uploadVendorLogo = uploadVendorLogo; // openSettingsModal vive fuera de initVendorPanel y la necesita
 
+// --- Tipo de venta (stock | personalizado) ---
+window.aplicarTipoVenta = function() {
+  const sel = document.getElementById('pTipoVenta');
+  const pers = !!sel && sel.value === 'personalizado';
+  const show = (id, on) => { const el = document.getElementById(id); if (el) el.style.display = on ? '' : 'none'; };
+  show('pers-fields', pers);
+  show('tipo-venta-hint', pers);
+  show('stock-group', !pers);
+  const lbl = document.getElementById('lbl-precio');
+  if (lbl) lbl.textContent = pers ? 'Precio desde (MXN) *' : 'Precio (MXN) *';
+};
+
 window.editProduct = function(id) {
 const p = (window._vendorProducts || []).find(x => String(x.id) === String(id));
 if (!p) return;
@@ -1237,7 +1253,17 @@ document.getElementById('edit-product-id').value = id;
 document.getElementById('pNombre').value = p.nombre || '';
 document.getElementById('pPrecio').value = p.precio || '';
 document.getElementById('pPrecioOriginal').value = p.precio_original || '';
-document.getElementById('pStock').value = p.stock || '';
+document.getElementById('pStock').value = p.tipoVenta === 'personalizado' ? '' : (p.stock || '');
+{
+  // El tipo de venta no se cambia al editar (hay pedidos abiertos que dependen de él).
+  const selTipo = document.getElementById('pTipoVenta');
+  if (selTipo) { selTipo.value = p.tipoVenta === 'personalizado' ? 'personalizado' : 'stock'; selTipo.disabled = true; }
+  const dias = document.getElementById('pTiempoDias');
+  if (dias) dias.value = p.tiempoElaboracionDias || '';
+  const ops = document.getElementById('pOpciones');
+  if (ops) ops.value = p.opcionesPersonalizacion || '';
+  window.aplicarTipoVenta();
+}
 document.getElementById('pCategoria').value = p.categoria || '';
 document.getElementById('pTalla').value = p.talla || '';
 document.getElementById('pDescripcion').value = p.descripcion || '';
@@ -1299,10 +1325,15 @@ switchTab('products');
 window.cancelEdit = cancelEdit;
 
 function resetForm() {
-['pNombre','pPrecio','pPrecioOriginal','pStock','pTalla','pDescripcion'].forEach(id => {
+['pNombre','pPrecio','pPrecioOriginal','pStock','pTalla','pDescripcion','pTiempoDias','pOpciones'].forEach(id => {
 const el = document.getElementById(id);
 if (el) el.value = '';
 });
+{
+  const selTipo = document.getElementById('pTipoVenta');
+  if (selTipo) { selTipo.value = 'stock'; selTipo.disabled = false; }
+  if (window.aplicarTipoVenta) window.aplicarTipoVenta();
+}
 const cat = document.getElementById('pCategoria');
 if (cat) cat.value = '';
 [1,2,3].forEach(n => {
@@ -1539,9 +1570,17 @@ return;
 const nombre = document.getElementById('pNombre')?.value.trim();
 const precio = Number(document.getElementById('pPrecio')?.value);
 const stock  = Number(document.getElementById('pStock')?.value);
+const esPersonalizado = document.getElementById('pTipoVenta')?.value === 'personalizado';
+const tiempoDias = Number(document.getElementById('pTiempoDias')?.value);
+const opcionesPers = document.getElementById('pOpciones')?.value.trim() || '';
 if (!nombre || isNaN(precio) || precio < 0) {
 showTemporaryMessage(' Nombre y precio son requeridos', 'error');
 return;
+}
+if (esPersonalizado) {
+if (!precio) { showTemporaryMessage(' Indica el precio "desde" del artículo', 'error'); return; }
+if (!tiempoDias || tiempoDias < 1 || tiempoDias > 120) { showTemporaryMessage(' Indica el tiempo de elaboración (1 a 120 días)', 'error'); return; }
+if (opcionesPers.length < 3) { showTemporaryMessage(' Indica qué se puede personalizar', 'error'); return; }
 }
 showLoader('Subiendo imágenes...');
 const btn = document.getElementById('submit-product-btn');
@@ -1565,7 +1604,10 @@ const productData = {
 Nombre: document.getElementById('pNombre')?.value.trim(),
 Precio: Number(document.getElementById('pPrecio')?.value),
 PrecioOriginal: Number(document.getElementById('pPrecioOriginal')?.value) || 0,
-Stock: Number(document.getElementById('pStock')?.value),
+Stock: esPersonalizado ? 0 : Number(document.getElementById('pStock')?.value),
+TipoVenta: esPersonalizado ? 'personalizado' : 'stock',
+TiempoElaboracionDias: esPersonalizado ? tiempoDias : 0,
+OpcionesPersonalizacion: esPersonalizado ? opcionesPers : '',
 Descripcion: document.getElementById('pDescripcion')?.value.trim() || '',
 Talla: document.getElementById('pTalla')?.value.trim() || '',
 Categoria: document.getElementById('pCategoria')?.value || '',
@@ -2761,7 +2803,7 @@ window.verMisEstadisticas = async function(forceRefresh) {
       total: all.length,
       aprobados: all.filter(p => p.estado === 'aprobado').length,
       pendientes: all.filter(p => p.estado === 'pendiente').length,
-      valorInventario: all.filter(p => p.estado === 'aprobado')
+      valorInventario: all.filter(p => p.estado === 'aprobado' && p.tipoVenta !== 'personalizado')
         .reduce((s, p) => s + (Number(p.precio) || 0) * (Number(p.stock) || 0), 0)
     };
   } catch (err) {
@@ -3027,7 +3069,7 @@ if (prod.imagen1) {
           ${imgUrl ? `<img src="${esc(imgUrl)}" onerror="this.replaceWith(Object.assign(document.createElement('div'),{style:'width:48px;height:48px;background:#f5f5f8;border-radius:8px;flex-shrink:0;'}))" style="width:48px;height:48px;object-fit:cover;border-radius:8px;flex-shrink:0;">` : `<div style="width:48px;height:48px;background:#f5f5f8;border-radius:8px;flex-shrink:0;"></div>`}
           <div style="flex:1;min-width:0;">
             <div style="font-size:.88rem;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(prod.nombre||'')}</div>
-            <div style="font-size:.75rem;color:#888;">$${Number(prod.precio||0).toLocaleString()} · Stock: ${prod.stock||0}</div>
+            <div style="font-size:.75rem;color:#888;">$${Number(prod.precio||0).toLocaleString()} · ${prod.tipoVenta === 'personalizado' ? 'Bajo pedido' : 'Stock: ' + (prod.stock||0)}</div>
             ${donado ? '<div style="font-size:.72rem;color:#f97316;margin-top:1px;">' + Icon('heart-fill') + ' Donando actualmente</div>' : ''}
           </div>
         </div>
@@ -3195,7 +3237,7 @@ window.renderGestionarLista = function(lista, productos, page, totalPages, total
                   ${imgUrl ? `<img src="${esc(imgUrl)}" onerror="this.replaceWith(Object.assign(document.createElement('div'),{style:'width:44px;height:44px;background:#f5f5f8;border-radius:8px;flex-shrink:0;'}))" style="width:44px;height:44px;object-fit:cover;border-radius:8px;flex-shrink:0;">` : `<div style="width:44px;height:44px;background:#f5f5f8;border-radius:8px;flex-shrink:0;"></div>`}
                   <div style="flex:1;min-width:0;">
                     <div style="font-size:.83rem;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(p.nombre||'')}</div>
-                    <div style="font-size:.72rem;color:#888;">$${Number(p.precio||0).toLocaleString()} · Stock: ${p.stock||0}</div>
+                    <div style="font-size:.72rem;color:#888;">$${Number(p.precio||0).toLocaleString()} · ${p.tipoVenta === 'personalizado' ? 'Bajo pedido' : 'Stock: ' + (p.stock||0)}</div>
                     ${donado ? '<div style="font-size:.7rem;color:#f97316;margin-top:1px;">' + Icon('heart-fill') + ' Donando</div>' : '<div style="font-size:.7rem;color:#bbb;margin-top:1px;">Sin asignar</div>'}
                   </div>
                   <button onclick="document.getElementById('modal-gestionar-donaciones').remove();openDonarProductosModal('${esc(p.id)}')"

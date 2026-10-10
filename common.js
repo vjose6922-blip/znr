@@ -744,6 +744,10 @@ bottomBadge.style.display = totalQty > 0 ? '' : 'none';
 }
 }
 function addToCart(product) {
+if (product && (product._personalizado === true || product.tipoVenta === 'personalizado' || product.TipoVenta === 'personalizado')) {
+if (typeof window.znrPersonalizar === 'function') window.znrPersonalizar(product);
+return;
+}
 const id = product.ID;
 if (!id) { console.error("Producto sin ID:", product); return; }
 if (!localCart[id]) {
@@ -1041,7 +1045,10 @@ const precio  = p.Precio  || p.precio  || 0;
 const talla  = p.Talla  || p.talla  || '';
 const desc  = p.Descripcion || p.descripcion || '';
 const categoria = p.Categoria || p.categoria || '';
-const stock  = Number(p.Stock ?? p.stock ?? -1);
+const esPersonal = (p.TipoVenta || p.tipoVenta) === 'personalizado';
+const diasElab = Number(p.TiempoElaboracionDias || p.tiempoElaboracionDias || 0);
+const opcionesPers = String(p.OpcionesPersonalizacion || p.opcionesPersonalizacion || '');
+const stock  = esPersonal ? -1 : Number(p.Stock ?? p.stock ?? -1);
 const badge  = p.Badge  || p.badge  || '';
 const precioOriginal = Number(p.PrecioOriginal ?? p.precio_original ?? 0);
 const tieneDescuento = precioOriginal > Number(precio);
@@ -1050,7 +1057,7 @@ const montoMinEnvio = Number(p._montoMinimoEnvio ?? p.vendedor_monto_minimo_envi
 const califica_entrega = montoMinEnvio > 0 && Number(precio) >= montoMinEnvio;
 const fmt = v => typeof formatCurrency === 'function' ? formatCurrency(v) : `$${Number(v).toLocaleString()}`;
 const fmtPrecio = fmt(precio);
-const stockHtml = stock < 0 ? '' :
+const stockHtml = esPersonal ? `<span class="im-info-stock ok">Bajo pedido${diasElab ? ' · ' + diasElab + (diasElab === 1 ? ' día' : ' días') + ' de elaboración' : ''}</span>` : stock < 0 ? '' :
 stock === 0
 ? `<span class="im-info-stock out">Sin stock</span>`
 : `<span class="im-info-stock ok"> ${stock} disponibles</span>`;
@@ -1064,6 +1071,8 @@ const entregaHtml = califica_entrega ? `<div class="im-info-entrega"><svg xmlns=
 const sinStock = stock === 0;
 const buyBtnHtml = p._modoVendedorPropio
 ? `<button class="im-buy-btn" id="im-buy-btn">${Icon('edit', { size: 16 })} Editar</button>`
+: esPersonal
+? `<button class="im-buy-btn" id="im-buy-btn">${Icon('edit', { size: 16 })} Personalizar pedido</button>`
 : `
 <button class="im-buy-btn"${sinStock ? ' disabled' : ''} id="im-buy-btn">
 ${sinStock
@@ -1076,7 +1085,7 @@ el.innerHTML = `
 <div class="im-info-name">${escapeHtml(nombre)}</div>
 <div style="text-align:right;">
 ${tieneDescuento ? `<div class="im-info-price-original">${fmt(precioOriginal)}</div>` : ''}
-<div class="im-info-price">${fmtPrecio}${tieneDescuento ? ` <span class="im-info-pct">-${pctDescuento}%</span>` : ''}</div>
+<div class="im-info-price">${esPersonal ? '<small style="font-size:11px;font-weight:600;opacity:.7;">Desde </small>' : ''}${fmtPrecio}${tieneDescuento ? ` <span class="im-info-pct">-${pctDescuento}%</span>` : ''}</div>
 </div>
 </div>
 ${entregaHtml}
@@ -1084,6 +1093,7 @@ ${entregaHtml}
 ${catHtml}${badgeHtml}${stockHtml}
 </div>
 ${tallaHtml}
+${esPersonal && opcionesPers ? `<div class="im-info-talla">Personalizable: <strong>${escapeHtml(opcionesPers)}</strong></div>` : ''}
 ${descHtml}
 `;
 const buySlot = modal.querySelector('#im-buy-slot');
@@ -1127,6 +1137,10 @@ return beneficiario;
 };
 
 async function _handleModalBuyClick(p) {
+if ((p.TipoVenta || p.tipoVenta) === 'personalizado') {
+if (typeof window.znrPersonalizar === 'function') window.znrPersonalizar(p);
+return;
+}
 if (typeof window.addToCart !== 'function') return;
 const esComunidad = p._comunidad === true;
 const id  = p.ID  || p.id  || '';
@@ -2320,6 +2334,111 @@ updateSavedPhoneDisplay();
 return acceso.telefono;
 }
 window.asegurarComprador = asegurarComprador;
+
+// ---------------------------------------------------------------------------
+// Pedidos personalizados (artículos "bajo pedido"): el comprador escribe qué quiere
+// y se abre el chat con el vendedor (pedido-chat.html). La API valida todo; aquí
+// solo se recoge la nota y se identifica al comprador por teléfono + token.
+// ---------------------------------------------------------------------------
+function _znrPersonalizarEstilos() {
+if (document.getElementById('znr-pers-style')) return;
+const st = document.createElement('style');
+st.id = 'znr-pers-style';
+st.textContent = `
+.zp-ov{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:100000;display:flex;align-items:flex-end;justify-content:center;padding:0}
+.zp-box{background:var(--color-surface-1,#fff);color:var(--color-text-primary,#1e2128);width:100%;max-width:480px;border-radius:18px 18px 0 0;padding:18px 16px calc(18px + env(safe-area-inset-bottom,0px));max-height:92vh;overflow:auto;box-shadow:0 -8px 30px rgba(0,0,0,.25)}
+@media(min-width:600px){.zp-ov{align-items:center;padding:16px}.zp-box{border-radius:18px}}
+.zp-box h3{margin:0 0 10px;font-size:17px}
+.zp-prod{display:flex;gap:10px;align-items:center;padding:10px;border-radius:12px;background:var(--color-surface-2,#f3f4f6);margin-bottom:12px}
+.zp-prod img{width:54px;height:54px;border-radius:10px;object-fit:cover;flex-shrink:0;background:var(--color-surface-3,#e5e7eb)}
+.zp-prod b{display:block;font-size:14px}
+.zp-prod span{font-size:12px;opacity:.75}
+.zp-hint{font-size:12px;opacity:.8;margin:0 0 8px}
+.zp-box label{display:block;font-size:12px;font-weight:600;margin:10px 0 4px}
+.zp-box textarea,.zp-box input{width:100%;box-sizing:border-box;padding:10px;border-radius:10px;border:1px solid var(--color-border-subtle,#d1d5db);background:var(--color-surface-1,#fff);color:inherit;font:inherit;font-size:14px}
+.zp-box textarea{min-height:96px;resize:vertical}
+.zp-cnt{text-align:right;font-size:11px;opacity:.6;margin-top:2px}
+.zp-err{color:#ef4444;font-size:12px;min-height:16px;margin-top:6px}
+.zp-row{display:flex;gap:8px;margin-top:12px}
+.zp-row button{flex:1;padding:12px;border-radius:12px;border:0;font-weight:700;font-size:14px;cursor:pointer}
+.zp-cancel{background:var(--color-surface-3,#e5e7eb);color:inherit}
+.zp-ok{background:var(--color-primary,#7c3aed);color:#fff}
+.zp-ok:disabled{opacity:.6;cursor:wait}
+`;
+document.head.appendChild(st);
+}
+
+async function znrPersonalizar(p) {
+if (!p) return;
+const esc = window.escapeHtml || (x => String(x).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])));
+const productoId = String(p.ID || p.id || '');
+if (!productoId) return;
+if (!window.PEDIDOS_API_URL) { showTemporaryMessage('No se pudo abrir el pedido. Recarga la página.', 'error'); return; }
+const telefono = await asegurarComprador('Para solicitar tu pedido personalizado');
+if (!telefono) return;
+if (typeof window.solicitarPermisoNotificacionesSiFalta === 'function') {
+window.solicitarPermisoNotificacionesSiFalta('cliente', telefono);
+}
+const nombreProd = p.Nombre || p.nombre || '';
+const precio = Number(p.Precio || p.precio || 0);
+const imagen = p.Imagen1 || p.imagen1 || '';
+const dias = Number(p.TiempoElaboracionDias || p.tiempoElaboracionDias || 0);
+const opciones = String(p.OpcionesPersonalizacion || p.opcionesPersonalizacion || '');
+const fmt = v => typeof formatCurrency === 'function' ? formatCurrency(v) : '$' + Number(v).toLocaleString('es-MX');
+_znrPersonalizarEstilos();
+const ov = document.createElement('div');
+ov.className = 'zp-ov';
+ov.innerHTML = `
+<div class="zp-box" role="dialog" aria-modal="true" aria-label="Personalizar pedido">
+<h3>Personalizar pedido</h3>
+<div class="zp-prod">${imagen ? `<img src="${esc(imagen)}" alt="" loading="lazy">` : ''}<div><b>${esc(nombreProd)}</b><span>Desde ${fmt(precio)}${dias ? ' · ' + dias + (dias === 1 ? ' día' : ' días') + ' de elaboración' : ''}</span></div></div>
+${opciones ? `<p class="zp-hint">El vendedor puede personalizar: <b>${esc(opciones)}</b></p>` : ''}
+<label for="zp-nota">¿Qué quieres que te haga?</label>
+<textarea id="zp-nota" maxlength="500" placeholder="Ej: lo quiero en azul, con el nombre &quot;Sofía&quot; y para el 20 de este mes"></textarea>
+<div class="zp-cnt"><span id="zp-n">0</span>/500</div>
+<label for="zp-nombre">Tu nombre</label>
+<input id="zp-nombre" maxlength="60" autocomplete="given-name" placeholder="Para que el vendedor sepa quién eres">
+<div class="zp-err" id="zp-err"></div>
+<div class="zp-row"><button type="button" class="zp-cancel">Cancelar</button><button type="button" class="zp-ok">Enviar solicitud</button></div>
+</div>`;
+document.body.appendChild(ov);
+const $ = s => ov.querySelector(s);
+const nota = $('#zp-nota'), nombre = $('#zp-nombre'), err = $('#zp-err'), ok = $('.zp-ok');
+try { nombre.value = localStorage.getItem('client_name') || ''; } catch (_) {}
+nota.addEventListener('input', () => { $('#zp-n').textContent = nota.value.length; });
+const cerrar = () => ov.remove();
+$('.zp-cancel').addEventListener('click', cerrar);
+ov.addEventListener('click', e => { if (e.target === ov) cerrar(); });
+setTimeout(() => nota.focus(), 80);
+ok.addEventListener('click', async () => {
+err.textContent = '';
+const texto = nota.value.trim();
+if (texto.length < 3) { err.textContent = 'Cuéntale al vendedor qué quieres personalizar.'; return; }
+const nom = nombre.value.trim();
+if (nom.length < 2) { err.textContent = 'Escribe tu nombre.'; return; }
+ok.disabled = true; ok.textContent = 'Enviando…';
+try {
+try { localStorage.setItem('client_name', nom); } catch (_) {}
+const res = await fetch(window.PEDIDOS_API_URL, {
+method: 'POST',
+headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+body: new URLSearchParams({
+action: 'crearPedidoPersonalizado',
+telefono,
+compradorToken: localStorage.getItem('comprador_token') || '',
+productoId, nota: texto, nombre: nom
+}).toString()
+});
+const data = await res.json();
+if (!data.ok) throw new Error(data.error || 'No se pudo enviar la solicitud');
+location.href = 'pedido-chat.html?pedido=' + encodeURIComponent(data.pedidoId);
+} catch (e) {
+err.textContent = e.message || 'No se pudo enviar. Intenta de nuevo.';
+ok.disabled = false; ok.textContent = 'Enviar solicitud';
+}
+});
+}
+window.znrPersonalizar = znrPersonalizar;
 window.olvidarComprador = olvidarComprador;
 async function _checkoutZNR(znrItems, allItems) {
 const clientPhone = await asegurarComprador("Para procesar tu compra");

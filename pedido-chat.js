@@ -1,0 +1,553 @@
+/**
+ * pedido-chat.js — chat de un pedido personalizado (comprador y vendedor).
+ *
+ * - Lectura en tiempo real con el SDK COMPLETO de Firestore (onSnapshot). El resto del
+ *   sitio usa la versión "lite" (sin listeners); aquí se carga el completo solo para esta
+ *   página. Comparten la misma app y la misma sesión de Firebase Auth (firestore-init.js).
+ * - Toda ESCRITURA va por pedidos-api (las reglas de Firestore no dejan escribir al cliente).
+ * - Todo texto de usuario se pinta con textContent (nunca innerHTML).
+ * - Los listeners se cierran cuando la pestaña queda oculta, para no gastar lecturas.
+ */
+import { getApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
+import {
+  getFirestore, doc, collection, query, orderBy, limit, startAfter,
+  onSnapshot, getDoc, getDocs
+} from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
+
+const PEDIDO_ID = new URLSearchParams(location.search).get("pedido") || "";
+const ROL_HINT = new URLSearchParams(location.search).get("rol") || "";
+const PAGINA = 40;
+
+// Respuestas rápidas del vendedor (edítalas aquí).
+const RESPUESTAS_RAPIDAS = [
+  "¡Hola! Con gusto. ¿Me das más detalles de lo que buscas?",
+  "¿Para qué fecha lo necesitas?",
+  "¿Me mandas una foto de referencia?",
+  "Ya te envío la cotización.",
+  "Tu pedido va avanzando, te aviso cuando esté listo."
+];
+
+const ETAPAS = [
+  ["solicitado", "Solicitud"], ["cotizado", "Cotización"], ["aceptado", "Aceptado"],
+  ["en_elaboracion", "Elaboración"], ["listo", "Listo"], ["entregado", "Entregado"]
+];
+const TEXTO_ESTADO = {
+  solicitado: "Esperando cotización", cotizado: "Cotización enviada", aceptado: "Aceptado",
+  en_elaboracion: "En elaboración", listo: "Listo para entregar", entregado: "Entregado",
+  rechazado: "Rechazada", cancelado: "Cancelado", expirado: "Expirada"
+};
+const CERRADOS = ["entregado", "rechazado", "cancelado", "expirado"];
+
+const db = getFirestore(getApp());
+const app = document.getElementById("app");
+
+let identidad = null; // { rol: 'comprador'|'vendedor', authUid, tel?, token? }
+let pedido = null;
+let vivos = [];        // mensajes de la ventana en vivo (más nuevos)
+let anteriores = [];   // mensajes más viejos cargados con "ver anteriores"
+let cursor = null;     // último doc de la página más vieja cargada
+let hayMas = false;
+let unsubPedido = null, unsubMsgs = null;
+let primeraVez = true;
+
+// ---------------------------------------------------------------- utilidades
+
+function h(tag, props, ...hijos) {
+  const el = document.createElement(tag);
+  for (const [k, v] of Object.entries(props || {})) {
+    if (v === undefined || v === null || v === false) continue;
+    if (k === "class") el.className = v;
+    else if (k === "text") el.textContent = v;
+    else if (k.startsWith("on") && typeof v === "function") el.addEventListener(k.slice(2), v);
+    else el.setAttribute(k, v === true ? "" : v);
+  }
+  for (const c of hijos.flat()) {
+    if (c === null || c === undefined || c === false) continue;
+    el.appendChild(typeof c === "string" ? document.createTextNode(c) : c);
+  }
+  return el;
+}
+
+const dinero = (n) => Number(n || 0).toLocaleString("es-MX", { style: "currency", currency: "MXN" });
+const ms = (ts) => (ts && typeof ts.toMillis === "function" ? ts.toMillis() : 0);
+const hora = (t) => new Date(t).toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit" });
+const diaLargo = (t) => new Date(t).toLocaleDateString("es-MX", { weekday: "long", day: "numeric", month: "long" });
+
+function fechaEntregaTxt(iso) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(iso || ""));
+  if (!m) return String(iso || "");
+  return new Date(+m[1], +m[2] - 1, +m[3]).toLocaleDateString("es-MX", { weekday: "short", day: "numeric", month: "long" });
+}
+
+function toast(texto) {
+  const t = h("div", { text: texto, style: "position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:#111;color:#fff;padding:10px 16px;border-radius:12px;font-size:13px;z-index:2000;max-width:88vw;text-align:center;" });
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 3500);
+}
+
+function leerSesionVendedor() {
+  try {
+    const raw = localStorage.getItem("vendor_session") || sessionStorage.getItem("vendor_session");
+    const s = raw ? JSON.parse(raw) : null;
+    return s && s.token && s.uid ? s : null;
+  } catch (_) { return null; }
+}
+
+function estadoEfectivo() {
+  if (!pedido) return "";
+  const venc = ms(pedido.expiraEn);
+  if ((pedido.estado === "solicitado" || pedido.estado === "cotizado") && venc && venc < Date.now()) return "expirado";
+  return pedido.estado;
+}
+
+// ---------------------------------------------------------------- identidad + API
+
+async function identificar() {
+  const cand = [];
+  const tel = (localStorage.getItem("client_phone") || "").replace(/\D/g, "");
+  if (tel.length === 10 && localStorage.getItem("comprador_token")) cand.push({ rol: "comprador", tel, authUid: "cliente_" + tel });
+  const vs = leerSesionVendedor();
+  if (vs) cand.push({ rol: "vendedor", token: vs.token, authUid: "vendedor_" + vs.uid });
+  if (ROL_HINT === "vendedor") cand.reverse();
+
+  for (const c of cand) {
+    const uid = await window.znrFirestore.signIn(c.rol === "vendedor" ? "vendedor" : "cliente", c.rol === "vendedor" ? c.token : c.tel);
+    if (!uid) continue;
+    try {
+      const snap = await getDoc(doc(db, "pedidos_personalizados", PEDIDO_ID));
+      if (snap.exists()) return c; // las reglas solo dejan leer a una de las dos partes
+    } catch (_) { /* permission-denied: probar la otra identidad */ }
+  }
+  return null;
+}
+
+async function api(action, extra) {
+  const p = new URLSearchParams({ action, pedidoId: PEDIDO_ID });
+  for (const [k, v] of Object.entries(extra || {})) if (v !== undefined && v !== null) p.set(k, String(v));
+  if (identidad.rol === "vendedor") p.set("vendorToken", identidad.token);
+  else { p.set("telefono", identidad.tel); p.set("compradorToken", localStorage.getItem("comprador_token") || ""); }
+  const res = await fetch(window.PEDIDOS_API_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: p.toString()
+  });
+  return res.json();
+}
+
+// Ejecuta una acción de la API mostrando el error si falla.
+async function hacer(btn, action, extra) {
+  if (btn) btn.disabled = true;
+  try {
+    const r = await api(action, extra);
+    if (!r.ok) { toast(r.error || "No se pudo completar la acción"); return null; }
+    return r;
+  } catch (_) {
+    toast("Sin conexión. Intenta de nuevo.");
+    return null;
+  } finally {
+    if (btn) btn.disabled = false;
+  }
+}
+
+// ---------------------------------------------------------------- esqueleto
+
+const ui = {};
+
+function construir() {
+  ui.titulo = h("b");
+  ui.sub = h("span");
+  ui.badge = h("span", { class: "pp-badge" });
+  ui.pasos = h("div", { class: "pp-steps" });
+  ui.aviso = h("div");
+  ui.ref = h("div");
+  ui.msgs = h("div", { class: "pp-msgs" });
+  ui.acciones = h("div", { class: "pp-actions" });
+  ui.rapidas = h("div", { class: "pp-quick" });
+  ui.cerrado = h("div", { class: "pp-closed", style: "display:none", text: "Este pedido ya está cerrado." });
+  ui.ta = h("textarea", { rows: "1", maxlength: "1000", placeholder: "Escribe un mensaje…", "aria-label": "Mensaje" });
+  ui.btnFoto = h("button", { class: "pp-ico", type: "button", title: "Enviar foto", "aria-label": "Enviar foto", text: "📷" });
+  ui.btnEnviar = h("button", { class: "pp-ico pp-send", type: "button", title: "Enviar", "aria-label": "Enviar", text: "➤" });
+  ui.comp = h("div", { class: "pp-comp" }, ui.btnFoto, ui.ta, ui.btnEnviar);
+
+  const volver = h("a", { class: "pp-back", href: "mis-pedidos.html" + (ROL_HINT ? "?rol=" + encodeURIComponent(ROL_HINT) : ""), "aria-label": "Volver", text: "‹" });
+  const cab = h("div", { class: "pp-head" }, volver, h("div", { class: "pp-head-info" }, ui.titulo, ui.sub), ui.badge);
+  app.replaceChildren(cab, ui.pasos, ui.aviso, ui.ref, ui.msgs, ui.acciones, ui.rapidas, ui.cerrado, ui.comp);
+
+  ui.ta.addEventListener("input", () => { ui.ta.style.height = "auto"; ui.ta.style.height = Math.min(ui.ta.scrollHeight, 120) + "px"; });
+  ui.ta.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" && !e.shiftKey && window.matchMedia("(pointer:fine)").matches) { e.preventDefault(); enviarTexto(); }
+  });
+  ui.btnEnviar.addEventListener("click", enviarTexto);
+  ui.btnFoto.addEventListener("click", () => document.getElementById("file-foto").click());
+  document.getElementById("file-foto").addEventListener("change", enviarFoto);
+}
+
+// ---------------------------------------------------------------- render
+
+function renderEncabezado() {
+  const e = estadoEfectivo();
+  const soyVendedor = identidad.rol === "vendedor";
+  ui.titulo.textContent = pedido.productoNombre || "Pedido personalizado";
+  ui.sub.textContent = soyVendedor ? "Cliente: " + (pedido.compradorNombre || "Cliente") : "Vendedor: " + (pedido.vendedorNombre || "");
+  const miTurno = (soyVendedor && e === "solicitado") || (!soyVendedor && e === "cotizado");
+  ui.badge.textContent = miTurno ? "Tu turno" : (TEXTO_ESTADO[e] || e);
+  ui.badge.className = "pp-badge" + (miTurno ? " warn" : e === "entregado" ? " ok" : ["rechazado", "cancelado", "expirado"].includes(e) ? " bad" : "");
+
+  // Barra de estado
+  ui.pasos.replaceChildren();
+  const idx = ETAPAS.findIndex(([k]) => k === e);
+  if (idx >= 0) {
+    ui.pasos.style.display = "";
+    ETAPAS.forEach(([k, txt], i) => ui.pasos.appendChild(h("div", { class: "pp-step" + (i < idx ? " done" : i === idx ? " done now" : ""), text: txt })));
+  } else {
+    ui.pasos.style.display = "none";
+  }
+  ui.aviso.replaceChildren();
+  if (e === "expirado") ui.aviso.appendChild(h("div", { class: "pp-banner bad", text: "Esta solicitud expiró sin respuesta. Puedes hacer un pedido nuevo desde el artículo." }));
+  else if (e === "rechazado") ui.aviso.appendChild(h("div", { class: "pp-banner bad", text: "El vendedor no pudo tomar este pedido." }));
+  else if (e === "cancelado") ui.aviso.appendChild(h("div", { class: "pp-banner bad", text: "Este pedido fue cancelado." }));
+  else if (e === "entregado") ui.aviso.appendChild(h("div", { class: "pp-banner", text: "Pedido entregado. ¡Gracias!" }));
+
+  // Artículo de referencia
+  ui.ref.replaceChildren(
+    h("div", { class: "pp-ref" },
+      pedido.productoImagen ? h("img", { src: pedido.productoImagen, alt: "", loading: "lazy" }) : null,
+      h("div", {}, h("b", { text: pedido.productoNombre || "" }),
+        "Artículo de referencia · desde " + dinero(pedido.precioDesde) + (pedido.tiempoElaboracionDias ? " · " + pedido.tiempoElaboracionDias + " días" : "")))
+  );
+}
+
+function tarjetaCotizacion(m, e) {
+  const c = m.cotizacion || {};
+  const vigente = e === "cotizado" && pedido.cotizacionVersion === c.version;
+  const aceptada = pedido.cotizacionAceptada && pedido.cotizacionAceptada.version === c.version;
+  let estadoTxt = "";
+  if (aceptada) estadoTxt = "✔ Aceptada";
+  else if (c.version < pedido.cotizacionVersion) estadoTxt = "Reemplazada por una cotización nueva";
+  else if (!vigente) estadoTxt = e === "solicitado" ? "Rechazada" : "Ya no está vigente";
+
+  const nodo = h("div", { class: "pp-cot" },
+    h("h4", { text: "Cotización" + (c.version > 1 ? " #" + c.version : "") }),
+    h("div", { class: "precio", text: dinero(c.precio) }),
+    h("dl", {},
+      h("dt", { text: "Entrega" }), h("dd", { text: fechaEntregaTxt(c.fechaEntrega) }),
+      c.anticipo > 0 ? h("dt", { text: "Anticipo" }) : null, c.anticipo > 0 ? h("dd", { text: dinero(c.anticipo) }) : null),
+    m.contenido ? h("p", { text: m.contenido }) : null);
+
+  if (vigente && identidad.rol === "comprador") {
+    const vig = pedido.cotizacion && ms(pedido.cotizacion.vigenciaHasta);
+    if (vig) nodo.appendChild(h("div", { class: "estado", text: "Vigente hasta el " + diaLargo(vig) }));
+    const bA = h("button", { class: "pp-btn primary", type: "button", text: "Aceptar" });
+    const bR = h("button", { class: "pp-btn danger", type: "button", text: "Rechazar" });
+    bA.addEventListener("click", () => responderCotizacion("aceptar", c, bA));
+    bR.addEventListener("click", () => responderCotizacion("rechazar", c, bR));
+    nodo.appendChild(h("div", { class: "row" }, bA, bR));
+  } else if (vigente) {
+    nodo.appendChild(h("div", { class: "estado", text: "Esperando respuesta del cliente" }));
+  } else if (estadoTxt) {
+    nodo.appendChild(h("div", { class: "estado", text: estadoTxt }));
+  }
+  return nodo;
+}
+
+function renderMensajes() {
+  const e = estadoEfectivo();
+  const mapa = new Map();
+  [...anteriores, ...vivos].forEach((m) => mapa.set(m.id, m));
+  const lista = [...mapa.values()].sort((a, b) => ms(a.creadoEn) - ms(b.creadoEn) || (a.id < b.id ? -1 : 1));
+
+  const cerca = ui.msgs.scrollHeight - ui.msgs.scrollTop - ui.msgs.clientHeight < 120;
+  ui.msgs.replaceChildren();
+  if (hayMas) {
+    const b = h("button", { class: "pp-more", type: "button", text: "Ver mensajes anteriores" });
+    b.addEventListener("click", () => cargarAnteriores(b));
+    ui.msgs.appendChild(b);
+  }
+  let diaPrev = "";
+  for (const m of lista) {
+    const t = ms(m.creadoEn);
+    const dia = t ? new Date(t).toDateString() : "";
+    if (dia && dia !== diaPrev) { ui.msgs.appendChild(h("div", { class: "pp-sys", text: diaLargo(t) })); diaPrev = dia; }
+    if (m.tipo === "sistema") { ui.msgs.appendChild(h("div", { class: "pp-sys", text: m.contenido })); continue; }
+    if (m.tipo === "cotizacion") { ui.msgs.appendChild(tarjetaCotizacion(m, e)); continue; }
+    const mio = m.autorUid === identidad.authUid;
+    const burbuja = h("div", { class: "pp-b" + (mio ? " me" : "") });
+    if (m.tipo === "foto" && m.foto) {
+      const img = h("img", { class: "pp-foto", src: m.foto, alt: "Foto del chat", loading: "lazy" });
+      img.addEventListener("click", () => verFoto(m.foto));
+      burbuja.appendChild(img);
+    }
+    if (m.contenido) burbuja.appendChild(document.createTextNode(m.contenido));
+    if (t) burbuja.appendChild(h("time", { text: hora(t) }));
+    ui.msgs.appendChild(burbuja);
+  }
+  if (primeraVez || cerca) { ui.msgs.scrollTop = ui.msgs.scrollHeight; }
+  primeraVez = false;
+}
+
+function renderAcciones() {
+  const e = estadoEfectivo();
+  const vendedor = identidad.rol === "vendedor";
+  const cerrado = CERRADOS.includes(e);
+  ui.acciones.replaceChildren();
+  ui.rapidas.replaceChildren();
+  ui.cerrado.style.display = cerrado ? "" : "none";
+  ui.comp.style.display = cerrado ? "none" : "";
+
+  const boton = (txt, clase, fn) => {
+    const b = h("button", { class: "pp-btn " + clase, type: "button", text: txt });
+    b.addEventListener("click", () => fn(b));
+    ui.acciones.appendChild(b);
+  };
+
+  if (vendedor) {
+    if (e === "solicitado" || e === "cotizado") {
+      boton(e === "cotizado" ? "Enviar otra cotización" : "Enviar cotización", "primary", abrirCotizar);
+      boton("Rechazar solicitud", "danger", () => pedirMotivo("Rechazar solicitud", "rechazado"));
+    } else if (e === "aceptado") {
+      boton("Empezar elaboración", "primary", (b) => cambiarEstado("en_elaboracion", b));
+      boton("Cancelar pedido", "danger", () => pedirMotivo("Cancelar pedido", "cancelado"));
+    } else if (e === "en_elaboracion") {
+      boton("Marcar como listo", "primary", (b) => cambiarEstado("listo", b));
+      boton("Cancelar pedido", "danger", () => pedirMotivo("Cancelar pedido", "cancelado"));
+    } else if (e === "listo") {
+      boton("Marcar como entregado", "primary", (b) => cambiarEstado("entregado", b));
+      boton("Cancelar pedido", "danger", () => pedirMotivo("Cancelar pedido", "cancelado"));
+    }
+    if (!cerrado) {
+      RESPUESTAS_RAPIDAS.forEach((txt) => {
+        const b = h("button", { type: "button", text: txt.length > 34 ? txt.slice(0, 32) + "…" : txt, title: txt });
+        b.addEventListener("click", () => { ui.ta.value = txt; ui.ta.dispatchEvent(new Event("input")); ui.ta.focus(); });
+        ui.rapidas.appendChild(b);
+      });
+    }
+  } else if (e === "solicitado" || e === "cotizado") {
+    boton("Cancelar solicitud", "danger", cancelarComprador);
+  }
+  ui.acciones.style.display = ui.acciones.children.length ? "" : "none";
+  ui.rapidas.style.display = ui.rapidas.children.length ? "" : "none";
+}
+
+function renderTodo() {
+  if (!pedido) return;
+  renderEncabezado();
+  renderAcciones();
+  renderMensajes();
+}
+
+// ---------------------------------------------------------------- ventanas
+
+function ventana(titulo, contenido, botones) {
+  const ov = h("div", { class: "pp-ov" });
+  const caja = h("div", { class: "pp-box", role: "dialog", "aria-modal": "true" }, h("h3", { text: titulo }), contenido);
+  const fila = h("div", { class: "row" });
+  botones.forEach(([txt, clase, fn]) => {
+    const b = h("button", { class: "pp-btn " + clase, type: "button", text: txt });
+    b.addEventListener("click", () => fn(b, () => ov.remove()));
+    fila.appendChild(b);
+  });
+  caja.appendChild(fila);
+  ov.appendChild(caja);
+  ov.addEventListener("click", (e) => { if (e.target === ov) ov.remove(); });
+  document.body.appendChild(ov);
+  return ov;
+}
+
+function abrirCotizar() {
+  const dias = Number(pedido.tiempoElaboracionDias) || 7;
+  const sug = new Date(Date.now() + dias * 86400000);
+  const iso = (d) => d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+  const previa = pedido.cotizacion || {};
+  const precio = h("input", { type: "number", inputmode: "decimal", min: "1", max: "1000000", step: "0.01", value: previa.precio || pedido.precioDesde || "" });
+  const anticipo = h("input", { type: "number", inputmode: "decimal", min: "0", step: "0.01", placeholder: "Opcional", value: previa.anticipo || "" });
+  const fecha = h("input", { type: "date", min: iso(new Date()), value: previa.fechaEntrega || iso(sug) });
+  const detalles = h("textarea", { maxlength: "600", placeholder: "Qué incluye: materiales, medidas, colores, personalización…" });
+  detalles.value = previa.detalles || "";
+  const err = h("div", { class: "err" });
+  const cuerpo = h("div", {},
+    h("label", { text: "Precio final (MXN)" }), precio,
+    h("label", { text: "Anticipo (MXN)" }), anticipo,
+    h("label", { text: "Fecha de entrega" }), fecha,
+    h("label", { text: "Detalles" }), detalles, err);
+  ventana("Enviar cotización", cuerpo, [
+    ["Cancelar", "", (b, cerrar) => cerrar()],
+    ["Enviar", "primary", async (b, cerrar) => {
+      err.textContent = "";
+      const p = Number(precio.value), a = Number(anticipo.value || 0);
+      if (!p || p <= 0) { err.textContent = "Escribe el precio final."; return; }
+      if (a < 0 || a > p) { err.textContent = "El anticipo no puede ser mayor al precio."; return; }
+      if (!fecha.value) { err.textContent = "Elige la fecha de entrega."; return; }
+      if (detalles.value.trim().length < 3) { err.textContent = "Describe qué incluye la cotización."; return; }
+      const r = await hacer(b, "cotizarPedido", { precio: p, anticipo: a, fechaEntrega: fecha.value, detalles: detalles.value.trim() });
+      if (r) cerrar();
+    }]
+  ]);
+}
+
+function pedirMotivo(titulo, estado) {
+  const motivo = h("textarea", { maxlength: "300", placeholder: "Cuéntale al cliente el motivo" });
+  const err = h("div", { class: "err" });
+  ventana(titulo, h("div", {}, h("label", { text: "Motivo" }), motivo, err), [
+    ["Volver", "", (b, cerrar) => cerrar()],
+    [titulo, "danger", async (b, cerrar) => {
+      if (motivo.value.trim().length < 3) { err.textContent = "Escribe el motivo."; return; }
+      const r = await hacer(b, "cambiarEstadoPedido", { estado, motivo: motivo.value.trim() });
+      if (r) cerrar();
+    }]
+  ]);
+}
+
+function confirmar(titulo, texto, aceptarTxt, clase) {
+  return new Promise((resolve) => {
+    ventana(titulo, h("p", { text: texto, style: "font-size:14px;margin:0" }), [
+      ["Volver", "", (b, cerrar) => { cerrar(); resolve(false); }],
+      [aceptarTxt, clase || "primary", (b, cerrar) => { cerrar(); resolve(true); }]
+    ]);
+  });
+}
+
+function verFoto(url) {
+  const ov = h("div", { class: "pp-visor" }, h("img", { src: url, alt: "Foto" }));
+  ov.addEventListener("click", () => ov.remove());
+  document.body.appendChild(ov);
+}
+
+// ---------------------------------------------------------------- acciones
+
+async function enviarTexto() {
+  const t = ui.ta.value.trim();
+  if (!t) return;
+  ui.btnEnviar.disabled = true;
+  const r = await hacer(null, "enviarMensajePedido", { contenido: t });
+  ui.btnEnviar.disabled = false;
+  if (r) { ui.ta.value = ""; ui.ta.style.height = "auto"; primeraVez = true; }
+}
+
+async function responderCotizacion(accion, c, btn) {
+  if (accion === "aceptar") {
+    const ok = await confirmar("Aceptar cotización", "Aceptas el precio de " + dinero(c.precio) + " con entrega el " + fechaEntregaTxt(c.fechaEntrega) + ". El vendedor empezará a elaborar tu pedido.", "Aceptar", "primary");
+    if (!ok) return;
+  }
+  await hacer(btn, "responderCotizacion", { accion, version: c.version });
+}
+
+async function cambiarEstado(estado, btn) {
+  const txt = { en_elaboracion: "¿Empiezas a elaborar este pedido?", listo: "¿Tu pedido ya está listo para entregar?", entregado: "¿Confirmas que el pedido ya fue entregado?" }[estado];
+  if (!(await confirmar("Confirmar", txt, "Sí", "primary"))) return;
+  await hacer(btn, "cambiarEstadoPedido", { estado });
+}
+
+async function cancelarComprador(btn) {
+  if (!(await confirmar("Cancelar solicitud", "Se cancelará esta solicitud y se avisará al vendedor.", "Cancelar solicitud", "danger"))) return;
+  await hacer(btn, "cancelarPedido");
+}
+
+async function comprimirImagen(file) {
+  let origen;
+  try { origen = await createImageBitmap(file, { imageOrientation: "from-image" }); }
+  catch (_) {
+    origen = await new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = URL.createObjectURL(file); });
+  }
+  const w0 = origen.width || origen.naturalWidth, h0 = origen.height || origen.naturalHeight;
+  const k = Math.min(1, 1280 / Math.max(w0, h0));
+  const cv = document.createElement("canvas");
+  cv.width = Math.round(w0 * k); cv.height = Math.round(h0 * k);
+  cv.getContext("2d").drawImage(origen, 0, 0, cv.width, cv.height);
+  let calidad = 0.82, blob = null;
+  for (let i = 0; i < 5; i++) {
+    blob = await new Promise((r) => cv.toBlob(r, "image/jpeg", calidad));
+    if (blob && blob.size <= 1.4 * 1024 * 1024) break;
+    calidad -= 0.12;
+  }
+  if (!blob || blob.size > 1.45 * 1024 * 1024) throw new Error("La foto es muy pesada");
+  return await new Promise((res, rej) => { const fr = new FileReader(); fr.onload = () => res(fr.result); fr.onerror = rej; fr.readAsDataURL(blob); });
+}
+
+async function enviarFoto(ev) {
+  const input = ev.target;
+  const file = input.files && input.files[0];
+  input.value = "";
+  if (!file) return;
+  if (!/^image\/(jpeg|png|webp)$/.test(file.type)) { toast("Solo fotos JPG, PNG o WebP"); return; }
+  ui.btnFoto.disabled = true;
+  ui.btnFoto.textContent = "…";
+  try {
+    const data = await comprimirImagen(file);
+    const r = await hacer(null, "subirFotoPedido", { data });
+    if (r) primeraVez = true;
+  } catch (e) {
+    toast(e.message || "No se pudo preparar la foto");
+  } finally {
+    ui.btnFoto.disabled = false;
+    ui.btnFoto.textContent = "📷";
+  }
+}
+
+// ---------------------------------------------------------------- tiempo real
+
+const mapDoc = (d) => ({ id: d.id, ...d.data() });
+
+function suscribir() {
+  desuscribir();
+  const ref = doc(db, "pedidos_personalizados", PEDIDO_ID);
+  unsubPedido = onSnapshot(ref, (snap) => {
+    if (!snap.exists()) { app.replaceChildren(h("div", { class: "pp-state", text: "Este pedido ya no existe." })); return; }
+    pedido = { id: snap.id, ...snap.data() };
+    renderTodo();
+  }, () => toast("Se perdió la conexión con el pedido"));
+
+  const q = query(collection(ref, "mensajes"), orderBy("creadoEn", "desc"), limit(PAGINA));
+  unsubMsgs = onSnapshot(q, (snap) => {
+    vivos = snap.docs.map(mapDoc);
+    if (!anteriores.length) { cursor = snap.docs[snap.docs.length - 1] || null; hayMas = snap.docs.length >= PAGINA; }
+    renderTodo();
+  }, () => toast("Se perdió la conexión con el chat"));
+}
+
+function desuscribir() {
+  if (unsubPedido) { unsubPedido(); unsubPedido = null; }
+  if (unsubMsgs) { unsubMsgs(); unsubMsgs = null; }
+}
+
+async function cargarAnteriores(btn) {
+  if (!cursor) return;
+  btn.disabled = true;
+  try {
+    const q = query(collection(db, "pedidos_personalizados", PEDIDO_ID, "mensajes"), orderBy("creadoEn", "desc"), startAfter(cursor), limit(PAGINA));
+    const snap = await getDocs(q);
+    anteriores = [...anteriores, ...snap.docs.map(mapDoc)];
+    cursor = snap.docs[snap.docs.length - 1] || cursor;
+    hayMas = snap.docs.length >= PAGINA;
+    const alto = ui.msgs.scrollHeight;
+    renderMensajes();
+    ui.msgs.scrollTop = ui.msgs.scrollHeight - alto;
+  } catch (_) { toast("No se pudieron cargar los mensajes anteriores"); }
+}
+
+// Pestaña oculta → se cierran los listeners (ahorra lecturas); al volver se reabren.
+document.addEventListener("visibilitychange", () => {
+  if (!identidad) return;
+  if (document.hidden) desuscribir();
+  else { primeraVez = true; suscribir(); }
+});
+window.addEventListener("pagehide", desuscribir);
+
+// ---------------------------------------------------------------- arranque
+
+(async function iniciar() {
+  if (!PEDIDO_ID) { app.replaceChildren(h("div", { class: "pp-state", text: "Falta el pedido." })); return; }
+  if (!window.PEDIDOS_API_URL || !window.znrFirestore || !window.znrFirestore.signIn) {
+    app.replaceChildren(h("div", { class: "pp-state", text: "No se pudo iniciar. Recarga la página." }));
+    return;
+  }
+  identidad = await identificar();
+  if (!identidad) {
+    app.replaceChildren(h("div", { class: "pp-state" },
+      "No pudimos abrir este pedido con tu sesión actual. Entra como cliente desde ",
+      h("a", { href: "comunidad.html", text: "Comunidad" }), " o como vendedor desde ",
+      h("a", { href: "vendedor.html", text: "tu panel" }), " y vuelve a abrir el aviso."));
+    return;
+  }
+  construir();
+  suscribir();
+})();

@@ -26,6 +26,7 @@
    https://registrar-token-fcm-1038143238323.us-central1.run.app 
    https://eliminar-token-fcm-1038143238323.us-central1.run.app 
    https://ventas-api-1038143238323.us-central1.run.app 
+   https://pedidos-api-1038143238323.us-central1.run.app 
    https://auth-api-1038143238323.us-central1.run.app 
    https://vendedores-api-1038143238323.us-central1.run.app 
    https://live-api-1038143238323.us-central1.run.app 
@@ -328,6 +329,9 @@ h3 {
  <h2> <button id="share-vendor-link" class="btn-secondary" style="font-size:12px; margin-left:10px;"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" aria-hidden="true"><use href="#ic-share"/></svg> Link de mi tienda</button></h2>
  <div id="vendor-plan-panel" style="margin:4px 0 16px;"></div>
  <div id="stock-alert-banner"></div>
+ <a href="mis-pedidos.html?rol=vendedor" id="pedidos-pers-link" style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0 0 14px;padding:12px 14px;border-radius:14px;border:1.5px solid #a855f7;background:rgba(168,85,247,.08);color:inherit;text-decoration:none;font-weight:700;font-size:14px;">
+   <span>Pedidos personalizados<br><small style="font-weight:500;opacity:.75;">Solicitudes, chats y cotizaciones de tus clientes</small></span><span aria-hidden="true">›</span>
+ </a>
  <button id="btn-crear-producto" class="btn-primary" onclick="window.switchTab && window.switchTab('form')" style="margin-bottom:16px;"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" aria-hidden="true"><use href="#ic-plus"/></svg> Crear producto</button>
  <div id="informe-semanal-card"></div>
 <div id="checklist-vendedor"></div>
@@ -389,9 +393,21 @@ h3 {
 
 
   
+ <div class="field-group" id="tipo-venta-group">
+ <label>Tipo de venta</label>
+ <select id="pTipoVenta" onchange="window.aplicarTipoVenta && window.aplicarTipoVenta()">
+ <option value="stock">Con stock (listo para entregar)</option>
+ <option value="personalizado">Personalizado (bajo pedido)</option>
+ </select>
+ <p id="tipo-venta-hint" style="margin:2px 0 0;font-size:.73rem;color:#aaa;display:none;">El cliente te escribe en el chat, tú le envías una cotización y lo elaboras a su medida. Este artículo sirve de referencia.</p>
+ </div>
+ <div id="pers-fields" style="display:none">
+ <div class="field-group"><label>Tiempo de elaboración (días) *</label><input type="number" id="pTiempoDias" placeholder="7" min="1" max="120"></div>
+ <div class="field-group"><label>¿Qué se puede personalizar? *</label><input type="text" id="pOpciones" maxlength="400" placeholder="Ej: color, tamaño, nombre grabado"></div>
+ </div>
  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
- <div class="field-group"><label>Precio (MXN) *</label><input type="number" id="pPrecio" placeholder="350" min="0" max="99999"></div>
- <div class="field-group"><label>Stock *</label><input type="number" id="pStock" placeholder="5" min="0" max="9999"></div>
+ <div class="field-group"><label id="lbl-precio">Precio (MXN) *</label><input type="number" id="pPrecio" placeholder="350" min="0" max="99999"></div>
+ <div class="field-group" id="stock-group"><label>Stock *</label><input type="number" id="pStock" placeholder="5" min="0" max="9999"></div>
  </div>
  <div class="field-group">
  <label>Precio antes del descuento <span style="color:#aaa;">(opcional)</span></label>
