@@ -1324,6 +1324,10 @@ window.editProduct = async function(id) {
   document.getElementById('cancel-edit-btn').style.display = 'block';
   document.getElementById('submit-product-btn').textContent = ' Guardar cambios';
   switchTab('form');
+  // Otros scripts (common.js / el HTML) pueden repintar el formulario al cambiar
+  // de pestaña o al terminar una subida; se reafirma el modo edición.
+  window.aplicarModoFormulario();
+  setTimeout(window.aplicarModoFormulario, 400);
 };
 
 window.deleteMyProduct = async function(id) {
@@ -1687,6 +1691,25 @@ if (btn) btn.disabled = false;
 }
 };
 
+// Fuente única de verdad del modo del formulario: si hay un id en edit-product-id
+// estamos editando; si está vacío, publicando. Evita que el título/botón vuelvan
+// a "Publicar" mientras el id de edición sigue puesto.
+window.aplicarModoFormulario = function() {
+  const editId = document.getElementById('edit-product-id')?.value;
+  const title = document.getElementById('form-title');
+  const cancel = document.getElementById('cancel-edit-btn');
+  const submit = document.getElementById('submit-product-btn');
+  if (editId) {
+    if (title) title.textContent = ' Editar producto';
+    if (cancel) cancel.style.display = 'block';
+    if (submit) submit.textContent = ' Guardar cambios';
+  } else {
+    if (title) title.textContent = ' Publicar producto';
+    if (cancel) cancel.style.display = 'none';
+    if (submit) submit.textContent = ' Publicar producto';
+  }
+};
+
 window.switchTab = function(tab) {
 const productsTab = document.getElementById('tab-products');
 const formTab = document.getElementById('tab-form');
@@ -1767,6 +1790,10 @@ if (submitBtn) {
     if (pending) {
       submitBtn.dataset.originalLabel = submitBtn.dataset.originalLabel || submitBtn.innerHTML;
       submitBtn.innerHTML = ' Subiendo imágenes...';
+    } else if (typeof window.aplicarModoFormulario === 'function') {
+      // Antes se restauraba una etiqueta guardada (casi siempre "Publicar producto"),
+      // aunque se estuviera editando. Ahora se calcula según edit-product-id.
+      window.aplicarModoFormulario();
     } else if (submitBtn.dataset.originalLabel) {
       submitBtn.innerHTML = submitBtn.dataset.originalLabel;
     }
