@@ -32,7 +32,27 @@
 <style>
   .live-wrap { max-width: 640px; margin: 0 auto; padding: 0 0 40px; }
   .video-anchor { position: relative; width: 100%; aspect-ratio: 16/9; background: #000; }
-  .video-anchor.vertical { height: 56vh; max-height: 520px; aspect-ratio: unset; }
+  /* Vertical tipo TikTok: video a pantalla completa y info/producto/chat encima.
+     Se activa por body.live-vertical (según el video real que llega, no solo la bandera). */
+  body.live-vertical { overflow: hidden; }
+  body.live-vertical .app-header { position: fixed; left: 0; right: 0; background: none; border: 0; backdrop-filter: none; }
+  body.live-vertical .app-title, body.live-vertical .live-info .vendor { display: none; }
+  body.live-vertical .live-wrap { position: relative; height: 100dvh; overflow: hidden; background: #000; }
+  body.live-vertical .video-anchor { position: absolute; inset: 0; aspect-ratio: unset; }
+  body.live-vertical .video-box video { object-fit: cover; }
+  body.live-vertical .live-overlay {
+    position: absolute; left: 0; right: 0; bottom: 0; z-index: 25;
+    display: flex; flex-direction: column; gap: 8px; padding: 40px 12px 12px;
+    background: linear-gradient(transparent, rgba(0,0,0,.65));
+  }
+  body.live-vertical .live-info { display: flex; align-items: center; gap: 8px; padding: 0; border: 0; }
+  body.live-vertical .live-info .status-badge, body.live-vertical .live-info .viewer-badge { margin: 0; }
+  body.live-vertical .live-info h1 { margin: 0; flex: 1; min-width: 0; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  body.live-vertical .live-info h1, body.live-vertical .chat-msg .text { color: #fff; text-shadow: 0 1px 3px rgba(0,0,0,.7); }
+  body.live-vertical .producto-actual { margin: 0; }
+  body.live-vertical .chat-section { padding: 0; }
+  body.live-vertical .chat-panel { background: none; height: 34dvh; }
+  body.live-vertical .chat-messages { padding: 0; }
   .video-box { position: absolute; inset: 0; width: 100%; height: 100%; background: #000; z-index: 20; }
   .video-box.stuck {
     position: fixed; top: 0; left: 0; right: 0; margin: 0 auto;
@@ -142,15 +162,6 @@
 
   /* Debajo del video (info, producto, chat) es contenido normal que
      se desplaza libremente. */
-  .live-info-compact {
-    display: flex; align-items: center; gap: 8px;
-    padding: 10px 16px; border-bottom: 1px solid var(--color-border-subtle);
-  }
-  .live-info-compact strong {
-    font-size: 14px; color: var(--color-text-primary); flex: 1; min-width: 0;
-    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-  }
-  .live-info-compact .viewer-badge { margin: 0; flex-shrink: 0; }
 
   .identity-overlay {
     position: fixed; inset: 0; background: rgba(0,0,0,.7);
@@ -508,6 +519,10 @@ function iniciarReproductorWHEP(containerId, whepUrl) {
     <button type="button" class="btn-sonido" id="btn-sonido">🔇 Activar sonido</button>`;
   const video = document.getElementById('live-video');
   video.onplaying = () => estadoVideo(null);
+  video.addEventListener('resize', () => {
+    const v = video.videoHeight > video.videoWidth;
+    if (video.videoWidth && document.body.classList.contains('live-vertical') !== v) aplicarOrientacion(v);
+  });
   video.onvolumechange = actualizarBotonSonido;
   document.getElementById('btn-sonido').addEventListener('click', () => {
     sonidoActivado = true;
@@ -584,6 +599,18 @@ function setupStickyVideo() {
     videoBox.classList.toggle('stuck', !entry.isIntersecting);
   }, { threshold: [0] });
   stickyObserver.observe(stickySentinel);
+}
+
+// Vertical u horizontal según el video que realmente llega (la bandera
+// del vendedor puede venir mal): re-acomoda el layout sin re-renderizar.
+function aplicarOrientacion(vertical) {
+  document.body.classList.toggle('live-vertical', vertical);
+  detenerStickyVideo();
+  const box = document.getElementById('video-box-el');
+  if (!box) return;
+  box.classList.remove('stuck');
+  box.style.height = document.getElementById('video-anchor').style.height = '';
+  if (!vertical) setupStickyVideo();
 }
 
 // ── Presencia (contador de espectadores en vivo) ──
@@ -673,7 +700,7 @@ function mostrarReporte() {
 }
 
 function renderNoId() {
-  document.body.classList.remove('live-active');
+  document.body.classList.remove('live-active', 'live-vertical');
   wrap.innerHTML = `
     <div class="center-card">
       <div class="icon">${Icon('link', {size:40})}</div>
@@ -683,7 +710,7 @@ function renderNoId() {
 }
 
 function renderRequiereVendedor() {
-  document.body.classList.remove('live-active');
+  document.body.classList.remove('live-active', 'live-vertical');
   wrap.innerHTML = `
     <div class="center-card">
       <div class="icon">${Icon('lock', {size:40})}</div>
@@ -694,7 +721,7 @@ function renderRequiereVendedor() {
 }
 
 function renderNotFound() {
-  document.body.classList.remove('live-active');
+  document.body.classList.remove('live-active', 'live-vertical');
   wrap.innerHTML = `
     <div class="center-card">
       <div class="icon">😕</div>
@@ -707,7 +734,7 @@ function renderEnded() {
   detenerReproductor();
   detenerStickyVideo();
   quitarPresencia();
-  document.body.classList.remove('live-active');
+  document.body.classList.remove('live-active', 'live-vertical');
   wrap.innerHTML = `
     <div class="center-card">
       <div class="icon">${Icon('check', {size:40})}</div>
@@ -717,7 +744,7 @@ function renderEnded() {
 }
 
 function renderScheduledWait() {
-  document.body.classList.remove('live-active');
+  document.body.classList.remove('live-active', 'live-vertical');
   wrap.innerHTML = `
     <div class="center-card">
       <div class="icon">${Icon('clock', {size:40})}</div>
@@ -1145,29 +1172,11 @@ function renderLive() {
 
   const videoMarkup = `<div class="video-slot-inner" id="video-slot"></div>`;
 
-  if (esVertical) {
-    // Estilo YouTube: el video se queda fijo arriba; todo lo demás
-    // (título, producto, chat) es contenido normal que se desplaza
-    // por debajo. Nada se sobrepone al video.
-    wrap.innerHTML = `
-      <div class="video-anchor vertical" id="video-anchor">
-        <div class="video-box" id="video-box-el">${videoMarkup}</div>
-      </div>
-      <div class="live-info-compact">
-        <span class="status-dot"></span>
-        <strong>${esc(sesion.titulo)}</strong>
-        <span class="viewer-badge">${Icon('eye')} <span id="viewer-count">0</span></span>
-      </div>
-      <div id="producto-slot"></div>
-      <div class="chat-section">
-        <div class="chat-panel">${chatMarkup}</div>
-      </div>
-    `;
-  } else {
-    wrap.innerHTML = `
-      <div class="video-anchor" id="video-anchor">
-        <div class="video-box" id="video-box-el">${videoMarkup}</div>
-      </div>
+  wrap.innerHTML = `
+    <div class="video-anchor" id="video-anchor">
+      <div class="video-box" id="video-box-el">${videoMarkup}</div>
+    </div>
+    <div class="live-overlay">
       <div class="live-info">
         <span class="status-badge live"><span class="status-dot"></span> EN VIVO</span>
         <span class="viewer-badge">${Icon('eye')} <span id="viewer-count">0</span></span>
@@ -1178,10 +1187,10 @@ function renderLive() {
       <div class="chat-section">
         <div class="chat-panel">${chatMarkup}</div>
       </div>
-    `;
-  }
+    </div>
+  `;
 
-  setupStickyVideo();
+  aplicarOrientacion(esVertical);
   renderProductoActual();
   setupChat();
   setupProductoEnVivo();
