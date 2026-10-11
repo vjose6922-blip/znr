@@ -1,5 +1,7 @@
 /**
  * pedido-chat.js — chat de un pedido personalizado (comprador y vendedor). Fases 1, 2 (pagos) y 3 (calificar, reportar, bloquear).
+ * Interfaz compacta: encabezado de una línea, resumen colapsable ("Detalles"), mensajes en formato compacto y UNA barra
+ * de acción con lo único que importa ahora (lo secundario —cancelar, rechazar, reportar, bloquear— vive en el menú ⋯).
  *
  * - Lectura en tiempo real con el SDK COMPLETO de Firestore (onSnapshot). El resto del
  *   sitio usa la versión "lite" (sin listeners); aquí se carga el completo solo para esta
@@ -68,7 +70,11 @@ function h(tag, props, ...hijos) {
   return el;
 }
 
-const dinero = (n) => Number(n || 0).toLocaleString("es-MX", { style: "currency", currency: "MXN" });
+// Sin centavos cuando el importe es entero ($400), con dos decimales si no ($99.50): menos ancho en pantalla.
+const dinero = (n) => {
+  const v = Number(n || 0);
+  return v.toLocaleString("es-MX", { style: "currency", currency: "MXN", minimumFractionDigits: Number.isInteger(v) ? 0 : 2, maximumFractionDigits: 2 });
+};
 const ms = (ts) => (ts && typeof ts.toMillis === "function" ? ts.toMillis() : 0);
 const hora = (t) => new Date(t).toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit" });
 const diaLargo = (t) => new Date(t).toLocaleDateString("es-MX", { weekday: "long", day: "numeric", month: "long" });
@@ -161,45 +167,39 @@ async function hacer(btn, action, extra) {
   }
 }
 
-// Tarjeta plegable (ocupa una sola línea hasta que se toca). Recuerda si estaba abierta entre renders.
-const abiertas = {};
-function plegable(clave, resumen) {
-  const d = h("details", { class: "pp-pago pp-fold" }, h("summary", { text: resumen }));
-  d.open = !!abiertas[clave];
-  d.addEventListener("toggle", () => { abiertas[clave] = d.open; });
-  return d;
-}
-
 // ---------------------------------------------------------------- esqueleto
 
 const ui = {};
+let detalleAbierto = false;
+let rapidasAbiertas = false;
+let comentarioCalificar = "";
 
 function construir() {
+  ui.thumb = h("img", { class: "pp-thumb", alt: "", style: "display:none" });
   ui.titulo = h("b");
   ui.sub = h("span");
   ui.badge = h("span", { class: "pp-badge" });
-  ui.pasos = h("div", { class: "pp-steps" });
-  ui.aviso = h("div");
-  ui.ref = h("div");
+  ui.prog = h("div", { class: "pp-prog", role: "progressbar", "aria-label": "Avance del pedido" });
+  ui.strip = h("button", { class: "pp-strip", type: "button", "aria-expanded": "false" });
+  ui.detalle = h("div", { class: "pp-detail", style: "display:none" });
   ui.msgs = h("div", { class: "pp-msgs" });
-  ui.cierre = h("div", { class: "pp-pagos" });
-  ui.pagos = h("div", { class: "pp-pagos" });
-  ui.entrega = h("div", { class: "pp-pagos" });
-  ui.acciones = h("div", { class: "pp-actions" });
-  ui.rapidas = h("div", { class: "pp-quick" });
-  ui.cerrado = h("div", { class: "pp-closed", style: "display:none", text: "Este pedido ya está cerrado." });
+  ui.barra = h("div", { class: "pp-bar", style: "display:none" });
+  ui.rapidas = h("div", { class: "pp-quick", style: "display:none" });
   ui.ta = h("textarea", { rows: "1", maxlength: "1000", placeholder: "Escribe un mensaje…", "aria-label": "Mensaje" });
+  ui.btnRapidas = h("button", { class: "pp-ico", type: "button", title: "Respuestas rápidas", "aria-label": "Respuestas rápidas", text: "⚡", style: "display:none" });
   ui.btnFoto = h("button", { class: "pp-ico", type: "button", title: "Enviar foto", "aria-label": "Enviar foto", text: "📷" });
   ui.btnEnviar = h("button", { class: "pp-ico pp-send", type: "button", title: "Enviar", "aria-label": "Enviar", text: "➤" });
-  ui.comp = h("div", { class: "pp-comp" }, ui.btnFoto, ui.ta, ui.btnEnviar);
+  ui.comp = h("div", { class: "pp-comp" }, ui.btnRapidas, ui.btnFoto, ui.ta, ui.btnEnviar);
 
   const volver = h("a", { class: "pp-back", href: "mis-pedidos.html" + (ROL_HINT ? "?rol=" + encodeURIComponent(ROL_HINT) : ""), "aria-label": "Volver", text: "‹" });
   ui.btnMenu = h("button", { class: "pp-back", type: "button", title: "Más opciones", "aria-label": "Más opciones", text: "⋯" });
   ui.btnMenu.addEventListener("click", abrirMenu);
-  const cab = h("div", { class: "pp-head" }, volver, h("div", { class: "pp-head-info" }, ui.titulo, ui.sub), ui.badge, ui.btnMenu);
-  app.replaceChildren(cab, ui.pasos, ui.aviso, ui.ref, ui.msgs, ui.cierre, ui.pagos, ui.entrega, ui.acciones, ui.rapidas, ui.cerrado, ui.comp);
+  const cab = h("div", { class: "pp-head" }, volver, ui.thumb, h("div", { class: "pp-head-info" }, ui.titulo, ui.sub), ui.badge, ui.btnMenu);
+  app.replaceChildren(cab, ui.prog, ui.strip, ui.detalle, ui.msgs, ui.barra, ui.rapidas, ui.comp);
 
-  ui.ta.addEventListener("input", () => { ui.ta.style.height = "auto"; ui.ta.style.height = Math.min(ui.ta.scrollHeight, 120) + "px"; });
+  ui.strip.addEventListener("click", () => { detalleAbierto = !detalleAbierto; renderResumen(); });
+  ui.btnRapidas.addEventListener("click", () => { rapidasAbiertas = !rapidasAbiertas; ui.rapidas.style.display = rapidasAbiertas ? "" : "none"; });
+  ui.ta.addEventListener("input", () => { ui.ta.style.height = "auto"; ui.ta.style.height = Math.min(ui.ta.scrollHeight, 100) + "px"; });
   ui.ta.addEventListener("keydown", (e) => {
     if (e.key === "Enter" && !e.shiftKey && window.matchMedia("(pointer:fine)").matches) { e.preventDefault(); enviarTexto(); }
   });
@@ -210,11 +210,28 @@ function construir() {
 
 // ---------------------------------------------------------------- render
 
+const fechaCorta = (iso) => {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(iso || ""));
+  if (!m) return String(iso || "");
+  const d = new Date(+m[1], +m[2] - 1, +m[3]);
+  const parte = (o) => d.toLocaleDateString("es-MX", o).replace(".", "");
+  return parte({ weekday: "short" }) + " " + d.getDate() + " " + parte({ month: "short" });
+};
+
+// Lo acordado (si ya aceptaron) o la cotización vigente.
+const acordado = () => (pedido.cotizacionAceptada && pedido.cotizacionAceptada.precio ? pedido.cotizacionAceptada : pedido.cotizacion) || null;
+
+function contraparte() {
+  return identidad.rol === "vendedor" ? (pedido.compradorNombre || "Cliente") : (pedido.vendedorNombre || "Vendedor");
+}
+
 function renderEncabezado() {
   const e = estadoEfectivo();
   const soyVendedor = identidad.rol === "vendedor";
   ui.titulo.textContent = pedido.productoNombre || "Pedido personalizado";
-  ui.sub.textContent = soyVendedor ? "Cliente: " + (pedido.compradorNombre || "Cliente") : "Vendedor: " + (pedido.vendedorNombre || "");
+  ui.sub.textContent = contraparte();
+  if (pedido.productoImagen) { ui.thumb.src = pedido.productoImagen; ui.thumb.style.display = ""; } else ui.thumb.style.display = "none";
+
   const act = pagoActivo();
   const porCalificar = !soyVendedor && e === "entregado" && !pedido.calificacion;
   const miTurno = soyVendedor
@@ -223,65 +240,111 @@ function renderEncabezado() {
   ui.badge.textContent = porCalificar ? "Califica" : miTurno ? "Tu turno" : (TEXTO_ESTADO[e] || e);
   ui.badge.className = "pp-badge" + (miTurno ? " warn" : e === "entregado" ? " ok" : ["rechazado", "cancelado", "expirado"].includes(e) ? " bad" : "");
 
-  // Barra de estado
-  ui.pasos.replaceChildren();
+  // Progreso: una barra delgada de 6 tramos (el estado en palabras ya está en la etiqueta de arriba).
   const idx = ETAPAS.findIndex(([k]) => k === e);
+  ui.prog.replaceChildren();
   if (idx >= 0) {
-    ui.pasos.style.display = "";
-    ETAPAS.forEach(([k, txt], i) => ui.pasos.appendChild(h("div", { class: "pp-step" + (i < idx ? " done" : i === idx ? " done now" : ""), text: txt })));
-  } else {
-    ui.pasos.style.display = "none";
-  }
-  ui.aviso.replaceChildren();
-  if (e === "expirado") ui.aviso.appendChild(h("div", { class: "pp-banner bad", text: "Esta solicitud expiró sin respuesta. Puedes hacer un pedido nuevo desde el artículo." }));
-  else if (e === "rechazado") ui.aviso.appendChild(h("div", { class: "pp-banner bad", text: "El vendedor no pudo tomar este pedido." }));
-  else if (e === "cancelado") ui.aviso.appendChild(h("div", { class: "pp-banner bad", text: "Este pedido fue cancelado." }));
-  else if (e === "entregado") ui.aviso.appendChild(h("div", { class: "pp-banner", text: "Pedido entregado. ¡Gracias!" }));
-  if (pedido.bloqueadoPor === identidad.rol) {
-    ui.aviso.appendChild(h("div", { class: "pp-banner", text: "Bloqueaste a esta persona: no podrá abrir pedidos nuevos contigo. Puedes quitarlo desde ⋯." }));
-  }
-
-  // Artículo de referencia
-  ui.ref.replaceChildren(
-    h("div", { class: "pp-ref" },
-      pedido.productoImagen ? h("img", { src: pedido.productoImagen, alt: "", loading: "lazy" }) : null,
-      h("div", {}, h("b", { text: pedido.productoNombre || "" }),
-        "Artículo de referencia · desde " + dinero(pedido.precioDesde) + (pedido.tiempoElaboracionDias ? " · " + pedido.tiempoElaboracionDias + " días" : "")))
-  );
+    ui.prog.style.display = "";
+    ui.prog.setAttribute("aria-valuenow", String(idx + 1)); ui.prog.setAttribute("aria-valuemax", String(ETAPAS.length));
+    ETAPAS.forEach(([k, txt], i) => ui.prog.appendChild(h("i", { class: i <= idx ? "on" : "", title: txt })));
+  } else ui.prog.style.display = "none";
 }
 
-function tarjetaCotizacion(m, e) {
+function textoPagosCorto() {
+  const a = pedido.pagoAnticipo, r = pedido.pagoRestante, partes = [];
+  if (a) partes.push("Anticipo " + (PAGADO.includes(a.estado) ? "✔" : a.estado === "por_confirmar" ? "por confirmar" : "pendiente"));
+  if (r) partes.push(PAGADO.includes(r.estado) ? "Restante ✔" : (a ? "Resta " : "Total ") + dinero(r.monto));
+  return partes.join(" · ");
+}
+
+function renderResumen() {
+  const c = acordado();
+  let txt;
+  if (c && c.precio) {
+    txt = [dinero(c.precio) + " · " + fechaCorta(c.fechaEntrega), pedido.cotizacionAceptada ? textoPagosCorto() : "", pedido.calificacion ? "★" + pedido.calificacion.estrellas : ""].filter(Boolean).join(" · ");
+  } else {
+    txt = "Desde " + dinero(pedido.precioDesde) + (pedido.tiempoElaboracionDias ? " · " + pedido.tiempoElaboracionDias + " días" : "");
+  }
+  ui.strip.replaceChildren(h("span", { class: "t", text: txt }), h("span", { class: "chev", text: detalleAbierto ? "▴" : "▾" }));
+  ui.strip.setAttribute("aria-expanded", String(detalleAbierto));
+  ui.strip.setAttribute("aria-label", detalleAbierto ? "Ocultar detalles del pedido" : "Ver detalles del pedido");
+  ui.detalle.style.display = detalleAbierto ? "" : "none";
+}
+
+const ESTADO_PAGO_FILA = {
+  pendiente: "pendiente", por_confirmar: "por confirmar", confirmado: "✔ pagado", pagado_efectivo: "✔ pagado en efectivo", pagado_transferencia: "✔ pagado por transferencia"
+};
+
+function renderDetalle() {
+  ui.detalle.replaceChildren();
+  const e = estadoEfectivo();
+  const c = acordado();
+  ui.detalle.appendChild(h("div", { class: "pp-d-ref" },
+    pedido.productoImagen ? h("img", { src: pedido.productoImagen, alt: "", loading: "lazy" }) : null,
+    h("div", {}, h("b", { text: pedido.productoNombre || "" }),
+      h("span", { text: "Artículo de referencia · desde " + dinero(pedido.precioDesde) + (pedido.tiempoElaboracionDias ? " · " + pedido.tiempoElaboracionDias + " días" : "") }))));
+
+  const filas = [];
+  if (c && c.precio) {
+    filas.push([pedido.cotizacionAceptada ? "Acordado" : "Cotización", dinero(c.precio)]);
+    filas.push(["Entrega", fechaCorta(c.fechaEntrega)]);
+    if (c.anticipo > 0) filas.push(["Anticipo", dinero(c.anticipo)]);
+    if (c.anticipo > 0 && c.precio > c.anticipo) filas.push(["Al entregar", dinero(c.precio - c.anticipo)]);
+    if (c.detalles) filas.push(["Incluye", c.detalles]);
+    const vig = e === "cotizado" && pedido.cotizacion ? ms(pedido.cotizacion.vigenciaHasta) : 0;
+    if (vig) filas.push(["Vigente hasta", diaLargo(vig)]);
+  }
+  [["Anticipo", pedido.pagoAnticipo], ["Restante", pedido.pagoRestante]].forEach(([nom, pg]) => {
+    if (!pg) return;
+    filas.push(["Pago " + nom.toLowerCase(), dinero(pg.monto) + " · " + (ESTADO_PAGO_FILA[pg.estado] || pg.estado), pg.comprobante]);
+  });
+  if (pedido.calificacion) filas.push([identidad.rol === "comprador" ? "Tu calificación" : "Calificación del cliente", estrellasTxt(pedido.calificacion.estrellas) + (pedido.calificacion.comentario ? " · " + pedido.calificacion.comentario : "")]);
+  else if (e === "entregado" && identidad.rol === "vendedor") filas.push(["Calificación", "Aún no hay calificación del cliente"]);
+
+  const dl = h("dl", { class: "pp-d-dl" });
+  filas.forEach(([k, v, thumb]) => {
+    dl.appendChild(h("dt", { text: k }));
+    dl.appendChild(h("dd", {}, v, thumb ? miniaturaComprobante(thumb) : null));
+  });
+  ui.detalle.appendChild(dl);
+  if (pedido.bloqueadoPor === identidad.rol) {
+    ui.detalle.appendChild(h("p", { class: "pp-hint", text: "Bloqueaste a esta persona: no podrá abrir pedidos nuevos contigo. Puedes quitarlo desde ⋯." }));
+  }
+}
+
+function miniaturaComprobante(url) {
+  if (!url) return null;
+  const img = h("img", { class: "pp-comprobante", src: url, alt: "Comprobante de pago", loading: "lazy" });
+  img.addEventListener("click", () => verFoto(url));
+  return img;
+}
+
+function chipCotizacion(m, e) {
   const c = m.cotizacion || {};
   const vigente = e === "cotizado" && pedido.cotizacionVersion === c.version;
   const aceptada = pedido.cotizacionAceptada && pedido.cotizacionAceptada.version === c.version;
-  let estadoTxt = "";
-  if (aceptada) estadoTxt = "✔ Aceptada";
-  else if (c.version < pedido.cotizacionVersion) estadoTxt = "Reemplazada por una cotización nueva";
-  else if (!vigente) estadoTxt = e === "solicitado" ? "Rechazada" : "Ya no está vigente";
+  const etiqueta = vigente ? "Vigente" : aceptada ? "✔ Aceptada" : c.version < pedido.cotizacionVersion ? "Reemplazada" : e === "solicitado" ? "Rechazada" : "No vigente";
+  return h("div", { class: "pp-chip cot" + (vigente ? " vivo" : "") },
+    h("div", { class: "l1" },
+      h("b", { text: "💲 " + dinero(c.precio) + (c.version > 1 ? " (#" + c.version + ")" : "") }),
+      h("span", { text: " · entrega " + fechaCorta(c.fechaEntrega) + (c.anticipo > 0 ? " · anticipo " + dinero(c.anticipo) : "") }),
+      h("em", { text: etiqueta })),
+    m.contenido ? h("div", { class: "l2", text: m.contenido }) : null);
+}
 
-  const nodo = h("div", { class: "pp-cot" },
-    h("h4", { text: "Cotización" + (c.version > 1 ? " #" + c.version : "") }),
-    h("div", { class: "precio", text: dinero(c.precio) }),
-    h("dl", {},
-      h("dt", { text: "Entrega" }), h("dd", { text: fechaEntregaTxt(c.fechaEntrega) }),
-      c.anticipo > 0 ? h("dt", { text: "Anticipo" }) : null, c.anticipo > 0 ? h("dd", { text: dinero(c.anticipo) }) : null,
-      c.anticipo > 0 && c.precio > c.anticipo ? h("dt", { text: "Al entregar" }) : null, c.anticipo > 0 && c.precio > c.anticipo ? h("dd", { text: dinero(c.precio - c.anticipo) }) : null),
-    m.contenido ? h("p", { text: m.contenido }) : null);
+const ESTADO_PAGO_MSG = {
+  por_confirmar: "por confirmar", confirmado: "confirmado", pagado_efectivo: "recibido en efectivo",
+  pagado_transferencia: "recibido por transferencia", no_recibido: "no recibido"
+};
 
-  if (vigente && identidad.rol === "comprador") {
-    const vig = pedido.cotizacion && ms(pedido.cotizacion.vigenciaHasta);
-    if (vig) nodo.appendChild(h("div", { class: "estado", text: "Vigente hasta el " + diaLargo(vig) }));
-    const bA = h("button", { class: "pp-btn primary", type: "button", text: "Aceptar" });
-    const bR = h("button", { class: "pp-btn danger", type: "button", text: "Rechazar" });
-    bA.addEventListener("click", () => responderCotizacion("aceptar", c, bA));
-    bR.addEventListener("click", () => responderCotizacion("rechazar", c, bR));
-    nodo.appendChild(h("div", { class: "row" }, bA, bR));
-  } else if (vigente) {
-    nodo.appendChild(h("div", { class: "estado", text: "Esperando respuesta del cliente" }));
-  } else if (estadoTxt) {
-    nodo.appendChild(h("div", { class: "estado", text: estadoTxt }));
-  }
-  return nodo;
+function chipPago(m) {
+  const pg = m.pago || {};
+  const malo = pg.estado === "no_recibido", bien = PAGADO.includes(pg.estado);
+  const nombre = pg.tipo === "restante" ? "Restante" : "Anticipo";
+  const cuerpo = h("div", { class: "grow" },
+    h("div", { class: "l1" }, h("b", { text: (malo ? "⚠️ " : bien ? "✔ " : "💵 ") + nombre + " " + dinero(pg.monto) + " · " + (ESTADO_PAGO_MSG[pg.estado] || pg.estado) })),
+    malo && m.contenido ? h("div", { class: "l2", text: m.contenido }) : null);
+  return h("div", { class: "pp-chip pago" + (malo ? " bad" : bien ? " ok" : "") }, cuerpo, miniaturaComprobante(pg.comprobante));
 }
 
 function renderMensajes() {
@@ -301,10 +364,10 @@ function renderMensajes() {
   for (const m of lista) {
     const t = ms(m.creadoEn);
     const dia = t ? new Date(t).toDateString() : "";
-    if (dia && dia !== diaPrev) { ui.msgs.appendChild(h("div", { class: "pp-sys", text: diaLargo(t) })); diaPrev = dia; }
+    if (dia && dia !== diaPrev) { ui.msgs.appendChild(h("div", { class: "pp-day", text: diaLargo(t) })); diaPrev = dia; }
     if (m.tipo === "sistema") { ui.msgs.appendChild(h("div", { class: "pp-sys", text: m.contenido })); continue; }
-    if (m.tipo === "cotizacion") { ui.msgs.appendChild(tarjetaCotizacion(m, e)); continue; }
-    if (m.tipo === "pago") { ui.msgs.appendChild(tarjetaPagoMensaje(m)); continue; }
+    if (m.tipo === "cotizacion") { ui.msgs.appendChild(chipCotizacion(m, e)); continue; }
+    if (m.tipo === "pago") { ui.msgs.appendChild(chipPago(m)); continue; }
     const mio = m.autorUid === identidad.authUid;
     const burbuja = h("div", { class: "pp-b" + (mio ? " me" : "") });
     if (m.tipo === "foto" && m.foto) {
@@ -320,85 +383,141 @@ function renderMensajes() {
   primeraVez = false;
 }
 
-function renderAcciones() {
+// ---- Barra de acción: lo único que importa AHORA, en una sola fila ----
+// Devuelve { info, tono, thumb, botones:[[texto, clase, fn, deshabilitado?]], nodo } o null si no hay nada que mostrar.
+function configBarra(e, vend) {
+  const a = pedido.pagoAnticipo, r = pedido.pagoRestante;
+  const cot = pedido.cotizacion;
+  const btnPago = (tipo) => [["Datos de pago", "", () => abrirDatosPago(tipo)], ["Ya pagué", "primary", (b) => subirComprobante(tipo, b)]];
+
+  if (e === "expirado") return { info: "Esta solicitud expiró sin respuesta." + (vend ? "" : " Puedes hacer un pedido nuevo desde el artículo."), tono: "bad", botones: [] };
+  if (e === "rechazado") return { info: "El vendedor no pudo tomar este pedido.", tono: "bad", botones: [] };
+  if (e === "cancelado") return { info: "Este pedido fue cancelado.", tono: "bad", botones: [] };
+
+  if (e === "entregado") {
+    if (pedido.calificacion) return null;
+    return vend ? null : { nodo: nodoCalificar() };
+  }
+
+  if (vend) {
+    if (e === "solicitado") return { info: "Esperando tu cotización", botones: [["Enviar cotización", "primary", abrirCotizar]] };
+    if (e === "cotizado") return { info: "Cotización de " + dinero(cot && cot.precio) + " enviada · esperando al cliente", botones: [["Nueva cotización", "", abrirCotizar]] };
+    if (e === "aceptado") {
+      if (a && a.estado === "pendiente") return { info: "Esperando el anticipo de " + dinero(a.monto), botones: [["Recibí en efectivo", "", (b) => confirmarRecibido("anticipo", "efectivo", b)]] };
+      if (a && a.estado === "por_confirmar") return { info: "Comprobante del anticipo (" + dinero(a.monto) + ")", thumb: a.comprobante, botones: [["Confirmar pago", "primary", (b) => confirmarRecibido("anticipo", "transferencia", b)], ["No lo recibí", "danger", () => noRecibido("anticipo")]] };
+      return { info: a ? "Anticipo confirmado" : "Pedido aceptado", botones: [["Empezar elaboración", "primary", (b) => cambiarEstado("en_elaboracion", b)]] };
+    }
+    if (e === "en_elaboracion") return { info: "En elaboración", botones: [["Marcar listo", "primary", (b) => cambiarEstado("listo", b)]] };
+    if (e === "listo") {
+      if (r && r.estado === "pendiente") return { info: "Cobra el restante: " + dinero(r.monto), botones: [["Recibí el restante (efectivo)", "primary", (b) => confirmarRecibido("restante", "efectivo", b)]] };
+      if (r && r.estado === "por_confirmar") return { info: "Comprobante del restante (" + dinero(r.monto) + ")", thumb: r.comprobante, botones: [["Confirmar y entregar", "primary", (b) => confirmarRecibido("restante", "transferencia", b)], ["No lo recibí", "danger", () => noRecibido("restante")]] };
+      return { info: "Listo para entregar", botones: [["Marcar entregado", "primary", (b) => cambiarEstado("entregado", b)]] };
+    }
+    return null;
+  }
+
+  // comprador
+  if (e === "solicitado") return { info: "Esperando la cotización del vendedor", botones: [] };
+  if (e === "cotizado" && cot) return { info: "Cotización: " + dinero(cot.precio) + " · entrega " + fechaCorta(cot.fechaEntrega) + (cot.anticipo > 0 ? " · anticipo " + dinero(cot.anticipo) : ""), botones: [["Aceptar", "primary", (b) => responderCotizacion("aceptar", cot, b)], ["Rechazar", "", (b) => responderCotizacion("rechazar", cot, b)]] };
+  if (e === "aceptado") {
+    if (a && a.estado === "pendiente") return a.ultimoRechazo
+      ? { info: "El vendedor no encontró tu pago: " + a.ultimoRechazo.motivo, tono: "bad", botones: btnPago("anticipo") }
+      : { info: "Anticipo pendiente: " + dinero(a.monto), botones: btnPago("anticipo") };
+    if (a && a.estado === "por_confirmar") return { info: "Comprobante enviado · esperando confirmación", thumb: a.comprobante, botones: [] };
+    return { info: a ? "Anticipo confirmado · el vendedor empezará pronto" : "Aceptado · el vendedor empezará pronto", botones: [] };
+  }
+  if (e === "en_elaboracion") return { info: "En elaboración" + (r && r.estado === "pendiente" ? " · el restante se paga al recibir" : ""), botones: [] };
+  if (e === "listo") {
+    if (r && r.estado === "pendiente") return r.ultimoRechazo
+      ? { info: "El vendedor no encontró tu pago: " + r.ultimoRechazo.motivo, tono: "bad", botones: btnPago("restante") }
+      : { info: "Listo · paga " + dinero(r.monto) + " al recibir (efectivo) o por transferencia", botones: btnPago("restante") };
+    if (r && r.estado === "por_confirmar") return { info: "Comprobante enviado · esperando confirmación", thumb: r.comprobante, botones: [] };
+    return { info: "Listo para entregar", botones: [] };
+  }
+  return null;
+}
+
+function nodoCalificar() {
+  const fila = h("div", { class: "pp-estrellas" });
+  const coment = h("input", { type: "text", maxlength: "300", placeholder: "Comentario (opcional)", "aria-label": "Comentario" });
+  coment.value = comentarioCalificar;
+  coment.addEventListener("input", () => { comentarioCalificar = coment.value; });
+  const enviar = h("button", { class: "pp-btn sm primary", type: "button", text: "Enviar" });
+  const extra = h("div", { class: "pp-rate-extra" }, coment, enviar);
+  const pintar = () => {
+    [...fila.children].forEach((b, i) => { b.textContent = i < estrellasElegidas ? "★" : "☆"; b.classList.toggle("on", i < estrellasElegidas); });
+    extra.style.display = estrellasElegidas ? "" : "none";
+  };
+  for (let i = 1; i <= 5; i++) {
+    const b = h("button", { type: "button", "aria-label": i + (i === 1 ? " estrella" : " estrellas"), text: "☆" });
+    b.addEventListener("click", () => { estrellasElegidas = i; pintar(); });
+    fila.appendChild(b);
+  }
+  enviar.addEventListener("click", async () => {
+    if (!estrellasElegidas) { toast("Elige de 1 a 5 estrellas"); return; }
+    const r = await hacer(enviar, "calificarPedido", { estrellas: estrellasElegidas, comentario: comentarioCalificar.trim() });
+    if (r) { estrellasElegidas = 0; comentarioCalificar = ""; toast("¡Gracias por calificar!"); }
+  });
+  pintar();
+  return h("div", { class: "pp-rate" }, h("div", { class: "pp-rate-fila" }, h("span", { text: "¿Cómo te fue con tu pedido?" }), fila), extra);
+}
+
+function renderBarra() {
   const e = estadoEfectivo();
-  const vendedor = identidad.rol === "vendedor";
+  const vend = identidad.rol === "vendedor";
   const cerrado = CERRADOS.includes(e);
-  ui.acciones.replaceChildren();
-  ui.rapidas.replaceChildren();
-  ui.cerrado.style.display = cerrado ? "" : "none";
   ui.comp.style.display = cerrado ? "none" : "";
 
-  const boton = (txt, clase, fn) => {
-    const b = h("button", { class: "pp-btn " + clase, type: "button", text: txt });
-    b.addEventListener("click", () => fn(b));
-    ui.acciones.appendChild(b);
-  };
-
-  if (vendedor) {
-    if (e === "solicitado" || e === "cotizado") {
-      boton(e === "cotizado" ? "Enviar otra cotización" : "Enviar cotización", "primary", abrirCotizar);
-      boton("Rechazar solicitud", "danger", () => pedirMotivo("Rechazar solicitud", "rechazado"));
-    } else if (e === "aceptado") {
-      const falta = pedido.pagoAnticipo && pedido.pagoAnticipo.estado !== "confirmado";
-      boton(falta ? "Empezar (falta el anticipo)" : "Empezar elaboración", "primary", (b) => cambiarEstado("en_elaboracion", b));
-      if (falta) ui.acciones.lastChild.disabled = true;
-      boton("Cancelar pedido", "danger", () => pedirMotivo("Cancelar pedido", "cancelado"));
-    } else if (e === "en_elaboracion") {
-      boton("Marcar como listo", "primary", (b) => cambiarEstado("listo", b));
-      boton("Cancelar pedido", "danger", () => pedirMotivo("Cancelar pedido", "cancelado"));
-    } else if (e === "listo") {
-      // Con restante por cobrar, la entrega se registra desde la tarjeta de pago ("Recibí el restante").
-      if (!pedido.pagoRestante || PAGADO.includes(pedido.pagoRestante.estado) || pedido.pagoRestante.estado === "no_aplica") {
-        boton("Marcar como entregado", "primary", (b) => cambiarEstado("entregado", b));
-      }
-      boton("Cancelar pedido", "danger", () => pedirMotivo("Cancelar pedido", "cancelado"));
-    }
-    if (!cerrado) {
-      RESPUESTAS_RAPIDAS.forEach((txt) => {
-        const b = h("button", { type: "button", text: txt.length > 34 ? txt.slice(0, 32) + "…" : txt, title: txt });
-        b.addEventListener("click", () => { ui.ta.value = txt; ui.ta.dispatchEvent(new Event("input")); ui.ta.focus(); });
-        ui.rapidas.appendChild(b);
-      });
-    }
-  } else if (e === "solicitado" || e === "cotizado") {
-    boton("Cancelar solicitud", "danger", cancelarComprador);
+  // Respuestas rápidas: ocultas hasta tocar ⚡ (ahorran una fila fija de pantalla).
+  ui.rapidas.replaceChildren();
+  const hayRapidas = vend && !cerrado;
+  ui.btnRapidas.style.display = hayRapidas ? "" : "none";
+  if (hayRapidas) {
+    RESPUESTAS_RAPIDAS.forEach((txt) => {
+      const b = h("button", { type: "button", text: txt.length > 34 ? txt.slice(0, 32) + "…" : txt, title: txt });
+      b.addEventListener("click", () => { ui.ta.value = txt; ui.ta.dispatchEvent(new Event("input")); rapidasAbiertas = false; ui.rapidas.style.display = "none"; ui.ta.focus(); });
+      ui.rapidas.appendChild(b);
+    });
   }
-  ui.acciones.style.display = ui.acciones.children.length ? "" : "none";
-  ui.rapidas.style.display = ui.rapidas.children.length ? "" : "none";
+  ui.rapidas.style.display = hayRapidas && rapidasAbiertas ? "" : "none";
+
+  const cfg = configBarra(e, vend);
+  ui.barra.replaceChildren();
+  if (!cfg) { ui.barra.style.display = "none"; return; }
+  ui.barra.style.display = "";
+  ui.barra.className = "pp-bar" + (cfg.tono === "bad" ? " bad" : "") + ((cfg.botones || []).length >= 2 ? " dos" : "") + (cfg.thumb ? " conthumb" : "");
+  if (cfg.nodo) { ui.barra.appendChild(cfg.nodo); return; }
+  if (cfg.thumb) ui.barra.appendChild(miniaturaComprobante(cfg.thumb));
+  ui.barra.appendChild(h("div", { class: "info", text: cfg.info }));
+  cfg.botones.forEach(([txt, clase, fn, off]) => {
+    const b = h("button", { class: "pp-btn sm " + clase, type: "button", text: txt });
+    if (off) b.disabled = true;
+    b.addEventListener("click", () => fn(b));
+    ui.barra.appendChild(b);
+  });
 }
 
 function renderTodo() {
   if (!pedido) return;
   renderEncabezado();
-  renderCierre();
-  renderPagos();
-  renderEntrega();
-  renderAcciones();
+  renderResumen();
+  renderDetalle();
+  renderBarra();
   renderMensajes();
+}
+
+
+function abrirDatosPago(tipo) {
+  const destino = h("div", { class: "pp-pago-datos" }, h("p", { class: "pp-hint", text: "Cargando datos…" }));
+  ventana("Datos para transferir", destino, [
+    ["Cerrar", "", (b, cerrar) => cerrar()],
+    ["Ya pagué · subir comprobante", "primary", (b, cerrar) => { cerrar(); subirComprobante(tipo, b); }]
+  ]);
+  verDatosPago(tipo, destino, null);
 }
 
 // ---------------------------------------------------------------- pagos (fase 2)
 
-const ESTADO_PAGO_MSG = {
-  por_confirmar: "por confirmar", confirmado: "confirmado", pagado_efectivo: "recibido en efectivo",
-  pagado_transferencia: "recibido por transferencia", no_recibido: "no recibido"
-};
-
-function tarjetaPagoMensaje(m) {
-  const pg = m.pago || {};
-  const nombre = pg.tipo === "restante" ? "restante" : "anticipo";
-  const malo = pg.estado === "no_recibido";
-  const caja = h("div", { class: "pp-pagomsg" + (malo ? " bad" : PAGADO.includes(pg.estado) ? " ok" : "") },
-    h("b", { text: (malo ? "⚠️ " : PAGADO.includes(pg.estado) ? "✔ " : "💵 ") + "Pago de " + nombre + " · " + dinero(pg.monto) + " · " + (ESTADO_PAGO_MSG[pg.estado] || pg.estado) }),
-    m.contenido ? h("span", { text: m.contenido }) : null);
-  if (pg.comprobante) {
-    const img = h("img", { src: pg.comprobante, alt: "Comprobante de pago", loading: "lazy" });
-    img.addEventListener("click", () => verFoto(pg.comprobante));
-    caja.appendChild(img);
-  }
-  return caja;
-}
 
 function copiar(texto) {
   const fallback = () => {
@@ -452,18 +571,6 @@ async function verDatosPago(tipo, destino, btn) {
     copiarBtn);
 }
 
-function miniaturaComprobante(url) {
-  if (!url) return h("span");
-  const img = h("img", { class: "pp-comprobante", src: url, alt: "Comprobante de pago", loading: "lazy" });
-  img.addEventListener("click", () => verFoto(url));
-  return img;
-}
-
-async function pagarEfectivo(tipo, btn) {
-  if (!(await confirmar("Pago en efectivo", "¿Confirmas que ya le pagaste " + (tipo === "anticipo" ? "el anticipo" : "el restante") + " en efectivo al vendedor? Él lo confirmará aquí.", "Sí, ya pagué", "primary"))) return;
-  if (await hacer(btn, "reportarPago", { tipo, metodo: "efectivo" })) toast("Aviso enviado. El vendedor lo confirmará.");
-}
-
 function noRecibido(tipo) {
   const motivo = h("textarea", { maxlength: "300", placeholder: "Ej: no veo la transferencia en mi cuenta todavía" });
   const err = h("div", { class: "err" });
@@ -484,166 +591,6 @@ async function confirmarRecibido(tipo, metodo, btn) {
   await hacer(btn, "confirmarPago", { tipo, accion: "confirmar", metodo });
 }
 
-function renderPagos() {
-  ui.pagos.replaceChildren();
-  const e = estadoEfectivo();
-  const a = pedido.pagoAnticipo, r = pedido.pagoRestante;
-  // Sin pagos, o pedido cerrado sin entregar (cancelado/expirado/rechazado): no hay nada que cobrar.
-  if ((!a && !r) || (CERRADOS.includes(e) && e !== "entregado")) { ui.pagos.style.display = "none"; return; }
-
-  const vendedor = identidad.rol === "vendedor";
-  const act = pagoActivo();
-  const resumen = [];
-  if (a) resumen.push("Anticipo " + dinero(a.monto) + " · " + (PAGADO.includes(a.estado) ? "✔ pagado" : a.estado === "por_confirmar" ? "por confirmar" : "pendiente"));
-  if (r) resumen.push((a ? "Restante " : "Total ") + dinero(r.monto) + " · " + (PAGADO.includes(r.estado) ? "✔ pagado" : r.estado === "por_confirmar" ? "por confirmar" : "al entregar"));
-
-  const caja = plegable("pagos", act ? (act.tipo === "anticipo" ? "Anticipo" : "Pago restante") + " · " + dinero(act.pago.monto) + (act.pago.estado === "por_confirmar" ? " · por confirmar" : " · pendiente") : resumen.join("  ·  "));
-  caja.appendChild(h("div", { class: "pp-pago-res", text: resumen.join("  ·  ") }));
-
-  if (act) {
-    const { tipo, pago } = act;
-    const titulo = tipo === "anticipo" ? "Anticipo" : "Pago restante";
-    caja.appendChild(h("h4", { text: titulo + " · " + dinero(pago.monto) }));
-    if (!vendedor) {
-      if (pago.estado === "pendiente") {
-        const venc = tipo === "anticipo" ? ms(pedido.expiraEn) : 0;
-        caja.appendChild(h("p", { class: "pp-hint", text: tipo === "anticipo"
-          ? "Paga por transferencia y sube tu comprobante, o en efectivo directo con el vendedor." + (venc ? " Tienes hasta el " + diaLargo(venc) + "." : "")
-          : "Págalo en efectivo al recibir tu pedido, o por transferencia subiendo tu comprobante." }));
-        const datos = h("div", { class: "pp-pago-datos" });
-        const bVer = h("button", { class: "pp-btn", type: "button", text: "Ver datos para transferir" });
-        bVer.addEventListener("click", () => verDatosPago(tipo, datos, bVer));
-        const bYa = h("button", { class: "pp-btn primary", type: "button", text: "Ya pagué · subir comprobante" });
-        bYa.addEventListener("click", () => subirComprobante(tipo, bYa));
-        const bEf = h("button", { class: "pp-btn", type: "button", text: "Ya pagué en efectivo" });
-        bEf.addEventListener("click", () => pagarEfectivo(tipo, bEf));
-        caja.append(h("div", { class: "row" }, bVer, bYa, bEf), datos);
-        if (pago.ultimoRechazo) caja.appendChild(h("p", { class: "pp-hint bad", text: "El vendedor no encontró tu pago anterior: " + pago.ultimoRechazo.motivo }));
-      } else {
-        caja.appendChild(h("p", { class: "pp-hint", text: (pago.metodo === "efectivo" ? "Avisaste que pagaste en efectivo." : "Comprobante enviado.") + " Esperando que el vendedor confirme tu pago." }));
-        caja.appendChild(miniaturaComprobante(pago.comprobante));
-      }
-    } else if (pago.estado === "pendiente") {
-      caja.appendChild(h("p", { class: "pp-hint", text: tipo === "anticipo"
-        ? "Esperando que el cliente pague el anticipo. Si ya te pagó en efectivo, regístralo."
-        : "Cobra el restante al entregar. Al registrarlo el pedido pasa a entregado." }));
-      const b = h("button", { class: "pp-btn primary", type: "button", text: tipo === "anticipo" ? "Recibí el anticipo en efectivo" : "Recibí el restante en efectivo" });
-      b.addEventListener("click", () => confirmarRecibido(tipo, "efectivo", b));
-      caja.appendChild(h("div", { class: "row" }, b));
-    } else {
-      caja.appendChild(h("p", { class: "pp-hint", text: pago.metodo === "efectivo" ? "El cliente dice que te pagó en efectivo. Confírmalo cuando lo recibas." : "El cliente subió su comprobante. Revisa tu cuenta y confirma." }));
-      caja.appendChild(miniaturaComprobante(pago.comprobante));
-      const bOk = h("button", { class: "pp-btn primary", type: "button", text: tipo === "anticipo" ? "Confirmar pago recibido" : "Confirmar y entregar" });
-      bOk.addEventListener("click", () => confirmarRecibido(tipo, pago.metodo === "efectivo" ? "efectivo" : "transferencia", bOk));
-      const bNo = h("button", { class: "pp-btn danger", type: "button", text: "No lo recibí" });
-      bNo.addEventListener("click", () => noRecibido(tipo));
-      caja.appendChild(h("div", { class: "row" }, bOk, bNo));
-    }
-  } else if (e === "en_elaboracion" && r && !vendedor && r.estado === "pendiente") {
-    caja.appendChild(h("p", { class: "pp-hint", text: "El restante se paga al recibir tu pedido." }));
-  }
-  ui.pagos.appendChild(caja);
-  ui.pagos.style.display = "";
-}
-
-// ---------------------------------------------------------------- entrega (pedido listo)
-
-const HORAS = ["9:00 AM", "10:00 AM", "11:00 AM", "12:00 PM", "1:00 PM", "2:00 PM", "3:00 PM", "4:00 PM", "5:00 PM", "6:00 PM", "7:00 PM", "8:00 PM"];
-let guardados = null; // promesa con los datos de entrega que el comprador ya tiene guardados
-
-const horarioTxt = (d) => [d.dias.join(", "), d.desde && d.hasta ? d.desde + " – " + d.hasta : ""].filter(Boolean).join(" · ");
-
-function leerGuardados() {
-  if (guardados) return guardados;
-  const L = (k) => localStorage.getItem(k) || "";
-  const arma = (dir, dias, desde, hasta, nota, lat, lng) => ({ direccion: dir || "", dias: dias || [], desde: desde || "", hasta: hasta || "", nota: nota || "", lat: lat || "", lng: lng || "" });
-  return (guardados = (async () => {
-    if (L("client_address")) return arma(L("client_address"), L("client_days").split(",").filter(Boolean), L("client_hour_from"), L("client_hour_to"), L("client_note"), L("client_gps_lat"), L("client_gps_lng"));
-    try {
-      const q = new URLSearchParams({ action: "leerPerfilComprador", telefono: identidad.tel, compradorToken: L("comprador_token") });
-      const r = await (await fetch(window.AUTH_API_URL + "?" + q)).json();
-      const p = r.ok && r.perfil;
-      return p ? arma(p.direccion, p.dias, p.horaDesde, p.horaHasta, p.nota) : arma();
-    } catch (_) { return arma(); }
-  })());
-}
-
-// Manda los datos al vendedor (llegan como mensaje del chat) y los deja guardados para la próxima.
-async function mandarDatos(d, btn) {
-  if (!(await hacer(btn, "guardarEntregaPedido", { direccion: d.direccion, horario: horarioTxt(d), nota: d.nota, lat: d.lat, lng: d.lng }))) return false;
-  const L = localStorage;
-  L.setItem("client_address", d.direccion); L.setItem("client_hour_from", d.desde); L.setItem("client_hour_to", d.hasta); L.setItem("client_note", d.nota);
-  if (d.lat) { L.setItem("client_gps_lat", d.lat); L.setItem("client_gps_lng", d.lng); } else { L.removeItem("client_gps_lat"); L.removeItem("client_gps_lng"); }
-  guardados = Promise.resolve(d);
-  fetch(window.AUTH_API_URL, { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: new URLSearchParams({
-    action: "guardarPerfilComprador", telefono: identidad.tel, compradorToken: L.getItem("comprador_token") || "",
-    direccion: d.direccion, dias: d.dias.join(","), horaDesde: d.desde, horaHasta: d.hasta, nota: d.nota, ...(d.lat ? { lat: d.lat, lng: d.lng } : {}) }).toString() }).catch(() => {});
-  toast("Datos enviados al vendedor");
-  return true;
-}
-
-function abrirFormEntrega(d) {
-  const sel = (v, ph) => h("select", {}, h("option", { value: "", text: ph }), HORAS.map((x) => h("option", { value: x, text: x, selected: x === v })));
-  const dir = h("textarea", { maxlength: "250", placeholder: "Calle, número, colonia, ciudad…" }); dir.value = d.direccion;
-  const nota = h("textarea", { maxlength: "300", placeholder: "Ej: tocar el timbre 2 veces" }); nota.value = d.nota;
-  const desde = sel(d.desde, "Desde"), hasta = sel(d.hasta, "Hasta"), err = h("div", { class: "err" });
-  let gps = d.lat ? { lat: d.lat, lng: d.lng } : null; // las coordenadas valen solo mientras la dirección no se edite a mano
-  const bGps = h("button", { class: "pp-btn", type: "button", text: "📍 Usar mi ubicación actual", style: "width:100%;margin-top:6px" });
-  dir.addEventListener("input", () => { gps = null; });
-  bGps.addEventListener("click", () => {
-    if (!navigator.geolocation) { toast("Tu dispositivo no permite obtener la ubicación"); return; }
-    bGps.disabled = true; bGps.textContent = "Obteniendo ubicación…";
-    navigator.geolocation.getCurrentPosition(async ({ coords: c }) => {
-      let txt = c.latitude.toFixed(6) + ", " + c.longitude.toFixed(6);
-      try { const j = await (await fetch("https://nominatim.openstreetmap.org/reverse?format=json&accept-language=es&lat=" + c.latitude + "&lon=" + c.longitude)).json(); if (j.display_name) txt = j.display_name; } catch (_) {}
-      dir.value = txt; gps = { lat: c.latitude, lng: c.longitude };
-      bGps.disabled = false; bGps.textContent = "✔ Ubicación obtenida";
-    }, () => { bGps.disabled = false; bGps.textContent = "📍 Usar mi ubicación actual"; toast("No se pudo obtener tu ubicación. Revisa el permiso del navegador."); }, { enableHighAccuracy: true, timeout: 10000 });
-  });
-  ventana("Datos de entrega", h("div", {}, h("label", { text: "Dirección" }), dir, bGps, h("label", { text: "Horario" }), h("div", { class: "row" }, desde, hasta), h("label", { text: "Comentarios" }), nota, err), [
-    ["Cancelar", "", (b, cerrar) => cerrar()],
-    ["Guardar y enviar", "primary", async (b, cerrar) => {
-      if (dir.value.trim().length < 5) { err.textContent = "Escribe tu dirección."; return; }
-      if (await mandarDatos({ ...d, direccion: dir.value.trim(), desde: desde.value, hasta: hasta.value, nota: nota.value.trim(), lat: gps ? gps.lat : "", lng: gps ? gps.lng : "" }, b)) cerrar();
-    }]
-  ]);
-}
-
-function renderEntrega() {
-  ui.entrega.replaceChildren();
-  const info = pedido.entregaInfo, en = pedido.entrega;
-  if (estadoEfectivo() !== "listo" || !info) { ui.entrega.style.display = "none"; return; }
-  ui.entrega.style.display = "";
-  const comprador = identidad.rol === "comprador", dom = info.domicilio;
-  const caja = plegable("entrega", dom ? "Entrega a domicilio · " + (en ? "datos enviados ✔" : comprador ? "confirma tus datos" : "esperando datos") : "Recoger el pedido · " + (en ? en.hora : comprador ? "elige la hora" : "esperando hora"));
-  const hint = (t) => caja.appendChild(h("p", { class: "pp-hint", text: t }));
-  const btn = (txt, clase, fn) => { const b = h("button", { class: "pp-btn " + clase, type: "button", text: txt }); b.addEventListener("click", () => fn(b)); return b; };
-  const fila = (...bs) => caja.appendChild(h("div", { class: "row" }, ...bs));
-  ui.entrega.appendChild(caja);
-  if (!dom && info.punto) hint("Punto de recolección: " + info.punto);
-
-  if (!comprador) {
-    hint(!en ? (dom ? "Esperando que el cliente confirme sus datos de entrega." : "Esperando la hora a la que pasará el cliente.")
-      : en.tipo === "recoleccion" ? "El cliente pasa a las " + en.hora : en.direccion + (en.horario ? " · " + en.horario : "") + (en.nota ? " · " + en.nota : ""));
-    if (en && en.lat) caja.appendChild(h("p", { class: "pp-hint" }, h("a", { href: "https://www.google.com/maps?q=" + en.lat + "," + en.lng, target: "_blank", rel: "noopener", text: "Ver ubicación en Maps" })));
-  } else if (!dom) {
-    const sel = h("select", {}, HORAS.map((x) => h("option", { value: x, text: x, selected: !!en && en.hora === x })));
-    hint(en ? "Pasas por tu pedido a las " + en.hora + "." : "Avisa a qué hora pasas por él.");
-    fila(sel, btn(en ? "Cambiar hora" : "Avisar", "primary", async (b) => { if (await hacer(b, "guardarEntregaPedido", { hora: sel.value })) toast("Hora enviada al vendedor"); }));
-  } else if (en) {
-    hint(en.direccion + (en.horario ? " · " + en.horario : "") + (en.nota ? " · " + en.nota : ""));
-    fila(btn("Actualizar datos", "", async () => abrirFormEntrega(await leerGuardados())));
-  } else {
-    leerGuardados().then((d) => {
-      if (!d.direccion) { hint("Dinos dónde entregarte tu pedido."); fila(btn("Agregar datos de entrega", "primary", () => abrirFormEntrega(d))); return; }
-      hint("¿Usar estos datos de entrega?");
-      caja.appendChild(h("dl", { class: "pp-datos" }, h("dt", { text: "Dirección" }), h("dd", { text: d.direccion }),
-        horarioTxt(d) ? [h("dt", { text: "Horario" }), h("dd", { text: horarioTxt(d) })] : null, d.nota ? [h("dt", { text: "Nota" }), h("dd", { text: d.nota })] : null));
-      fila(btn("Sí, usar estos datos", "primary", (b) => mandarDatos(d, b)), btn("Cambiar datos", "", () => abrirFormEntrega(d)));
-    });
-  }
-}
-
 // ---------------------------------------------------------------- confianza (fase 3)
 
 const MOTIVOS_REPORTE = [
@@ -655,53 +602,23 @@ let estrellasElegidas = 0;
 
 function estrellasTxt(n) { return "★".repeat(n) + "☆".repeat(5 - n); }
 
-function renderCierre() {
-  ui.cierre.replaceChildren();
-  const e = estadoEfectivo();
-  if (e !== "entregado") { ui.cierre.style.display = "none"; return; }
-  const cal = pedido.calificacion;
-  const caja = plegable("cierre", cal ? (identidad.rol === "comprador" ? "Tu calificación " : "Calificación del cliente ") + estrellasTxt(cal.estrellas) : identidad.rol === "comprador" ? "⭐ Califica tu pedido" : "Sin calificación todavía");
-  if (cal) {
-    caja.append(
-      h("h4", { text: identidad.rol === "comprador" ? "Tu calificación" : "Calificación del cliente" }),
-      h("div", { class: "pp-estrellas fija", text: estrellasTxt(cal.estrellas), "aria-label": cal.estrellas + " de 5 estrellas" }),
-      ...(cal.comentario ? [h("p", { class: "pp-hint", text: cal.comentario })] : []));
-  } else if (identidad.rol === "comprador") {
-    caja.appendChild(h("h4", { text: "¿Cómo te fue con tu pedido?" }));
-    const fila = h("div", { class: "pp-estrellas" });
-    const pintar = () => [...fila.children].forEach((b, i) => { b.textContent = i < estrellasElegidas ? "★" : "☆"; b.classList.toggle("on", i < estrellasElegidas); });
-    for (let i = 1; i <= 5; i++) {
-      const b = h("button", { type: "button", "aria-label": i + (i === 1 ? " estrella" : " estrellas"), text: "☆" });
-      b.addEventListener("click", () => { estrellasElegidas = i; pintar(); });
-      fila.appendChild(b);
-    }
-    const coment = h("textarea", { maxlength: "300", placeholder: "Cuéntale a otros cómo fue (opcional)", rows: "2", style: "width:100%;box-sizing:border-box;margin-top:8px;padding:8px;border-radius:10px;border:1px solid var(--color-border-subtle,#d1d5db);background:var(--color-surface-1,#fff);color:inherit;font:inherit;font-size:14px" });
-    const enviar = h("button", { class: "pp-btn primary", type: "button", text: "Enviar calificación", style: "margin-top:8px;width:100%" });
-    enviar.addEventListener("click", async () => {
-      if (!estrellasElegidas) { toast("Elige de 1 a 5 estrellas"); return; }
-      const r = await hacer(enviar, "calificarPedido", { estrellas: estrellasElegidas, comentario: coment.value.trim() });
-      if (r) { estrellasElegidas = 0; toast("¡Gracias por calificar!"); }
-    });
-    caja.append(fila, coment, enviar);
-    pintar();
-  } else {
-    caja.appendChild(h("p", { class: "pp-hint", text: "Aún no hay calificación del cliente para este pedido." }));
-  }
-  ui.cierre.appendChild(caja);
-  ui.cierre.style.display = "";
-}
-
 function abrirMenu() {
   if (!pedido) return;
-  const otro = identidad.rol === "vendedor" ? (pedido.compradorNombre || "el cliente") : (pedido.vendedorNombre || "el vendedor");
+  const e = estadoEfectivo();
+  const vend = identidad.rol === "vendedor";
+  const otro = contraparte();
   const yaBloqueado = pedido.bloqueadoPor === identidad.rol;
-  const ov = ventana("Más opciones", h("p", { class: "pp-hint", text: "Conversación con " + otro }), [
-    ["Reportar conversación", "", (b, cerrar) => { cerrar(); abrirReporte(); }],
-    yaBloqueado
-      ? ["Desbloquear a " + otro, "", async (b, cerrar) => { const r = await hacer(b, "desbloquearUsuario"); if (r) { cerrar(); toast("Desbloqueado"); } }]
-      : ["Bloquear a " + otro, "danger", (b, cerrar) => { cerrar(); confirmarBloqueo(otro); }],
-    ["Cerrar", "", (b, cerrar) => cerrar()]
-  ]);
+  const botones = [];
+  // Lo que antes ocupaba botones fijos en pantalla vive aquí: se usa poco y no debe estorbar.
+  if (vend && (e === "solicitado" || e === "cotizado")) botones.push(["Rechazar solicitud", "danger", (b, cerrar) => { cerrar(); pedirMotivo("Rechazar solicitud", "rechazado"); }]);
+  if (vend && ["aceptado", "en_elaboracion", "listo"].includes(e)) botones.push(["Cancelar pedido", "danger", (b, cerrar) => { cerrar(); pedirMotivo("Cancelar pedido", "cancelado"); }]);
+  if (!vend && (e === "solicitado" || e === "cotizado")) botones.push(["Cancelar solicitud", "danger", (b, cerrar) => { cerrar(); cancelarComprador(b); }]);
+  botones.push(["Reportar conversación", "", (b, cerrar) => { cerrar(); abrirReporte(); }]);
+  botones.push(yaBloqueado
+    ? ["Desbloquear a " + otro, "", async (b, cerrar) => { const r = await hacer(b, "desbloquearUsuario"); if (r) { cerrar(); toast("Desbloqueado"); } }]
+    : ["Bloquear a " + otro, "danger", (b, cerrar) => { cerrar(); confirmarBloqueo(otro); }]);
+  botones.push(["Cerrar", "", (b, cerrar) => cerrar()]);
+  const ov = ventana("Más opciones", h("p", { class: "pp-hint", text: "Pedido con " + otro }), botones);
   ov.querySelector(".row").classList.add("col");
 }
 
