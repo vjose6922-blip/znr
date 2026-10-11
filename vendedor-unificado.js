@@ -1199,17 +1199,31 @@ window.checkInsigniaDonadorBanner = async function checkInsigniaDonadorBanner(el
   } catch (e) {}
 };
 
+// ═══════════════════════════════════════════════════════════════════
+// ▼▼▼ MODIFICADO: checkStockBanner ahora guarda productos en _vendorProducts ▼▼▼
+// ═══════════════════════════════════════════════════════════════════
 window.checkStockBanner = async function checkStockBanner() {
   const el = document.getElementById('stock-alert-banner');
   if (!el || !vendorSession) return;
   try {
     const res = await apiFetch({ action: 'misProductosComunidad', vendorToken: vendorSession.token, limit: 200, page: 1 }, 'GET');
     const sinStock = res.ok ? (res.products || []).filter(p => p.estado === 'aprobado' && p.tipoVenta !== 'personalizado' && Number(p.stock || 0) <= 0) : [];
+
+    // FIX: guardar TODOS los productos del vendedor en _vendorProducts
+    // para que editProduct pueda encontrarlos aunque la lista paginada
+    // todavía no se haya pintado (p. ej. cuando venimos de este banner).
+    if (res.ok && res.products) {
+      const todos = res.products.filter(p => p.vendedor_uid === vendorSession.uid);
+      const mapa = new Map((window._vendorProducts || []).map(p => [String(p.id), p]));
+      todos.forEach(p => mapa.set(String(p.id), p));
+      window._vendorProducts = Array.from(mapa.values());
+    }
+
     el.innerHTML = !sinStock.length ? '' : `
       <div style="background:#fef2f2;border:1.5px solid #dc2626;border-radius:14px;padding:14px;margin-bottom:16px;">
         <div style="font-weight:800;color:#991b1b;">⚠️ Tienes ${sinStock.length} producto${sinStock.length === 1 ? '' : 's'} sin stock</div>
         <div style="font-size:12.5px;color:#7f1d1d;margin:4px 0 8px;">No se muestran a los compradores hasta que subas el stock o los elimines.</div>
-        ${sinStock.map(p => `<button type="button" class="btn-secondary" style="display:block;width:100%;text-align:left;margin-top:6px;font-size:12.5px;" onclick="editProduct('${p.id}');switchTab('form');">${escapeHtml(p.nombre || 'Producto')} →</button>`).join('')}
+        ${sinStock.map(p => `<button type="button" class="btn-secondary" style="display:block;width:100%;text-align:left;margin-top:6px;font-size:12.5px;" onclick="editProduct('${p.id}')">${escapeHtml(p.nombre || 'Producto')} →</button>`).join('')}
       </div>`;
   } catch (e) {}
 };
@@ -1246,42 +1260,70 @@ window.aplicarTipoVenta = function() {
   if (lbl) lbl.textContent = pers ? 'Precio desde (MXN) *' : 'Precio (MXN) *';
 };
 
-window.editProduct = function(id) {
-const p = (window._vendorProducts || []).find(x => String(x.id) === String(id));
-if (!p) return;
-document.getElementById('edit-product-id').value = id;
-document.getElementById('pNombre').value = p.nombre || '';
-document.getElementById('pPrecio').value = p.precio || '';
-document.getElementById('pPrecioOriginal').value = p.precio_original || '';
-document.getElementById('pStock').value = p.tipoVenta === 'personalizado' ? '' : (p.stock || '');
-{
-  // El tipo de venta no se cambia al editar (hay pedidos abiertos que dependen de él).
-  const selTipo = document.getElementById('pTipoVenta');
-  if (selTipo) { selTipo.value = p.tipoVenta === 'personalizado' ? 'personalizado' : 'stock'; selTipo.disabled = true; }
-  const dias = document.getElementById('pTiempoDias');
-  if (dias) dias.value = p.tiempoElaboracionDias || '';
-  const ops = document.getElementById('pOpciones');
-  if (ops) ops.value = p.opcionesPersonalizacion || '';
-  window.aplicarTipoVenta();
-}
-document.getElementById('pCategoria').value = p.categoria || '';
-document.getElementById('pTalla').value = p.talla || '';
-document.getElementById('pDescripcion').value = p.descripcion || '';
-[1,2,3].forEach(n => {
-const imgUrl = p[`imagen${n}`] || '';
-const slot = document.getElementById(`slot-${n}`);
-if (imgUrl && slot) {
-setSlotPreview(n, imgUrl);
-uploadedImages[n] = imgUrl;
-} else {
-clearSlotPreview(n);
-uploadedImages[n] = null;
-}
-});
-document.getElementById('form-title').textContent = ' Editar producto';
-document.getElementById('cancel-edit-btn').style.display = 'block';
-document.getElementById('submit-product-btn').textContent = ' Guardar cambios';
-switchTab('form');
+// ═══════════════════════════════════════════════════════════════════
+// ▼▼▼ MODIFICADO: editProduct ahora es async y busca en el servidor si no
+//     encuentra el producto en _vendorProducts (fix del bug de "sin stock")
+// ═══════════════════════════════════════════════════════════════════
+window.editProduct = async function(id) {
+  let p = (window._vendorProducts || []).find(x => String(x.id) === String(id));
+
+  // FIX: si no está en caché (caso típico: vienes del banner de sin stock
+  // antes de que la lista paginada se haya pintado), lo pedimos al servidor.
+  if (!p && vendorSession && vendorSession.token) {
+    try {
+      const res = await apiFetch({
+        action: 'misProductosComunidad',
+        vendorToken: vendorSession.token,
+        limit: 200,
+        page: 1
+      }, 'GET');
+      if (res && res.ok && res.products) {
+        window._vendorProducts = res.products.filter(x => x.vendedor_uid === vendorSession.uid);
+        p = window._vendorProducts.find(x => String(x.id) === String(id));
+      }
+    } catch (e) { /* ignorar, se maneja abajo */ }
+  }
+
+  if (!p) {
+    if (typeof showTemporaryMessage === 'function') {
+      showTemporaryMessage('No se pudo cargar el producto para editar.', 'error');
+    }
+    return;
+  }
+
+  document.getElementById('edit-product-id').value = id;
+  document.getElementById('pNombre').value = p.nombre || '';
+  document.getElementById('pPrecio').value = p.precio || '';
+  document.getElementById('pPrecioOriginal').value = p.precio_original || '';
+  document.getElementById('pStock').value = p.tipoVenta === 'personalizado' ? '' : (p.stock || '');
+  {
+    // El tipo de venta no se cambia al editar (hay pedidos abiertos que dependen de él).
+    const selTipo = document.getElementById('pTipoVenta');
+    if (selTipo) { selTipo.value = p.tipoVenta === 'personalizado' ? 'personalizado' : 'stock'; selTipo.disabled = true; }
+    const dias = document.getElementById('pTiempoDias');
+    if (dias) dias.value = p.tiempoElaboracionDias || '';
+    const ops = document.getElementById('pOpciones');
+    if (ops) ops.value = p.opcionesPersonalizacion || '';
+    window.aplicarTipoVenta();
+  }
+  document.getElementById('pCategoria').value = p.categoria || '';
+  document.getElementById('pTalla').value = p.talla || '';
+  document.getElementById('pDescripcion').value = p.descripcion || '';
+  [1,2,3].forEach(n => {
+    const imgUrl = p[`imagen${n}`] || '';
+    const slot = document.getElementById(`slot-${n}`);
+    if (imgUrl && slot) {
+      setSlotPreview(n, imgUrl);
+      uploadedImages[n] = imgUrl;
+    } else {
+      clearSlotPreview(n);
+      uploadedImages[n] = null;
+    }
+  });
+  document.getElementById('form-title').textContent = ' Editar producto';
+  document.getElementById('cancel-edit-btn').style.display = 'block';
+  document.getElementById('submit-product-btn').textContent = ' Guardar cambios';
+  switchTab('form');
 };
 
 window.deleteMyProduct = async function(id) {
@@ -2816,7 +2858,7 @@ window.verMisEstadisticas = async function(forceRefresh) {
       rData = await window.znrFirestore.getCalificacionesVendedor(vendorSession.uid);
     }
     if (!rData || !rData.ok) {
-      const rUrl = `${window.VENDEDORES_API_URL}?${new URLSearchParams({ action: 'obtenerCalificacionesVendedor', vendedor_uid: vendorSession.uid })}`;
+      const rUrl = `${window.API_URL}?${new URLSearchParams({ action: 'obtenerCalificacionesVendedor', vendedor_uid: vendorSession.uid })}`;
       const rRes = await fetch(rUrl);
       rData = await rRes.json();
     }
@@ -2860,13 +2902,7 @@ function _renderMisStats(result, grid, ratingSlot, ventasSlot) {
       <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:14px;padding:12px;text-align:center;">
         <div style="font-size:20px;font-weight:800;color:#b45309;">${Icon('star')} ${r.promedio}</div>
         <div style="font-size:11px;color:#92400e;">${r.total} calificación${r.total === 1 ? '' : 'es'} de compradores</div>
-        <div style="font-size:11px;color:#b45309;font-weight:700;margin-top:4px;">Ver reseñas ›</div>
       </div>`;
-    ratingSlot.firstElementChild.style.cursor = 'pointer';
-    ratingSlot.firstElementChild.onclick = async () => {
-      const d = window.znrFirestore && window.znrFirestore.getCalificacionesVendedor ? await window.znrFirestore.getCalificacionesVendedor(vendorSession.uid) : null;
-      window.verResenasVendedor(d && d.ok ? d : r, 'Mis reseñas');
-    };
   } else {
     ratingSlot.innerHTML = `<p style="text-align:center;font-size:12px;color:#aaa;">Aún no tienes calificaciones</p>`;
   }
