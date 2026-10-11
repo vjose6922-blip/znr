@@ -19,7 +19,7 @@
 ">
  <script src="error-bootstrap.js"></script>
 
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, interactive-widget=resizes-content">
 <title>En vivo — Z&R</title>
 <link rel="manifest" href="/manifest.json">
 <meta name="theme-color" content="#ffffff">
@@ -37,12 +37,12 @@
   body.live-vertical { overflow: hidden; }
   body.live-vertical .app-header { position: fixed; left: 0; right: 0; z-index: 30; background: none; border: 0; backdrop-filter: none; }
   body.live-vertical .app-title { display: none; }
-  body.live-vertical .live-wrap { position: relative; height: 100dvh; overflow: hidden; background: #000; }
+  body.live-vertical .live-wrap { position: relative; box-sizing: border-box; padding: 0; height: var(--vvh, 100dvh); overflow: hidden; background: #000; }
   body.live-vertical .video-anchor { position: absolute; inset: 0; aspect-ratio: unset; }
   body.live-vertical .video-box video { object-fit: cover; }
   body.live-vertical .live-overlay {
     position: absolute; left: 0; right: 0; bottom: 0; z-index: 25;
-    display: flex; flex-direction: column; gap: 8px; padding: 40px 12px 12px;
+    display: flex; flex-direction: column; gap: 8px; padding: 40px 12px max(12px, env(safe-area-inset-bottom)); pointer-events: none;
     background: linear-gradient(transparent, rgba(0,0,0,.65));
   }
   body.live-vertical .live-wrap::before { content: ''; position: absolute; inset: 0 0 auto; height: 150px; z-index: 24; pointer-events: none; background: linear-gradient(rgba(0,0,0,.6), transparent); }
@@ -54,7 +54,12 @@
   body.live-vertical .live-info .viewer-badge { background: rgba(0,0,0,.5); color: #fff; }
   body.live-vertical .live-info h1, body.live-vertical .live-info .vendor { flex-basis: 100%; margin: 0; color: #fff; text-shadow: 0 1px 3px rgba(0,0,0,.8); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   body.live-vertical .live-info h1 { font-size: 16px; }
+  body.live-vertical .live-info .desc { flex-basis: 100%; margin: 0; font-size: 13px; line-height: 1.3; color: #fff; text-shadow: 0 1px 3px rgba(0,0,0,.8); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
   body.live-vertical .live-info .vendor { font-size: 12px; opacity: .9; }
+  /* Todo se oculta salvo producto y chat; tocar el video lo muestra unos segundos */
+  body.live-vertical .app-header, body.live-vertical .btn-reportar-flotante, body.live-vertical .live-info, body.live-vertical .live-wrap::before { transition: opacity .3s; }
+  body.live-vertical:not(.ui-visible) .app-header, body.live-vertical:not(.ui-visible) .btn-reportar-flotante,
+  body.live-vertical:not(.ui-visible) .live-info, body.live-vertical:not(.ui-visible) .live-wrap::before { opacity: 0; pointer-events: none; }
   /* Cada comentario en su burbuja oscura para que se lea sobre cualquier video */
   body.live-vertical .chat-messages { gap: 6px; }
   body.live-vertical .chat-msg { align-self: flex-start; max-width: 100%; padding: 4px 10px; border-radius: 14px; background: rgba(0,0,0,.6); }
@@ -63,7 +68,8 @@
   body.live-vertical .chat-msg.mine .author { color: #c4b5fd; }
   body.live-vertical .producto-actual { margin: 0; }
   body.live-vertical .chat-section { padding: 0; }
-  body.live-vertical .chat-panel { background: none; height: 34dvh; }
+  body.live-vertical .live-overlay > * { pointer-events: auto; }
+  body.live-vertical .chat-panel { background: none; height: max(130px, calc(var(--vvh, 100dvh) * .34)); }
   body.live-vertical .chat-messages { padding: 0; }
   .video-box { position: absolute; inset: 0; width: 100%; height: 100%; background: #000; z-index: 20; }
   .video-box.stuck {
@@ -97,6 +103,7 @@
   .status-dot { width: 7px; height: 7px; border-radius: 50%; background: #f87171; animation: pulse-dot 1.4s infinite; }
   @keyframes pulse-dot { 0%,100%{opacity:1;} 50%{opacity:.3;} }
 
+  .live-info .desc { margin: 4px 0 0; font-size: 13px; color: var(--color-text-soft); }
   .viewer-badge {
     display: inline-flex; align-items: center; gap: 4px;
     font-size: 11px; font-weight: 700; color: var(--color-text-soft);
@@ -613,6 +620,20 @@ function setupStickyVideo() {
   stickyObserver.observe(stickySentinel);
 }
 
+// Altura real visible (se encoge con el teclado) para que el input siempre se vea.
+const vv = window.visualViewport;
+const ajustarAltura = () => document.documentElement.style.setProperty('--vvh', (vv ? vv.height : innerHeight) + 'px');
+(vv || window).addEventListener('resize', ajustarAltura);
+ajustarAltura();
+
+// Muestra la info del live unos segundos (modo vertical) y la vuelve a ocultar.
+let uiTimer;
+function mostrarUI() {
+  document.body.classList.add('ui-visible');
+  clearTimeout(uiTimer);
+  uiTimer = setTimeout(() => document.body.classList.remove('ui-visible'), 4000);
+}
+
 // Vertical u horizontal según el video que realmente llega (la bandera
 // del vendedor puede venir mal): re-acomoda el layout sin re-renderizar.
 function aplicarOrientacion(vertical) {
@@ -622,7 +643,7 @@ function aplicarOrientacion(vertical) {
   if (!box) return;
   box.classList.remove('stuck');
   box.style.height = document.getElementById('video-anchor').style.height = '';
-  if (!vertical) setupStickyVideo();
+  if (vertical) mostrarUI(); else setupStickyVideo();
 }
 
 // ── Presencia (contador de espectadores en vivo) ──
@@ -1193,6 +1214,7 @@ function renderLive() {
         <span class="status-badge live"><span class="status-dot"></span> EN VIVO</span>
         <span class="viewer-badge">${Icon('eye')} <span id="viewer-count">0</span></span>
         <h1>${esc(sesion.titulo)}</h1>
+        ${sesion.descripcion ? `<p class="desc">${esc(sesion.descripcion)}</p>` : ''}
         <p class="vendor">Por ${esc(sesion.vendedor_nombre)}</p>
       </div>
       <div id="producto-slot"></div>
@@ -1202,6 +1224,7 @@ function renderLive() {
     </div>
   `;
 
+  document.getElementById('video-anchor').addEventListener('click', mostrarUI);
   aplicarOrientacion(esVertical);
   renderProductoActual();
   setupChat();
