@@ -175,9 +175,8 @@ let rapidasAbiertas = false;
 let comentarioCalificar = "";
 
 function construir() {
-  ui.thumb = h("img", { class: "pp-thumb", alt: "", style: "display:none" });
-  ui.titulo = h("b");
-  ui.sub = h("span");
+  ui.titulo = h("h1", { class: "app-title" });
+  ui.sub = h("p", { class: "app-subtitle" });
   ui.badge = h("span", { class: "pp-badge" });
   ui.prog = h("div", { class: "pp-prog", role: "progressbar", "aria-label": "Avance del pedido" });
   ui.strip = h("button", { class: "pp-strip", type: "button", "aria-expanded": "false" });
@@ -191,10 +190,15 @@ function construir() {
   ui.btnEnviar = h("button", { class: "pp-ico pp-send", type: "button", title: "Enviar", "aria-label": "Enviar", text: "➤" });
   ui.comp = h("div", { class: "pp-comp" }, ui.btnRapidas, ui.btnFoto, ui.ta, ui.btnEnviar);
 
-  const volver = h("a", { class: "pp-back", href: "mis-pedidos.html" + (ROL_HINT ? "?rol=" + encodeURIComponent(ROL_HINT) : ""), "aria-label": "Volver", text: "‹" });
-  ui.btnMenu = h("button", { class: "pp-back", type: "button", title: "Más opciones", "aria-label": "Más opciones", text: "⋯" });
+  // Mismo encabezado que el resto del sitio (como "Actividad reciente"): botón volver + título + subtítulo.
+  const volver = h("a", { class: "icon-button", href: "mis-pedidos.html" + (ROL_HINT ? "?rol=" + encodeURIComponent(ROL_HINT) : ""), "aria-label": "Volver", title: "Volver" });
+  volver.innerHTML = typeof Icon === "function" ? Icon("arrow-left") : "‹";
+  ui.btnMenu = h("button", { class: "icon-button", type: "button", title: "Más opciones", "aria-label": "Más opciones" });
+  ui.btnMenu.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>';
   ui.btnMenu.addEventListener("click", abrirMenu);
-  const cab = h("div", { class: "pp-head" }, volver, ui.thumb, h("div", { class: "pp-head-info" }, ui.titulo, ui.sub), ui.badge, ui.btnMenu);
+  const cab = h("header", { class: "app-header" },
+    h("div", { class: "header-left" }, volver, h("div", { class: "header-text" }, ui.titulo, ui.sub)),
+    h("div", { class: "header-right" }, ui.badge, ui.btnMenu));
   app.replaceChildren(cab, ui.prog, ui.strip, ui.detalle, ui.msgs, ui.barra, ui.rapidas, ui.comp);
 
   ui.strip.addEventListener("click", () => { detalleAbierto = !detalleAbierto; renderResumen(); });
@@ -231,7 +235,6 @@ function renderEncabezado() {
   const soyVendedor = identidad.rol === "vendedor";
   ui.titulo.textContent = pedido.productoNombre || "Pedido personalizado";
   ui.sub.textContent = contraparte();
-  if (pedido.productoImagen) { ui.thumb.src = pedido.productoImagen; ui.thumb.style.display = ""; } else ui.thumb.style.display = "none";
 
   const act = pagoActivo();
   const porCalificar = !soyVendedor && e === "entregado" && !pedido.calificacion;
@@ -320,12 +323,26 @@ function miniaturaComprobante(url) {
   return img;
 }
 
+// Cada hecho importante (aceptar, pagar, empezar, entregar…) se muestra como un mensaje de quien lo hizo, alineado a su lado.
+const ICONO_EVENTO = {
+  cotizacion_aceptada: "✅", cotizacion_rechazada: "↩️", solicitud_cancelada: "🚫", pedido_rechazado: "🚫", pedido_cancelado: "🚫",
+  elaboracion: "🔨", listo: "📦", entregado: "🎉", calificacion: "⭐", pago_confirmado: "✅", pago_no_recibido: "⚠️"
+};
+
+function burbujaEvento(m) {
+  const mio = m.autorUid === identidad.authUid;
+  const b = h("div", { class: "pp-b ev" + (mio ? " me" : "") }, h("span", { class: "ico", text: ICONO_EVENTO[m.evento] || "•" }), h("span", { class: "tx", text: m.contenido || "" }));
+  const t = ms(m.creadoEn);
+  if (t) b.appendChild(h("time", { text: hora(t) }));
+  return b;
+}
+
 function chipCotizacion(m, e) {
   const c = m.cotizacion || {};
   const vigente = e === "cotizado" && pedido.cotizacionVersion === c.version;
   const aceptada = pedido.cotizacionAceptada && pedido.cotizacionAceptada.version === c.version;
   const etiqueta = vigente ? "Vigente" : aceptada ? "✔ Aceptada" : c.version < pedido.cotizacionVersion ? "Reemplazada" : e === "solicitado" ? "Rechazada" : "No vigente";
-  return h("div", { class: "pp-chip cot" + (vigente ? " vivo" : "") },
+  return h("div", { class: "pp-chip cot" + (vigente ? " vivo" : "") + (m.autorUid === identidad.authUid ? " me" : "") },
     h("div", { class: "l1" },
       h("b", { text: "💲 " + dinero(c.precio) + (c.version > 1 ? " (#" + c.version + ")" : "") }),
       h("span", { text: " · entrega " + fechaCorta(c.fechaEntrega) + (c.anticipo > 0 ? " · anticipo " + dinero(c.anticipo) : "") }),
@@ -342,10 +359,16 @@ function chipPago(m) {
   const pg = m.pago || {};
   const malo = pg.estado === "no_recibido", bien = PAGADO.includes(pg.estado);
   const nombre = pg.tipo === "restante" ? "Restante" : "Anticipo";
-  const cuerpo = h("div", { class: "grow" },
-    h("div", { class: "l1" }, h("b", { text: (malo ? "⚠️ " : bien ? "✔ " : "💵 ") + nombre + " " + dinero(pg.monto) + " · " + (ESTADO_PAGO_MSG[pg.estado] || pg.estado) })),
-    malo && m.contenido ? h("div", { class: "l2", text: m.contenido }) : null);
-  return h("div", { class: "pp-chip pago" + (malo ? " bad" : bien ? " ok" : "") }, cuerpo, miniaturaComprobante(pg.comprobante));
+  const mio = m.autorUid === identidad.authUid;
+  const b = h("div", { class: "pp-b pago" + (mio ? " me" : "") + (malo ? " bad" : bien ? " ok" : "") },
+    h("div", { class: "l1" }, h("b", { text: (malo ? "⚠️ " : bien ? "✔ " : "💵 ") + nombre + " " + dinero(pg.monto) + " · " + (ESTADO_PAGO_MSG[pg.estado] || pg.estado) })));
+  // El texto del mensaje solo se muestra cuando aporta algo (el motivo de "no recibido"); en los demás casos repetiría el título.
+  if (malo && m.contenido) b.appendChild(h("div", { class: "l2", text: m.contenido }));
+  const thumb = miniaturaComprobante(pg.comprobante);
+  if (thumb) b.appendChild(thumb);
+  const t = ms(m.creadoEn);
+  if (t) b.appendChild(h("time", { text: hora(t) }));
+  return b;
 }
 
 function renderMensajes() {
@@ -369,6 +392,7 @@ function renderMensajes() {
     if (m.tipo === "sistema") { ui.msgs.appendChild(h("div", { class: "pp-sys", text: m.contenido })); continue; }
     if (m.tipo === "cotizacion") { ui.msgs.appendChild(chipCotizacion(m, e)); continue; }
     if (m.tipo === "pago") { ui.msgs.appendChild(chipPago(m)); continue; }
+    if (m.tipo === "evento") { ui.msgs.appendChild(burbujaEvento(m)); continue; }
     const mio = m.autorUid === identidad.authUid;
     const burbuja = h("div", { class: "pp-b" + (mio ? " me" : "") });
     if (m.tipo === "foto" && m.foto) {

@@ -93,9 +93,11 @@ async function cargarRol(rol) {
 function render() {
   const lista = datos[rolActual];
   const hayAmbos = sesiones.comprador && sesiones.vendedor;
-  const partes = [h("div", { class: "pp-head" },
-    h("a", { class: "pp-back", href: rolActual === "vendedor" ? "vendedor.html" : "comunidad.html", "aria-label": "Volver", text: "‹" }),
-    h("div", { class: "pp-head-info" }, h("b", { text: "Pedidos personalizados" }), h("span", { text: rolActual === "vendedor" ? "Solicitudes de tus clientes" : "Lo que has pedido" })))];
+  const volver = h("a", { class: "icon-button", href: rolActual === "vendedor" ? "vendedor.html" : "comunidad.html", "aria-label": "Volver", title: "Volver" });
+  volver.innerHTML = typeof Icon === "function" ? Icon("arrow-left") : "‹";
+  const partes = [h("header", { class: "app-header" },
+    h("div", { class: "header-left" }, volver,
+      h("div", { class: "header-text" }, h("h1", { class: "app-title", text: "Pedidos personalizados" }), h("p", { class: "app-subtitle", text: rolActual === "vendedor" ? "Solicitudes de tus clientes" : "Lo que has pedido" }))))];
 
   if (hayAmbos) {
     partes.push(h("div", { class: "pp-tabs" },
