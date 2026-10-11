@@ -35,8 +35,8 @@
   /* Vertical tipo TikTok: video a pantalla completa y info/producto/chat encima.
      Se activa por body.live-vertical (según el video real que llega, no solo la bandera). */
   body.live-vertical { overflow: hidden; }
-  body.live-vertical .app-header { position: fixed; left: 0; right: 0; background: none; border: 0; backdrop-filter: none; }
-  body.live-vertical .app-title, body.live-vertical .live-info .vendor { display: none; }
+  body.live-vertical .app-header { position: fixed; left: 0; right: 0; z-index: 30; background: none; border: 0; backdrop-filter: none; }
+  body.live-vertical .app-title { display: none; }
   body.live-vertical .live-wrap { position: relative; height: 100dvh; overflow: hidden; background: #000; }
   body.live-vertical .video-anchor { position: absolute; inset: 0; aspect-ratio: unset; }
   body.live-vertical .video-box video { object-fit: cover; }
@@ -45,10 +45,22 @@
     display: flex; flex-direction: column; gap: 8px; padding: 40px 12px 12px;
     background: linear-gradient(transparent, rgba(0,0,0,.65));
   }
-  body.live-vertical .live-info { display: flex; align-items: center; gap: 8px; padding: 0; border: 0; }
+  body.live-vertical .live-wrap::before { content: ''; position: absolute; inset: 0 0 auto; height: 150px; z-index: 24; pointer-events: none; background: linear-gradient(rgba(0,0,0,.6), transparent); }
+  /* Info arriba del todo, entre el botón de regreso y el de reporte */
+  body.live-vertical .live-info { position: fixed; top: 10px; left: 68px; right: 68px; z-index: 26; display: flex; flex-wrap: wrap; align-items: center; gap: 2px 8px; padding: 0; border: 0; }
   body.live-vertical .live-info .status-badge, body.live-vertical .live-info .viewer-badge { margin: 0; }
-  body.live-vertical .live-info h1 { margin: 0; flex: 1; min-width: 0; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  body.live-vertical .live-info h1, body.live-vertical .chat-msg .text { color: #fff; text-shadow: 0 1px 3px rgba(0,0,0,.7); }
+  body.live-vertical .live-info .status-badge.live { background: #e11d48; color: #fff; }
+  body.live-vertical .live-info .status-dot { background: #fff; }
+  body.live-vertical .live-info .viewer-badge { background: rgba(0,0,0,.5); color: #fff; }
+  body.live-vertical .live-info h1, body.live-vertical .live-info .vendor { flex-basis: 100%; margin: 0; color: #fff; text-shadow: 0 1px 3px rgba(0,0,0,.8); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  body.live-vertical .live-info h1 { font-size: 16px; }
+  body.live-vertical .live-info .vendor { font-size: 12px; opacity: .9; }
+  /* Cada comentario en su burbuja oscura para que se lea sobre cualquier video */
+  body.live-vertical .chat-messages { gap: 6px; }
+  body.live-vertical .chat-msg { align-self: flex-start; max-width: 100%; padding: 4px 10px; border-radius: 14px; background: rgba(0,0,0,.6); }
+  body.live-vertical .chat-msg .text, body.live-vertical .chat-empty { color: #fff; }
+  body.live-vertical .chat-msg .author { color: #ff9fc4; }
+  body.live-vertical .chat-msg.mine .author { color: #c4b5fd; }
   body.live-vertical .producto-actual { margin: 0; }
   body.live-vertical .chat-section { padding: 0; }
   body.live-vertical .chat-panel { background: none; height: 34dvh; }
