@@ -204,6 +204,7 @@ function construir() {
     if (e.key === "Enter" && !e.shiftKey && window.matchMedia("(pointer:fine)").matches) { e.preventDefault(); enviarTexto(); }
   });
   ui.btnEnviar.addEventListener("click", enviarTexto);
+  ui.ta.addEventListener("focus", () => setTimeout(() => { ui.msgs.scrollTop = ui.msgs.scrollHeight; }, 250));
   ui.btnFoto.addEventListener("click", () => document.getElementById("file-foto").click());
   document.getElementById("file-foto").addEventListener("change", enviarFoto);
 }
@@ -848,6 +849,22 @@ document.addEventListener("visibilitychange", () => {
   else { primeraVez = true; suscribir(); }
 });
 window.addEventListener("pagehide", desuscribir);
+
+// ---------------------------------------------------------------- área visible
+
+// Ajusta el contenedor al área REALMENTE visible (teclado abierto, barras del navegador que se ocultan o aparecen) para que
+// el encabezado y la caja de escritura nunca queden fuera de pantalla. Si el usuario hace zoom con los dedos no se toca nada.
+function ajustarAreaVisible() {
+  const vv = window.visualViewport;
+  if (!vv || Math.abs(vv.scale - 1) > 0.01) { app.removeAttribute("data-vv"); return; }
+  app.setAttribute("data-vv", "1");
+  app.style.setProperty("--pp-h", Math.round(vv.height) + "px");
+  app.style.setProperty("--pp-top", Math.round(vv.offsetTop) + "px");
+  if (ui.ta && ui.msgs && document.activeElement === ui.ta) ui.msgs.scrollTop = ui.msgs.scrollHeight;
+}
+if (window.visualViewport) ["resize", "scroll"].forEach((ev) => window.visualViewport.addEventListener(ev, ajustarAreaVisible));
+window.addEventListener("orientationchange", () => setTimeout(ajustarAreaVisible, 200));
+ajustarAreaVisible();
 
 // ---------------------------------------------------------------- arranque
 

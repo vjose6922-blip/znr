@@ -1,10 +1,14 @@
 /* pedidos.css — chat y lista de pedidos personalizados (pedido-chat.html, mis-pedidos.html)
    Diseño compacto para móvil: poco "cromo" fijo, más espacio para la conversación. */
 :root { --pp-accent: #a855f7; --pp-accent-soft: rgba(168,85,247,.12); --pp-font: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
-body { margin: 0; }
+/* Nada de scroll de página: solo se desplaza la conversación (o la lista). Encabezado y caja de escritura quedan fijos. */
+html, body { height: 100%; margin: 0; overflow: hidden; overscroll-behavior: none; }
 .pp-app, .pp-ov, .pp-box, .pp-visor { font-family: var(--pp-font); }
+.pp-app[data-vv] { bottom: auto; top: var(--pp-top, 0px); height: var(--pp-h); }
 .pp-app button, .pp-app input, .pp-app textarea, .pp-box button, .pp-box input, .pp-box textarea { font-family: inherit; }
-.pp-app { display: flex; flex-direction: column; height: 100dvh; max-width: 720px; margin: 0 auto; font-size: 14px; line-height: 1.35; background: var(--color-surface-1, #fff); color: var(--color-text-primary, #1e2128); }
+/* position:fixed con los 4 bordes en 0 ocupa exactamente el área visible; 100dvh puede medir más que la pantalla (barras del navegador / del sistema)
+   y dejaba la caja de escritura fuera de vista. Con teclado abierto el JS (data-vv) lo ajusta al área visible real. */
+.pp-app { position: fixed; top: 0; left: 0; right: 0; bottom: 0; width: 100%; display: flex; flex-direction: column; max-width: 720px; margin: 0 auto; font-size: 14px; line-height: 1.35; background: var(--color-surface-1, #fff); color: var(--color-text-primary, #1e2128); }
 
 /* ---- Encabezado de una línea ---- */
 .pp-head { display: flex; align-items: center; gap: 8px; padding: calc(6px + env(safe-area-inset-top, 0px)) 10px 6px; border-bottom: 1px solid var(--color-border-subtle, #e5e7eb); background: var(--color-surface-1, #fff); }
