@@ -488,6 +488,7 @@ localStorage.removeItem('vendor_session');
 sessionStorage.removeItem('admin_session');
 sessionStorage.removeItem('admin_token');
 vendorSession = null;
+document.documentElement.removeAttribute('data-vsess');
 const loginDiv = document.getElementById('login-section');
 const panelDiv = document.getElementById('panel-section');
 if (loginDiv) loginDiv.style.display = 'block';
@@ -1738,7 +1739,12 @@ if (vendorSession.telefono) localStorage.setItem('client_phone', vendorSession.t
 vincularComprador(false);
 showPanel();
 apiFetch({ action: 'misProductosComunidad', vendorToken: vendorSession.token, limit: 1 }, 'GET').then(resp => {
-  if (!resp.ok) {
+  // Solo se cierra la sesión si el token de verdad es inválido; un error
+  // temporal del servidor (500, arranque en frío, etc.) no debe sacar al vendedor.
+  const errTxt = String((resp && resp.error) || '').toLowerCase();
+  const tokenInvalido = resp && resp.ok === false &&
+    (errTxt.includes('token') || errTxt.includes('no autorizado') || errTxt.includes('unauthorized') || errTxt.includes('sesión') || errTxt.includes('sesion'));
+  if (tokenInvalido) {
     if (typeof window.eliminarTokenFCM === 'function') {
       window.eliminarTokenFCM('vendedor', vendorSession.uid).catch(() => {});
     }
