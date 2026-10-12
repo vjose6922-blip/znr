@@ -21,6 +21,7 @@
     entrega_live_completada:{ grupo: 'pedidos', icono: Icon('check') },
     pago_duplicado:         { grupo: 'pedidos', icono: Icon('flag') },
     pedido_entregado:       { grupo: 'pedidos', icono: Icon('mail') },
+    pedido_personalizado_mensaje: { grupo: 'conversaciones', icono: Icon('chat-bubble') },
     cuenta_aprobada:        { grupo: 'cuenta',  icono: Icon('sparkles') },
     cuenta_rechazada:       { grupo: 'cuenta',  icono: Icon('ban') },
     cuenta_suspendida:      { grupo: 'cuenta',  icono: Icon('ban') },
@@ -151,8 +152,10 @@
 .nc-close{background:rgba(255,255,255,.07);border:none;color:var(--color-text-secondary,#aaa);width:32px;height:32px;border-radius:50%;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center}
 .nc-close:hover{background:rgba(var(--color-accent-rgb),0.15);color:var(--color-accent-solid)}
 .nc-tabs{display:flex;gap:6px;padding:12px 16px 0;border-bottom:1px solid var(--color-border-subtle,rgba(255,255,255,.07));flex-shrink:0}
-.nc-tab{flex:1;text-align:center;padding:9px 6px;border-radius:10px 10px 0 0;border:none;background:transparent;color:var(--color-text-muted,#888);font-size:13px;font-weight:600;cursor:pointer}
+.nc-tab{flex:1;text-align:center;padding:9px 4px;border-radius:10px 10px 0 0;border:none;background:transparent;color:var(--color-text-muted,#888);font-size:13px;font-weight:600;cursor:pointer}
 .nc-tab.active{background:rgba(var(--color-accent-rgb),0.12);color:var(--color-accent-solid)}
+.nc-tab-count{display:none;margin-left:5px;min-width:16px;padding:2px 5px;border-radius:50px;background:var(--color-accent-solid);color:#fff;font-size:10px;font-weight:800;line-height:1;vertical-align:1px}
+.nc-tab-count.visible{display:inline-block}
 .nc-markall{background:none;border:none;color:var(--color-accent-solid);font-size:12px;font-weight:600;cursor:pointer;padding:8px 16px;text-align:right}
 .nc-list{flex:1;overflow-y:auto;padding:10px 14px 20px}
 .nc-empty{text-align:center;color:var(--color-text-muted,#888);padding:60px 20px;font-size:13px}
@@ -471,8 +474,9 @@
         <button class="nc-close" id="nc-close-btn">${Icon('x')}</button>
       </div>
       <div class="nc-tabs">
-        <button class="nc-tab active" data-tab="pedidos">Pedidos</button>
-        <button class="nc-tab" data-tab="cuenta">Cuenta</button>
+        <button class="nc-tab active" data-tab="pedidos">Pedidos<span class="nc-tab-count"></span></button>
+        <button class="nc-tab" data-tab="conversaciones">Conversaciones<span class="nc-tab-count"></span></button>
+        <button class="nc-tab" data-tab="cuenta">Cuenta<span class="nc-tab-count"></span></button>
       </div>
       <button class="nc-markall" id="nc-markall-btn">Marcar todas como leídas</button>
       <div class="nc-list" id="nc-list"></div>
@@ -499,6 +503,10 @@
       });
     });
     document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+  }
+
+  function esc(v) {
+    return String(v == null ? '' : v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
   }
 
   function fechaCorta(fecha) {
@@ -623,12 +631,12 @@ const PICKUP_HORAS = ['9:00 AM','10:00 AM','11:00 AM','12:00 PM','1:00 PM','2:00
           <div class="nc-icon">${info.icono}</div>
           <div class="nc-body">
             <p class="nc-item-title">
-              ${n.titulo || ''}
+              ${n.tipo === 'pedido_personalizado_mensaje' ? esc(n.titulo) : (n.titulo || '')}
               <span class="nc-expand-icon">▼</span>
             </p>
             <p class="nc-item-fecha">${fechaCorta(n.fecha)}</p> <!-- FECHA SIEMPRE VISIBLE -->
             <div class="nc-msg-collapsed">
-              <p class="nc-item-msg">${n.mensaje || ''}</p>
+              <p class="nc-item-msg">${n.tipo === 'pedido_personalizado_mensaje' ? esc(n.mensaje) : (n.mensaje || '')}</p>
               ${waBtn}
               ${mapsBtn}
               ${abrirBtn}
@@ -742,16 +750,39 @@ const PICKUP_HORAS = ['9:00 AM','10:00 AM','11:00 AM','12:00 PM','1:00 PM','2:00
         badge.remove();
       }
     });
+    updateTabCounts();
+    // La burbuja flotante de mensajes (burbuja-mensajes.js) escucha esto.
+    window.dispatchEvent(new CustomEvent('znr:notificaciones-cargadas'));
   }
 
-  function pickTabWithUnread() {
-    const counts = { pedidos: 0, cuenta: 0 };
+  function contarNoLeidasPorGrupo() {
+    const counts = { pedidos: 0, conversaciones: 0, cuenta: 0 };
     cache.items.forEach(n => {
       if (n.leida) return;
       const grupo = (TIPO_INFO[n.tipo] || {}).grupo || 'pedidos';
       counts[grupo] = (counts[grupo] || 0) + 1;
     });
-    if (counts.pedidos === 0 && counts.cuenta > 0) return 'cuenta';
+    return counts;
+  }
+
+  function updateTabCounts() {
+    const modal = document.getElementById('nc-modal');
+    if (!modal) return;
+    const counts = contarNoLeidasPorGrupo();
+    modal.querySelectorAll('.nc-tab').forEach(tab => {
+      const el = tab.querySelector('.nc-tab-count');
+      if (!el) return;
+      const c = counts[tab.dataset.tab] || 0;
+      el.textContent = c > 99 ? '99+' : String(c);
+      el.classList.toggle('visible', c > 0);
+    });
+  }
+
+  function pickTabWithUnread() {
+    const counts = contarNoLeidasPorGrupo();
+    if (counts.pedidos > 0) return 'pedidos';
+    if (counts.conversaciones > 0) return 'conversaciones';
+    if (counts.cuenta > 0) return 'cuenta';
     return 'pedidos';
   }
 
@@ -805,6 +836,13 @@ const PICKUP_HORAS = ['9:00 AM','10:00 AM','11:00 AM','12:00 PM','1:00 PM','2:00
       updateBadge();
     }
   }
+
+  // Lo usa burbuja-mensajes.js (mismo feed, sin volver a consultar Firestore).
+  window.znrNotifCentro = {
+    items: () => cache.items,
+    refresh: refreshBadgeOnly,
+    actualizar: updateBadge
+  };
 
   window.addEventListener('znr:nueva-notificacion', refreshBadgeOnly);
   if ('serviceWorker' in navigator) {
