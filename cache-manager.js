@@ -88,8 +88,9 @@ link.href = pageUrl;
 link.as = 'document';
 document.head.appendChild(link);
 const scriptMap = {
-'index.html': 'script.js',
-'looks.html': 'looks.js'
+'index.html': 'home.js',
+'catalogo.html': 'script.js',
+'outfit.html': 'looks.js'
 };
 const scriptName = scriptMap[pageUrl.split('/').pop()];
 if (scriptName) {
