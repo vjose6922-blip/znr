@@ -362,8 +362,14 @@ return `<button class="up-secondary-btn" id="up-enable-notif-btn"><svg xmlns="ht
 }
 function attachPanelEvents(panel) {
 panel.querySelector('#up-close-btn').addEventListener('click', closePanel);
+// En vendedor.html el panel es del vendedor: sin pestañas de comprador (Tallas, Pedidos)
+// y el reporte se envía con su sesión de vendedor.
+const _esPanelVendedor = (location.pathname.split('/').pop() || '') === 'vendedor.html';
+if (_esPanelVendedor) {
+  panel.querySelectorAll('[data-tab="tallas"],[data-tab="pedidos"],[data-content="tallas"],[data-content="pedidos"]').forEach(el => el.remove());
+}
 panel.querySelector('#up-feedback-btn')?.addEventListener('click', () => {
-  const abrir = () => window.ZNRFeedback && window.ZNRFeedback.open('comprador');
+  const abrir = () => window.ZNRFeedback && window.ZNRFeedback.open(_esPanelVendedor ? 'vendedor' : 'comprador');
   if (window.ZNRFeedback) return abrir();
   const sc = document.createElement('script');
   sc.src = 'feedback.js';
@@ -590,9 +596,9 @@ s.textContent = `
 .up-title{font-size:16px;font-weight:700;margin:0;color:var(--color-text-primary,#fff)}
 .up-close{background:rgba(255,255,255,.07);border:none;color:var(--color-text-secondary,#aaa);width:32px;height:32px;border-radius:50%;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;transition:background .2s,color .2s}
 .up-close:hover{background:rgba(var(--color-accent-rgb),0.15);color:var(--color-accent-solid)}
-.up-tabs{display:flex;gap:4px;padding:12px 16px 0;border-bottom:1px solid rgba(255,255,255,.07);flex-shrink:0;overflow-x:auto;scrollbar-width:none}
+.up-tabs{display:flex;gap:2px;padding:12px 8px 0;border-bottom:1px solid rgba(255,255,255,.07);flex-shrink:0;overflow-x:auto;scrollbar-width:none}
 .up-tabs::-webkit-scrollbar{display:none}
-.up-tab{flex-shrink:0;background:none;border:none;border-bottom:2px solid transparent;color:var(--color-text-secondary,#888);font-size:12px;font-weight:600;padding:8px 12px;cursor:pointer;transition:color .2s,border-color .2s;white-space:nowrap}
+.up-tab{flex:1 1 0;min-width:0;display:flex;flex-direction:column;align-items:center;gap:3px;background:none;border:none;border-bottom:2px solid transparent;color:var(--color-text-secondary,#888);font-size:11px;font-weight:600;padding:8px 2px;cursor:pointer;transition:color .2s,border-color .2s;white-space:nowrap}
 .up-tab.active{color:var(--color-accent-solid);border-bottom-color:var(--color-accent-solid)}
 .up-body{flex:1;overflow-y:auto;padding:20px;scrollbar-width:thin;scrollbar-color:rgba(var(--color-accent-rgb),0.22) transparent}
 .up-tab-content{display:none}

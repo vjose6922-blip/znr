@@ -266,6 +266,7 @@ h3 {
  </div>
  <div class="header-right">
  <button class="icon-button" id="notif-bell-btn" aria-label="Notificaciones" title="Notificaciones"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" aria-hidden="true"><use href="#ic-bell"/></svg></button>
+ <button class="icon-button" id="up-open-btn" aria-label="Preferencias" title="Preferencias"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" aria-hidden="true"><use href="#ic-settings"/></svg></button>
  </div>
  </header>
 
@@ -930,23 +931,6 @@ document.addEventListener('DOMContentLoaded', () => {
           </div>
 
                 </div>
-      </div>
-
-      <!-- ── Sección colapsable: Ayuda y feedback ── -->
-      <div class="settings-section">
-        <button class="settings-section-toggle" onclick="toggleSettingsSection(this)">
-          <span>Ayuda y feedback</span>
-          <svg class="toggle-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
-        </button>
-        <div class="settings-section-body" style="display:none;">
-          <p style="font-size:.78rem;color:#888;margin:0 0 14px;line-height:1.5;">
-            Si encontraste un error en la app, algo no funciona como esperabas o tienes una idea para mejorarla, repórtalo aquí. Le llega directamente al administrador para que revise y corrija la falla.
-          </p>
-          <button onclick="window.ZNRFeedback && ZNRFeedback.open('vendedor')"
-            style="width:100%;padding:11px;border-radius:10px;border:1px solid #7c3aed;background:#fff;color:#7c3aed;font-size:.9rem;font-weight:700;cursor:pointer;">
-            Reportar un problema
-          </button>
-        </div>
       </div>
 
       <!-- ── Sección colapsable: Métodos de pago ── -->

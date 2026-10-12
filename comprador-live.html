@@ -264,6 +264,9 @@
       <h1 class="app-title">En vivo</h1>
     </div>
   </div>
+  <div class="header-right">
+    <button class="icon-button" id="up-open-btn" aria-label="Reportar un problema" title="Reportar un problema" onclick="window.ZNRFeedback && ZNRFeedback.open('comprador')"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" aria-hidden="true"><use href="#ic-settings"/></svg></button>
+  </div>
 </header>
 
 <button id="btn-reportar" class="btn-reportar-flotante" title="Reportar esta transmisión" style="display:none;"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" aria-hidden="true"><use href="#ic-flag"/></svg></button>
@@ -274,6 +277,7 @@
 
 
 
+<script src="feedback.js" defer></script>
 <script src="znr-devconsole.js" defer></script>
 
 
