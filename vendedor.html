@@ -53,6 +53,18 @@
  <link rel="manifest" href="/manifest.json">
  <meta name="theme-color" content="#3b1f5f">
  <script>document.documentElement.dataset.theme = localStorage.getItem('theme') || 'light';</script>
+ <script>
+ // Evita el parpadeo del formulario de login: si ya hay sesión guardada,
+ // se oculta el login y se muestra el panel desde el primer pintado,
+ // sin esperar a que carguen/ejecuten los scripts diferidos.
+ try { if (localStorage.getItem('vendor_session') || sessionStorage.getItem('vendor_session')) document.documentElement.setAttribute('data-vsess', '1'); } catch (e) {}
+ </script>
+ <style>
+ html[data-vsess] #login-section { display: none !important; }
+ html[data-vsess] #panel-section { display: block !important; }
+ html[data-vsess] #bottom-nav-guest { display: none !important; }
+ html[data-vsess] #bottom-nav-vendor { display: flex !important; }
+ </style>
 <link rel="preload" href="styles.css" as="style">
  <link rel="stylesheet" href="styles.css">
  <style>
