@@ -278,7 +278,7 @@ messageDiv.style.animation = "slideDown 0.3s ease";
 setTimeout(() => messageDiv.remove(), 300);
 }, 3000);
 }
-window.showTemporaryMessage = showTemporaryMessage; // otros scripts (admin.js) la usan como global
+window.showTemporaryMessage = showTemporaryMessage; // otros scripts la usan como global
 function closeCurrentModal() {
 if (activeModal) {
 activeModal.classList.add("closing");
@@ -3869,7 +3869,7 @@ window.openPanelOnTab = function(tabName) {
 _loadAccountPanel().then(() => window._openPanelOnTabReal(tabName)).catch(() => {});
 };
 function initUserPreferences() {
-if (location.pathname.includes('admin') || location.pathname.includes('notificaciones')) return;
+if (location.pathname.includes('notificaciones')) return;
 const btn = document.getElementById('up-open-btn');
 if (!btn) return;
 btn.addEventListener('click', () => { _loadAccountPanel().then(() => window.buildPanel()).catch(() => {}); });
@@ -3964,10 +3964,10 @@ window.uploadImagesInQueue = async function(files, startSlot = 1, uploadFn, onPr
     assignments.forEach(({ slot, file }) => {
         const reader = new FileReader();
         reader.onload = function(e) {
-            const previewAdmin = document.getElementById(`preview-image-upload-${slot}`);
-            if (previewAdmin) {
-                previewAdmin.src = e.target.result;
-                previewAdmin.style.display = 'block';
+            const previewImg = document.getElementById(`preview-image-upload-${slot}`);
+            if (previewImg) {
+                previewImg.src = e.target.result;
+                previewImg.style.display = 'block';
             }
             const slotDiv = document.getElementById(`slot-${slot}`);
             if (slotDiv) {
@@ -4014,7 +4014,7 @@ window.uploadImagesInQueue = async function(files, startSlot = 1, uploadFn, onPr
 };
 
 window.uploadSingleImage = async function(file, slotIndex) {
-    throw new Error('uploadSingleImage no está implementada. Debes asignarla en admin o vendedor.');
+    throw new Error('uploadSingleImage no está implementada. Debes asignarla en el panel de vendedor.');
 };
 
 if ('serviceWorker' in navigator) {

@@ -10,7 +10,6 @@
   const AUTH_API_URL         = 'https://auth-api-1038143238323.us-central1.run.app';
   const LIVE_API_URL         = 'https://live-api-1038143238323.us-central1.run.app';
   const TIENDA_ZNR_API_URL   = 'https://tienda-znr-api-1038143238323.us-central1.run.app';
-  const ADMIN_API_URL        = 'https://admin-api-1038143238323.us-central1.run.app';
   const CATALOGO_SNAPSHOT_URL= 'https://znr-live-default-rtdb.firebaseio.com/catalogo/snapshot.json';
 
   // ── Compat legacy: API_URL ya no existe ──
@@ -41,7 +40,6 @@
     AUTH_API_URL:         { get: () => AUTH_API_URL,         configurable: false, enumerable: false },
     LIVE_API_URL:         { get: () => LIVE_API_URL,         configurable: false, enumerable: false },
     TIENDA_ZNR_API_URL:   { get: () => TIENDA_ZNR_API_URL,   configurable: false, enumerable: false },
-    ADMIN_API_URL:        { get: () => ADMIN_API_URL,        configurable: false, enumerable: false },
     CATALOGO_SNAPSHOT_URL:{ get: () => CATALOGO_SNAPSHOT_URL,configurable: false, enumerable: false },
     WHATSAPP_NUMBER:      { get: _buildWaNumber,             configurable: false, enumerable: false }
   });

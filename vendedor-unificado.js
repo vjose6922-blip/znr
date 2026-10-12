@@ -52,10 +52,6 @@ const MAPA_ACCIONES_MIGRADAS = {
   marcarChecklistDescartado: VENDEDORES_API_URL,
   actualizarPortadaVendedor: VENDEDORES_API_URL,
   actualizarLogoVendedor: VENDEDORES_API_URL,
-  marcarVendedorConfiable: VENDEDORES_API_URL,
-  vendedoresAdmin: VENDEDORES_API_URL,
-  aprobarVendedor: VENDEDORES_API_URL,
-  rechazarVendedor: VENDEDORES_API_URL,
   eliminarCuentaVendedor: VENDEDORES_API_URL,
   createComunidad: CATALOGO_API_URL,
   updateComunidad: CATALOGO_API_URL,
@@ -95,10 +91,6 @@ function _getDailyCache(key) {
 }
 function _setDailyCache(key, data) {
   try { localStorage.setItem(key, JSON.stringify({ data, timestamp: Date.now() })); } catch (e) {}
-}
-
-function getAdminToken() {
-return sessionStorage.getItem('admin_token') || '';
 }
 
 window.apiFetch = async function(data, method = 'POST') {
@@ -485,7 +477,6 @@ if (vendorSession && vendorSession.uid && typeof window.eliminarTokenFCM === 'fu
   window.eliminarTokenFCM('vendedor', vendorSession.uid).catch(() => {});
 }
 localStorage.removeItem('vendor_session');
-sessionStorage.removeItem('admin_session');
 sessionStorage.removeItem('admin_token');
 vendorSession = null;
 document.documentElement.removeAttribute('data-vsess');
