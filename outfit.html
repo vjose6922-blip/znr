@@ -125,14 +125,14 @@
  </a>
 
  <div class="looks-grid" id="looks-container"></div>
- <aside class="cart-drawer" id="wishlist-looks-drawer" aria-hidden="true">
+ <aside class="cart-drawer" id="wishlist-drawer" aria-hidden="true">
  <div class="cart-header">
- <h2>Looks favoritos</h2>
- <button class="icon-button" id="close-wishlist-looks-btn" aria-label="Cerrar"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" aria-hidden="true"><use href="#ic-x"/></svg></button>
+ <h2>Favoritos</h2>
+ <button class="icon-button" onclick="closeWishlistDrawer()" aria-label="Cerrar"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" aria-hidden="true"><use href="#ic-x"/></svg></button>
  </div>
- <div class="cart-body" id="wishlist-looks-container"></div>
+ <div class="cart-body" id="wishlist-items-container"></div>
  <div class="cart-footer">
- <button id="add-all-looks-to-cart" class="primary-button full-width" style="background: var(--gradient-accent);"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" aria-hidden="true"><use href="#ic-cart"/></svg> Agregar todos al carrito
+ <button onclick="addAllWishlistToCart()" class="primary-button full-width" style="background: var(--gradient-accent);"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" aria-hidden="true"><use href="#ic-cart"/></svg> Agregar todos al carrito
  </button>
  </div>
  </aside>
@@ -205,12 +205,6 @@
 
 let cartInitialized = false;
 
-function updateLooksWishlistBadge() {
- const count = JSON.parse(localStorage.getItem('zr_looks_wishlist') || '[]').length;
- const badge = document.getElementById("wishlist-count-looks");
- if (badge) badge.textContent = count;
-}
-
 document.addEventListener("DOMContentLoaded", () => {
  console.log(" Inicializando página con modales personalizados...");
 
@@ -256,8 +250,6 @@ document.addEventListener("DOMContentLoaded", () => {
  if (typeof window.closeWishlistDrawer === "function") {
  window.closeWishlistDrawer();
  }
- const looksDrawer = document.getElementById("wishlist-looks-drawer");
- if (looksDrawer) looksDrawer.classList.remove("open");
  if (typeof closeImageModal === "function") {
  closeImageModal();
  }
@@ -272,50 +264,11 @@ document.addEventListener("DOMContentLoaded", () => {
  cartInitialized = true;
  }
 
- updateLooksWishlistBadge();
 });
 
 window.addEventListener("cartUpdated", () => {
  if (typeof renderCart === "function") renderCart();
  if (typeof updateCartBadge === "function") updateCartBadge();
-});
-
-const floatingWishlistLooksBtn = document.getElementById("floating-wishlist-looks-btn");
-if (floatingWishlistLooksBtn) {
- floatingWishlistLooksBtn.addEventListener("click", () => {
- const drawer = document.getElementById("wishlist-looks-drawer");
- const overlay = document.getElementById("overlay");
- if (drawer) drawer.classList.add("open");
- if (overlay) overlay.classList.add("visible");
- if (typeof renderWishlistLooks === 'function') renderWishlistLooks();
- });
-}
-
-const closeWishlistLooksBtn = document.getElementById("close-wishlist-looks-btn");
-if (closeWishlistLooksBtn) {
- closeWishlistLooksBtn.addEventListener("click", () => {
- const drawer = document.getElementById("wishlist-looks-drawer");
- const overlay = document.getElementById("overlay");
- if (drawer) drawer.classList.remove("open");
- if (overlay) overlay.classList.remove("visible");
- });
-}
-
-const addAllLooksToCartBtn = document.getElementById("add-all-looks-to-cart");
-if (addAllLooksToCartBtn) {
- addAllLooksToCartBtn.addEventListener("click", () => {
- const wishlistIds = JSON.parse(localStorage.getItem('zr_looks_wishlist') || '[]');
- wishlistIds.forEach(lookId => {
- if (typeof addLookToCart === 'function') addLookToCart(lookId);
- });
- if (typeof showTemporaryMessage === 'function') {
- showTemporaryMessage(" Todos los looks agregados al carrito", "success");
- }
- });
-}
-
-window.addEventListener('storage', (e) => {
- if (e.key === 'zr_looks_wishlist') updateLooksWishlistBadge();
 });
 
 document.addEventListener('DOMContentLoaded', function() {
@@ -324,21 +277,9 @@ document.addEventListener('DOMContentLoaded', function() {
  
 
  function updateBottomBadges() {
- const cartCount = document.getElementById('bottom-cart-count');
- const wishlistCount = document.getElementById('bottom-wishlist-count');
- 
- if (cartCount) {
- const cart = JSON.parse(localStorage.getItem('cart') || '{}');
- const total = Object.values(cart).reduce((s, i) => s + (i.quantity || 0), 0);
- cartCount.textContent = total;
+ updateCartBadge();
+ updateWishlistBadge();
  }
- 
- if (wishlistCount) {
- const wishlistLooks = JSON.parse(localStorage.getItem('zr_looks_wishlist') || '[]');
- wishlistCount.textContent = wishlistLooks.length;
- }
- }
- 
 
  const navCatalogo = document.getElementById('nav-catalogo');
  const navInicio = document.getElementById('nav-inicio');
@@ -371,11 +312,7 @@ document.addEventListener('DOMContentLoaded', function() {
  if (navWishlist) {
  navWishlist.addEventListener('click', (e) => {
  e.preventDefault();
- const drawer = document.getElementById('wishlist-looks-drawer');
- const overlay = document.getElementById('overlay');
- if (drawer) drawer.classList.add('open');
- if (overlay) overlay.classList.add('visible');
- if (typeof renderWishlistLooks === 'function') renderWishlistLooks();
+ openWishlistDrawer();
  });
  }
  

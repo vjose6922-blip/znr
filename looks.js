@@ -821,7 +821,7 @@ const slotNames = { torso: ' Superior', piernas: ' Inferior', pies: ' Calzado' }
 const safeLookName = escapeHtml(look.name || "Look");
 const safeLookDescription = escapeHtml(look.description || "");
 const safeLookCategory = escapeHtml(look.category || "");
-const wishlistActive = isLookInWishlist(look.id);
+const wishlistActive = isLookInWishlist(look.id, look);
 const wishlistHtml = `<button class="look-wishlist-btn ${wishlistActive ? 'active' : ''}" data-look-id="${escapeHtml(look.id)}" data-action="wishlist">${wishlistActive ? '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" aria-hidden="true"><use href="#ic-heart-fill"/></svg>' : '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" aria-hidden="true"><use href="#ic-heart"/></svg>'}</button>`;
 for (const slotKey of slotOrder) {
 const product = look.products[slotKey];
@@ -1228,19 +1228,24 @@ Talla: product.size
 });
 }
 });
-let lookWishlist = JSON.parse(localStorage.getItem('zr_looks_wishlist') || '[]');
-const wasInWishlist = lookWishlist.includes(lookId);
-if (wasInWishlist) {
-lookWishlist = lookWishlist.filter(id => id !== lookId);
-localStorage.setItem('zr_looks_wishlist', JSON.stringify(lookWishlist));
+if (isLookInWishlist(lookId)) {
+saveWishlist(getWishlist().filter(i => i.id !== 'look:' + lookId));
 updateLookWishlistButtons(lookId, false);
-if (typeof renderWishlistLooks === 'function') renderWishlistLooks();
+renderWishlist();
 }
 animateCartAdd();
 };
-function isLookInWishlist(lookId) {
-const wishlist = JSON.parse(localStorage.getItem('zr_looks_wishlist') || '[]');
-return wishlist.includes(lookId);
+function lookSnapshot(look) {
+const products = Object.values(look.products).filter(Boolean).map(p => ({ id: p.id, name: p.name, price: p.price, image: p.image, size: p.size, stock: p.stock }));
+return { type: 'look', id: 'look:' + look.id, lookId: look.id, name: look.name, price: products.reduce((s, p) => s + p.price, 0), products, addedAt: Date.now() };
+}
+function isLookInWishlist(lookId, look) {
+const legacy = JSON.parse(localStorage.getItem('zr_looks_wishlist') || '[]');
+if (look && legacy.some(id => String(id) === String(lookId))) {
+localStorage.setItem('zr_looks_wishlist', JSON.stringify(legacy.filter(id => String(id) !== String(lookId))));
+saveWishlist([...getWishlist(), lookSnapshot(look)]);
+}
+return getWishlist().some(i => i.id === 'look:' + lookId);
 }
 function updateLookWishlistButtons(lookId, isActive) {
 document.querySelectorAll(`.look-wishlist-btn[data-look-id="${lookId}"]`).forEach(btn => {
@@ -1252,97 +1257,13 @@ btn.innerHTML = isActive
 }
 function toggleLookWishlist(lookId, event) {
 if (event) event.stopPropagation();
-let wishlist = JSON.parse(localStorage.getItem('zr_looks_wishlist') || '[]');
-const idx = wishlist.indexOf(lookId);
-if (idx >= 0) {
-wishlist.splice(idx, 1);
-showTemporaryMessage(' Look eliminado de favoritos', 'info');
-} else {
-wishlist.push(lookId);
-showTemporaryMessage(' Look agregado a favoritos', 'success');
-}
-localStorage.setItem('zr_looks_wishlist', JSON.stringify(wishlist));
-updateLookWishlistButtons(lookId, idx === -1);
-renderWishlistLooks();
-const badge = document.getElementById("wishlist-count-looks");
-if (badge) badge.textContent = wishlist.length;
-const bottomBadge = document.getElementById("bottom-wishlist-count");
-if (bottomBadge) bottomBadge.textContent = wishlist.length;
-window.dispatchEvent(new Event('looksWishlistUpdated'));
-}
-function renderWishlistLooks() {
-const container = document.getElementById("wishlist-looks-container");
-if (!container) return;
-const wishlistIds = JSON.parse(localStorage.getItem('zr_looks_wishlist') || '[]');
-const allLooksCombined = [...allLooks, ...(window.homeLooks || [])];
-const wishlistLooks = allLooksCombined.filter(look => wishlistIds.includes(look.id));
-if (wishlistLooks.length === 0) {
-container.innerHTML = '<div class="cart-empty-state"><div class="cart-empty-icon"></div><p class="helper-text">No hay looks guardados</p><p class="cart-empty-hint">Agrega looks que te gusten</p></div>';
-} else {
-container.innerHTML = '';
-wishlistLooks.forEach(look => {
-const card = createLookCardMini(look);
-container.appendChild(card);
-});
-}
-const badge = document.getElementById("wishlist-count-looks");
-if (badge) badge.textContent = wishlistIds.length;
-}
-function createLookCardMini(look) {
-const div = document.createElement('div');
-div.className = 'cart-item';
-let totalPrice = 0;
-let productsList = '';
-for (const slot of ['torso', 'piernas', 'pies']) {
-const product = look.products[slot];
-if (product) {
-totalPrice += product.price;
-const productImg = optimizeDriveUrl(product.image, 60);
-productsList += `
-<div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px; padding: 4px 0; border-bottom: 1px solid #f0f0f0;">
-<img src="${escapeHtml(productImg)}" alt="${escapeHtml(product.name)}"
-onerror="window.znrLoadImgWithRetry(this)"
-style="width: 40px; height: 40px; object-fit: contain; background:var(--color-surface-2,#f5f5f8); border-radius: 8px;">
-<div style="flex: 1;">
-<div style="font-size: 12px; font-weight: 500;">${escapeHtml(product.name)}</div>
-<div style="font-size: 11px; color:var(--color-accent,var(--color-accent-solid));">${formatCurrency(product.price)}</div>
-<div style="font-size: 10px; color:var(--color-text-muted,#888);">${escapeHtml(product.size || 'Talla no especificada')}</div>
-</div>
-</div>
-`;
-}
-}
-div.innerHTML = `
-<div class="cart-item-info" style="flex:1">
-<div class="cart-item-title" style="font-size: 16px; margin-bottom: 8px;"> ${escapeHtml(look.name)}</div>
-<div style="margin-bottom: 8px; max-height: 200px; overflow-y: auto;">
-${productsList}
-</div>
-<div class="cart-item-meta" style="font-weight:bold; color:var(--color-accent,var(--color-accent-solid)); margin: 8px 0;">Total: ${formatCurrency(totalPrice)}
-</div>
-<div class="cart-item-actions" style="margin-top: 8px; display: flex; gap: 8px;">
-<button class="add-look-to-cart" data-look-id="${look.id}" style="background:var(--color-info-bg,#e8e8ff); border:none; padding: 6px 12px; border-radius: 20px; cursor: pointer; font-size: 12px;"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" aria-hidden="true"><use href="#ic-cart"/></svg> Agregar todo</button>
-<button class="remove-look-from-wishlist" data-look-id="${look.id}" style="background:var(--color-error-bg,#ffe8e8); border:none; padding: 6px 12px; border-radius: 20px; cursor: pointer; font-size: 12px;"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" aria-hidden="true"><use href="#ic-trash"/></svg> Eliminar</button>
-</div>
-</div>
-`;
-div.querySelector('.add-look-to-cart')?.addEventListener('click', (e) => {
-e.stopPropagation();
-addLookToCart(look.id);
-showTemporaryMessage(` ${look.name} agregado al carrito`, 'success');
-});
-div.querySelector('.remove-look-from-wishlist')?.addEventListener('click', (e) => {
-e.stopPropagation();
-let wishlist = JSON.parse(localStorage.getItem('zr_looks_wishlist') || '[]');
-wishlist = wishlist.filter(id => id !== look.id);
-localStorage.setItem('zr_looks_wishlist', JSON.stringify(wishlist));
-updateLookWishlistButtons(look.id, false);
-renderWishlistLooks();
-const badge = document.getElementById("wishlist-count-looks");
-if (badge) badge.textContent = wishlist.length;
-showTemporaryMessage(' Look eliminado de favoritos', 'info');
-});
-return div;
+const look = [...allLooks, ...(window.homeLooks || [])].find(l => String(l.id) === String(lookId));
+const wasIn = isLookInWishlist(lookId);
+if (!wasIn && !look) return;
+saveWishlist(wasIn ? getWishlist().filter(i => i.id !== 'look:' + lookId) : [...getWishlist(), lookSnapshot(look)]);
+updateLookWishlistButtons(lookId, !wasIn);
+renderWishlist();
+showTemporaryMessage(wasIn ? ' Look eliminado de favoritos' : ' Look agregado a favoritos', wasIn ? 'info' : 'success');
 }
 function initLooksLayoutToggle() {
 const looksContainer = document.getElementById("looks-container");
@@ -1562,7 +1483,8 @@ window.reloadSlot = reloadSlot;
 window.addLookToCart = addLookToCart;
 window.isLookInWishlist = isLookInWishlist;
 window.toggleLookWishlist = toggleLookWishlist;
-window.renderWishlistLooks = renderWishlistLooks;
+window.renderWishlistLooks = () => window.renderWishlist?.();
+window.updateLookWishlistButtons = updateLookWishlistButtons;
 window.LOOKS_CONFIG = LOOKS_CONFIG;
 window.getProductsForSlot = getProductsForSlot;
 window.buildLooksProductIndex = buildLooksProductIndex;

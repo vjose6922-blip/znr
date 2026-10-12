@@ -3331,10 +3331,6 @@ const wishlistDrawer = document.getElementById("wishlist-drawer");
 if (wishlistDrawer && wishlistDrawer.classList.contains("open")) {
 wishlistDrawer.classList.remove("open");
 }
-const looksWishlistDrawer = document.getElementById("wishlist-looks-drawer");
-if (looksWishlistDrawer && looksWishlistDrawer.classList.contains("open")) {
-looksWishlistDrawer.classList.remove("open");
-}
 if (typeof closeImageModal === 'function') closeImageModal();
 newOverlay.classList.remove("visible");
 });
@@ -3583,21 +3579,19 @@ updateAllWishlistButtons(id, true);
 showTemporaryMessage(' Agregado a favoritos', 'success');
 }
 }
+function addWishlistItemToCart(item) {
+const products = item.type === 'look'
+? item.products.filter(p => p.stock > 0).map(p => ({ ID: p.id, Nombre: p.name, Precio: p.price, Imagen1: p.image, Talla: p.size }))
+: [{ ID: item.id, Nombre: item.name, Precio: item.price, Imagen1: item.Imagen1, Talla: item.Talla }];
+products.forEach(p => addToCart(p));
+}
 function addAllWishlistToCart() {
 const list = getWishlist();
 if (list.length === 0) {
 showTemporaryMessage("No hay productos en tu lista de deseos", "info");
 return;
 }
-list.forEach(item => {
-addToCart({
-ID: item.id,
-Nombre: item.name,
-Precio: item.price,
-Imagen1: item.Imagen1,
-Talla: item.Talla
-});
-});
+list.forEach(addWishlistItemToCart);
 saveWishlist([]);
 if (typeof renderWishlist === 'function') renderWishlist();
 updateWishlistBadge();
@@ -3658,21 +3652,21 @@ container.innerHTML = `
 items.forEach((item) => {
 const row = document.createElement("div");
 row.className = "cart-item";
-const imgUrl = item.Imagen1 ? optimizeDriveUrl(item.Imagen1, 120) : '';
-const imgHtml = imgUrl
-? `<div class="cart-item-img-wrap"><img class="cart-item-img" src="${escapeHtml(imgUrl)}" alt="${escapeHtml(item.name)}" loading="lazy"></div>`
+const thumb = (src, alt, size) => src ? `<img src="${escapeHtml(optimizeDriveUrl(src, 120))}" alt="${escapeHtml(alt)}" loading="lazy" onerror="window.znrLoadImgWithRetry?.(this)" style="${size}">` : '';
+const info = item.type === 'look'
+? `<div class="cart-item-title">${escapeHtml(item.name)}</div>${item.products.map(p => `<div class="cart-item-meta" style="display:flex;align-items:center;gap:8px;margin:4px 0">${thumb(p.image, p.name, 'width:40px;height:40px;object-fit:contain;border-radius:8px')}<span>${escapeHtml(p.name)} · ${formatCurrency(p.price)} · ${escapeHtml(p.size || '')}</span></div>`).join('')}<div class="cart-item-meta"><b>Total: ${formatCurrency(item.price)}</b></div>`
+: `<div class="cart-item-title">${escapeHtml(item.name)}</div><div class="cart-item-meta">${formatCurrency(item.price)}</div>`;
+const imgHtml = item.type === 'look' ? '' : item.Imagen1
+? `<div class="cart-item-img-wrap">${thumb(item.Imagen1, item.name, '').replace('<img ', '<img class="cart-item-img" ')}</div>`
 : `<div class="cart-item-img-wrap cart-item-img-placeholder"><span></span></div>`;
-row.innerHTML = `
-${imgHtml}
-<div class="cart-item-info">
-<div class="cart-item-title">${escapeHtml(item.name)}</div>
-<div class="cart-item-meta">${formatCurrency(item.price)}</div>
+row.innerHTML = `${imgHtml}
+<div class="cart-item-info" style="flex:1">
+${info}
 <div class="cart-item-actions">
-<button class="add-to-cart-wishlist" data-id="${item.id}" data-name="${escapeHtml(item.name)}" data-price="${item.price}" data-img="${escapeHtml(item.Imagen1)}" data-talla="${escapeHtml(item.Talla || '')}"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" aria-hidden="true"><use href="#ic-cart"/></svg>Agregar al carrito</button>
-<button class="remove-from-wishlist" data-id="${item.id}"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" aria-hidden="true"><use href="#ic-trash"/></svg><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" aria-hidden="true"><use href="#ic-trash"/></svg> Eliminar</button>
+<button class="add-to-cart-wishlist" data-id="${escapeHtml(item.id)}"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" aria-hidden="true"><use href="#ic-cart"/></svg>${item.type === 'look' ? 'Agregar todo' : 'Agregar al carrito'}</button>
+<button class="remove-from-wishlist" data-id="${escapeHtml(item.id)}"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" aria-hidden="true"><use href="#ic-trash"/></svg> Eliminar</button>
 </div>
-</div>
-`;
+</div>`;
 container.appendChild(row);
 });
 document.querySelectorAll('.add-to-cart-wishlist').forEach(btn => {
@@ -3687,14 +3681,10 @@ btn.addEventListener('click', handleRemoveFromWishlist);
 updateWishlistBadge();
 }
 function handleAddFromWishlist(e) {
-const btn = e.currentTarget;
-const id = btn.dataset.id;
-const name = btn.dataset.name;
-const price = parseFloat(btn.dataset.price);
-const img = btn.dataset.img;
-const talla = btn.dataset.talla;
-addToCart({ ID: id, Nombre: name, Precio: price, Imagen1: img, Talla: talla });
-showTemporaryMessage(` ${name} agregado al carrito`, 'success');
+const item = getWishlist().find(i => i.id === e.currentTarget.dataset.id);
+if (!item) return;
+addWishlistItemToCart(item);
+showTemporaryMessage(` ${item.name} agregado al carrito`, 'success');
 }
 function handleRemoveFromWishlist(e) {
 const btn = e.currentTarget;
@@ -3704,6 +3694,7 @@ const removedItem = list.find(i => i.id === id);
 list = list.filter(i => i.id !== id);
 saveWishlist(list);
 updateAllWishlistButtons(id, false);
+if (removedItem?.type === 'look') window.updateLookWishlistButtons?.(removedItem.lookId, false);
 renderWishlist();
 if (removedItem) {
 showTemporaryMessage(` ${removedItem.name} eliminado de favoritos`, 'info');
