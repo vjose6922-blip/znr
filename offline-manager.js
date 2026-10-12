@@ -39,80 +39,48 @@ showMessage(`Producto guardado localmente. Se sincronizará cuando haya internet
 console.log(`📝 Acción "${type}" guardada. Total pendientes: ${pendingActions.length}`);
 }
 const ADMIN_API = "https://catalogo-api-1038143238323.us-central1.run.app";
-async function syncPendingActions() {
-if (!navigator.onLine) {
-console.log("📡 Sin conexión, no se puede sincronizar");
+let syncing = false;
+async function syncPendingActions(manual = false) {
+if (syncing || !navigator.onLine || pendingActions.length === 0) return;
+const token = sessionStorage.getItem("admin_token");
+if (!token) {
+if (manual) showMessage("Inicia sesión como admin para sincronizar los productos pendientes", 'warning');
 return;
 }
-if (pendingActions.length === 0) return;
-console.log(`🔄 Sincronizando ${pendingActions.length} acciones pendientes...`);
-showMessage(`Sincronizando ${pendingActions.length} producto(s)...`, 'info');
-for (let i = 0; i < pendingActions.length; i++) {
-const action = pendingActions[i];
+syncing = true;
 try {
-let success = false;
-if (action.type === ADMIN_ACTIONS.CREATE) {
+if (manual) pendingActions.forEach(a => a.retries = 0);
+const todo = pendingActions.filter(a => a.retries < 3);
+const bodies = {
+[ADMIN_ACTIONS.CREATE]: a => ({ action: "create", ...a.data }),
+[ADMIN_ACTIONS.UPDATE]: a => ({ action: "update", id: a.productId, ...a.data }),
+[ADMIN_ACTIONS.DELETE]: a => ({ action: "delete", id: a.productId })
+};
+if (todo.length) showMessage(`Sincronizando ${todo.length} producto(s)...`, 'info');
+for (const action of todo) {
+try {
 const response = await fetch(ADMIN_API, {
 method: "POST",
 headers: { "Content-Type": "application/x-www-form-urlencoded" },
-body: buildParams({ action: "create", token: sessionStorage.getItem("admin_token") || "", ...action.data })
+body: buildParams({ token, ...bodies[action.type](action) })
 });
-const result = await response.json();
-success = result.ok === true;
-if (success) console.log(`✅ Producto creado: ${action.data.Nombre}`);
-}
-else if (action.type === ADMIN_ACTIONS.UPDATE) {
-const response = await fetch(ADMIN_API, {
-method: "POST",
-headers: { "Content-Type": "application/x-www-form-urlencoded" },
-body: buildParams({ action: "update", id: action.productId, token: sessionStorage.getItem("admin_token") || "", ...action.data })
-});
-const result = await response.json();
-success = result.ok === true;
-if (success) console.log(`✅ Producto actualizado: ID ${action.productId}`);
-}
-else if (action.type === ADMIN_ACTIONS.DELETE) {
-const response = await fetch(ADMIN_API, {
-method: "POST",
-headers: { "Content-Type": "application/x-www-form-urlencoded" },
-body: buildParams({ action: "delete", id: action.productId, token: sessionStorage.getItem("admin_token") || "" })
-});
-const result = await response.json();
-success = result.ok === true;
-if (success) console.log(`✅ Producto eliminado: ID ${action.productId}`);
-}
-if (success) {
-pendingActions.splice(i, 1);
-i--;
-savePendingActions();
-} else {
-action.retries++;
-if (action.retries >= 3) {
-console.warn(`❌ Acción fallida tras ${action.retries} intentos, eliminando`);
-pendingActions.splice(i, 1);
-i--;
-savePendingActions();
-} else {
-console.log(`⚠️ Reintento ${action.retries}/3 para ${action.type}`);
-}
-}
+if ((await response.json()).ok === true) pendingActions = pendingActions.filter(a => a !== action);
+else action.retries++;
 } catch (err) {
 console.error(`Error sincronizando:`, err);
 action.retries++;
-if (action.retries >= 3) {
-pendingActions.splice(i, 1);
-i--;
+}
 savePendingActions();
-}
-}
 }
 if (pendingActions.length === 0) {
 showMessage(`Todos los productos sincronizados`, 'success');
-if (typeof loadAdminProducts === 'function') {
-loadAdminProducts();
+if (typeof loadAdminProducts === 'function') loadAdminProducts();
+} else if (todo.length) {
+showMessage(`${pendingActions.length} producto(s) siguen pendientes. Toca el aviso naranja para reintentar`, 'warning');
 }
+} finally {
+syncing = false;
 }
-updatePendingBadge();
 }
 let pendingBadge = null;
 function updatePendingBadge() {
@@ -145,7 +113,7 @@ message: `¿Sincronizar ${count} producto(s) pendiente(s) ahora?`,
 icon: 'signal',
 confirmText: "Sincronizar",
 cancelText: "Cancelar",
-onConfirm: () => syncPendingActions()
+onConfirm: () => syncPendingActions(true)
 });
 };
 document.body.appendChild(pendingBadge);
@@ -231,12 +199,13 @@ await window._originalDelete(id);
 }
 window.addEventListener('online', () => {
 console.log("🟢 Conexión recuperada - Sincronizando...");
+if (pendingActions.length === 0) return;
 showMessage("Conexión recuperada. Sincronizando cambios...", 'success');
 setTimeout(() => syncPendingActions(), 1000);
 });
 window.addEventListener('offline', () => {
 console.log("🔴 Conexión perdida");
-showMessage("Sin conexión - Los cambios se guardarán localmente", 'warning');
+if (sessionStorage.getItem("admin_token")) showMessage("Sin conexión - Los cambios se guardarán localmente", 'warning');
 });
 loadPendingActions();
 setupInterception();
