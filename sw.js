@@ -39,6 +39,7 @@ const STATIC_ASSETS = [
   '/znr/offline-manager.js',
   '/znr/cache-manager.js',
   '/znr/error-monitor.js',
+  '/znr/feedback.js',
   '/znr/icons.js',
   '/znr/manifest.json',
   '/znr/placeholder.svg',
