@@ -325,11 +325,7 @@ ${savedAddress?`<button class="up-danger-btn" id="up-delete-address-btn"><svg xm
 </div>
 </div>
 <div class="up-divider"></div>
-<p class="up-privacy-note">Tus datos se guardan únicamente en este dispositivo y se usan solo para agilizar
-el proceso de compra. Puedes eliminarlos en cualquier momento.
-Para solicitar eliminación de datos en nuestros registros escríbenos a
-<strong>znrcomunity@gmail.com</strong>
-</p>
+
 </section>
 <section class="up-tab-content" data-content="feedback">
 <h3 class="up-section-title">Feedback</h3>
@@ -643,7 +639,7 @@ s.textContent = `
 .up-privacy-value{display:block;font-size:11px;color:var(--color-text-secondary,#888);margin-top:2px;word-break:break-all}
 .up-danger-btn{flex-shrink:0;background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);color:#ef4444;padding:6px 12px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;transition:all .15s;white-space:nowrap}
 .up-danger-btn:hover{background:rgba(239,68,68,.2)}
-.up-privacy-note{font-size:11px;color:var(--color-text-secondary,#888);line-height:1.6}
+
 [data-theme="light"] #up-panel{background:#fff;border-left-color:rgba(0,0,0,.08)}
 [data-theme="light"] .up-theme-btn,[data-theme="light"] .up-layout-btn,[data-theme="light"] .up-size-btn{border-color:#c5c8d0;background:#f4f5f8;color:#333;font-weight:500}
 [data-theme="light"] .up-theme-btn.active,[data-theme="light"] .up-layout-btn.active{background:rgba(var(--color-accent-rgb),0.12);border-color:var(--color-accent-solid);color:var(--color-accent-solid)}
@@ -654,7 +650,7 @@ s.textContent = `
 [data-theme="light"] .up-divider{background:#e2e4ea}
 [data-theme="light"] .up-close{background:#f0f1f5;color:#555}
 [data-theme="light"] .up-close:hover{background:#fff0f5;color:var(--color-accent-solid)}
-[data-theme="light"] .up-section-title,[data-theme="light"] .up-size-hint,[data-theme="light"] .up-privacy-note,[data-theme="light"] .up-section-hint{color:#6b7280}
+[data-theme="light"] .up-section-title,[data-theme="light"] .up-size-hint,[data-theme="light"] 
 [data-theme="light"] .up-title,[data-theme="light"] .up-size-label strong,[data-theme="light"] .up-order-date,[data-theme="light"] .up-privacy-info strong{color:#111318}
 @media(max-width:400px){#up-panel{width:100vw;border-left:none}}
 `;
