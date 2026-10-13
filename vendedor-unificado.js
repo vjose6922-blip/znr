@@ -823,7 +823,7 @@ function renderVendorPlanPanel() {
     { status: 'aprobado',  label: 'Aprobados' },
     { status: 'pendiente', label: 'Pendientes' },
     { status: 'rechazado', label: 'Rechazados' },
-    { status: 'sin_stock', label: 'Sin stock' },
+    ...((window._sinStockCount > 0 || window.currentStatusFilter === 'sin_stock') ? [{ status: 'sin_stock', label: 'Sin stock' }] : []),
   ];
   const statusFilterHTML = `
     <div class="vendor-status-filter" style="display:flex; gap:8px; margin-top:14px; flex-wrap:wrap;">
@@ -1147,6 +1147,27 @@ window.loadMyProducts = async function loadMyProducts(force = false, page = 1) {
   const limit = 20;
   const status = window.currentStatusFilter || 'todos';
 
+  const q = (window.vendorSearchQuery || '').trim().toLowerCase();
+  if (q) {
+    showVendorProductsSkeleton(container, 3);
+    try {
+      const res = await apiFetch({ action: 'misProductosComunidad', limit: 200, page: 1, estado: ['todos', 'sin_stock'].includes(status) ? undefined : status, vendorToken: vendorSession.token }, 'GET');
+      if (!res.ok) throw new Error(res.error || 'Error al buscar');
+      if ((window.vendorSearchQuery || '').trim().toLowerCase() !== q) return;
+      const lista = (res.products || []).filter(p => p.vendedor_uid === uid
+        && (status !== 'sin_stock' || (p.estado === 'aprobado' && p.tipoVenta !== 'personalizado' && Number(p.stock || 0) <= 0))
+        && [p.nombre, p.categoria, p.talla, p.descripcion].join(' ').toLowerCase().includes(q));
+      window._vendorProducts = lista;
+      container.innerHTML = lista.length ? '' : '<p style="color:#aaa;text-align:center">Sin resultados para tu búsqueda.</p>';
+      lista.forEach(p => container.appendChild(createVendorProductCard(p)));
+      applyLayoutGlobal(localStorage.getItem('products_layout') || 'grid');
+      document.getElementById('vendor-pagination')?.remove();
+    } catch (err) {
+      container.innerHTML = `<p style="color:#ef4444">Error: ${escapeHtml(err.message)}</p>`;
+    }
+    return;
+  }
+
   const cached = !force ? window.getVendorPageCache(uid, page, status) : null;
 
   if (cached) {
@@ -1158,6 +1179,12 @@ window.loadMyProducts = async function loadMyProducts(force = false, page = 1) {
   showVendorProductsSkeleton(container, Math.min(limit, 6));
   await window.fetchPage(uid, page, limit, status, false);
 };
+
+document.addEventListener('input', e => {
+  if (e.target.id !== 'vendor-search') return;
+  clearTimeout(window._vendorSearchTimer);
+  window._vendorSearchTimer = setTimeout(() => { window.vendorSearchQuery = e.target.value; loadMyProducts(true, 1); }, 300);
+});
 
 window.fetchPage = async function(uid, page, limit, status, background = false) {
   const container = document.getElementById('products-container');
@@ -1210,6 +1237,11 @@ window.checkStockBanner = async function checkStockBanner() {
       todos.forEach(p => mapa.set(String(p.id), p));
       window._vendorProducts = Array.from(mapa.values());
     }
+
+    const habiaSinStock = window._sinStockCount > 0;
+    window._sinStockCount = sinStock.length;
+    if (!sinStock.length && window.currentStatusFilter === 'sin_stock') { window.currentStatusFilter = 'todos'; loadMyProducts(true, 1); }
+    else if (habiaSinStock !== sinStock.length > 0) renderVendorPlanPanel();
 
     el.innerHTML = !sinStock.length ? '' : `
       <div style="background:#fef2f2;border:1.5px solid #dc2626;border-radius:14px;padding:14px;margin-bottom:16px;">
