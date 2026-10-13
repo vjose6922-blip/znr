@@ -323,7 +323,6 @@ ${savedPhone?`<button class="up-danger-btn" id="up-delete-phone-btn"><svg xmlns=
 ${savedAddress?`<button class="up-danger-btn" id="up-delete-address-btn"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" aria-hidden="true"><use href="#ic-trash"/></svg> Eliminar</button>`:''}
 </div>
 </div>
-</div>
 <div class="up-divider"></div>
 <p class="up-privacy-note">Tus datos se guardan únicamente en este dispositivo y se usan solo para agilizar
 el proceso de compra. Puedes eliminarlos en cualquier momento.
