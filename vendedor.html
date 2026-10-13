@@ -64,6 +64,14 @@
  <style>
  html[data-vsess] #login-section { display: none !important; }
  html[data-vsess] #panel-section { display: block !important; }
+    .vp-sk{display:block;border-radius:6px;background:linear-gradient(90deg,var(--color-surface-2,#f0f0f4) 25%,var(--color-surface-3,#e4e4ea) 50%,var(--color-surface-2,#f0f0f4) 75%);background-size:600px 100%;animation:vp-shimmer 1.3s infinite linear}
+    @keyframes vp-shimmer{0%{background-position:-600px 0}100%{background-position:600px 0}}
+    .vp-row{display:flex;gap:12px;padding:12px 0;border-bottom:1px solid #f0f0f0;align-items:center}
+    .vp-row>div{flex:1}
+    .vp-i{width:72px;height:72px;border-radius:10px;flex-shrink:0}
+    .vp-l1{height:13px;width:70%;margin-bottom:8px}
+    .vp-l2{height:11px;width:45%;margin-bottom:8px}
+    .vp-l3{height:22px;width:80px;border-radius:20px}
  html[data-vsess] #bottom-nav-guest { display: none !important; }
  html[data-vsess] #bottom-nav-vendor { display: flex !important; }
  </style>
@@ -341,8 +349,7 @@ h3 {
  <div id="tab-products">
 
  <div class="vendor-section">
- <h2> <button id="share-vendor-link" class="btn-secondary" style="font-size:12px; margin-left:10px;"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" aria-hidden="true"><use href="#ic-share"/></svg> Link de mi tienda</button></h2>
- <div id="vendor-plan-panel" style="margin:4px 0 16px;"></div>
+ <div id="vendor-plan-panel" style="margin:4px 0 16px;"><i class="vp-sk" style="height:128px;border-radius:14px"></i></div>
  <div id="stock-alert-banner"></div>
  <a href="mis-pedidos.html?rol=vendedor" id="pedidos-pers-link" style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0 0 14px;padding:12px 14px;border-radius:14px;border:1.5px solid #a855f7;background:rgba(168,85,247,.08);color:inherit;text-decoration:none;font-weight:700;font-size:14px;">
    <span>Pedidos personalizados<br><small style="font-weight:500;opacity:.75;">Solicitudes, chats y cotizaciones de tus clientes</small></span><span aria-hidden="true">›</span>
@@ -352,7 +359,7 @@ h3 {
 <div id="checklist-vendedor"></div>
  <input type="file" id="logo-file-input" accept="image/*" style="display:none">
 <input type="search" id="vendor-search" placeholder="Buscar producto por nombre, categoría o talla..." autocomplete="off" style="width:100%;box-sizing:border-box;padding:10px 14px;margin:0 0 14px;border:1px solid #ddd;border-radius:12px;font-size:.9rem;outline:none;">
-<div id="products-container" class="products-container vendor-products"></div>
+<div id="products-container" class="products-container vendor-products"><div class="vp-row"><i class="vp-sk vp-i"></i><div><i class="vp-sk vp-l1"></i><i class="vp-sk vp-l2"></i><i class="vp-sk vp-l3"></i></div></div><div class="vp-row"><i class="vp-sk vp-i"></i><div><i class="vp-sk vp-l1"></i><i class="vp-sk vp-l2"></i><i class="vp-sk vp-l3"></i></div></div><div class="vp-row"><i class="vp-sk vp-i"></i><div><i class="vp-sk vp-l1"></i><i class="vp-sk vp-l2"></i><i class="vp-sk vp-l3"></i></div></div></div>
 </div>
  </div>
 

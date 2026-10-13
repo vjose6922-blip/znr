@@ -537,9 +537,6 @@ if (navVendor) navVendor.style.display = '';
 const cardName = document.getElementById('vendor-card-name');
 if (cardName && vendorSession) cardName.textContent = vendorSession.nombre;
 
-const oldShareBtn = document.getElementById('share-vendor-link');
-if (oldShareBtn) oldShareBtn.remove();
-
 const headerName = document.getElementById('vendor-name-header');
 if (headerName) {
   const existing = document.getElementById('share-vendor-link-header');
@@ -879,21 +876,7 @@ function applyVendorStatusFilter(status) {
 }
 
 function showVendorProductsSkeleton(container, count = 3) {
-  const card = () => `
-    <div style="display:flex;gap:12px;padding:12px 0;border-bottom:1px solid #f0f0f0;align-items:center;">
-      <div class="vp-sk" style="width:72px;height:72px;border-radius:10px;flex-shrink:0;"></div>
-      <div style="flex:1;">
-        <div class="vp-sk" style="height:13px;width:70%;margin-bottom:8px;border-radius:6px;"></div>
-        <div class="vp-sk" style="height:11px;width:45%;margin-bottom:8px;border-radius:6px;"></div>
-        <div class="vp-sk" style="height:22px;width:80px;border-radius:20px;"></div>
-      </div>
-    </div>`;
-  container.innerHTML = `
-    <style>
-      .vp-sk{background:linear-gradient(90deg,var(--color-surface-2,#f0f0f4) 25%,var(--color-surface-3,#e4e4ea) 50%,var(--color-surface-2,#f0f0f4) 75%);background-size:600px 100%;animation:vp-shimmer 1.3s infinite linear;}
-      @keyframes vp-shimmer{0%{background-position:-600px 0}100%{background-position:600px 0}}
-    </style>
-    ${Array.from({length: count}, card).join('')}`;
+  container.innerHTML = '<div class="vp-row"><i class="vp-sk vp-i"></i><div><i class="vp-sk vp-l1"></i><i class="vp-sk vp-l2"></i><i class="vp-sk vp-l3"></i></div></div>'.repeat(count);
 }
 
 function createVendorProductCard(product) {
