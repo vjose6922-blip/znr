@@ -131,7 +131,7 @@
     .fa-stories-title { font-size: .78rem; font-weight: 700; color: var(--color-text-soft); margin: 0 0 10px; display: flex; align-items: center; gap: 6px; }
     .fa-stories-scroll { display: flex; gap: 10px; overflow-x: auto; padding: 2px 2px 6px; scrollbar-width: none; }
     .fa-stories-scroll::-webkit-scrollbar { display: none; }
-    .fa-story-item { position: relative; flex-shrink: 0; width: 108px; height: 184px; padding: 0; border: none; border-radius: 14px; overflow: hidden; cursor: pointer; background: var(--color-surface); box-shadow: 0 2px 10px rgba(0,0,0,.14); font-family: inherit; text-align: left; -webkit-tap-highlight-color: transparent; }
+    .fa-story-item, .fa-story-crear { position: relative; flex-shrink: 0; width: 108px; height: 184px; padding: 0; border: none; border-radius: 14px; overflow: hidden; cursor: pointer; background: var(--color-surface); box-shadow: 0 2px 10px rgba(0,0,0,.14); font-family: inherit; text-align: left; -webkit-tap-highlight-color: transparent; }
     .fa-story-item::after { content: ''; position: absolute; inset: 0; z-index: 1; pointer-events: none; background: linear-gradient(rgba(0,0,0,.28) 0%, transparent 32%, transparent 55%, rgba(0,0,0,.72) 100%); }
     .fa-story-media { position: absolute; inset: 0; background: var(--gradient-accent); }
     .fa-story-media img, .fa-story-media video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; pointer-events: none; }
@@ -141,6 +141,19 @@
     .fa-story-avatar img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
     .fa-story-play { position: absolute; top: 12px; right: 8px; z-index: 2; width: 22px; height: 22px; border-radius: 50%; background: rgba(0,0,0,.5); color: #fff; display: flex; align-items: center; justify-content: center; pointer-events: none; }
     .fa-story-name { position: absolute; left: 9px; right: 9px; bottom: 9px; z-index: 2; color: #fff; font-size: .76rem; font-weight: 800; line-height: 1.2; text-shadow: 0 1px 4px rgba(0,0,0,.6); overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+
+    /* Tarjeta "Subir historia" (solo vendedores con sesión) */
+    .fa-story-crear { background: var(--color-surface); }
+    .fa-story-crear:disabled { opacity: .7; cursor: default; }
+    .fa-story-crear-top { position: absolute; left: 0; right: 0; top: 0; height: 66%; display: flex; align-items: center; justify-content: center; background: var(--gradient-accent); color: #fff; font-weight: 800; font-size: 2rem; overflow: hidden; }
+    .fa-story-crear-top img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; pointer-events: none; }
+    .fa-story-crear-plus { position: absolute; left: 50%; top: 66%; transform: translate(-50%, -50%); z-index: 2; width: 34px; height: 34px; border-radius: 50%; background: var(--gradient-accent); color: #fff; border: 3px solid var(--color-surface); display: flex; align-items: center; justify-content: center; }
+    .fa-story-crear-txt { position: absolute; left: 6px; right: 6px; bottom: 9px; z-index: 2; text-align: center; color: var(--color-text-primary); font-size: .72rem; font-weight: 800; line-height: 1.15; }
+
+    #fa-toast { position: fixed; left: 50%; bottom: calc(env(safe-area-inset-bottom, 0px) + 86px); transform: translateX(-50%); z-index: 10001; max-width: min(92vw, 420px); padding: 10px 16px; border-radius: 12px; background: #1f2937; color: #fff; font-size: .84rem; font-weight: 600; line-height: 1.35; text-align: center; box-shadow: 0 8px 24px rgba(0,0,0,.3); }
+    #fa-toast[hidden] { display: none; }
+    #fa-toast.error { background: #b91c1c; }
+    #fa-toast.ok { background: #15803d; }
 
     .fa-sv { position: fixed; inset: 0; z-index: 10000; background: rgba(0,0,0,.92); display: flex; align-items: center; justify-content: center; }
     .fa-sv[hidden] { display: none; }
@@ -387,12 +400,21 @@
 
     function renderHistorias() {
       const wrap = document.getElementById('fa-stories-wrap');
-      if (!gruposHistorias.length) { wrap.innerHTML = ''; return; }
+      const ses = sesionVendedor();
+      if (!gruposHistorias.length && !ses) { wrap.innerHTML = ''; return; }
       const vistas = leerSet(VISTAS_KEY);
+      const inicialPropia = esc(((ses && ses.nombre) || '?').trim().charAt(0).toUpperCase());
+      const tarjetaCrear = !ses ? '' : `
+              <button type="button" class="fa-story-crear" id="fa-story-crear"${subiendoHistoria ? ' disabled' : ''}>
+                <span class="fa-story-crear-top">${inicialPropia}${ses.logo ? `<img src="${esc(ses.logo)}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()">` : ''}</span>
+                <span class="fa-story-crear-plus">${Icon('plus', { size: 18 })}</span>
+                <span class="fa-story-crear-txt">${subiendoHistoria ? 'Subiendo…' : 'Subir historia'}</span>
+              </button>`;
       wrap.innerHTML = `
         <div class="fa-stories-wrap">
           <p class="fa-stories-title">${Icon('camera', { size: 14 })} Historias · duran 24 horas</p>
           <div class="fa-stories-scroll">
+            ${tarjetaCrear}
             ${gruposHistorias.map((g, idx) => `
               <button type="button" class="fa-story-item${g.historias.every(h => vistas.has(h.id)) ? ' visto' : ''}" data-grupo="${idx}">
                 ${previewHistoria(g)}
@@ -409,7 +431,8 @@
         const ciudad = typeof obtenerCiudadComprador === 'function' ? await obtenerCiudadComprador() : null;
         const r = await (await fetch(`${HISTORIAS_API}?${new URLSearchParams({ action: 'obtenerHistorias' })}`)).json();
         if (!r.ok) throw new Error(r.error || 'Error');
-        const lista = (r.historias || []).filter(h => !ciudad || !h.ciudad || h.ciudad === ciudad);
+        const ses = sesionVendedor();
+        const lista = (r.historias || []).filter(h => !ciudad || !h.ciudad || h.ciudad === ciudad || (ses && h.vendedorUid === ses.uid));
         gruposHistorias = agruparHistorias(lista);
       } catch (e) {
         console.warn('No se pudieron cargar las historias:', e);
@@ -593,6 +616,125 @@
         sheet.querySelector('#fa-sv-cancel').addEventListener('click', () => { sheet.hidden = true; reanudarHistoria(); });
       }
     }
+
+
+    // ── Subir mi historia (solo vendedores con sesión iniciada) ──
+    const MAX_VIDEO_SEG = 5;                  // "~4 segundos" + margen
+    const MAX_VIDEO_BYTES = 6 * 1024 * 1024;  // mismo tope que historias-api
+    const IMG_LADO_MAX = 1080;
+    let subiendoHistoria = false;
+    let toastTimer = 0;
+
+    function sesionVendedor() {
+      try {
+        const raw = localStorage.getItem('vendor_session') || sessionStorage.getItem('vendor_session');
+        const s = raw ? JSON.parse(raw) : null;
+        return s && s.uid && s.token ? s : null;
+      } catch { return null; }
+    }
+
+    function aviso(texto, tipo, ms) {
+      let t = document.getElementById('fa-toast');
+      if (!t) { t = document.createElement('div'); t.id = 'fa-toast'; t.setAttribute('role', 'status'); document.body.appendChild(t); }
+      clearTimeout(toastTimer);
+      t.className = tipo || '';
+      t.textContent = texto;
+      t.hidden = false;
+      if (ms !== 0) toastTimer = setTimeout(() => { t.hidden = true; }, ms || 4500);
+    }
+
+    function aBase64(blob) {
+      return new Promise((resolve, reject) => {
+        const fr = new FileReader();
+        fr.onload = () => resolve(String(fr.result).split(',')[1]);
+        fr.onerror = reject;
+        fr.readAsDataURL(blob);
+      });
+    }
+
+    function comprimirImagen(file) {
+      return new Promise((resolve, reject) => {
+        const url = URL.createObjectURL(file);
+        const img = new Image();
+        img.onload = () => {
+          URL.revokeObjectURL(url);
+          let { width: w, height: h } = img;
+          const k = Math.min(1, IMG_LADO_MAX / Math.max(w, h));
+          w = Math.round(w * k); h = Math.round(h * k);
+          const c = document.createElement('canvas');
+          c.width = w; c.height = h;
+          c.getContext('2d').drawImage(img, 0, 0, w, h);
+          const mime = c.toDataURL('image/webp').startsWith('data:image/webp') ? 'image/webp' : 'image/jpeg';
+          c.toBlob(b => b ? resolve(b) : reject(new Error('No se pudo procesar la imagen.')), mime, 0.85);
+        };
+        img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('No se pudo leer la imagen.')); };
+        img.src = url;
+      });
+    }
+
+    function duracionVideo(file) {
+      return new Promise((resolve, reject) => {
+        const v = document.createElement('video');
+        const url = URL.createObjectURL(file);
+        v.preload = 'metadata';
+        v.onloadedmetadata = () => { URL.revokeObjectURL(url); resolve(v.duration); };
+        v.onerror = () => { URL.revokeObjectURL(url); reject(new Error('No se pudo leer el video.')); };
+        v.src = url;
+      });
+    }
+
+    function selectorArchivoHistoria() {
+      let inp = document.getElementById('fa-historia-file');
+      if (inp) return inp;
+      inp = document.createElement('input');
+      inp.type = 'file'; inp.id = 'fa-historia-file';
+      inp.accept = 'image/*,video/mp4,video/quicktime,video/webm';
+      inp.style.display = 'none';
+      inp.addEventListener('change', () => { const f = inp.files && inp.files[0]; inp.value = ''; if (f) subirMiHistoria(f); });
+      document.body.appendChild(inp);
+      return inp;
+    }
+
+    async function subirMiHistoria(file) {
+      const ses = sesionVendedor();
+      if (!ses || subiendoHistoria) return;
+      const esVideo = file.type.startsWith('video/');
+      if (!esVideo && !file.type.startsWith('image/')) { aviso('Elige una foto o un video corto.', 'error'); return; }
+
+      subiendoHistoria = true; renderHistorias();
+      try {
+        let blob = file;
+        if (esVideo) {
+          const seg = await duracionVideo(file);
+          if (!isFinite(seg) || seg > MAX_VIDEO_SEG) throw new Error(`El video debe durar unos 4 segundos (máx. ${MAX_VIDEO_SEG} s).`);
+          if (file.size > MAX_VIDEO_BYTES) throw new Error('El video pesa más de 6 MB. Graba uno de ~4 segundos en calidad 720p.');
+        } else {
+          aviso('Procesando imagen…', '', 0);
+          blob = await comprimirImagen(file);
+        }
+        aviso('Subiendo tu historia…', '', 0);
+        const idToken = window.znrFirestore && window.znrFirestore.getIdToken
+          ? await window.znrFirestore.getIdToken('vendedor', ses.uid, ses.token) : null;
+        if (!idToken) throw new Error('No se pudo verificar tu sesión. Entra a tu panel de vendedor e inicia sesión de nuevo.');
+        const r = await (await fetch(HISTORIAS_API, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'subirHistoria', idToken, data: await aBase64(blob) })
+        })).json();
+        if (!r.ok) throw new Error(r.error || 'No se pudo publicar la historia.');
+        aviso('Historia publicada. Se verá 24 horas.', 'ok');
+      } catch (e) {
+        aviso(e.message || 'No se pudo publicar la historia.', 'error', 6000);
+      } finally {
+        subiendoHistoria = false;
+        await cargarHistorias();
+      }
+    }
+
+    document.addEventListener('click', (e) => {
+      if (!e.target.closest('#fa-story-crear') || subiendoHistoria) return;
+      selectorArchivoHistoria().click(); // directo, dentro del toque (Safari bloquea el selector si hay un await antes)
+    });
 
     document.addEventListener('click', (e) => {
       const b = e.target.closest('.fa-story-item');
