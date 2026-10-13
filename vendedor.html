@@ -15,6 +15,7 @@
         https://firebasestorage.googleapis.com
         https://*.firebasestorage.app
         https://storage.googleapis.com ;
+ media-src 'self' blob: https://firebasestorage.googleapis.com https://*.firebasestorage.app https://storage.googleapis.com ;
  connect-src 'self' 
    https://script.google.com 
    https://script.googleusercontent.com 
@@ -30,6 +31,7 @@
    https://auth-api-1038143238323.us-central1.run.app 
    https://vendedores-api-1038143238323.us-central1.run.app 
    https://live-api-1038143238323.us-central1.run.app 
+   https://historias-api-1038143238323.us-central1.run.app 
    https://firebase.googleapis.com 
    https://firestore.googleapis.com 
    https://identitytoolkit.googleapis.com 
@@ -619,6 +621,7 @@ h3 {
  <script src="feedback.js" defer></script>
  <script src="ciudades.js" defer></script>
  <script src="vendedor-unificado.js" defer></script>
+ <script src="historias-vendedor.js" defer></script>
  <script type="module" src="ai-clasificador.js"></script>
 <script>
 // Registra el token de notificaciones push del vendedor una vez que
@@ -975,6 +978,24 @@ document.addEventListener('DOMContentLoaded', () => {
             </button>
             <p id="mp-conexion-msg" style="text-align:center;font-size:.8rem;margin:8px 0 0;min-height:18px;"></p>
           </div>
+        </div>
+      </div>
+
+      <!-- ── Sección colapsable: Actividad (historias de 24 h) ── -->
+      <div class="settings-section" id="settings-historias-section">
+        <button class="settings-section-toggle" id="settings-historias-toggle" onclick="toggleSettingsSection(this)">
+          <span><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" aria-hidden="true"><use href="#ic-camera"/></svg> Actividad <span id="historias-count-badge" style="font-weight:600;color:#aaa;font-size:.75rem;"></span></span>
+          <svg class="toggle-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <div class="settings-section-body" style="display:none;">
+          <p style="font-size:.78rem;color:#888;margin:0 0 12px;line-height:1.5;">Publica historias que se ven en <strong>Actividad reciente</strong> durante 24 horas y luego se borran para siempre. Máximo 3 a la vez, y solo una puede ser video corto (~4 segundos).</p>
+          <p id="historias-cupo" style="margin:0 0 10px;font-size:.78rem;font-weight:700;color:#555;"></p>
+          <input type="file" id="historias-file" accept="image/*,video/mp4,video/quicktime,video/webm" style="display:none;">
+          <button type="button" id="historias-btn-subir" style="width:100%;padding:11px;border-radius:10px;border:1.5px solid #7c3aed;background:#f5f3ff;color:#6d28d9;font-size:.9rem;font-weight:700;cursor:pointer;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" aria-hidden="true"><use href="#ic-camera"/></svg> Subir foto o video corto
+          </button>
+          <p id="historias-msg" style="text-align:center;font-size:.8rem;margin:8px 0 0;min-height:18px;"></p>
+          <div id="historias-lista" style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px;"></div>
         </div>
       </div>
 

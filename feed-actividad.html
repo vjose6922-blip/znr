@@ -14,7 +14,8 @@
         https://firebasestorage.googleapis.com
         https://*.firebasestorage.app
         https://storage.googleapis.com ;
- connect-src 'self' https://script.google.com https://script.googleusercontent.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firestore.googleapis.com https://wttr.in https://www.gstatic.com https://firebaseinstallations.googleapis.com https://fcmregistrations.googleapis.com https://registrar-token-fcm-1038143238323.us-central1.run.app https://ventas-api-1038143238323.us-central1.run.app https://admin-api-1038143238323.us-central1.run.app https://auth-api-1038143238323.us-central1.run.app https://firebase.googleapis.com https://znr-live-default-rtdb.firebaseio.com https://nominatim.openstreetmap.org https://catalogo-api-1038143238323.us-central1.run.app https://tienda-znr-api-1038143238323.us-central1.run.app https://vendedores-api-1038143238323.us-central1.run.app https://beneficiarios-api-1038143238323.us-central1.run.app https://live-api-1038143238323.us-central1.run.app ;
+ connect-src 'self' https://script.google.com https://script.googleusercontent.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firestore.googleapis.com https://wttr.in https://www.gstatic.com https://firebaseinstallations.googleapis.com https://fcmregistrations.googleapis.com https://registrar-token-fcm-1038143238323.us-central1.run.app https://ventas-api-1038143238323.us-central1.run.app https://admin-api-1038143238323.us-central1.run.app https://auth-api-1038143238323.us-central1.run.app https://firebase.googleapis.com https://znr-live-default-rtdb.firebaseio.com https://nominatim.openstreetmap.org https://catalogo-api-1038143238323.us-central1.run.app https://tienda-znr-api-1038143238323.us-central1.run.app https://vendedores-api-1038143238323.us-central1.run.app https://beneficiarios-api-1038143238323.us-central1.run.app https://live-api-1038143238323.us-central1.run.app https://historias-api-1038143238323.us-central1.run.app ;
+ media-src 'self' blob: https://firebasestorage.googleapis.com https://*.firebasestorage.app https://storage.googleapis.com ;
  font-src 'self';
  frame-src 'none';
  frame-ancestors 'none';
@@ -124,6 +125,46 @@
     @keyframes sk-shimmer { 0% { background-position: 100% 50%; } 100% { background-position: 0 50%; } }
     @keyframes fa-fade-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
     @keyframes fa-pulse { 0%, 100% { opacity: 1; } 50% { opacity: .6; } }
+
+    /* ── Historias (24 h) ── */
+    .fa-stories-wrap { padding: 14px 16px 2px; }
+    .fa-stories-title { font-size: .78rem; font-weight: 700; color: var(--color-text-soft); margin: 0 0 10px; display: flex; align-items: center; gap: 6px; }
+    .fa-stories-scroll { display: flex; gap: 14px; overflow-x: auto; padding: 2px 2px 6px; scrollbar-width: none; }
+    .fa-stories-scroll::-webkit-scrollbar { display: none; }
+    .fa-story-item { flex-shrink: 0; width: 68px; background: none; border: none; padding: 0; cursor: pointer; text-align: center; font-family: inherit; }
+    .fa-story-ring { display: block; width: 64px; height: 64px; border-radius: 50%; padding: 3px; background: var(--gradient-accent); box-sizing: border-box; }
+    .fa-story-item.visto .fa-story-ring { background: var(--color-border-subtle); }
+    .fa-story-avatar { position: relative; display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; border-radius: 50%; overflow: hidden; border: 2px solid var(--page-bg); background: var(--color-surface); color: var(--color-accent-solid); font-weight: 800; font-size: 1.2rem; box-sizing: border-box; }
+    .fa-story-avatar img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+    .fa-story-name { display: block; margin-top: 5px; font-size: .68rem; font-weight: 700; color: var(--color-text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+    .fa-sv { position: fixed; inset: 0; z-index: 10000; background: rgba(0,0,0,.92); display: flex; align-items: center; justify-content: center; }
+    .fa-sv[hidden] { display: none; }
+    .fa-sv-box { position: relative; width: 100%; max-width: 460px; height: 100%; max-height: 880px; background: #000; overflow: hidden; display: flex; flex-direction: column; }
+    .fa-sv-bars { position: absolute; top: calc(env(safe-area-inset-top, 0px) + 8px); left: 10px; right: 10px; z-index: 4; display: flex; gap: 4px; }
+    .fa-sv-bar { flex: 1; height: 3px; border-radius: 2px; background: rgba(255,255,255,.3); overflow: hidden; }
+    .fa-sv-bar > i { display: block; height: 100%; width: 0; background: #fff; }
+    .fa-sv-head { position: absolute; top: calc(env(safe-area-inset-top, 0px) + 18px); left: 0; right: 0; z-index: 4; display: flex; align-items: center; gap: 8px; padding: 8px 10px; background: linear-gradient(rgba(0,0,0,.6), transparent); }
+    .fa-sv-user { flex: 1; min-width: 0; display: flex; align-items: center; gap: 10px; text-decoration: none; color: #fff; }
+    .fa-sv-av { position: relative; flex-shrink: 0; width: 38px; height: 38px; border-radius: 50%; overflow: hidden; background: #333; display: flex; align-items: center; justify-content: center; font-weight: 800; color: #fff; }
+    .fa-sv-av img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+    .fa-sv-user b { display: block; font-size: .9rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-decoration: underline; text-underline-offset: 3px; text-decoration-color: rgba(255,255,255,.5); }
+    .fa-sv-user small { display: block; font-size: .7rem; opacity: .75; }
+    .fa-sv-btn { flex-shrink: 0; width: 38px; height: 38px; border-radius: 50%; border: none; background: rgba(0,0,0,.35); color: #fff; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+    .fa-sv-media { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; }
+    .fa-sv-media img, .fa-sv-media video { width: 100%; height: 100%; object-fit: contain; background: #000; }
+    .fa-sv-nav { position: absolute; top: 90px; bottom: 90px; width: 35%; z-index: 3; background: none; border: none; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+    .fa-sv-nav.prev { left: 0; }
+    .fa-sv-nav.next { right: 0; width: 65%; }
+    .fa-sv-foot { position: absolute; left: 0; right: 0; bottom: 0; z-index: 4; padding: 30px 14px calc(env(safe-area-inset-bottom, 0px) + 16px); background: linear-gradient(transparent, rgba(0,0,0,.7)); display: flex; justify-content: center; }
+    .fa-sv-foot .bell-live { margin-top: 0; }
+    .fa-sv-sheet { position: absolute; left: 0; right: 0; bottom: 0; z-index: 6; background: var(--color-surface, #fff); color: var(--color-text-primary, #111); border-radius: 18px 18px 0 0; padding: 16px 16px calc(env(safe-area-inset-bottom, 0px) + 16px); box-shadow: 0 -8px 30px rgba(0,0,0,.4); }
+    .fa-sv-sheet[hidden] { display: none; }
+    .fa-sv-sheet h3 { margin: 0 0 4px; font-size: 1rem; }
+    .fa-sv-sheet p { margin: 0 0 12px; font-size: .78rem; color: var(--color-text-soft); }
+    .fa-sv-sheet button.motivo { display: block; width: 100%; text-align: left; margin-bottom: 8px; padding: 11px 12px; border-radius: 10px; border: 1px solid var(--color-border-subtle); background: var(--color-bg, #f6f6f6); color: inherit; font-size: .88rem; font-weight: 600; cursor: pointer; font-family: inherit; }
+    .fa-sv-sheet button.cancelar { display: block; width: 100%; padding: 10px; border: none; background: none; color: var(--color-text-soft); font-size: .85rem; font-weight: 700; cursor: pointer; font-family: inherit; }
+    .fa-sv-aviso { margin: 0; padding: 18px 0 6px; text-align: center; font-weight: 700; font-size: .9rem; }
   </style>
 </head>
 <body>
@@ -137,6 +178,8 @@
       </div>
     </div>
   </header>
+
+  <div id="fa-stories-wrap"></div>
 
   <div id="fa-reco-wrap"></div>
 
@@ -176,6 +219,7 @@
   <script src="ciudades.js" defer></script>
   <script src="api-config.js" defer></script>
   <script type="module" src="firestore-init.js"></script>
+  <script type="module" src="fcm-init.js"></script>
   <script src="znr-devconsole.js" defer></script>
   <script src="error-monitor.js" defer></script>
   <script>
@@ -293,6 +337,253 @@
       }
     }
 
+
+    // ════════════════════════════════════════════════════════════
+    //  Historias de vendedores (duran 24 h, las borra historias-api)
+    // ════════════════════════════════════════════════════════════
+    const HISTORIAS_API = 'https://historias-api-1038143238323.us-central1.run.app';
+    const VISTAS_KEY = 'znr_historias_vistas';
+    const REPORTADAS_KEY = 'znr_historias_reportadas';
+    const SEGUNDOS_IMAGEN = 5;
+    const MOTIVOS_REPORTE = ['Contenido inapropiado', 'Violencia o desnudez', 'Spam o publicidad engañosa', 'Posible estafa', 'Otro motivo'];
+
+    let gruposHistorias = [];
+    const sv = { abierto: false, g: 0, i: 0, raf: 0, last: 0, elapsed: 0, dur: SEGUNDOS_IMAGEN * 1000, video: null, pausado: false };
+
+    function leerSet(key) { try { return new Set(JSON.parse(localStorage.getItem(key)) || []); } catch { return new Set(); } }
+    function guardarSet(key, set) { try { localStorage.setItem(key, JSON.stringify([...set].slice(-300))); } catch {} }
+
+    function avatarHtml(g, cls) {
+      const inicial = esc((g.nombre || '?').trim().charAt(0).toUpperCase());
+      return g.logo
+        ? `${inicial}<img src="${esc(g.logo)}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()">`
+        : inicial;
+    }
+
+    function agruparHistorias(lista) {
+      const mapa = new Map();
+      lista.forEach(h => {
+        if (!mapa.has(h.vendedorUid)) mapa.set(h.vendedorUid, { uid: h.vendedorUid, nombre: h.vendedor, logo: h.logo, plus: h.plus, historias: [] });
+        mapa.get(h.vendedorUid).historias.push(h);
+      });
+      // La lista llega de la más nueva a la más vieja: los grupos quedan por actividad reciente
+      // y dentro de cada vendedor las historias se ven en orden cronológico.
+      return [...mapa.values()].map(g => (g.historias.reverse(), g));
+    }
+
+    function renderHistorias() {
+      const wrap = document.getElementById('fa-stories-wrap');
+      if (!gruposHistorias.length) { wrap.innerHTML = ''; return; }
+      const vistas = leerSet(VISTAS_KEY);
+      wrap.innerHTML = `
+        <div class="fa-stories-wrap">
+          <p class="fa-stories-title">${Icon('camera', { size: 14 })} Historias · duran 24 horas</p>
+          <div class="fa-stories-scroll">
+            ${gruposHistorias.map((g, idx) => `
+              <button type="button" class="fa-story-item${g.historias.every(h => vistas.has(h.id)) ? ' visto' : ''}" data-grupo="${idx}">
+                <span class="fa-story-ring"><span class="fa-story-avatar">${avatarHtml(g)}</span></span>
+                <span class="fa-story-name">${esc(g.nombre || 'Vendedor')}</span>
+              </button>`).join('')}
+          </div>
+        </div>`;
+    }
+
+    async function cargarHistorias() {
+      if (sv.abierto) return; // no movemos los grupos mientras alguien las está viendo
+      try {
+        const ciudad = typeof obtenerCiudadComprador === 'function' ? await obtenerCiudadComprador() : null;
+        const r = await (await fetch(`${HISTORIAS_API}?${new URLSearchParams({ action: 'obtenerHistorias' })}`)).json();
+        if (!r.ok) throw new Error(r.error || 'Error');
+        const lista = (r.historias || []).filter(h => !ciudad || !h.ciudad || h.ciudad === ciudad);
+        gruposHistorias = agruparHistorias(lista);
+      } catch (e) {
+        console.warn('No se pudieron cargar las historias:', e);
+        gruposHistorias = [];
+      }
+      renderHistorias();
+    }
+
+    // ── Visor ────────────────────────────────────────────────────
+    function crearVisor() {
+      if (document.getElementById('fa-sv')) return;
+      const el = document.createElement('div');
+      el.className = 'fa-sv'; el.id = 'fa-sv'; el.hidden = true;
+      el.setAttribute('role', 'dialog'); el.setAttribute('aria-modal', 'true');
+      el.innerHTML = `
+        <div class="fa-sv-box">
+          <div class="fa-sv-bars" id="fa-sv-bars"></div>
+          <div class="fa-sv-media" id="fa-sv-media"></div>
+          <button type="button" class="fa-sv-nav prev" id="fa-sv-prev" aria-label="Anterior"></button>
+          <button type="button" class="fa-sv-nav next" id="fa-sv-next" aria-label="Siguiente"></button>
+          <div class="fa-sv-head">
+            <a class="fa-sv-user" id="fa-sv-user" href="#"><span class="fa-sv-av" id="fa-sv-av"></span><span style="min-width:0"><b id="fa-sv-name"></b><small id="fa-sv-time"></small></span></a>
+            <button type="button" class="fa-sv-btn" id="fa-sv-report" aria-label="Reportar historia">${Icon('flag', { size: 18 })}</button>
+            <button type="button" class="fa-sv-btn" id="fa-sv-close" aria-label="Cerrar">${Icon('x', { size: 18 })}</button>
+          </div>
+          <div class="fa-sv-foot" id="fa-sv-foot"></div>
+          <div class="fa-sv-sheet" id="fa-sv-sheet" hidden></div>
+        </div>`;
+      document.body.appendChild(el);
+      document.getElementById('fa-sv-next').addEventListener('click', siguienteHistoria);
+      document.getElementById('fa-sv-prev').addEventListener('click', anteriorHistoria);
+      document.getElementById('fa-sv-close').addEventListener('click', cerrarVisor);
+      document.getElementById('fa-sv-report').addEventListener('click', abrirReporte);
+      el.addEventListener('click', (e) => { if (e.target === el) cerrarVisor(); });
+      document.addEventListener('keydown', (e) => {
+        if (!sv.abierto) return;
+        if (e.key === 'Escape') cerrarVisor();
+        else if (e.key === 'ArrowRight') siguienteHistoria();
+        else if (e.key === 'ArrowLeft') anteriorHistoria();
+      });
+      document.addEventListener('visibilitychange', () => { document.hidden ? pausarHistoria() : reanudarHistoria(); });
+    }
+
+    function abrirVisor(idxGrupo) {
+      if (!gruposHistorias[idxGrupo]) return;
+      crearVisor();
+      sv.abierto = true; sv.g = idxGrupo; sv.i = 0;
+      document.getElementById('fa-sv').hidden = false;
+      document.body.style.overflow = 'hidden';
+      pintarPie();
+      mostrarHistoria();
+    }
+
+    function cerrarVisor() {
+      detenerReloj();
+      sv.abierto = false;
+      const el = document.getElementById('fa-sv');
+      if (el) el.hidden = true;
+      document.getElementById('fa-sv-media').innerHTML = '';
+      document.getElementById('fa-sv-sheet').hidden = true;
+      document.body.style.overflow = '';
+      renderHistorias(); // refresca los anillos (vistas) y recoge historias nuevas
+      cargarHistorias();
+    }
+
+    function detenerReloj() {
+      cancelAnimationFrame(sv.raf);
+      if (sv.video) { sv.video.pause(); sv.video = null; }
+    }
+
+    function pintarPie() {
+      const g = gruposHistorias[sv.g];
+      const foot = document.getElementById('fa-sv-foot');
+      // Mismo botón de aviso de live que en perfil-vendedor.html (solo vendedores Plus transmiten)
+      foot.innerHTML = g.plus && window.znrLiveNotif ? znrLiveNotif.boton('vendedor', g.uid, 'Avisarme cuando transmita') : '';
+      foot.style.display = foot.innerHTML ? 'flex' : 'none';
+      const user = document.getElementById('fa-sv-user');
+      user.href = 'perfil-vendedor.html?vendedor=' + encodeURIComponent(g.uid);
+      document.getElementById('fa-sv-av').innerHTML = avatarHtml(g);
+      document.getElementById('fa-sv-name').textContent = g.nombre || 'Vendedor';
+    }
+
+    function mostrarHistoria() {
+      detenerReloj();
+      const g = gruposHistorias[sv.g];
+      const h = g.historias[sv.i];
+      document.getElementById('fa-sv-sheet').hidden = true;
+
+      const vistas = leerSet(VISTAS_KEY); vistas.add(h.id); guardarSet(VISTAS_KEY, vistas);
+
+      document.getElementById('fa-sv-bars').innerHTML = g.historias.map((_, n) =>
+        `<span class="fa-sv-bar"><i style="width:${n < sv.i ? 100 : 0}%"></i></span>`).join('');
+      document.getElementById('fa-sv-time').textContent = tiempoRelativo(h.fecha);
+
+      const media = document.getElementById('fa-sv-media');
+      sv.elapsed = 0; sv.pausado = false; sv.last = 0; sv.dur = SEGUNDOS_IMAGEN * 1000;
+      if (h.tipo === 'video') {
+        media.innerHTML = '<video playsinline autoplay preload="auto"></video>';
+        const v = media.firstChild;
+        sv.video = v;
+        v.src = h.url;
+        v.addEventListener('ended', siguienteHistoria);
+        v.play().catch(() => { v.muted = true; v.play().catch(() => {}); });
+      } else {
+        media.innerHTML = `<img src="${esc(h.url)}" alt="">`;
+      }
+      sv.raf = requestAnimationFrame(tick);
+    }
+
+    function tick(ts) {
+      if (!sv.abierto) return;
+      if (!sv.last) sv.last = ts;
+      let p;
+      if (sv.video) {
+        p = sv.video.duration ? sv.video.currentTime / sv.video.duration : 0;
+      } else {
+        if (!sv.pausado) sv.elapsed += ts - sv.last;
+        p = Math.min(1, sv.elapsed / sv.dur);
+      }
+      sv.last = ts;
+      const bar = document.querySelectorAll('#fa-sv-bars .fa-sv-bar > i')[sv.i];
+      if (bar) bar.style.width = (p * 100) + '%';
+      if (!sv.video && p >= 1) return siguienteHistoria();
+      sv.raf = requestAnimationFrame(tick);
+    }
+
+    function pausarHistoria() { sv.pausado = true; if (sv.video) sv.video.pause(); }
+    function reanudarHistoria() {
+      if (!sv.abierto) return;
+      if (document.getElementById('fa-sv-sheet').hidden === false) return; // el reporte sigue abierto
+      sv.pausado = false; if (sv.video) sv.video.play().catch(() => {});
+    }
+
+    function siguienteHistoria() {
+      const g = gruposHistorias[sv.g];
+      if (sv.i < g.historias.length - 1) { sv.i++; return mostrarHistoria(); }
+      if (sv.g < gruposHistorias.length - 1) { sv.g++; sv.i = 0; pintarPie(); return mostrarHistoria(); }
+      cerrarVisor();
+    }
+
+    function anteriorHistoria() {
+      if (sv.i > 0) { sv.i--; return mostrarHistoria(); }
+      if (sv.g > 0) { sv.g--; sv.i = 0; pintarPie(); return mostrarHistoria(); }
+      mostrarHistoria();
+    }
+
+    // ── Reportar ─────────────────────────────────────────────────
+    function abrirReporte() {
+      const h = gruposHistorias[sv.g].historias[sv.i];
+      const sheet = document.getElementById('fa-sv-sheet');
+      pausarHistoria();
+      sheet.hidden = false;
+      if (leerSet(REPORTADAS_KEY).has(h.id)) {
+        sheet.innerHTML = `<p class="fa-sv-aviso">Ya reportaste esta historia. Gracias.</p><button type="button" class="cancelar" id="fa-sv-cancel">Cerrar</button>`;
+      } else {
+        sheet.innerHTML = `
+          <h3>Reportar historia</h3>
+          <p>¿Qué pasa con esta historia? Revisamos cada reporte.</p>
+          ${MOTIVOS_REPORTE.map(m => `<button type="button" class="motivo" data-motivo="${esc(m)}">${esc(m)}</button>`).join('')}
+          <button type="button" class="cancelar" id="fa-sv-cancel">Cancelar</button>`;
+      }
+      sheet.querySelector('#fa-sv-cancel').addEventListener('click', () => { sheet.hidden = true; reanudarHistoria(); });
+      sheet.querySelectorAll('.motivo').forEach(b => b.addEventListener('click', () => enviarReporte(h, b.dataset.motivo)));
+    }
+
+    async function enviarReporte(h, motivo) {
+      const sheet = document.getElementById('fa-sv-sheet');
+      sheet.querySelectorAll('button').forEach(b => b.disabled = true);
+      try {
+        const r = await (await fetch(HISTORIAS_API, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'reportarHistoria', historiaId: h.id, motivo })
+        })).json();
+        if (!r.ok) throw new Error(r.error || 'No se pudo enviar el reporte.');
+        const rep = leerSet(REPORTADAS_KEY); rep.add(h.id); guardarSet(REPORTADAS_KEY, rep);
+        sheet.innerHTML = `<p class="fa-sv-aviso">Gracias, revisaremos esta historia.</p>`;
+        setTimeout(() => { sheet.hidden = true; reanudarHistoria(); }, 1400);
+      } catch (e) {
+        sheet.innerHTML = `<p class="fa-sv-aviso" style="color:var(--color-error,#dc2626)">${esc(e.message)}</p><button type="button" class="cancelar" id="fa-sv-cancel">Cerrar</button>`;
+        sheet.querySelector('#fa-sv-cancel').addEventListener('click', () => { sheet.hidden = true; reanudarHistoria(); });
+      }
+    }
+
+    document.addEventListener('click', (e) => {
+      const b = e.target.closest('.fa-story-item');
+      if (b) abrirVisor(Number(b.dataset.grupo));
+    });
+
     document.addEventListener('DOMContentLoaded', () => {
       document.getElementById('fa-back-btn').innerHTML = Icon('arrow-left');
       document.getElementById('fa-back-btn').addEventListener('click', () => {
@@ -300,10 +591,12 @@
         else window.location.href = 'vendedor.html';
       });
 
+      cargarHistorias();
       cargarFeed();
       cargarRankingDonadores();
       // Se siente "vivo": refresca sola cada minuto, sin que el usuario tenga que jalar/recargar.
       setInterval(cargarFeed, 60000);
+      setInterval(cargarHistorias, 60000);
     });
   </script>
 

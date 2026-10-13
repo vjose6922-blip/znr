@@ -217,6 +217,24 @@ window.znrFirestore.ensureSignedIn = async function (ownerType, ownerId, ownerRe
   return await window.znrFirestore.signIn(ownerType, ownerRef);
 };
 
+/**
+ * ID token de Firebase Auth de la identidad indicada (la usa historias-api
+ * para saber QUÉ vendedor está publicando, sin mandar el vendorToken).
+ * Devuelve el token (string) o null si no hay sesión.
+ */
+window.znrFirestore.getIdToken = async function (ownerType, ownerId, ownerRef) {
+  return _conIdentidadExclusiva(async () => {
+    try {
+      const uid = await window.znrFirestore.ensureSignedIn(ownerType, ownerId, ownerRef);
+      if (!uid || !auth.currentUser) return null;
+      return await auth.currentUser.getIdToken();
+    } catch (err) {
+      console.warn('getIdToken falló:', err);
+      return null;
+    }
+  });
+};
+
 function _fsNormalizarFecha(data) {
   if (data && data.fecha && typeof data.fecha.toDate === 'function') {
     data.fecha = data.fecha.toDate().toISOString();
