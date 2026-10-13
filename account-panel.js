@@ -324,8 +324,6 @@ ${savedAddress?`<button class="up-danger-btn" id="up-delete-address-btn"><svg xm
 </div>
 </div>
 </div>
-<div class="up-divider"></div>
-
 </section>
 <section class="up-tab-content" data-content="feedback">
 <h3 class="up-section-title">Feedback</h3>
@@ -619,7 +617,6 @@ s.textContent = `
 .up-save-btn{width:100%;padding:13px;background:var(--gradient-accent);border:none;border-radius:14px;color:#fff;font-size:14px;font-weight:700;cursor:pointer;margin-top:12px;transition:opacity .2s}
 .up-save-btn:hover{opacity:.9}
 .up-save-btn.saved{background:linear-gradient(135deg,#22c55e,#16a34a)}
-.up-divider{height:1px;background:rgba(255,255,255,.07);margin:20px 0}
 .up-empty-state{text-align:center;padding:40px 20px;color:var(--color-text-secondary,#888)}
 .up-empty-icon{font-size:48px;margin-bottom:12px}
 .up-empty-state small{font-size:12px;opacity:.7}
@@ -647,10 +644,8 @@ s.textContent = `
 [data-theme="light"] .up-size-btn.selected{background:#fff0f5;border-color:var(--color-accent-solid);color:#e11d6a;font-weight:700}
 [data-theme="light"] .up-order-card,[data-theme="light"] .up-privacy-item{background:#f4f5f8;border-color:#dde0e8}
 [data-theme="light"] .up-header,[data-theme="light"] .up-tabs{border-color:#e2e4ea}
-[data-theme="light"] .up-divider{background:#e2e4ea}
 [data-theme="light"] .up-close{background:#f0f1f5;color:#555}
 [data-theme="light"] .up-close:hover{background:#fff0f5;color:var(--color-accent-solid)}
-[data-theme="light"] .up-section-title,[data-theme="light"] .up-size-hint,[data-theme="light"] 
 [data-theme="light"] .up-title,[data-theme="light"] .up-size-label strong,[data-theme="light"] .up-order-date,[data-theme="light"] .up-privacy-info strong{color:#111318}
 @media(max-width:400px){#up-panel{width:100vw;border-left:none}}
 `;
