@@ -41,7 +41,8 @@
     donacion_recibida:      { grupo: 'cuenta',  icono: Icon('gift') },
     donacion_retirada:      { grupo: 'cuenta',  icono: Icon('send') },
     telefono_actualizado:   { grupo: 'cuenta',  icono: Icon('lock') },
-    telefono_rechazado:     { grupo: 'cuenta',  icono: Icon('lock') }
+    telefono_rechazado:     { grupo: 'cuenta',  icono: Icon('lock') },
+    informe_semanal:        { grupo: 'cuenta',  icono: Icon('stats') }
   };
 
   function getIdentity() {
