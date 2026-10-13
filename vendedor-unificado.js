@@ -2051,7 +2051,7 @@ if (metodosMsg) metodosMsg.textContent = '';
   const planEl = document.getElementById('settings-header-plan');
   if (esPlus) {
     const vence = vendorSession.planVence ? new Date(vendorSession.planVence).toLocaleDateString('es-MX', {day:'2-digit',month:'short',year:'numeric'}) : '—';
-    planEl.innerHTML = '<span style="background:#a855f7;color:#fff;padding:2px 8px;border-radius:999px;font-size:.7rem;font-weight:700;">' + Icon('star') + ' Plus</span> <span style="color:#aaa;font-size:.75rem;">· vence ' + vence + '</span>';
+    planEl.innerHTML = '<span style="display:inline-flex;align-items:center;gap:4px;line-height:1;background:#a855f7;color:#fff;padding:4px 9px;border-radius:999px;font-size:.7rem;font-weight:700;">' + Icon('star') + ' Plus</span> <span style="color:#aaa;font-size:.75rem;">· vence ' + vence + '</span>';
   } else {
     planEl.innerHTML = '<span style="background:#e5e7eb;color:#555;padding:2px 8px;border-radius:999px;font-size:.7rem;font-weight:600;">Free</span>';
   }
