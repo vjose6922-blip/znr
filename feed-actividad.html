@@ -135,7 +135,8 @@
     .fa-story-ring { display: block; width: 64px; height: 64px; border-radius: 50%; padding: 3px; background: var(--gradient-accent); box-sizing: border-box; }
     .fa-story-item.visto .fa-story-ring { background: var(--color-border-subtle); }
     .fa-story-avatar { position: relative; display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; border-radius: 50%; overflow: hidden; border: 2px solid var(--page-bg); background: var(--color-surface); color: var(--color-accent-solid); font-weight: 800; font-size: 1.2rem; box-sizing: border-box; }
-    .fa-story-avatar img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+    .fa-story-avatar img, .fa-story-avatar video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; pointer-events: none; }
+    .fa-story-play { position: absolute; right: 2px; bottom: 2px; width: 18px; height: 18px; border-radius: 50%; background: rgba(0,0,0,.6); color: #fff; display: flex; align-items: center; justify-content: center; pointer-events: none; }
     .fa-story-name { display: block; margin-top: 5px; font-size: .68rem; font-weight: 700; color: var(--color-text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
     .fa-sv { position: fixed; inset: 0; z-index: 10000; background: rgba(0,0,0,.92); display: flex; align-items: center; justify-content: center; }
@@ -360,6 +361,17 @@
         : inicial;
     }
 
+    // Vista previa del círculo: la historia más reciente del vendedor
+    // (foto, o primer cuadro si es video). Si no carga, queda la inicial.
+    function previewHistoria(g) {
+      const h = g.historias[g.historias.length - 1];
+      const inicial = esc((g.nombre || '?').trim().charAt(0).toUpperCase());
+      if (!h) return inicial;
+      return h.tipo === 'video'
+        ? `${inicial}<video src="${esc(h.url)}#t=0.1" muted playsinline preload="metadata" tabindex="-1" onerror="this.remove()"></video><span class="fa-story-play">${Icon('play', { size: 9 })}</span>`
+        : `${inicial}<img src="${esc(h.url)}" alt="" loading="lazy" onerror="this.remove()">`;
+    }
+
     function agruparHistorias(lista) {
       const mapa = new Map();
       lista.forEach(h => {
@@ -381,7 +393,7 @@
           <div class="fa-stories-scroll">
             ${gruposHistorias.map((g, idx) => `
               <button type="button" class="fa-story-item${g.historias.every(h => vistas.has(h.id)) ? ' visto' : ''}" data-grupo="${idx}">
-                <span class="fa-story-ring"><span class="fa-story-avatar">${avatarHtml(g)}</span></span>
+                <span class="fa-story-ring"><span class="fa-story-avatar">${previewHistoria(g)}</span></span>
                 <span class="fa-story-name">${esc(g.nombre || 'Vendedor')}</span>
               </button>`).join('')}
           </div>
