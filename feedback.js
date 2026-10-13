@@ -38,9 +38,8 @@
     const st = document.createElement('style');
     st.id = 'zfb-styles';
     st.textContent = `
-#zfb-overlay{position:fixed;inset:0;z-index:10050;background:rgba(0,0,0,.6);display:flex;align-items:flex-end;justify-content:center}
-#zfb-box{background:#fff;color:#1f2330;width:100%;max-width:520px;max-height:92vh;overflow-y:auto;border-radius:18px 18px 0 0;padding:18px 18px 24px;box-sizing:border-box;font-family:inherit}
-@media(min-width:600px){#zfb-overlay{align-items:center}#zfb-box{border-radius:18px}}
+#zfb-overlay{position:fixed;inset:0;z-index:10050;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;padding:16px;box-sizing:border-box}
+#zfb-box{background:#fff;color:#1f2330;width:100%;max-width:520px;max-height:calc(100vh - 32px);max-height:calc(100dvh - 32px);overflow-y:auto;border-radius:18px;padding:18px;box-sizing:border-box;font-family:inherit}
 [data-theme="dark"] #zfb-box{background:#1a1d27;color:#e8eaf0}
 #zfb-box h2{margin:0 0 6px;font-size:1.15rem}
 #zfb-box .zfb-info{background:rgba(124,58,237,.08);border:1px solid rgba(124,58,237,.25);border-radius:12px;padding:10px 12px;font-size:.8rem;line-height:1.5;margin:8px 0 14px}
