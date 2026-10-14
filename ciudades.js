@@ -104,7 +104,7 @@ window.ZNR_CIUDADES = [
 
 // Guardar la ciudad como "Ciudad, Estado" (valor único: evita choques entre ciudades con el mismo nombre).
 // Déjalo en false hasta correr la migración de datos (migrarCiudadesConEstado); entonces cámbialo a true y despliega.
-const CIUDAD_CON_ESTADO = false;
+const CIUDAD_CON_ESTADO = true;
 window.ZNR_CIUDADES.forEach(c => { c.nombre = c.ciudad; if (CIUDAD_CON_ESTADO) c.ciudad = `${c.nombre}, ${c.estado}`; });
 
 // Pasa un valor guardado (con o sin estado) al formato vigente; si no lo reconoce o es ambiguo, lo deja igual.
