@@ -1,5 +1,5 @@
 /* Z&R motion — JS mínimo y sin dependencias. Cargar SÍNCRONO en <head> (pesa ~3 KB).
-   Activa por atributos: data-anim="up|fade" (aparición), "shine", "carousel", "announce". */
+   Activa por atributos: data-anim="up|fade" (aparición), "shine", "carousel". */
 (function () {
   'use strict';
   var D = document, R = D.documentElement;
@@ -9,16 +9,8 @@
   // Sin IntersectionObserver o con reduced-motion no se oculta nada: todo se ve normal.
   if (!RM && IO) R.classList.add('m-on');
 
-  /* ── Textos de la barra de anuncios: edítalos aquí ── */
-  var ANUNCIOS = [
-    'Entregas a domicilio o punto intermedio',
-    'Nuevos estilos cada semana',
-    'Pago seguro con Mercado Pago'
-  ];
-  var ROTAR_MS = 0; // 0 = un mensaje distinto por visita (recomendado); 6000 = rota cada 6 s
-
   /* Elementos que aparecen solos aunque no lleven data-anim (también los creados por JS) */
-  var AUTO = '.section-title,.products-container>.product-card,.category-card,.benefit-card,.live-card';
+  var AUTO = '.section-title,.products-container>.product-card,.category-card,.benefit-card,.live-card,.home-feature,.home-sell';
 
   function play(el, c) { // reinicia una animación de clase
     el.classList.remove(c); void el.offsetWidth; el.classList.add(c);
@@ -122,23 +114,8 @@
       t.scrollTo({ left: ((i + 1) % n) * t.clientWidth, behavior: 'smooth' });
     }, 6000);
   }
-  window.znrMotion = { carousel: carousel };
 
-  /* ── 6. Barra de anuncios y campana ── */
-  function announce() {
-    var el = D.querySelector('[data-anim="announce"]');
-    if (!el) return;
-    if (!ANUNCIOS.length) { el.remove(); return; }
-    var k = 0;
-    try { k = +sessionStorage.getItem('m_ann') || 0; sessionStorage.setItem('m_ann', k + 1); } catch (_) {}
-    var s = D.createElement('span'), set = function (j) { s.textContent = ANUNCIOS[j % ANUNCIOS.length]; };
-    el.appendChild(s); set(k);
-    if (ROTAR_MS > 0 && ANUNCIOS.length > 1 && !RM) setInterval(function () {
-      if (D.hidden) return;
-      s.classList.add('m-out');
-      setTimeout(function () { set(++k); s.classList.remove('m-out'); }, 150);
-    }, ROTAR_MS);
-  }
+  /* ── 6. Campana ── */
   function bell() { // la campana se inclina una vez cuando llega una notificación nueva
     var b = D.getElementById('notif-bell-btn');
     if (!b) return;
@@ -147,6 +124,6 @@
       .observe(b, { childList: true, subtree: true, characterData: true });
   }
 
-  function init() { scan(D.body); announce(); bell(); }
+  function init() { scan(D.body); D.querySelectorAll('[data-anim="carousel"]').forEach(carousel); bell(); }
   if (D.readyState === 'loading') D.addEventListener('DOMContentLoaded', init); else init();
 })();

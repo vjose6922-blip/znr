@@ -213,6 +213,24 @@
  max-width: 100%;
  }
 
+ /* Sección "Todo lo que puedes hacer" (resumen de la oferta de Z&R) */
+ .home-features { margin: 36px 4px; text-align: center; }
+ .home-features-intro { max-width: 600px; margin: 10px auto 16px; padding: 0 12px; color: var(--color-text-muted); font-size: 14px; }
+ .home-features-grid { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); max-width: 1000px; margin: 0 auto; padding: 0 8px; }
+ .home-feature { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 18px 16px; border-radius: 20px; background: var(--color-surface); box-shadow: var(--shadow-soft); }
+ .home-feature-icon { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 14px; background: var(--gradient-accent); color: #fff; }
+ .home-feature h3, .home-sell h3 { margin: 4px 0 0; font-size: 1.15rem; }
+ .home-feature h3 { color: var(--color-text-main); }
+ .home-sell h3 { color: #fff; }
+ .home-feature p { margin: 0 0 8px; max-width: 36ch; font-size: 13.5px; color: var(--color-text-muted); }
+ .home-feature .hero-btn { margin-top: auto; background: var(--gradient-accent); color: #fff; font-size: 14px; padding: 10px 20px; }
+ .home-sell { display: flex; flex-direction: column; align-items: center; gap: 6px; max-width: 1000px; margin: 14px 8px 0; padding: 22px 18px; border-radius: 24px; background: var(--gradient-accent); color: #fff; }
+ .home-sell .home-feature-icon { background: rgba(255, 255, 255, .22); }
+ .home-sell p { margin: 0; max-width: 46ch; font-size: 14px; opacity: .95; }
+ .home-sell .home-sell-plus { font-size: 13px; opacity: .9; }
+ .home-sell .hero-btn { margin-top: 10px; }
+ @media (min-width: 700px) { .home-sell { margin-left: auto; margin-right: auto; } }
+
  .benefits-grid {
  display: grid;
  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -440,7 +458,6 @@
  </style>
 </head>
 <body class="home-page">
- <div class="m-announce" data-anim="announce"></div>
 
  <div id="global-loader" class="global-loader hidden">
  <div class="loader-spinner"></div>
@@ -472,7 +489,15 @@
  <a href="outfit.html" class="hero-btn hero-btn-secondary">Crear Outfit</a>
  <a href="comunidad.html" class="hero-btn hero-btn-secondary">Ir a Comunidad</a>
  </div>
- <div class="m-hero" id="m-hero" data-anim="carousel" role="region" aria-roledescription="carrusel" aria-label="Destacados"><div class="m-hero-sk shimmer"></div></div>
+ <div class="m-hero" id="m-hero" data-anim="carousel" role="region" aria-roledescription="carrusel" aria-label="Qué ofrece Z&amp;R">
+ <div class="m-hero-track">
+  <a class="m-hero-slide" href="vendedor.html"><span class="m-hero-t">Vende en Z&amp;R</span><span class="m-hero-d">Crea tu perfil de vendedor y muestra tus productos a compradores de tu ciudad.</span><span class="m-hero-go">Abrir mi tienda</span></a>
+  <a class="m-hero-slide" href="lives.html"><span class="m-hero-t">Transmite en vivo</span><span class="m-hero-d">Presenta tus prendas en un live y vende en tiempo real.</span><span class="m-hero-go">Empezar a vender</span></a>
+  <a class="m-hero-slide" href="vendedor.html"><span class="m-hero-t">Organiza tus entregas</span><span class="m-hero-d">Coordina cada entrega de forma más eficiente, todo desde tu cuenta.</span><span class="m-hero-go">Empezar a vender</span></a>
+  <a class="m-hero-slide" href="comunidad.html?ver=refugios"><span class="m-hero-t">Dona con propósito</span><span class="m-hero-d">Dona artículos a un refugio o fundación y el dinero llega directo al beneficiario.</span><span class="m-hero-go">Ver Comunidad</span></a>
+ </div>
+ <div class="m-hero-dots" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+ </div>
  </section>
  <div id="home-live-slot"></div>
 
@@ -519,6 +544,51 @@
  </div>
  </div>
 </section>
+
+<section class="home-features">
+ <h2 class="section-title" style="margin-bottom: 5px;">Todo lo que puedes hacer en Z&amp;R</h2>
+ <p class="home-features-intro">Más que un catálogo: compra en vivo, pide a tu medida y apoya a vendedores de tu ciudad.</p>
+ <div class="home-features-grid">
+ <article class="home-feature">
+ <span class="home-feature-icon"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" aria-hidden="true"><use href="#ic-signal"/></svg></span>
+ <h3>Compra en vivo</h3>
+ <p>Mira transmisiones de vendedores de tu ciudad, pregunta en el chat y sigue tu entrega en el mapa.</p>
+ <a href="lives.html" class="hero-btn hero-btn-primary">Ver lives</a>
+ </article>
+ <article class="home-feature">
+ <span class="home-feature-icon"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" aria-hidden="true"><use href="#ic-chat-bubble"/></svg></span>
+ <h3>Pídelo a tu medida</h3>
+ <p>Algunos vendedores hacen artículos bajo pedido: conversas en el chat de la app, recibes una cotización y tú decides. Los reconoces por el precio “Desde”.</p>
+ <a href="comunidad.html" class="hero-btn hero-btn-primary">Explorar Comunidad</a>
+ </article>
+ <article class="home-feature">
+ <span class="home-feature-icon"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" aria-hidden="true"><use href="#ic-sparkles"/></svg></span>
+ <h3>Arma tu look</h3>
+ <p>Desliza prendas y combínalas hasta encontrar tu outfit ideal.</p>
+ <a href="armar-outfit.html" class="hero-btn hero-btn-primary">Armar Outfit</a>
+ </article>
+ <article class="home-feature">
+ <span class="home-feature-icon"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" aria-hidden="true"><use href="#ic-camera"/></svg></span>
+ <h3>Busca con una foto</h3>
+ <p>Sube una imagen en Comunidad y te mostramos los artículos más parecidos.</p>
+ <a href="comunidad.html" class="hero-btn hero-btn-primary">Buscar en Comunidad</a>
+ </article>
+ <article class="home-feature">
+ <span class="home-feature-icon"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" aria-hidden="true"><use href="#ic-hand-heart"/></svg></span>
+ <h3>Compra con causa</h3>
+ <p>Algunos artículos de Comunidad están marcados como donativo y apoyan a un beneficiario.</p>
+ <a href="comunidad.html" class="hero-btn hero-btn-primary">Ver artículos</a>
+ </article>
+ </div>
+
+ <div class="home-sell">
+ <span class="home-feature-icon"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" aria-hidden="true"><use href="#ic-vendor"/></svg></span>
+ <h3>Vende en Z&amp;R</h3>
+ <p>Abre tu tienda gratis y llega a compradores de tu ciudad. Empiezas con hasta 20 artículos activos.</p>
+ <p class="home-sell-plus"><b>Con Plan Plus:</b> hasta 200 artículos, insignia de verificado, prioridad en el catálogo, ventas en vivo y organización de entregas.</p>
+ <a href="vendedor.html" class="hero-btn hero-btn-primary">Abrir mi tienda</a>
+ </div>
+ </section>
 
 <section>
   <h2 class="section-title">Vistos Recientemente</h2>

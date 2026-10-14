@@ -1,5 +1,5 @@
 /* Z&R motion — un solo easing, solo transform/opacity. Cargar DESPUÉS de styles.css.
-   Se activa con atributos: data-anim="up|fade|shine|carousel|announce". */
+   Se activa con atributos: data-anim="up|fade|shine|carousel". */
 
 /* 1. Tokens (y alias: las ~50 transiciones existentes heredan el mismo easing) */
 :root {
@@ -95,30 +95,20 @@ a.hero-btn, a.category-card { transition: transform var(--m-fast) var(--m-ease),
   animation: m-shimmer 1.4s linear infinite;
 }
 
-/* 9. Barra de anuncios */
-.m-announce {
-  display: flex; align-items: center; justify-content: center; min-height: 30px; box-sizing: border-box;
-  padding: 6px 12px; background: var(--gradient-accent); color: #fff; font-size: 12px; font-weight: 600; text-align: center;
-}
-.m-announce span { transition: opacity var(--m-fast) var(--m-ease); }
-.m-announce .m-out { opacity: 0; }
-
-/* 10. Hero carrusel (swipe nativo con scroll-snap) */
-.m-hero { position: relative; margin: 14px 4px 6px; border-radius: var(--radius-lg); overflow: hidden; background: var(--color-surface); box-shadow: var(--shadow-soft); text-align: left; }
-.m-hero-sk { aspect-ratio: 4 / 3.5; }
+/* 9. Hero informativo: tarjetas blancas de texto, swipe nativo (scroll-snap) */
+.m-hero { position: relative; margin: 14px 4px 6px; border-radius: var(--radius-lg); overflow: hidden; background: #fff; box-shadow: var(--shadow-soft); text-align: left; }
 .m-hero-track { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; overscroll-behavior-x: contain; scrollbar-width: none; }
 .m-hero-track::-webkit-scrollbar { display: none; }
-.m-hero-slide { flex: 0 0 100%; scroll-snap-align: center; scroll-snap-stop: always; display: block; color: inherit; text-decoration: none; }
-.m-hero-slide img { display: block; width: 100%; aspect-ratio: 4 / 3; object-fit: contain; padding: 8px; box-sizing: border-box; background: #fff; }
-.m-hero-cap { display: flex; align-items: center; gap: 8px; padding: 10px 14px 12px; }
-.m-hero-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14px; font-weight: 600; color: var(--color-text-main); }
-.m-hero-price { font-size: 14px; font-weight: 700; color: var(--color-accent-solid); }
-.m-hero-chip { padding: 3px 9px; border-radius: var(--radius-pill); background: var(--gradient-accent); color: #fff; font-size: 10px; font-weight: 700; }
-.m-hero-dots { position: absolute; top: 12px; right: 14px; display: flex; gap: 5px; pointer-events: none; }
-.m-hero-dots i { width: 6px; height: 6px; border-radius: 50%; background: rgba(0, 0, 0, .25); transition: transform var(--m-base) var(--m-ease), background var(--m-base) var(--m-ease); }
+.m-hero-slide { flex: 0 0 100%; box-sizing: border-box; scroll-snap-align: center; scroll-snap-stop: always; display: flex; flex-direction: column; gap: 6px; padding: 20px 20px 36px; text-decoration: none; }
+.m-hero-t { font-size: 17px; font-weight: 700; color: #1f2430; }
+.m-hero-d { font-size: 13.5px; line-height: 1.45; color: #5b6170; }
+.m-hero-go { margin-top: 4px; font-size: 13px; font-weight: 700; color: var(--color-accent-solid); }
+.m-hero-go::after { content: " \2192"; }
+.m-hero-dots { position: absolute; left: 0; right: 0; bottom: 14px; display: flex; justify-content: center; gap: 5px; pointer-events: none; }
+.m-hero-dots i { width: 6px; height: 6px; border-radius: 50%; background: rgba(0, 0, 0, .2); transition: transform var(--m-base) var(--m-ease), background var(--m-base) var(--m-ease); }
 .m-hero-dots i.on { background: var(--color-accent-solid); transform: scale(1.35); }
 
-/* 11. Banner de Live (el punto es el único movimiento continuo del home) */
+/* 10. Banner de Live (el punto es el único movimiento continuo del home) */
 .m-live {
   display: flex; align-items: center; gap: 10px; margin: 10px 8px 0; padding: 12px 16px; border-radius: 14px;
   border: 1px solid rgba(239, 68, 68, .35); background: linear-gradient(135deg, rgba(239, 68, 68, .16), rgba(244, 114, 182, .10));
@@ -128,7 +118,7 @@ a.hero-btn, a.category-card { transition: transform var(--m-fast) var(--m-ease),
 .m-live span { flex: 1; }
 .m-live b { color: var(--color-accent); font-size: 12px; }
 
-/* 12. Reduced motion: sin movimiento, pero los spinners (carga) siguen girando */
+/* 11. Reduced motion: sin movimiento, pero los spinners (carga) siguen girando */
 @media (prefers-reduced-motion: reduce) {
   *, ::before, ::after {
     animation-duration: .01ms !important; animation-delay: 0s !important; animation-iteration-count: 1 !important;

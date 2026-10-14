@@ -50,12 +50,10 @@ window.loadProductsUnified({
 onProducts(products) {
 renderCategories();
 renderFeaturedProducts();
-renderHeroCarousel();
 renderRecentProducts();
 generateHomeLooksFromWishlist();
 },
 onError() {
-document.getElementById('m-hero')?.remove();
 const container = document.getElementById('featured-products');
 if (container) {
 container.innerHTML = `
@@ -864,17 +862,6 @@ const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
 themeBtn.textContent = isDark ? '' : '';
 }
 });
-}
-// Hero: carrusel con artículos del catálogo. La etiqueta es el Badge que ya trae cada producto (Nuevo, Popular...).
-function renderHeroCarousel() {
-const el = document.getElementById('m-hero');
-if (!el || !(window.allProducts || []).length) return; // aún cargando: se queda el skeleton
-const ok = (window.allProducts || []).filter(p => Number(p.Stock) > 0 && (p.Imagen1 || p.Imagen2));
-let slides = ok.filter(p => p.Badge).slice(0, 5);
-if (slides.length < 3) slides = slides.concat(ok.filter(p => !p.Badge).slice(0, 3 - slides.length));
-if (!slides.length) { el.remove(); return; }
-el.innerHTML = `<div class="m-hero-track">${slides.map((p, i) => `<a class="m-hero-slide" href="catalogo.html#producto-${encodeURIComponent(p.ID)}"><img src="${escapeHtml(optimizeDriveUrl(p.Imagen1 || p.Imagen2, 600).replace(/=w\d+$/, '=w640'))}" alt="${escapeHtml(p.Nombre || '')}" ${i ? 'loading="lazy"' : ''} draggable="false"><div class="m-hero-cap">${p.Badge ? `<span class="m-hero-chip">${escapeHtml(p.Badge)}</span>` : ''}<span class="m-hero-name">${escapeHtml(p.Nombre || '')}</span><span class="m-hero-price">${formatCurrency(p.Precio)}</span></div></a>`).join('')}</div>${slides.length > 1 ? `<div class="m-hero-dots" aria-hidden="true">${slides.map(() => '<i></i>').join('')}</div>` : ''}`;
-window.znrMotion?.carousel(el);
 }
 // Banner de Live: solo si hay uno activo en la ciudad del comprador (misma consulta que usa comunidad.js).
 async function checkHomeLive() {

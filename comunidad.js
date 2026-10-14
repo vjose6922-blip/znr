@@ -1590,6 +1590,15 @@ function initBeneficiariosToggle() {
       if (!beneficiariosCargados) loadBeneficiariosGrid();
     }
   });
+  // Enlace desde el home ("Dona con propósito"): entra directo a ver los refugios.
+  if (new URLSearchParams(window.location.search).get('ver') === 'refugios') {
+    let intentos = 0;
+    const abrir = () => {
+      if ((window.znrFirestore && window.znrFirestore.getBeneficiariosAprobados) || ++intentos > 20) btn.click();
+      else setTimeout(abrir, 250);
+    };
+    abrir();
+  }
 }
 
 async function loadBeneficiariosGrid() {
