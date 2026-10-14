@@ -104,7 +104,7 @@ window.ZNR_CIUDADES = [
 
 // Guardar la ciudad como "Ciudad, Estado" (valor único: evita choques entre ciudades con el mismo nombre).
 // Déjalo en false hasta correr la migración de datos (migrarCiudadesConEstado); entonces cámbialo a true y despliega.
-const CIUDAD_CON_ESTADO = true;
+const CIUDAD_CON_ESTADO = false;
 window.ZNR_CIUDADES.forEach(c => { c.nombre = c.ciudad; if (CIUDAD_CON_ESTADO) c.ciudad = `${c.nombre}, ${c.estado}`; });
 
 // Pasa un valor guardado (con o sin estado) al formato vigente; si no lo reconoce o es ambiguo, lo deja igual.
@@ -141,9 +141,11 @@ function enlazarPaisCiudad(selectPais, selectCiudad) {
   const selectEstado = selectCiudad._estado = document.createElement('select');
   selectEstado.className = selectPais.className;
   selectEstado.style.cssText = selectPais.style.cssText;
+  selectEstado.style.marginBottom = '10px';
   selectCiudad.before(selectEstado);
   llenarSelectPais(selectPais);
   llenarSelectEstado(selectEstado, '');
+  llenarSelectCiudad(selectCiudad, '', '');
   selectPais.addEventListener('change', () => {
     llenarSelectEstado(selectEstado, selectPais.value);
     llenarSelectCiudad(selectCiudad, selectPais.value, '');
