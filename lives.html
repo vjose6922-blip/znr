@@ -32,6 +32,8 @@
 <script>document.documentElement.dataset.theme = localStorage.getItem('theme') || 'light';</script>
 <link rel="preload" href="styles.css" as="style">
 <link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="motion.css">
+<script src="motion.js"></script>
 <script src="api-config.js"></script>
 <script src="icons.js" defer></script>
 <script src="ciudades.js" defer></script>
@@ -61,7 +63,9 @@
     font-size: 11px; font-weight: 700; letter-spacing: .03em;
     background: rgba(239,68,68,.9); color: #fff;
   }
-  .status-dot { width: 7px; height: 7px; border-radius: 50%; background: #fff; animation: pulse-dot 1.4s infinite; }
+  .status-dot { width: 7px; height: 7px; border-radius: 50%; background: #fff; }
+  /* un solo punto parpadea (el de la primera transmisión en vivo) */
+  .lives-grid > a.live-card:first-of-type .status-dot { animation: m-blink 1.6s var(--m-ease) infinite; }
   @keyframes pulse-dot { 0%,100%{opacity:1;} 50%{opacity:.35;} }
 
   .viewer-mini {
@@ -105,7 +109,7 @@
 </header>
 
 <main class="lives-wrap" id="lives-wrap">
-  <div class="loading-spinner"></div>
+  <div class="lives-grid" aria-busy="true"><div class="live-card"><div class="shimmer" style="aspect-ratio:16/9"></div><div class="info"><div class="shimmer" style="height:14px;width:60%;border-radius:6px"></div></div></div><div class="live-card"><div class="shimmer" style="aspect-ratio:16/9"></div><div class="info"><div class="shimmer" style="height:14px;width:60%;border-radius:6px"></div></div></div></div>
 </main>
 <script src="znr-devconsole.js" defer></script>
 

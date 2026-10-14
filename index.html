@@ -49,6 +49,8 @@
  <script>document.documentElement.dataset.theme = localStorage.getItem('theme') || 'light';</script>
 <link rel="preload" href="styles.css" as="style">
  <link rel="stylesheet" href="styles.css" />
+<link rel="stylesheet" href="motion.css">
+<script src="motion.js"></script>
  <link rel="manifest" href="manifest.json">
  <meta name="theme-color" content="#ffffff">
  
@@ -84,7 +86,6 @@
  font-size: 2.5rem;
  font-weight: 800;
  margin-bottom: 12px;
- animation: fadeInUp 0.6s ease;
  }
 
  .hero-buttons {
@@ -92,7 +93,6 @@
  gap: 16px;
  justify-content: center;
  flex-wrap: wrap;
- animation: fadeInUp 0.6s ease 0.2s both;
  }
 
  .hero-btn {
@@ -440,6 +440,7 @@
  </style>
 </head>
 <body class="home-page">
+ <div class="m-announce" data-anim="announce"></div>
 
  <div id="global-loader" class="global-loader hidden">
  <div class="loader-spinner"></div>
@@ -465,13 +466,15 @@
  </header>
 
  <section class="hero-section">
- <h1 class="hero-title">Descubre lo nuevo</h1>
- <div class="hero-buttons">
- <a href="catalogo.html" class="hero-btn hero-btn-primary">Ver Catálogo</a>
+ <h1 class="hero-title" data-anim="up">Descubre lo nuevo</h1>
+ <div class="hero-buttons" data-anim="up">
+ <a href="catalogo.html" class="hero-btn hero-btn-primary" data-anim="shine">Ver Catálogo</a>
  <a href="outfit.html" class="hero-btn hero-btn-secondary">Crear Outfit</a>
  <a href="comunidad.html" class="hero-btn hero-btn-secondary">Ir a Comunidad</a>
  </div>
+ <div class="m-hero" id="m-hero" data-anim="carousel" role="region" aria-roledescription="carrusel" aria-label="Destacados"><div class="m-hero-sk shimmer"></div></div>
  </section>
+ <div id="home-live-slot"></div>
 
  <section>
  <h2 class="section-title">Explora por Categoría</h2>

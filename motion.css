@@ -1,0 +1,138 @@
+/* Z&R motion — un solo easing, solo transform/opacity. Cargar DESPUÉS de styles.css.
+   Se activa con atributos: data-anim="up|fade|shine|carousel|announce". */
+
+/* 1. Tokens (y alias: las ~50 transiciones existentes heredan el mismo easing) */
+:root {
+  --m-ease: cubic-bezier(.22, .61, .36, 1);
+  --m-fast: 150ms;  /* press, hover */
+  --m-base: 240ms;  /* entradas, cambios de estado */
+  --m-slow: 400ms;  /* check, zoom, hero */
+  --m-rise: 12px;
+  --m-press: .97;
+  --m-pop: 1.12;
+  --m-step: 60ms;   /* escalonado (máx. 6 pasos desde motion.js) */
+  --transition-fast: var(--m-fast) var(--m-ease);
+  --transition-med: var(--m-base) var(--m-ease);
+}
+
+/* 2. Navegación entre páginas: fundido en vez de corte blanco */
+@media (prefers-reduced-motion: no-preference) { @view-transition { navigation: auto; } }
+::view-transition-old(root), ::view-transition-new(root) {
+  animation-duration: var(--m-base);
+  animation-timing-function: var(--m-ease);
+}
+
+/* 3. Keyframes (únicos; el sitio no necesita más) */
+@keyframes m-up    { from { opacity: 0; transform: translateY(var(--m-rise)); } }
+@keyframes m-fade  { from { opacity: 0; } }
+@keyframes m-pop   { 40% { transform: scale(var(--m-pop)); } }
+@keyframes m-bump  { 40% { transform: translateY(-4px) scale(1.2); } }
+@keyframes m-ring  { 25% { transform: rotate(12deg); } 60% { transform: rotate(-8deg); } }
+@keyframes m-draw  { to { stroke-dashoffset: 0; } }
+@keyframes m-blink { 50% { opacity: .3; } }
+@keyframes m-shine { to { transform: translateX(120%); } }
+@keyframes m-shimmer { to { transform: translateX(100%); } }
+
+/* 4. Aparición al scroll. El estado oculto solo existe si motion.js activó .m-on
+   (sin JS, sin IntersectionObserver o con reduced-motion todo se ve normal). */
+.product-card { opacity: 1; transform: none; animation: none; will-change: auto; } /* reemplaza card-in */
+.m-on :is([data-anim="up"], [data-anim="fade"]):not(.m-in) { opacity: 0; }
+.m-on [data-anim="up"]:not(.m-in) { transform: translateY(var(--m-rise)); }
+.m-in { animation: m-up var(--m-base) var(--m-ease) backwards; animation-delay: calc(var(--i, 0) * var(--m-step)); }
+[data-anim="fade"].m-in { animation-name: m-fade; }
+
+/* 5. Botones: respuesta al tocar. Hover de elevación solo con puntero real. */
+.primary-button, a.hero-btn, .icon-button, .bottom-nav-item, .category-card { -webkit-tap-highlight-color: transparent; }
+a.hero-btn, a.category-card { transition: transform var(--m-fast) var(--m-ease), box-shadow var(--m-fast) var(--m-ease); }
+.primary-button:active, a.hero-btn:active, .icon-button:active, .bottom-nav-item:active, a.category-card:active {
+  transform: scale(var(--m-press));
+}
+@media (hover: none) {
+  a.hero-btn:hover, a.category-card:hover, .wishlist-btn:hover { transform: none; }
+}
+
+/* Brillo suave que cruza una sola vez (un botón por página) */
+[data-anim="shine"] { position: relative; overflow: hidden; }
+[data-anim="shine"]::after {
+  content: ""; position: absolute; inset: 0; pointer-events: none;
+  background: linear-gradient(105deg, transparent 35%, color-mix(in srgb, currentColor 22%, transparent) 50%, transparent 65%);
+  transform: translateX(-120%);
+  animation: m-shine var(--m-slow) var(--m-ease) 600ms 1 forwards;
+}
+
+/* 6. Confirmaciones: corazón, contador, campana, pastilla "Agregado" */
+.m-pop svg { animation: m-pop var(--m-base) var(--m-ease); }
+.m-bump { animation: m-bump var(--m-base) var(--m-ease); }
+.m-ring svg { animation: m-ring var(--m-slow) var(--m-ease); transform-origin: 50% 15%; }
+
+.m-chip {
+  position: fixed; left: 50%; bottom: calc(env(safe-area-inset-bottom, 0px) + 84px); z-index: 400;
+  display: flex; align-items: center; gap: 8px; padding: 9px 16px;
+  border-radius: var(--radius-pill); border: 1px solid var(--color-border-subtle);
+  background: var(--color-surface); color: var(--color-text-main);
+  box-shadow: var(--shadow-soft); font-size: 13px; font-weight: 600;
+  opacity: 0; transform: translate(-50%, 8px); pointer-events: none;
+  transition: opacity var(--m-base) var(--m-ease), transform var(--m-base) var(--m-ease);
+}
+.m-chip.m-show { opacity: 1; transform: translate(-50%, 0); }
+.m-chip svg { width: 18px; height: 18px; fill: none; stroke: var(--color-success); stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round; }
+.m-chip path { stroke-dasharray: 1; stroke-dashoffset: 1; }
+.m-chip.m-show path { animation: m-draw var(--m-slow) var(--m-ease) 80ms forwards; }
+
+/* 7. Tarjeta de producto: zoom muy leve solo con mouse (en móvil ya existe el swipe) */
+@media (hover: hover) and (pointer: fine) {
+  .product-slide img { transition: transform var(--m-slow) var(--m-ease); }
+  .product-card:hover .product-slide img { transform: scale(1.03); }
+}
+
+/* 8. Skeletons: el brillo viaja con transform (compositor) y respeta el tema */
+.shimmer, .skeleton-product-card .sk-img, .skeleton-product-card .sk-line {
+  position: relative; overflow: hidden; background: var(--color-surface-3); animation: none;
+}
+.shimmer::after, .skeleton-product-card .sk-img::after, .skeleton-product-card .sk-line::after {
+  content: ""; position: absolute; inset: 0; transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--color-text-main) 9%, transparent), transparent);
+  animation: m-shimmer 1.4s linear infinite;
+}
+
+/* 9. Barra de anuncios */
+.m-announce {
+  display: flex; align-items: center; justify-content: center; min-height: 30px; box-sizing: border-box;
+  padding: 6px 12px; background: var(--gradient-accent); color: #fff; font-size: 12px; font-weight: 600; text-align: center;
+}
+.m-announce span { transition: opacity var(--m-fast) var(--m-ease); }
+.m-announce .m-out { opacity: 0; }
+
+/* 10. Hero carrusel (swipe nativo con scroll-snap) */
+.m-hero { position: relative; margin: 14px 4px 6px; border-radius: var(--radius-lg); overflow: hidden; background: var(--color-surface); box-shadow: var(--shadow-soft); text-align: left; }
+.m-hero-sk { aspect-ratio: 4 / 3.5; }
+.m-hero-track { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; overscroll-behavior-x: contain; scrollbar-width: none; }
+.m-hero-track::-webkit-scrollbar { display: none; }
+.m-hero-slide { flex: 0 0 100%; scroll-snap-align: center; scroll-snap-stop: always; display: block; color: inherit; text-decoration: none; }
+.m-hero-slide img { display: block; width: 100%; aspect-ratio: 4 / 3; object-fit: contain; padding: 8px; box-sizing: border-box; background: #fff; }
+.m-hero-cap { display: flex; align-items: center; gap: 8px; padding: 10px 14px 12px; }
+.m-hero-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14px; font-weight: 600; color: var(--color-text-main); }
+.m-hero-price { font-size: 14px; font-weight: 700; color: var(--color-accent-solid); }
+.m-hero-chip { padding: 3px 9px; border-radius: var(--radius-pill); background: var(--gradient-accent); color: #fff; font-size: 10px; font-weight: 700; }
+.m-hero-dots { position: absolute; top: 12px; right: 14px; display: flex; gap: 5px; pointer-events: none; }
+.m-hero-dots i { width: 6px; height: 6px; border-radius: 50%; background: rgba(0, 0, 0, .25); transition: transform var(--m-base) var(--m-ease), background var(--m-base) var(--m-ease); }
+.m-hero-dots i.on { background: var(--color-accent-solid); transform: scale(1.35); }
+
+/* 11. Banner de Live (el punto es el único movimiento continuo del home) */
+.m-live {
+  display: flex; align-items: center; gap: 10px; margin: 10px 8px 0; padding: 12px 16px; border-radius: 14px;
+  border: 1px solid rgba(239, 68, 68, .35); background: linear-gradient(135deg, rgba(239, 68, 68, .16), rgba(244, 114, 182, .10));
+  color: var(--color-text-primary); text-decoration: none; font-size: 13px; font-weight: 600;
+}
+.m-live i { flex-shrink: 0; width: 9px; height: 9px; border-radius: 50%; background: #ef4444; animation: m-blink 1.6s var(--m-ease) infinite; }
+.m-live span { flex: 1; }
+.m-live b { color: var(--color-accent); font-size: 12px; }
+
+/* 12. Reduced motion: sin movimiento, pero los spinners (carga) siguen girando */
+@media (prefers-reduced-motion: reduce) {
+  *, ::before, ::after {
+    animation-duration: .01ms !important; animation-delay: 0s !important; animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important; transition-delay: 0s !important; scroll-behavior: auto !important;
+  }
+  [class*="spinner"] { animation-duration: .8s !important; animation-iteration-count: infinite !important; }
+}

@@ -29,6 +29,8 @@ const STATIC_ASSETS = [
   '/znr/comprador-live.html',
   '/znr/offline.html',
   '/znr/styles.css',
+  '/znr/motion.css',
+  '/znr/motion.js',
   '/znr/api-config.js',
   '/znr/common.js',
   '/znr/script.js',

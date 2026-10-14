@@ -50,10 +50,12 @@ window.loadProductsUnified({
 onProducts(products) {
 renderCategories();
 renderFeaturedProducts();
+renderHeroCarousel();
 renderRecentProducts();
 generateHomeLooksFromWishlist();
 },
 onError() {
+document.getElementById('m-hero')?.remove();
 const container = document.getElementById('featured-products');
 if (container) {
 container.innerHTML = `
@@ -863,7 +865,39 @@ themeBtn.textContent = isDark ? '' : '';
 }
 });
 }
+// Hero: carrusel con artículos del catálogo. La etiqueta es el Badge que ya trae cada producto (Nuevo, Popular...).
+function renderHeroCarousel() {
+const el = document.getElementById('m-hero');
+if (!el || !(window.allProducts || []).length) return; // aún cargando: se queda el skeleton
+const ok = (window.allProducts || []).filter(p => Number(p.Stock) > 0 && (p.Imagen1 || p.Imagen2));
+let slides = ok.filter(p => p.Badge).slice(0, 5);
+if (slides.length < 3) slides = slides.concat(ok.filter(p => !p.Badge).slice(0, 3 - slides.length));
+if (!slides.length) { el.remove(); return; }
+el.innerHTML = `<div class="m-hero-track">${slides.map((p, i) => `<a class="m-hero-slide" href="catalogo.html#producto-${encodeURIComponent(p.ID)}"><img src="${escapeHtml(optimizeDriveUrl(p.Imagen1 || p.Imagen2, 600).replace(/=w\d+$/, '=w640'))}" alt="${escapeHtml(p.Nombre || '')}" ${i ? 'loading="lazy"' : ''} draggable="false"><div class="m-hero-cap">${p.Badge ? `<span class="m-hero-chip">${escapeHtml(p.Badge)}</span>` : ''}<span class="m-hero-name">${escapeHtml(p.Nombre || '')}</span><span class="m-hero-price">${formatCurrency(p.Precio)}</span></div></a>`).join('')}</div>${slides.length > 1 ? `<div class="m-hero-dots" aria-hidden="true">${slides.map(() => '<i></i>').join('')}</div>` : ''}`;
+window.znrMotion?.carousel(el);
+}
+// Banner de Live: solo si hay uno activo en la ciudad del comprador (misma consulta que usa comunidad.js).
+async function checkHomeLive() {
+const slot = document.getElementById('home-live-slot');
+if (!slot) return;
+let lives = null;
+for (let i = 0; i < 5 && !lives; i++) {
+try {
+if (typeof window.znrFirestore?.getLivesActivos !== 'function') throw new Error('aun no');
+const r = await window.znrFirestore.getLivesActivos();
+if (!r.ok) throw new Error(r.error);
+lives = r.lives;
+} catch (e) { await new Promise(res => setTimeout(res, 500)); }
+}
+if (!lives) return;
+const ciudad = await obtenerCiudadComprador();
+lives = lives.filter(l => l.ciudad === ciudad);
+if (!lives.length) return;
+const nombres = lives.slice(0, 2).map(l => l.vendedor_nombre || 'Vendedor').join(', ');
+slot.innerHTML = `<a class="m-live" href="lives.html"><i></i><span>En vivo ahora: ${escapeHtml(nombres)}${lives.length > 2 ? ` y ${lives.length - 2} más` : ''}</span><b>Ver</b></a>`;
+}
 document.addEventListener('DOMContentLoaded', async () => {
+checkHomeLive();
 await loadProducts();
 initCartAndWishlist();
 setupEventListeners();
