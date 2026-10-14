@@ -2109,13 +2109,7 @@ window.openBeneficiarioRegister = function(modoEdicion, idBeneficiario, datosAct
     // luego con los datos existentes del beneficiario (modo edición).
     const paisInicial = (window.vendorSession && window.vendorSession.pais) || d.pais || '';
     const ciudadInicial = (window.vendorSession && window.vendorSession.ciudad) || d.ciudad || '';
-    if (paisInicial) {
-      paisSel.value = paisInicial;
-      if (typeof llenarSelectCiudad === 'function') {
-        llenarSelectCiudad(ciudadSel, paisInicial);
-        if (ciudadInicial) ciudadSel.value = ciudadInicial;
-      }
-    }
+    if (paisInicial) fijarUbicacion(paisSel, ciudadSel, paisInicial, ciudadInicial);
   }
 }
   // Preview de imágenes

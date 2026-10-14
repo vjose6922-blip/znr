@@ -341,8 +341,7 @@ if (!res.ok) throw new Error(res.error);
 showTemporaryMessage(' Registro exitoso. Espera a que el administrador active tu cuenta.', 'success');
 document.getElementById('reg-nombre').value = '';
 document.getElementById('reg-phone').value = '';
-if (regPais) regPais.value = '';
-if (regCiudad) regCiudad.innerHTML = '';
+if (regPais) { regPais.value = ''; regPais.dispatchEvent(new Event('change')); }
 const loginTab = document.querySelector('.login-tab[data-tab="login"]');
 if (loginTab) loginTab.click();
 } catch (err) {
@@ -3680,13 +3679,7 @@ function abrirEditarFundacionVendedor(miBen) {
   const efCiudad = document.getElementById('ef-ciudad');
   if (efPais && efCiudad) {
     enlazarPaisCiudad(efPais, efCiudad);
-    if (miBen.pais) {
-      efPais.value = miBen.pais;
-      if (typeof llenarSelectCiudad === 'function') {
-        llenarSelectCiudad(efCiudad, miBen.pais);
-        if (miBen.ciudad) efCiudad.value = miBen.ciudad;
-      }
-    }
+    if (miBen.pais) fijarUbicacion(efPais, efCiudad, miBen.pais, miBen.ciudad);
   }
 }
   document.getElementById('btn-close-edit-fund').onclick = () => modal.remove();

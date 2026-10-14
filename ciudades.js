@@ -1,106 +1,120 @@
 // Fuente única de países/ciudades donde opera ZNR. Cobertura: todo México.
 window.ZNR_CIUDADES = [
-  { pais: 'México', ciudad: 'Ciudad de México', lat: 19.4326, lng: -99.1332 },
-  { pais: 'México', ciudad: 'Guadalajara', lat: 20.6764, lng: -103.3422 },
-  { pais: 'México', ciudad: 'Monterrey', lat: 25.6844, lng: -100.3181 },
-  { pais: 'México', ciudad: 'Puebla', lat: 19.0413, lng: -98.2062 },
-  { pais: 'México', ciudad: 'Tijuana', lat: 32.5364, lng: -117.0372 },
-  { pais: 'México', ciudad: 'León de los Aldama', lat: 21.1219, lng: -101.6833 },
-  { pais: 'México', ciudad: 'Ciudad Juárez', lat: 31.6685, lng: -106.4200 },
-  { pais: 'México', ciudad: 'Zapopan', lat: 20.7208, lng: -103.3911 },
-  { pais: 'México', ciudad: 'Mérida', lat: 20.9674, lng: -89.5926 },
-  { pais: 'México', ciudad: 'San Luis Potosí', lat: 22.1497, lng: -100.9750 },
-  { pais: 'México', ciudad: 'Aguascalientes', lat: 21.8808, lng: -102.2961 },
-  { pais: 'México', ciudad: 'Santiago de Querétaro', lat: 20.5888, lng: -100.3899 },
-  { pais: 'México', ciudad: 'Hermosillo', lat: 29.0750, lng: -110.9583 },
-  { pais: 'México', ciudad: 'Saltillo', lat: 25.4231, lng: -100.9919 },
-  { pais: 'México', ciudad: 'Mexicali', lat: 32.6360, lng: -115.4759 },
-  { pais: 'México', ciudad: 'Culiacán Rosales', lat: 24.8090, lng: -107.3940 },
-  { pais: 'México', ciudad: 'Morelia', lat: 19.7060, lng: -101.1950 },
-  { pais: 'México', ciudad: 'Cancún', lat: 21.1614, lng: -86.8248 },
-  { pais: 'México', ciudad: 'Chihuahua', lat: 28.6353, lng: -106.0889 },
-  { pais: 'México', ciudad: 'Toluca', lat: 19.2922, lng: -99.6539 },
-  { pais: 'México', ciudad: 'Torreón', lat: 25.5428, lng: -103.4068 },
-  { pais: 'México', ciudad: 'Acapulco de Juárez', lat: 16.8531, lng: -99.8237 },
-  { pais: 'México', ciudad: 'Veracruz', lat: 19.1738, lng: -96.1342 },
-  { pais: 'México', ciudad: 'Villahermosa', lat: 17.9892, lng: -92.9475 },
-  { pais: 'México', ciudad: 'Tuxtla Gutiérrez', lat: 16.7528, lng: -93.1152 },
-  { pais: 'México', ciudad: 'Oaxaca de Juárez', lat: 17.0732, lng: -96.7266 },
-  { pais: 'México', ciudad: 'Victoria de Durango', lat: 24.0277, lng: -104.6532 },
-  { pais: 'México', ciudad: 'Tampico', lat: 22.2331, lng: -97.8611 },
-  { pais: 'México', ciudad: 'Xalapa', lat: 19.5438, lng: -96.9102 },
-  { pais: 'México', ciudad: 'Reynosa', lat: 26.0922, lng: -98.2779 },
-  { pais: 'México', ciudad: 'Heroica Matamoros', lat: 25.8698, lng: -97.5027 },
-  { pais: 'México', ciudad: 'Nuevo Laredo', lat: 27.4767, lng: -99.5164 },
-  { pais: 'México', ciudad: 'Ensenada', lat: 31.8661, lng: -116.5964 },
-  { pais: 'México', ciudad: 'La Paz', lat: 24.1426, lng: -110.3128 },
-  { pais: 'México', ciudad: 'Cabo San Lucas', lat: 22.8905, lng: -109.9167 },
-  { pais: 'México', ciudad: 'Colima', lat: 19.2433, lng: -103.7247 },
-  { pais: 'México', ciudad: 'Manzanillo', lat: 19.1138, lng: -104.3385 },
-  { pais: 'México', ciudad: 'Irapuato', lat: 20.6767, lng: -101.3563 },
-  { pais: 'México', ciudad: 'Celaya', lat: 20.5235, lng: -100.8157 },
-  { pais: 'México', ciudad: 'Mazatlán', lat: 23.2494, lng: -106.4111 },
-  { pais: 'México', ciudad: 'Tepic', lat: 21.5039, lng: -104.8945 },
-  { pais: 'México', ciudad: 'Campeche', lat: 19.8301, lng: -90.5349 },
-  { pais: 'México', ciudad: 'Chetumal', lat: 18.5001, lng: -88.2961 },
-  { pais: 'México', ciudad: 'Pachuca de Soto', lat: 20.1011, lng: -98.7591 },
-  { pais: 'México', ciudad: 'Tlaxcala de Xicohténcatl', lat: 19.3182, lng: -98.2370 },
-  { pais: 'México', ciudad: 'Cuernavaca', lat: 18.9242, lng: -99.2216 },
-  { pais: 'México', ciudad: 'Chilpancingo de los Bravo', lat: 17.5510, lng: -99.5000 },
-  { pais: 'México', ciudad: 'Zacatecas', lat: 22.7709, lng: -102.5832 },
-  { pais: 'México', ciudad: 'Los Mochis', lat: 25.7900, lng: -108.9800 },
-  { pais: 'México', ciudad: 'Ciudad Obregón', lat: 27.4833, lng: -109.9333 },
-  { pais: 'México', ciudad: 'Nogales', lat: 31.3086, lng: -110.9422 },
-  { pais: 'México', ciudad: 'Piedras Negras', lat: 28.7000, lng: -100.5231 },
-  { pais: 'México', ciudad: 'Monclova', lat: 26.9069, lng: -101.4203 },
-  { pais: 'México', ciudad: 'Nuevo Casas Grandes', lat: 30.4167, lng: -107.9167 },
-  { pais: 'México', ciudad: 'Delicias', lat: 28.1903, lng: -105.4711 },
-  { pais: 'México', ciudad: 'Parral', lat: 26.9333, lng: -105.6667 },
-  { pais: 'México', ciudad: 'Gómez Palacio', lat: 25.5667, lng: -103.5000 },
-  { pais: 'México', ciudad: 'Lerdo', lat: 25.5333, lng: -103.5333 },
-  { pais: 'México', ciudad: 'Fresnillo', lat: 23.1833, lng: -102.8667 },
-  { pais: 'México', ciudad: 'Río Grande', lat: 23.8167, lng: -103.0333 },
-  { pais: 'México', ciudad: 'Tepatitlán de Morelos', lat: 20.8167, lng: -102.7333 },
-  { pais: 'México', ciudad: 'Puerto Vallarta', lat: 20.6534, lng: -105.2253 },
-  { pais: 'México', ciudad: 'Ciudad Guzmán', lat: 19.7000, lng: -103.4667 },
-  { pais: 'México', ciudad: 'Autlán de Navarro', lat: 19.7667, lng: -104.3667 },
-  { pais: 'México', ciudad: 'San Juan de los Lagos', lat: 21.2500, lng: -102.3000 },
-  { pais: 'México', ciudad: 'Lagos de Moreno', lat: 21.3500, lng: -101.9167 },
-  { pais: 'México', ciudad: 'San Francisco del Rincón', lat: 21.0167, lng: -101.8500 },
-  { pais: 'México', ciudad: 'Silao', lat: 20.9333, lng: -101.4167 },
-  { pais: 'México', ciudad: 'Guanajuato', lat: 21.0190, lng: -101.2574 },
-  { pais: 'México', ciudad: 'San Miguel de Allende', lat: 20.9144, lng: -100.7431 },
-  { pais: 'México', ciudad: 'Cortazar', lat: 20.4833, lng: -100.9333 },
-  { pais: 'México', ciudad: 'Salamanca', lat: 20.5667, lng: -101.2000 },
-  { pais: 'México', ciudad: 'Pénjamo', lat: 20.4333, lng: -101.7167 },
-  { pais: 'México', ciudad: 'Uriangato', lat: 20.1500, lng: -101.1667 },
-  { pais: 'México', ciudad: 'Moroleón', lat: 20.1333, lng: -101.1833 },
-  { pais: 'México', ciudad: 'Acámbaro', lat: 20.0333, lng: -100.7167 },
-  { pais: 'México', ciudad: 'Yuriria', lat: 20.2167, lng: -101.1333 },
-  { pais: 'México', ciudad: 'Valle de Santiago', lat: 20.3833, lng: -101.1833 },
-  { pais: 'México', ciudad: 'Jaral del Progreso', lat: 20.3667, lng: -101.0667 },
-  { pais: 'México', ciudad: 'Villagrán', lat: 20.5167, lng: -100.9833 },
-  { pais: 'México', ciudad: 'Abasolo', lat: 20.4500, lng: -101.5333 },
-  { pais: 'México', ciudad: 'Cuerámaro', lat: 20.6167, lng: -101.6667 },
-  { pais: 'México', ciudad: 'Manuel Doblado', lat: 20.7167, lng: -101.9500 },
-  { pais: 'México', ciudad: 'San Luis de la Paz', lat: 21.3000, lng: -100.5167 },
-  { pais: 'México', ciudad: 'Dolores Hidalgo', lat: 21.1500, lng: -100.9333 },
-  { pais: 'México', ciudad: 'Ocampo', lat: 21.6500, lng: -101.5000 },
-  { pais: 'México', ciudad: 'Xichú', lat: 21.3000, lng: -100.0500 },
-  { pais: 'México', ciudad: 'Atarjea', lat: 21.2667, lng: -99.7167 },
-  { pais: 'México', ciudad: 'Santa Catarina', lat: 21.1333, lng: -100.0667 },
-  { pais: 'México', ciudad: 'Doctor Mora', lat: 21.1333, lng: -100.3167 },
-  { pais: 'México', ciudad: 'Tierra Blanca', lat: 21.1167, lng: -100.1667 },
-  { pais: 'México', ciudad: 'San José Iturbide', lat: 21.0000, lng: -100.3833 },
-  { pais: 'México', ciudad: 'Apaseo el Grande', lat: 20.5667, lng: -100.6833 },
-  { pais: 'México', ciudad: 'Apaseo el Alto', lat: 20.4500, lng: -100.6167 },
-  { pais: 'México', ciudad: 'Jerécuaro', lat: 20.1500, lng: -100.5000 },
-  { pais: 'México', ciudad: 'Coroneo', lat: 20.2000, lng: -100.3667 },
-  { pais: 'México', ciudad: 'Tarandacuao', lat: 20.0000, lng: -100.5333 },
-  { pais: 'México', ciudad: 'Tarimoro', lat: 20.2833, lng: -100.7500 },
-  { pais: 'México', ciudad: 'Salvatierra', lat: 20.2167, lng: -100.8833 },
-  { pais: 'México', ciudad: 'Santiago Maravatío', lat: 20.1667, lng: -100.9833 },
+  { pais: 'México', estado: 'Ciudad de México', ciudad: 'Ciudad de México', lat: 19.4326, lng: -99.1332 },
+  { pais: 'México', estado: 'Jalisco', ciudad: 'Guadalajara', lat: 20.6764, lng: -103.3422 },
+  { pais: 'México', estado: 'Nuevo León', ciudad: 'Monterrey', lat: 25.6844, lng: -100.3181 },
+  { pais: 'México', estado: 'Puebla', ciudad: 'Puebla', lat: 19.0413, lng: -98.2062 },
+  { pais: 'México', estado: 'Baja California', ciudad: 'Tijuana', lat: 32.5364, lng: -117.0372 },
+  { pais: 'México', estado: 'Guanajuato', ciudad: 'León de los Aldama', lat: 21.1219, lng: -101.6833 },
+  { pais: 'México', estado: 'Chihuahua', ciudad: 'Ciudad Juárez', lat: 31.6685, lng: -106.4200 },
+  { pais: 'México', estado: 'Jalisco', ciudad: 'Zapopan', lat: 20.7208, lng: -103.3911 },
+  { pais: 'México', estado: 'Yucatán', ciudad: 'Mérida', lat: 20.9674, lng: -89.5926 },
+  { pais: 'México', estado: 'San Luis Potosí', ciudad: 'San Luis Potosí', lat: 22.1497, lng: -100.9750 },
+  { pais: 'México', estado: 'Aguascalientes', ciudad: 'Aguascalientes', lat: 21.8808, lng: -102.2961 },
+  { pais: 'México', estado: 'Querétaro', ciudad: 'Santiago de Querétaro', lat: 20.5888, lng: -100.3899 },
+  { pais: 'México', estado: 'Sonora', ciudad: 'Hermosillo', lat: 29.0750, lng: -110.9583 },
+  { pais: 'México', estado: 'Coahuila', ciudad: 'Saltillo', lat: 25.4231, lng: -100.9919 },
+  { pais: 'México', estado: 'Baja California', ciudad: 'Mexicali', lat: 32.6360, lng: -115.4759 },
+  { pais: 'México', estado: 'Sinaloa', ciudad: 'Culiacán Rosales', lat: 24.8090, lng: -107.3940 },
+  { pais: 'México', estado: 'Michoacán', ciudad: 'Morelia', lat: 19.7060, lng: -101.1950 },
+  { pais: 'México', estado: 'Quintana Roo', ciudad: 'Cancún', lat: 21.1614, lng: -86.8248 },
+  { pais: 'México', estado: 'Chihuahua', ciudad: 'Chihuahua', lat: 28.6353, lng: -106.0889 },
+  { pais: 'México', estado: 'Estado de México', ciudad: 'Toluca', lat: 19.2922, lng: -99.6539 },
+  { pais: 'México', estado: 'Coahuila', ciudad: 'Torreón', lat: 25.5428, lng: -103.4068 },
+  { pais: 'México', estado: 'Guerrero', ciudad: 'Acapulco de Juárez', lat: 16.8531, lng: -99.8237 },
+  { pais: 'México', estado: 'Veracruz', ciudad: 'Veracruz', lat: 19.1738, lng: -96.1342 },
+  { pais: 'México', estado: 'Tabasco', ciudad: 'Villahermosa', lat: 17.9892, lng: -92.9475 },
+  { pais: 'México', estado: 'Chiapas', ciudad: 'Tuxtla Gutiérrez', lat: 16.7528, lng: -93.1152 },
+  { pais: 'México', estado: 'Oaxaca', ciudad: 'Oaxaca de Juárez', lat: 17.0732, lng: -96.7266 },
+  { pais: 'México', estado: 'Durango', ciudad: 'Victoria de Durango', lat: 24.0277, lng: -104.6532 },
+  { pais: 'México', estado: 'Tamaulipas', ciudad: 'Tampico', lat: 22.2331, lng: -97.8611 },
+  { pais: 'México', estado: 'Veracruz', ciudad: 'Xalapa', lat: 19.5438, lng: -96.9102 },
+  { pais: 'México', estado: 'Tamaulipas', ciudad: 'Reynosa', lat: 26.0922, lng: -98.2779 },
+  { pais: 'México', estado: 'Tamaulipas', ciudad: 'Heroica Matamoros', lat: 25.8698, lng: -97.5027 },
+  { pais: 'México', estado: 'Tamaulipas', ciudad: 'Nuevo Laredo', lat: 27.4767, lng: -99.5164 },
+  { pais: 'México', estado: 'Baja California', ciudad: 'Ensenada', lat: 31.8661, lng: -116.5964 },
+  { pais: 'México', estado: 'Baja California Sur', ciudad: 'La Paz', lat: 24.1426, lng: -110.3128 },
+  { pais: 'México', estado: 'Baja California Sur', ciudad: 'Cabo San Lucas', lat: 22.8905, lng: -109.9167 },
+  { pais: 'México', estado: 'Colima', ciudad: 'Colima', lat: 19.2433, lng: -103.7247 },
+  { pais: 'México', estado: 'Colima', ciudad: 'Manzanillo', lat: 19.1138, lng: -104.3385 },
+  { pais: 'México', estado: 'Guanajuato', ciudad: 'Irapuato', lat: 20.6767, lng: -101.3563 },
+  { pais: 'México', estado: 'Guanajuato', ciudad: 'Celaya', lat: 20.5235, lng: -100.8157 },
+  { pais: 'México', estado: 'Sinaloa', ciudad: 'Mazatlán', lat: 23.2494, lng: -106.4111 },
+  { pais: 'México', estado: 'Nayarit', ciudad: 'Tepic', lat: 21.5039, lng: -104.8945 },
+  { pais: 'México', estado: 'Campeche', ciudad: 'Campeche', lat: 19.8301, lng: -90.5349 },
+  { pais: 'México', estado: 'Quintana Roo', ciudad: 'Chetumal', lat: 18.5001, lng: -88.2961 },
+  { pais: 'México', estado: 'Hidalgo', ciudad: 'Pachuca de Soto', lat: 20.1011, lng: -98.7591 },
+  { pais: 'México', estado: 'Tlaxcala', ciudad: 'Tlaxcala de Xicohténcatl', lat: 19.3182, lng: -98.2370 },
+  { pais: 'México', estado: 'Morelos', ciudad: 'Cuernavaca', lat: 18.9242, lng: -99.2216 },
+  { pais: 'México', estado: 'Guerrero', ciudad: 'Chilpancingo de los Bravo', lat: 17.5510, lng: -99.5000 },
+  { pais: 'México', estado: 'Zacatecas', ciudad: 'Zacatecas', lat: 22.7709, lng: -102.5832 },
+  { pais: 'México', estado: 'Sinaloa', ciudad: 'Los Mochis', lat: 25.7900, lng: -108.9800 },
+  { pais: 'México', estado: 'Sonora', ciudad: 'Ciudad Obregón', lat: 27.4833, lng: -109.9333 },
+  { pais: 'México', estado: 'Sonora', ciudad: 'Nogales', lat: 31.3086, lng: -110.9422 },
+  { pais: 'México', estado: 'Coahuila', ciudad: 'Piedras Negras', lat: 28.7000, lng: -100.5231 },
+  { pais: 'México', estado: 'Coahuila', ciudad: 'Monclova', lat: 26.9069, lng: -101.4203 },
+  { pais: 'México', estado: 'Chihuahua', ciudad: 'Nuevo Casas Grandes', lat: 30.4167, lng: -107.9167 },
+  { pais: 'México', estado: 'Chihuahua', ciudad: 'Delicias', lat: 28.1903, lng: -105.4711 },
+  { pais: 'México', estado: 'Chihuahua', ciudad: 'Parral', lat: 26.9333, lng: -105.6667 },
+  { pais: 'México', estado: 'Durango', ciudad: 'Gómez Palacio', lat: 25.5667, lng: -103.5000 },
+  { pais: 'México', estado: 'Durango', ciudad: 'Lerdo', lat: 25.5333, lng: -103.5333 },
+  { pais: 'México', estado: 'Zacatecas', ciudad: 'Fresnillo', lat: 23.1833, lng: -102.8667 },
+  { pais: 'México', estado: 'Zacatecas', ciudad: 'Río Grande', lat: 23.8167, lng: -103.0333 },
+  { pais: 'México', estado: 'Jalisco', ciudad: 'Tepatitlán de Morelos', lat: 20.8167, lng: -102.7333 },
+  { pais: 'México', estado: 'Jalisco', ciudad: 'Puerto Vallarta', lat: 20.6534, lng: -105.2253 },
+  { pais: 'México', estado: 'Jalisco', ciudad: 'Ciudad Guzmán', lat: 19.7000, lng: -103.4667 },
+  { pais: 'México', estado: 'Jalisco', ciudad: 'Autlán de Navarro', lat: 19.7667, lng: -104.3667 },
+  { pais: 'México', estado: 'Jalisco', ciudad: 'San Juan de los Lagos', lat: 21.2500, lng: -102.3000 },
+  { pais: 'México', estado: 'Jalisco', ciudad: 'Lagos de Moreno', lat: 21.3500, lng: -101.9167 },
+  { pais: 'México', estado: 'Guanajuato', ciudad: 'San Francisco del Rincón', lat: 21.0167, lng: -101.8500 },
+  { pais: 'México', estado: 'Guanajuato', ciudad: 'Silao', lat: 20.9333, lng: -101.4167 },
+  { pais: 'México', estado: 'Guanajuato', ciudad: 'Guanajuato', lat: 21.0190, lng: -101.2574 },
+  { pais: 'México', estado: 'Guanajuato', ciudad: 'San Miguel de Allende', lat: 20.9144, lng: -100.7431 },
+  { pais: 'México', estado: 'Guanajuato', ciudad: 'Cortazar', lat: 20.4833, lng: -100.9333 },
+  { pais: 'México', estado: 'Guanajuato', ciudad: 'Salamanca', lat: 20.5667, lng: -101.2000 },
+  { pais: 'México', estado: 'Guanajuato', ciudad: 'Pénjamo', lat: 20.4333, lng: -101.7167 },
+  { pais: 'México', estado: 'Guanajuato', ciudad: 'Uriangato', lat: 20.1500, lng: -101.1667 },
+  { pais: 'México', estado: 'Guanajuato', ciudad: 'Moroleón', lat: 20.1333, lng: -101.1833 },
+  { pais: 'México', estado: 'Guanajuato', ciudad: 'Acámbaro', lat: 20.0333, lng: -100.7167 },
+  { pais: 'México', estado: 'Guanajuato', ciudad: 'Yuriria', lat: 20.2167, lng: -101.1333 },
+  { pais: 'México', estado: 'Guanajuato', ciudad: 'Valle de Santiago', lat: 20.3833, lng: -101.1833 },
+  { pais: 'México', estado: 'Guanajuato', ciudad: 'Jaral del Progreso', lat: 20.3667, lng: -101.0667 },
+  { pais: 'México', estado: 'Guanajuato', ciudad: 'Villagrán', lat: 20.5167, lng: -100.9833 },
+  { pais: 'México', estado: 'Guanajuato', ciudad: 'Abasolo', lat: 20.4500, lng: -101.5333 },
+  { pais: 'México', estado: 'Guanajuato', ciudad: 'Cuerámaro', lat: 20.6167, lng: -101.6667 },
+  { pais: 'México', estado: 'Guanajuato', ciudad: 'Manuel Doblado', lat: 20.7167, lng: -101.9500 },
+  { pais: 'México', estado: 'Guanajuato', ciudad: 'San Luis de la Paz', lat: 21.3000, lng: -100.5167 },
+  { pais: 'México', estado: 'Guanajuato', ciudad: 'Dolores Hidalgo', lat: 21.1500, lng: -100.9333 },
+  { pais: 'México', estado: 'Guanajuato', ciudad: 'Ocampo', lat: 21.6500, lng: -101.5000 },
+  { pais: 'México', estado: 'Guanajuato', ciudad: 'Xichú', lat: 21.3000, lng: -100.0500 },
+  { pais: 'México', estado: 'Guanajuato', ciudad: 'Atarjea', lat: 21.2667, lng: -99.7167 },
+  { pais: 'México', estado: 'Guanajuato', ciudad: 'Santa Catarina', lat: 21.1333, lng: -100.0667 },
+  { pais: 'México', estado: 'Guanajuato', ciudad: 'Doctor Mora', lat: 21.1333, lng: -100.3167 },
+  { pais: 'México', estado: 'Guanajuato', ciudad: 'Tierra Blanca', lat: 21.1167, lng: -100.1667 },
+  { pais: 'México', estado: 'Guanajuato', ciudad: 'San José Iturbide', lat: 21.0000, lng: -100.3833 },
+  { pais: 'México', estado: 'Guanajuato', ciudad: 'Apaseo el Grande', lat: 20.5667, lng: -100.6833 },
+  { pais: 'México', estado: 'Guanajuato', ciudad: 'Apaseo el Alto', lat: 20.4500, lng: -100.6167 },
+  { pais: 'México', estado: 'Guanajuato', ciudad: 'Jerécuaro', lat: 20.1500, lng: -100.5000 },
+  { pais: 'México', estado: 'Guanajuato', ciudad: 'Coroneo', lat: 20.2000, lng: -100.3667 },
+  { pais: 'México', estado: 'Guanajuato', ciudad: 'Tarandacuao', lat: 20.0000, lng: -100.5333 },
+  { pais: 'México', estado: 'Guanajuato', ciudad: 'Tarimoro', lat: 20.2833, lng: -100.7500 },
+  { pais: 'México', estado: 'Guanajuato', ciudad: 'Salvatierra', lat: 20.2167, lng: -100.8833 },
+  { pais: 'México', estado: 'Guanajuato', ciudad: 'Santiago Maravatío', lat: 20.1667, lng: -100.9833 },
 ];
+
+// Guardar la ciudad como "Ciudad, Estado" (valor único: evita choques entre ciudades con el mismo nombre).
+// Déjalo en false hasta correr la migración de datos (migrarCiudadesConEstado); entonces cámbialo a true y despliega.
+const CIUDAD_CON_ESTADO = false;
+window.ZNR_CIUDADES.forEach(c => { c.nombre = c.ciudad; if (CIUDAD_CON_ESTADO) c.ciudad = `${c.nombre}, ${c.estado}`; });
+
+// Pasa un valor guardado (con o sin estado) al formato vigente; si no lo reconoce o es ambiguo, lo deja igual.
+window.normalizarCiudad = v => {
+  const t = window.ZNR_CIUDADES.filter(c => [c.ciudad, c.nombre + ', ' + c.estado, c.nombre].includes(v));
+  return t.length === 1 ? t[0].ciudad : v;
+};
+// La ciudad que el comprador ya tenía guardada se actualiza una vez y se recarga para que nada lea el valor viejo.
+{ const b = localStorage.getItem('buyer_ciudad'), n = b && normalizarCiudad(b); if (n && n !== b) { localStorage.setItem('buyer_ciudad', n); location.reload(); } }
+
 
 // Llena un <select> de país con los países únicos de la lista de arriba.
 function llenarSelectPais(select) {
@@ -109,17 +123,54 @@ function llenarSelectPais(select) {
     paises.map(p => `<option value="${p}">${p}</option>`).join('');
 }
 
-// Llena un <select> de ciudad con las ciudades del país dado.
-function llenarSelectCiudad(select, pais) {
-  const ciudades = window.ZNR_CIUDADES.filter(c => c.pais === pais);
-  select.innerHTML = '<option value="">Selecciona una ciudad</option>' +
-    ciudades.map(c => `<option value="${c.ciudad}">${c.ciudad}</option>`).join('');
+// Llena un <select> de estado con los estados del país dado (sin país: solo el placeholder).
+function llenarSelectEstado(select, pais) {
+  const estados = [...new Set(window.ZNR_CIUDADES.filter(c => c.pais === pais).map(c => c.estado))].sort((a, b) => a.localeCompare(b, 'es'));
+  select.innerHTML = '<option value="">Selecciona un estado</option>' + estados.map(e => `<option value="${e}">${e}</option>`).join('');
 }
 
-// Enlaza un par país→ciudad: al cambiar el país, recarga las ciudades.
+// Llena un <select> de ciudad con las ciudades del país (y del estado, si se pasa; estado '' = ninguna todavía).
+function llenarSelectCiudad(select, pais, estado) {
+  const ciudades = window.ZNR_CIUDADES.filter(c => c.pais === pais && (estado === undefined || c.estado === estado));
+  select.innerHTML = '<option value="">Selecciona una ciudad</option>' +
+    ciudades.map(c => `<option value="${c.ciudad}">${c.nombre}</option>`).join('');
+}
+
+// Enlaza país→estado→ciudad. El select de estado se crea solo, justo antes del de ciudad (hereda clase y estilo del de país).
 function enlazarPaisCiudad(selectPais, selectCiudad) {
+  const selectEstado = selectCiudad._estado = document.createElement('select');
+  selectEstado.className = selectPais.className;
+  selectEstado.style.cssText = selectPais.style.cssText;
+  selectCiudad.before(selectEstado);
   llenarSelectPais(selectPais);
-  selectPais.addEventListener('change', () => llenarSelectCiudad(selectCiudad, selectPais.value));
+  llenarSelectEstado(selectEstado, '');
+  selectPais.addEventListener('change', () => {
+    llenarSelectEstado(selectEstado, selectPais.value);
+    llenarSelectCiudad(selectCiudad, selectPais.value, '');
+  });
+  selectEstado.addEventListener('change', () => llenarSelectCiudad(selectCiudad, selectPais.value, selectEstado.value));
+}
+
+// Rellena los selects enlazados con un país/ciudad ya conocidos (el estado sale de la lista).
+function fijarUbicacion(selectPais, selectCiudad, pais, ciudad) {
+  const c = window.ZNR_CIUDADES.find(x => x.pais === pais && x.ciudad === normalizarCiudad(ciudad));
+  selectPais.value = pais;
+  selectPais.dispatchEvent(new Event('change'));
+  if (!c) return;
+  selectCiudad._estado.value = c.estado;
+  selectCiudad._estado.dispatchEvent(new Event('change'));
+  selectCiudad.value = c.ciudad;
+}
+
+// Enlaza estado→ciudad sin select de país (listas que abarcan todo): al elegir estado, la ciudad lista solo las de ese estado.
+// El placeholder de la ciudad tiene value '' (p. ej. "Todas"); cambiar el estado reinicia la ciudad y avisa con 'change'.
+function enlazarEstadoCiudad(selectEstado, selectCiudad, placeholderCiudad = 'Selecciona una ciudad') {
+  const cs = window.ZNR_CIUDADES, estados = [...new Set(cs.map(c => c.estado))].sort((a, b) => a.localeCompare(b, 'es'));
+  selectEstado.innerHTML = '<option value="">Todos los estados</option>' + estados.map(e => `<option>${e}</option>`).join('');
+  const llenar = () => selectCiudad.innerHTML = `<option value="">${placeholderCiudad}</option>` +
+    cs.filter(c => c.estado === selectEstado.value).map(c => `<option value="${c.ciudad}">${c.nombre}</option>`).join('');
+  selectEstado.addEventListener('change', () => { llenar(); selectCiudad.dispatchEvent(new Event('change')); });
+  llenar();
 }
 
 // Distancia en km entre dos coordenadas (fórmula de Haversine).
@@ -149,6 +200,7 @@ function mostrarSelectorCiudad(resolve) {
     if (!selCiudad.value) return;
     localStorage.setItem('buyer_ciudad', selCiudad.value);
     localStorage.setItem('buyer_ciudad_ok', '1');
+    actualizarWaFlotante();
     chip.remove();
     resolve(selCiudad.value);
   });
@@ -171,6 +223,7 @@ function obtenerCiudadComprador() {
         }
         const ciudad = ciudadMasCercana(data.lat, data.lng);
         localStorage.setItem('buyer_ciudad', ciudad);
+        actualizarWaFlotante();
         resolve(ciudad);
       })
       .catch(() => mostrarSelectorCiudad(resolve));
@@ -206,3 +259,13 @@ window.pedirConfirmarCiudad = () => {
   if (window.showTemporaryMessage) window.showTemporaryMessage('Confirma tu ciudad para continuar', 'error');
 };
 if (/^\/(index\.html|catalogo\.html|comunidad\.html)?$/.test(location.pathname)) obtenerCiudadComprador().then(mostrarFranjaCiudad);
+
+// WhatsApp del admin de la ciudad del comprador (nodo público contacto_admin/<ciudad> en RTDB).
+// Sin admin en esa ciudad (o si falla la lectura) se queda el número del Master.
+async function actualizarWaFlotante() {
+  const c = localStorage.getItem('buyer_ciudad');
+  const t = c && await fetch(`https://znr-live-default-rtdb.firebaseio.com/contacto_admin/${encodeURIComponent(c)}.json`).then(r => r.json()).catch(() => null);
+  window._waAdmin = t ? '52' + String(t).slice(-10) : window.WHATSAPP_NUMBER;
+  if (window._waAdmin) document.querySelectorAll('.floating-wa').forEach(a => a.href = 'https://wa.me/' + window._waAdmin);
+}
+actualizarWaFlotante();

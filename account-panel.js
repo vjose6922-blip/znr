@@ -83,7 +83,7 @@ let actionBtn = '';
 if (o.status === 'pendiente') {
   actionBtn = `<button class="up-order-cancel-btn" data-request-id="${_upEsc(o.requestId)}" style="margin-top:10px;width:100%;padding:8px;border:none;border-radius:10px;background:#fee2e2;color:#dc2626;font-size:13px;font-weight:600;cursor:pointer;">${Icon('x')} Cancelar pedido</button>`;
 } else if (o.status === 'confirmado') {
-  const adminPhone = (typeof WHATSAPP_NUMBER !== 'undefined' ? WHATSAPP_NUMBER : '');
+  const adminPhone = window._waAdmin || (typeof WHATSAPP_NUMBER !== 'undefined' ? WHATSAPP_NUMBER : '');
   const itemsList  = (o.items||[]).map(i=>`• ${i.name} x${i.quantity}`).join('\n');
   const msg = encodeURIComponent(`Hola, quisiera solicitar la *cancelación* de mi pedido:\n\n*ID:* ${o.requestId||''}\n*Productos:*\n${itemsList}\n*Total:* $${(o.total||0).toLocaleString()}\n\nEste pedido ya fue confirmado. ¿Es posible cancelarlo?`);
   actionBtn = `<a href="https://wa.me/${adminPhone}?text=${msg}" target="_blank" style="display:block;margin-top:10px;padding:8px;border-radius:10px;background:#fff3cd;color:#92400e;font-size:13px;font-weight:600;text-align:center;text-decoration:none;">${Icon('mail')} Solicitar cancelación al admin</a>`;

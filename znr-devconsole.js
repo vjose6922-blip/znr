@@ -908,21 +908,21 @@
       return;
     }
 
-    var opciones = '<option value="">— detección automática (borra buyer_ciudad) —</option>' +
-      window.ZNR_CIUDADES.map(function (c) {
-        var sel = c.ciudad === actual ? " selected" : "";
-        return '<option value="' + escapeHtml(c.ciudad) + '"' + sel + '>' + escapeHtml(c.ciudad) + " (" + escapeHtml(c.pais) + ")</option>";
-      }).join("");
-
     body.innerHTML =
       '<div class="znr-card">' +
         '<b>Ciudad guardada ahora</b><br>' + (actual ? escapeHtml(actual) : '<span style="color:#777">(ninguna — se detecta por IP al cargar)</span>') +
       '</div>' +
       '<div class="znr-card">' +
         '<b>Simular otra ciudad</b><br><br>' +
-        '<select id="znr-dc-ciudad-sel" style="width:100%;padding:6px;margin-bottom:8px;background:#151521;color:#eee;border:1px solid #3a3a52;border-radius:4px;">' + opciones + '</select><br>' +
+        '<select id="znr-dc-estado-sel" style="width:100%;padding:6px;margin-bottom:8px;background:#151521;color:#eee;border:1px solid #3a3a52;border-radius:4px;"></select><br>' +
+        '<select id="znr-dc-ciudad-sel" style="width:100%;padding:6px;margin-bottom:8px;background:#151521;color:#eee;border:1px solid #3a3a52;border-radius:4px;"></select><br>' +
         '<button class="znr-btn-mini" id="znr-dc-ciudad-aplicar">Aplicar y recargar</button>' +
       '</div>';
+
+    var estSel = document.getElementById("znr-dc-estado-sel"), ciuSel = document.getElementById("znr-dc-ciudad-sel");
+    enlazarEstadoCiudad(estSel, ciuSel, "— detección automática (borra buyer_ciudad) —");
+    var cd = window.ZNR_CIUDADES.find(function (c) { return c.ciudad === window.normalizarCiudad(actual); });
+    if (cd) { estSel.value = cd.estado; estSel.dispatchEvent(new Event("change")); ciuSel.value = cd.ciudad; }
 
     document.getElementById("znr-dc-ciudad-aplicar").addEventListener("click", function () {
       var val = document.getElementById("znr-dc-ciudad-sel").value;
