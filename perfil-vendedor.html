@@ -15,6 +15,7 @@
         https://firebasestorage.googleapis.com
         https://*.firebasestorage.app
         https://storage.googleapis.com ;
+ media-src 'self' blob: https://firebasestorage.googleapis.com https://*.firebasestorage.app https://storage.googleapis.com ;
  connect-src 'self'
    https://firestore.googleapis.com
    https://identitytoolkit.googleapis.com
@@ -27,6 +28,7 @@
    https://live-api-1038143238323.us-central1.run.app
    https://ventas-api-1038143238323.us-central1.run.app
    https://pedidos-api-1038143238323.us-central1.run.app
+   https://historias-api-1038143238323.us-central1.run.app
    https://vendedores-api-1038143238323.us-central1.run.app
    https://catalogo-api-1038143238323.us-central1.run.app
    https://auth-api-1038143238323.us-central1.run.app
@@ -855,6 +857,8 @@
   <script src="icons.js" defer></script>
   <script src="ciudades.js" defer></script>
  <script src="common.js" defer></script>
+  <script src="historias-visor.js" defer></script>
+  <script src="historias-perfil.js" defer></script>
   <script src="cover-portada.js" defer></script>
   <script src="znr-devconsole.js" defer></script>
   <script src="notification-center.js" defer></script>
@@ -1573,6 +1577,7 @@ const infoBits = [
           if (productos.length === 0) {
             gridEl.innerHTML = `<div class="empty-products">Este vendedor aún no tiene productos publicados.</div>`;
             if (loadMoreWrap) loadMoreWrap.innerHTML = '';
+            if (window.znrHistoriasPerfil) window.znrHistoriasPerfil.inyectar(gridEl, true);
             return;
           }
 
@@ -1611,6 +1616,8 @@ const infoBits = [
           }
 
           wireProductCardEvents(gridEl);
+          // Historias vigentes del vendedor: van PRIMERO, antes de los productos (se ocultan al filtrar)
+          if (window.znrHistoriasPerfil) window.znrHistoriasPerfil.inyectar(gridEl, !filtersActive);
         }
 
         function resetProductFilters() {
@@ -1644,6 +1651,15 @@ const infoBits = [
         
 
         renderProductsGrid();
+
+        // Historias del vendedor: se bajan una vez y se anteponen a la cuadrícula de productos
+        (function arrancarHistorias() {
+          const lanzar = () => {
+            if (!window.znrHistoriasPerfil) return;
+            window.znrHistoriasPerfil.cargar(getVendorUid()).then(() => renderProductsGrid());
+          };
+          if (window.znrHistoriasPerfil) lanzar(); else window.addEventListener('load', lanzar);
+        })();
 
         // Si la URL trae #producto-ID (enlace compartido), abre directo el
         // modal de detalle de ese producto, sin depender de en qué "página"
