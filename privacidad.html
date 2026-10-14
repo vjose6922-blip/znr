@@ -287,7 +287,7 @@
     <div class="legal-section">
       <h2> 12. Contacto</h2>
       <p>Si tienes preguntas sobre esta política, contáctanos:</p>
-      <a href="https://wa.me/528671781272?text=Hola,%20tengo%20una%20pregunta%20sobre%20la%20privacidad%20en%20Z%26R" class="legal-contact-btn" target="_blank" rel="noopener"> Contactar por WhatsApp</a>
+      <a href="#" id="wa-legal" data-texto="Hola, tengo una pregunta sobre la privacidad en Z&R" class="legal-contact-btn" target="_blank" rel="noopener"> Contactar por WhatsApp</a>
     </div>
   </div>
 
@@ -306,6 +306,7 @@
   </footer>
 
   <script src="api-config.js"></script>
+  <script>waListo.then(() => { const a = document.getElementById('wa-legal'); if (window.WHATSAPP_NUMBER) a.href = `https://wa.me/${window.WHATSAPP_NUMBER}?text=${encodeURIComponent(a.dataset.texto)}`; });</script>
   <script type="module" src="fcm-init.js"></script>
   <script src="icons.js" defer></script>
   <script src="ciudades.js" defer></script>

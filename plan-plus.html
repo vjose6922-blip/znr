@@ -418,6 +418,7 @@ async function cargar(forceRefresh) {
   try {
     const res = await apiCall({ action: 'getPlusSolicitudVendedor', vendorToken: vendorSession.token });
     const sol = res.solicitud || null;
+    await window.waListo;
     renderDynamicArea(sol);
     document.getElementById('pp-loading').style.display = 'none';
     document.getElementById('pp-content').style.display = 'block';
@@ -451,9 +452,10 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('btn-volver').innerHTML = Icon('arrow-left');
   document.getElementById('btn-volver').addEventListener('click', goBack);
 
-  const waNum = window.WHATSAPP_NUMBER || '';
-  const waContact = document.getElementById('pp-wa-contact');
-  if (waContact) waContact.href = waNum ? `https://wa.me/${waNum}?text=${encodeURIComponent('Hola, tengo una duda sobre el Plan Plus de mi tienda en Z&R.')}` : '#';
+  window.waListo.then(() => {
+    const waContact = document.getElementById('pp-wa-contact');
+    if (waContact && window.WHATSAPP_NUMBER) waContact.href = `https://wa.me/${window.WHATSAPP_NUMBER}?text=${encodeURIComponent('Hola, tengo una duda sobre el Plan Plus de mi tienda en Z&R.')}`;
+  });
 
   const raw = localStorage.getItem('vendor_session');
   if (!raw) {

@@ -202,7 +202,7 @@ function mostrarSelectorCiudad(resolve) {
     if (!selCiudad.value) return;
     localStorage.setItem('buyer_ciudad', selCiudad.value);
     localStorage.setItem('buyer_ciudad_ok', '1');
-    actualizarWaFlotante();
+    actualizarWaFlotante(true);
     chip.remove();
     resolve(selCiudad.value);
   });
@@ -225,7 +225,7 @@ function obtenerCiudadComprador() {
         }
         const ciudad = ciudadMasCercana(data.lat, data.lng);
         localStorage.setItem('buyer_ciudad', ciudad);
-        actualizarWaFlotante();
+        actualizarWaFlotante(true);
         resolve(ciudad);
       })
       .catch(() => mostrarSelectorCiudad(resolve));
@@ -262,12 +262,10 @@ window.pedirConfirmarCiudad = () => {
 };
 if (/^\/(index\.html|catalogo\.html|comunidad\.html)?$/.test(location.pathname)) obtenerCiudadComprador().then(mostrarFranjaCiudad);
 
-// WhatsApp del admin de la ciudad del comprador (nodo público contacto_admin/<ciudad> en RTDB).
-// Sin admin en esa ciudad (o si falla la lectura) se queda el número del Master.
-async function actualizarWaFlotante() {
-  const c = localStorage.getItem('buyer_ciudad');
-  const t = c && await fetch(`https://znr-live-default-rtdb.firebaseio.com/contacto_admin/${encodeURIComponent(c)}.json`).then(r => r.json()).catch(() => null);
-  window._waAdmin = t ? '52' + String(t).slice(-10) : window.WHATSAPP_NUMBER;
+// Pinta en el botón flotante el WhatsApp del admin de la ciudad del comprador (lo resuelve api-config.js; sin admin, el Master).
+// `recargar` = true cuando el comprador cambia de ciudad y hay que volver a leerlo.
+async function actualizarWaFlotante(recargar) {
+  await (recargar ? window.waActualizar?.() : window.waListo);
   if (window._waAdmin) document.querySelectorAll('.floating-wa').forEach(a => a.href = 'https://wa.me/' + window._waAdmin);
 }
 actualizarWaFlotante();

@@ -22,9 +22,17 @@
     return 'data:application/json,%7B%22ok%22%3Afalse%2C%22error%22%3A%22API_URL+deprecado+-+migrar+a+Cloud+Run%22%7D';
   }
 
-  // Para WhatsApp
-  const _w = ['52', '867', '178', '1272'];
-  function _buildWaNumber(){ return _w.join(''); }
+  // WhatsApp de contacto: el número ya no está en el código, se lee de RTDB (nodo público contacto_admin).
+  // WHATSAPP_NUMBER = Master (Plan Plus, outfits, legales) · _waAdmin = admin de la ciudad del comprador (si no hay, el Master).
+  window.WHATSAPP_NUMBER = window._waAdmin = '';
+  window.waActualizar = async () => {
+    const leer = k => fetch(`https://znr-live-default-rtdb.firebaseio.com/contacto_admin/${encodeURIComponent(k)}.json`).then(r => r.json()).catch(() => null);
+    const c = localStorage.getItem('buyer_ciudad'), num = t => t ? '52' + String(t).slice(-10) : '';
+    const [m, a] = await Promise.all([leer('_master'), c ? leer(c) : null]);
+    window.WHATSAPP_NUMBER = num(m);
+    window._waAdmin = num(a) || num(m);
+  };
+  window.waListo = window.waActualizar();
 
   Object.defineProperties(window, {
     API_URL: {
@@ -40,7 +48,6 @@
     AUTH_API_URL:         { get: () => AUTH_API_URL,         configurable: false, enumerable: false },
     LIVE_API_URL:         { get: () => LIVE_API_URL,         configurable: false, enumerable: false },
     TIENDA_ZNR_API_URL:   { get: () => TIENDA_ZNR_API_URL,   configurable: false, enumerable: false },
-    CATALOGO_SNAPSHOT_URL:{ get: () => CATALOGO_SNAPSHOT_URL,configurable: false, enumerable: false },
-    WHATSAPP_NUMBER:      { get: _buildWaNumber,             configurable: false, enumerable: false }
+    CATALOGO_SNAPSHOT_URL:{ get: () => CATALOGO_SNAPSHOT_URL,configurable: false, enumerable: false }
   });
 })();
