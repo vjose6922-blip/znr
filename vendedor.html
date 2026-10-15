@@ -78,8 +78,10 @@
 <link rel="preload" href="styles.css" as="style">
  <link rel="stylesheet" href="styles.css">
  <style>
- .vendor-wrap  { max-width: 640px; margin: 0 auto; padding: 0; }
- .vendor-section{ background: var(--color-surface, #fff);  padding: 4px; margin-bottom: 20px;
+ /* body es display:flex: sin min-width:0 el panel crece hasta el ancho minimo de su contenido
+    y el overflow-x:hidden global recorta el lado derecho. */
+ .vendor-wrap  { max-width: 640px; width: 100%; min-width: 0; box-sizing: border-box; margin: 0 auto; padding: 0; }
+ .vendor-section{ box-sizing: border-box; min-width: 0; background: var(--color-surface, #fff);  padding: 4px; margin-bottom: 20px;
  box-shadow: 0 2px 12px rgba(0,0,0,.06); }
  .vendor-section h2{ margin: 0 0 18px; font-size: 18px; color: var(--color-text-primary, #1a1a2e); }
 
@@ -257,6 +259,13 @@ h3 {
   
  
  .app-header { position: flex !important; top: 0; left: 0; right: 0; width: 100%; box-sizing: border-box; } 
+
+ /* Cuadricula de productos del vendedor: columnas que SI pueden encogerse (minmax(0,1fr))
+    y botones Editar/Eliminar que se reparten el ancho de la tarjeta en vez de forzarlo. */
+ #panel-section .products-container.layout-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+ #panel-section .products-container.layout-grid .product-card { min-width: 0; }
+ #panel-section .product-actions { flex-wrap: wrap; }
+ #panel-section .product-actions .btn-secondary { flex: 1 1 auto; min-width: 0; padding: 8px 10px; text-align: center; }
  </style>
 </head>
 <body class="theme-aeromexico">

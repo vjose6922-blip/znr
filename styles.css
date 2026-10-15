@@ -146,6 +146,7 @@ h3 {
   backdrop-filter: blur(18px);
   border-bottom: 1px solid var(--border-header);
   width: 100%;
+  box-sizing: border-box; /* 100% + padding desbordaba 32px a la derecha en paginas sin override local */
   border-radius: 0;
 }
 
@@ -205,6 +206,7 @@ h3 {
   padding: 16px 10px;
   border-top: 1px solid var(--border-header);
   width: 100%;
+  box-sizing: border-box; /* sin esto 100% + padding desbordaba 20px a la derecha */
   border-radius: 0;
 }
 

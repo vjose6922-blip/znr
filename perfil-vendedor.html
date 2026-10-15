@@ -728,6 +728,31 @@
       color: var(--color-text-soft);
       margin-top: 4px;
     }
+  
+    /* ── Skeleton de carga del perfil (misma geometría que el perfil real) ── */
+    .pk .profile-header { background: var(--color-surface-3, #edeef2); }
+    .pk .profile-header::after { display: none; }
+    .pk .profile-avatar { background: var(--color-surface-3, #edeef2); box-shadow: none; }
+    .pk-sh { position: relative; overflow: hidden; background: var(--color-surface-3, #edeef2); }
+    .pk-sh::after {
+      content: ""; position: absolute; inset: 0; transform: translateX(-100%);
+      background: linear-gradient(90deg, transparent, rgba(127,127,140,.16), transparent);
+      animation: pk-shimmer 1.4s linear infinite;
+    }
+    @keyframes pk-shimmer { to { transform: translateX(100%); } }
+    .pk-line { display: block; border-radius: 8px; }
+    .pk-name-row { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+    .pk-pill { width: 56px; height: 22px; border-radius: 999px; }
+    .pk-tabs { display: flex; gap: 10px; margin: 16px 0 18px; }
+    .pk-tabs span { flex: 1; height: 38px; border-radius: 10px; }
+    .pk-toolbar { display: flex; gap: 8px; margin: 0 0 18px; }
+    .pk-search { flex: 1; height: 42px; border-radius: 12px; }
+    .pk-sort { width: 34%; height: 42px; border-radius: 12px; }
+    .pk-card { background: var(--color-surface); border-radius: 16px; overflow: hidden; }
+    .pk-img { aspect-ratio: 1 / 1; }
+    .pk-body { padding: 12px; }
+    .pk-body .pk-line { height: 13px; margin-bottom: 8px; }
+    @media (prefers-reduced-motion: reduce) { .pk-sh::after { animation: none; } }
   </style>
 </head>
 <body class="theme-aeromexico profile-page">
@@ -755,10 +780,19 @@
 
   <div class="profile-perspective-wrap">
   <main class="profile-container" id="profile-container">
-    <!-- El contenido se inyectará aquí con JavaScript -->
-    <div style="text-align:center; padding:60px 20px; color: var(--color-text-muted);">
-      <div class="loader-spinner" style="margin:0 auto 20px;"></div>
-      <p>Cargando perfil...</p>
+    <!-- Skeleton mientras carga: se reemplaza por el perfil real (o por el mensaje de error) -->
+    <div class="pk" role="status" aria-label="Cargando perfil">
+      <div class="profile-header-wrap">
+        <div class="profile-header pk-sh"></div>
+        <div class="profile-avatar pk-sh"></div>
+      </div>
+      <div class="profile-info">
+        <div class="pk-name-row"><span class="pk-sh pk-line" style="width:46%;height:26px"></span><span class="pk-sh pk-pill"></span></div>
+        <span class="pk-sh pk-line" style="width:30%;height:14px"></span>
+        <div class="pk-tabs"><span class="pk-sh"></span><span class="pk-sh"></span><span class="pk-sh"></span></div>
+        <div class="pk-toolbar"><span class="pk-sh pk-search"></span><span class="pk-sh pk-sort"></span></div>
+        <div class="profile-products-grid"><div class="pk-card"><div class="pk-sh pk-img"></div><div class="pk-body"><span class="pk-sh pk-line" style="width:70%"></span><span class="pk-sh pk-line" style="width:40%;margin-bottom:0"></span></div></div><div class="pk-card"><div class="pk-sh pk-img"></div><div class="pk-body"><span class="pk-sh pk-line" style="width:70%"></span><span class="pk-sh pk-line" style="width:40%;margin-bottom:0"></span></div></div><div class="pk-card"><div class="pk-sh pk-img"></div><div class="pk-body"><span class="pk-sh pk-line" style="width:70%"></span><span class="pk-sh pk-line" style="width:40%;margin-bottom:0"></span></div></div><div class="pk-card"><div class="pk-sh pk-img"></div><div class="pk-body"><span class="pk-sh pk-line" style="width:70%"></span><span class="pk-sh pk-line" style="width:40%;margin-bottom:0"></span></div></div></div>
+      </div>
     </div>
   </main>
   </div>
@@ -1894,7 +1928,6 @@ const infoBits = [
       document.addEventListener('DOMContentLoaded', function() {
   const uid = getVendorUid();
   if (uid) {
-    showLoader('Cargando perfil...');
     fetchProfile(uid);
   } else {
     const container = document.getElementById('profile-container');
