@@ -198,6 +198,9 @@ const ZR_ICONS = {
   'facebook': { attrs: 'viewBox="0 0 24 24" fill="currentColor"', body: `<path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>` },
   // Twitter (X) - versión actual del logo
   'twitter': { attrs: 'viewBox="0 0 24 24" fill="currentColor"', body: `<path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>` },
+  // ===== Ropa / categorías =====
+  'shirt': { attrs: 'viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"', body: `<path d="M20.38 3.46 16 2a4 4 0 0 1-8 0L3.62 3.46a2 2 0 0 0-1.34 2.23l.58 3.47a1 1 0 0 0 .99.84H6v10c0 1.1.9 2 2 2h8a2 2 0 0 0 2-2V10h2.15a1 1 0 0 0 .99-.84l.58-3.47a2 2 0 0 0-1.34-2.23z"/>` },
+  'dress': { attrs: 'viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"', body: `<path d="M9 2 8.4 8.2 8 11 4.5 21c4.5 1.1 10.5 1.1 15 0L16 11l-.4-2.8L15 2"/><path d="M9 2c.3 2.2 1.5 3.5 3 3.5S14.7 4.2 15 2"/><path d="M8 11h8"/>` },
   // Instagram
   'instagram': { attrs: 'viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"', body: `<rect x="2" y="2" width="20" height="20" rx="5" ry="5"/>
   <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/>

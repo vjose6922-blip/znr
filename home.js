@@ -2,8 +2,8 @@
 'use strict';
 window.allProducts = window.allProducts || [];
 const CATEGORIES = [
-{ name: 'Caballero', icon: '', filter: 'HOMBRE', url: 'catalogo.html?gender=HOMBRE' },
-{ name: 'Dama', icon: '', filter: 'MUJER', url: 'catalogo.html?gender=MUJER' }
+{ name: 'Caballero', icon: 'shirt', filter: 'HOMBRE', url: 'catalogo.html?gender=HOMBRE' },
+{ name: 'Dama', icon: 'dress', filter: 'MUJER', url: 'catalogo.html?gender=MUJER' }
 ];
 const GENDER_BY_CATEGORY = {
 'Playeras': 'HOMBRE',
@@ -78,7 +78,7 @@ const container = document.getElementById('categories-grid');
 if (!container) return;
 container.innerHTML = CATEGORIES.map(cat => `
 <a href="${cat.url}" class="category-card">
-<span class="category-icon">${cat.icon}</span>
+<span class="category-icon">${Icon(cat.icon, { size: 34 })}</span>
 <span class="category-name">${cat.name}</span>
 </a>
 `).join('');
