@@ -222,15 +222,14 @@
  .home-feature-icon { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 14px; background: var(--gradient-accent); color: #fff; }
  .home-feature h3, .home-sell h3 { margin: 4px 0 0; font-size: 1.15rem; }
  .home-feature h3 { color: var(--color-text-main); }
- .home-sell h3 { color: #fff; }
+ .home-sell h3 { color: var(--color-text-main); }
  .home-feature p { margin: 0 0 8px; max-width: 36ch; font-size: 13.5px; color: var(--color-text-muted); }
  .home-feature .hero-btn { margin-top: auto; background: var(--gradient-accent); color: #fff; font-size: 14px; padding: 10px 20px; }
- .home-sell { display: flex; flex-direction: column; align-items: center; gap: 6px; max-width: 1000px; margin: 14px 8px 0; padding: 22px 18px; border-radius: 24px; background: linear-gradient(135deg, #1a0f2e 0%, #3b1f5f 50%, var(--color-accent-solid) 100%); color: #fff; }
- [data-theme="light"] .home-sell { background: linear-gradient(135deg, #ff9f6e 0%, #ff7a4f 50%, var(--color-accent-solid) 100%); } /* mismos colores que .hero-section */
- .home-sell .home-feature-icon { background: rgba(255, 255, 255, .22); }
- .home-sell p { margin: 0; max-width: 46ch; font-size: 14px; opacity: .95; }
- .home-sell .home-sell-plus { font-size: 13px; opacity: .9; }
- .home-sell .hero-btn { margin-top: 10px; }
+ /* "Vende en Z&R": misma tarjeta blanca que las demás, a todo lo ancho de la rejilla */
+ .home-sell { display: flex; flex-direction: column; align-items: center; gap: 6px; max-width: 1000px; margin: 10px 8px 0; padding: 18px 16px; border-radius: 20px; background: var(--color-surface); box-shadow: var(--shadow-soft); }
+ .home-sell p { margin: 0; max-width: 46ch; font-size: 13.5px; color: var(--color-text-muted); }
+ .home-sell .home-sell-plus b { color: var(--color-text-main); }
+ .home-sell .hero-btn { margin-top: 10px; background: var(--gradient-accent); color: #fff; font-size: 14px; padding: 10px 20px; }
  @media (min-width: 700px) { .home-sell { margin-left: auto; margin-right: auto; } }
 
  .benefits-grid {
