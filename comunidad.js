@@ -2,7 +2,6 @@
 const COMUNIDAD_CACHE_KEY = 'zr_comunidad_data';
 const COMUNIDAD_CACHE_TTL_SESSION = 5 * 60 * 1000;
 const COMUNIDAD_CACHE_TTL_LOCAL   = 30 * 60 * 1000;
-const renderPage = renderProducts;
 
 // ── Router de migración GAS → Cloud Run (solo para deleteComunidad,
 // que es la única acción de este archivo que ya migró) ────────────
@@ -217,7 +216,6 @@ function safeString(value) {
 return (value != null) ? String(value) : '';
 }
 
-// fetchWithRetry ahora vive en common.js (se carga antes que este archivo).
 function showSkeletonComunidad(container, count = 6) {
 const cards = Array.from({length: count}, () => `
 <div class="skeleton-product-card">
@@ -697,11 +695,6 @@ function populateFiltersFromOptions(filterOptions) {
   }
 }
 
-// Alias para cuando el backend no devuelve filterOptions (páginas > 1 o caché)
-function populateFilters() {
-  // No-op: los filtros se pueblan desde la respuesta del backend (filterOptions en page=1)
-  // Si no hay datos aún, no hacemos nada para no romper los selects
-}
 
 // Recolecta los filtros de los inputs y dispara una nueva petición al backend (página 1)
 function applyFilters() {

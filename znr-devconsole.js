@@ -453,7 +453,11 @@
       }).catch(function () {});
     });
     document.getElementById("znr-dc-export").addEventListener("click", exportFullReport);
-    document.getElementById("znr-dc-search").addEventListener("input", renderCurrentTab);
+    var _dcSearchTimer = null;
+    document.getElementById("znr-dc-search").addEventListener("input", function () {
+      clearTimeout(_dcSearchTimer);
+      _dcSearchTimer = setTimeout(renderCurrentTab, 180);
+    });
 
     Array.prototype.forEach.call(document.querySelectorAll(".znr-tab"), function (tabBtn) {
       tabBtn.addEventListener("click", function () {

@@ -4,7 +4,7 @@
   const EM_KEY              = 'zr_error_queue';
   const EM_MAX_LOCAL        = 100;
   const EM_DEBOUNCE         = 1000;
-  const EM_MAX_SENDS_PER_LOAD = 40; // 100
+  const EM_MAX_SENDS_PER_LOAD = 40;
 
   let _lastErrors = {};
   let _queue      = [];
@@ -69,7 +69,7 @@
     } catch (_) {}
   }
 
-  async function sendEntry(entry) {
+  async function sendEntry(entry, keepalive) {
     const api = 'https://admin-api-1038143238323.us-central1.run.app';
     if (_sendsThisLoad >= EM_MAX_SENDS_PER_LOAD) return false; // ya está en localStorage, se reintentará en el próximo flush()
     _sendsThisLoad++;
@@ -92,6 +92,7 @@
         method:  'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body:    params.toString(),
+        keepalive: !!keepalive, // permite que el envio termine aunque la pagina se cierre
       });
       return !!(res && res.ok);
     } catch (_) {
@@ -100,11 +101,24 @@
     }
   }
 
-  async function flush() {
-    const queue = _queue.slice();
-    for (const entry of queue) {
-      const ok = await sendEntry(entry);
-      if (ok) removeFromQueue(entry.id);
+  const EM_FLUSH_CHUNK = 6;       // requests simultaneos (limite de conexiones por origen)
+  const EM_FLUSH_CHUNK_EXIT = 12; // al salir: un solo lote (el resto queda en localStorage)
+  let _flushing = false;          // evita doble envio (visibilitychange + pagehide + load)
+
+  async function flush(opts) {
+    if (_flushing) return;
+    _flushing = true;
+    try {
+      const exit  = !!(opts && opts.keepalive);
+      const queue = _queue.slice(0, exit ? EM_FLUSH_CHUNK_EXIT : undefined);
+      const size  = exit ? EM_FLUSH_CHUNK_EXIT : EM_FLUSH_CHUNK;
+      for (let i = 0; i < queue.length; i += size) {
+        const chunk   = queue.slice(i, i + size);
+        const results = await Promise.all(chunk.map(entry => sendEntry(entry, exit)));
+        chunk.forEach((entry, j) => { if (results[j]) removeFromQueue(entry.id); });
+      }
+    } finally {
+      _flushing = false;
     }
   }
 
@@ -328,7 +342,7 @@
   // ─── Asegurar que la cola se envíe aunque el usuario cierre/minimice rápido ──
 
   function flushOnExit() {
-    if (_queue.length) flush();
+    if (_queue.length) flush({ keepalive: true });
   }
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'hidden') flushOnExit();

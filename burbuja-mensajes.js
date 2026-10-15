@@ -396,8 +396,16 @@
   document.addEventListener('keydown', function (e) {
     if (e.key === 'Escape' && card) cerrarCard();
   });
-  window.addEventListener('resize', function () { posicionar(false); });
-  window.addEventListener('znr:notificaciones-cargadas', render);
+  var _posRaf = 0; // un solo reposicionamiento por frame durante el resize
+  window.addEventListener('resize', function () {
+    if (_posRaf) return;
+    _posRaf = requestAnimationFrame(function () { _posRaf = 0; posicionar(false); });
+  });
+  var _renderTimer = null; // fusiona rafagas del evento en un solo render
+  window.addEventListener('znr:notificaciones-cargadas', function () {
+    clearTimeout(_renderTimer);
+    _renderTimer = setTimeout(render, 120);
+  });
 
   function init() {
     if (window.znrNotifCentro) render();

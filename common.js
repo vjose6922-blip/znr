@@ -104,10 +104,6 @@ productsByCategoryMap.set(category, []);
 productsByCategoryMap.get(category).push(product);
 });
 }
-function getProductsByCategoryIndexed(category) {
-if (!category || category === '') return allProductsIndexed;
-return productsByCategoryMap?.get(category) || [];
-}
 
 window.globalCategories = [];
 window.globalSizes = [];
@@ -222,10 +218,6 @@ function populateSizeFilterGlobal() {
 window.fetchFilterOptions = fetchFilterOptions;
 window.populateFilterSelects = populateFilterSelects;
 
-function clearProductIndex() {
-productsByCategoryMap = null;
-allProductsIndexed = [];
-}
 function showLoader(text = "Cargando...") {
 let loader = document.getElementById("global-loader");
 if (!loader) {
@@ -459,16 +451,6 @@ if (subtitleEl) subtitleEl.textContent = 'Opcional — para envío a domicilio';
 }
 }
 }
-async function fetchWithRetry(fn, maxAttempts = 3, delays = [2000, 5000, 10000]) {
-  for (let attempt = 0; attempt < maxAttempts; attempt++) {
-    try {
-      return await fn();
-    } catch (err) {
-      if (attempt === maxAttempts - 1) throw err;
-      await new Promise(r => setTimeout(r, delays[attempt]));
-    }
-  }
-}
 function escapeHtml(str) {
 if (!str) return '';
 return String(str)
@@ -559,15 +541,6 @@ window.activarMiniSlider = activarMiniSlider;
 const _miniSliderSt = document.createElement('style');
 _miniSliderSt.textContent = '.mini-slider{position:relative;width:100%;height:100%;overflow:hidden;touch-action:pan-y;}.mini-slider-track{display:flex;width:100%;height:100%;transition:transform .3s ease;}.mini-slider-slide{min-width:100%;height:100%;flex-shrink:0;}.mini-slider-dots{position:absolute;bottom:6px;left:50%;transform:translateX(-50%);display:flex;gap:4px;z-index:2;}.mini-slider-dot{width:5px;height:5px;border-radius:50%;background:rgba(255,255,255,.6);box-shadow:0 0 2px rgba(0,0,0,.4);transition:all .2s;}.mini-slider-dot.active{background:var(--color-accent-solid);width:12px;border-radius:3px;}';
 document.head.appendChild(_miniSliderSt);
-function safeHtml(strings, ...values) {
-return strings.reduce((result, string, i) => {
-const value = values[i];
-const escaped = typeof value === 'string' ? escapeHtml(value) :
-value === null || value === undefined ? '' :
-String(value);
-return result + string + escaped;
-}, '');
-}
 
 function optimizeDriveUrl(url, size = 400) {
   if (!url) return "https://placehold.co/400x400/3b1f5f/white?text=Z%26R";
@@ -3437,9 +3410,7 @@ initTheme();
 }
 window.buildProductIndex = buildProductIndex;
 window._commonBuildProductIndex = buildProductIndex;
-window.getProductsByCategoryIndexed = getProductsByCategoryIndexed;
 window.getIndexedProducts = getIndexedProducts;
-window.clearProductIndex = clearProductIndex;
 window.loadProductsUnified = loadProductsUnified;
 Object.defineProperty(window, 'allProductsIndexed', { get: () => allProductsIndexed, configurable: true });
 let deferredPrompt;
@@ -3878,16 +3849,6 @@ document.addEventListener('DOMContentLoaded', initUserPreferences);
 window.escapeHtml = escapeHtml;
 window.escapeAttr = escapeAttr;
 
-window.fetchWithRetry = async function(fn, maxAttempts = 3, delays = [2000, 5000, 10000]) {
-for (let attempt = 0; attempt < maxAttempts; attempt++) {
-try { return await fn(); }
-catch(err) {
-if (attempt === maxAttempts - 1) throw err;
-await new Promise(r => setTimeout(r, delays[attempt]));
-}
-}
-};
-window.safeHtml = safeHtml;
 (function injectCartSectionStyles() {
 if (document.getElementById('cart-section-styles')) return;
 const style = document.createElement('style');

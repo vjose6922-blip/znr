@@ -139,17 +139,21 @@ function render() {
   app.replaceChildren(...partes);
 }
 
+const COOLDOWN_REFRESH_MS = 30000; // no recargar de Firestore si la ultima carga fue hace menos de esto
+const ultimaCarga = {};
+
 async function asegurarDatos() {
   if (datos[rolActual]) return;
   render(); // muestra "Cargando…"
-  try { await cargarRol(rolActual); }
+  try { await cargarRol(rolActual); ultimaCarga[rolActual] = Date.now(); }
   catch (_) { datos[rolActual] = []; }
 }
 
 // Al volver a la pestaña se refresca (es lectura única, no listener).
 document.addEventListener("visibilitychange", async () => {
   if (document.hidden || !datos[rolActual]) return;
-  try { await cargarRol(rolActual); render(); } catch (_) {}
+  if (Date.now() - (ultimaCarga[rolActual] || 0) < COOLDOWN_REFRESH_MS) return;
+  try { await cargarRol(rolActual); ultimaCarga[rolActual] = Date.now(); render(); } catch (_) {}
 });
 
 (async function iniciar() {

@@ -87,13 +87,13 @@
   const identity = getIdentity();
   if (!identity) return { ok: true, notificaciones: [] };
 
-  const results = [];
-  if (identity.type === 'vendedor') {
-    results.push(await fetchFeedVendedor(identity));
-    if (identity.telefono) results.push(await fetchFeedCliente(identity.telefono));
-  } else {
-    results.push(await fetchFeedCliente(identity.id));
-  }
+  // Los feeds son independientes: se piden en paralelo (un vendedor tambien puede ser cliente)
+  const results = identity.type === 'vendedor'
+    ? await Promise.all([
+        fetchFeedVendedor(identity),
+        identity.telefono ? fetchFeedCliente(identity.telefono) : null
+      ])
+    : [await fetchFeedCliente(identity.id)];
 
   const notificaciones = results
     .filter(r => r && r.ok && Array.isArray(r.notificaciones))
@@ -830,12 +830,36 @@ const PICKUP_HORAS = ['9:00 AM','10:00 AM','11:00 AM','12:00 PM','1:00 PM','2:00
     });
   }
 
-  async function refreshBadgeOnly() {
+  async function refreshBadgeNow() {
     const data = await fetchNotificaciones();
     if (data && data.ok && Array.isArray(data.notificaciones)) {
       cache.items = data.notificaciones;
       updateBadge();
     }
+  }
+
+  // Varias fuentes disparan el refresco a la vez (evento push, mensaje del SW, visibilitychange,
+  // polling). La primera llamada corre de inmediato; las que lleguen dentro de la ventana se
+  // fusionan en una sola llamada posterior.
+  const REFRESH_MIN_GAP_MS = 300;
+  let _rbLast = 0;
+  let _rbTimer = null;
+  let _rbPromise = null;
+  function refreshBadgeOnly() {
+    const wait = REFRESH_MIN_GAP_MS - (Date.now() - _rbLast);
+    if (wait <= 0) {
+      _rbLast = Date.now();
+      return refreshBadgeNow();
+    }
+    if (_rbTimer) return _rbPromise;
+    _rbPromise = new Promise((resolve) => {
+      _rbTimer = setTimeout(async () => {
+        _rbTimer = null;
+        _rbLast = Date.now();
+        try { await refreshBadgeNow(); } finally { resolve(); }
+      }, wait);
+    });
+    return _rbPromise;
   }
 
   // Lo usa burbuja-mensajes.js (mismo feed, sin volver a consultar Firestore).

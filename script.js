@@ -8,86 +8,9 @@ let _suppressFilterEvents = false;
 let allProducts = [];
 let filteredProducts = [];      // productos de la página actual (ya paginados por backend)
 // NOTA: currentPage y PAGE_SIZE eliminados — usar currentPageGlobal y PRODUCTS_PER_PAGE
-let isLoading = false;
 let sliderState = new Map();
 let initialHashHandled = false;
-let isBackgroundLoading = false;
 let globalSliderInterval = null;
-class BackgroundLoadQueue {
-constructor() {
-this.isLoading = false;
-this.pending = false;
-}
-async request() {
-if (this.isLoading) {
-this.pending = true;
-return;
-}
-this.isLoading = true;
-this.pending = false;
-try {
-await this.execute();
-} finally {
-this.isLoading = false;
-if (this.pending) {
-this.request();
-}
-}
-}
-async execute() {
-if (!navigator.onLine) {
-return;
-}
-try {
-const controller = new AbortController();
-const timeoutId = setTimeout(() => controller.abort(), 5000);
-// En background solo actualizamos la primera página sin filtros
-let freshProducts = null;
-if (window.znrFirestore && window.znrFirestore.getProductosZNR) {
-  const fs = await window.znrFirestore.getProductosZNR();
-  if (fs && fs.ok) freshProducts = fs.products.slice(0, PRODUCTS_PER_PAGE);
-}
-clearTimeout(timeoutId);
-if (freshProducts === null) {
-  const bgUrl = new URL(API_URL);
-  bgUrl.searchParams.set('action', 'list');
-  bgUrl.searchParams.set('page', '1');
-  bgUrl.searchParams.set('limit', String(PRODUCTS_PER_PAGE));
-  const res = await fetch(bgUrl.toString(), { signal: controller.signal });
-  const data = await res.json();
-  freshProducts = (data.products || []);
-}
-if (JSON.stringify(freshProducts) !== JSON.stringify(allProducts)) {
-allProducts = freshProducts;
-setCachedProducts(allProducts);
-if (typeof buildProductIndex === "function") {
-buildProductIndex(allProducts);
-}
-const currentGender = document.getElementById("gender-filter")?.value || "";
-const currentCategory = document.getElementById("category-filter")?.value || "";
-const currentSearch = document.getElementById("search-input")?.value || "";
-if (currentGender || currentCategory || currentSearch || currentPageGlobal > 1) {
-applyFilters();
-} else {
-filteredProducts = [...allProducts];
-renderProductsPage(true);
-populateCategoryFilter(currentGender);
-populateSizeFilter(currentGender);
-}
-showTemporaryMessage(" Catálogo actualizado", "info");
-}
-} catch (err) {
-if (err.name === 'AbortError') {
-} else {
-console.warn("Error en actualización background:", err.message);
-}
-}
-}
-}
-const backgroundQueue = new BackgroundLoadQueue();
-async function loadProductsInBackground() {
-await backgroundQueue.request();
-}
 function startGlobalSliderInterval() {
 if (globalSliderInterval) clearInterval(globalSliderInterval);
 globalSliderInterval = setInterval(() => {
@@ -221,6 +144,8 @@ return genderMap[categoriaLower] || null;
 // ============================================================
 // CATÁLOGO COMPLETO EN CLIENTE — evita pegarle a GAS en cada filtro
 // ============================================================
+let fullCatalogSigRef = null;           // cache al que corresponde la firma
+let fullCatalogSig = null;              // firma del ultimo catalogo (evita re-serializar el cache en cada refresh)
 let fullCatalogCache = null;            // catálogo completo en memoria
 let catalogFilterOptionsSynced = false; // 🆕 evita re-narrar los selects en cada fetch
 const FULL_CATALOG_KEY = 'zr_full_catalog_v1';
@@ -295,8 +220,15 @@ async function refreshFullCatalogInBackground() {
       const data = await res.json();
       fresh = data.products || [];
     }
-    if (JSON.stringify(fresh) !== JSON.stringify(fullCatalogCache)) {
+    const freshSig = JSON.stringify(fresh);
+    if (fullCatalogSigRef !== fullCatalogCache) { // el cache cambio por otra via: recalcular su firma
+      fullCatalogSig = JSON.stringify(fullCatalogCache);
+      fullCatalogSigRef = fullCatalogCache;
+    }
+    if (freshSig !== fullCatalogSig) {
+      fullCatalogSig = freshSig;
       fullCatalogCache = fresh;
+      fullCatalogSigRef = fresh;
       setFullCatalogToStorage(fresh);
       if (!_suppressFilterEvents) fetchProducts(false, currentPageGlobal, currentFilters);
     }
@@ -1006,7 +938,7 @@ const closeImageBtn = document.getElementById("close-image-modal");
 if (closeImageBtn) closeImageBtn.addEventListener("click", closeImageModal);
 const refreshBtn = document.getElementById("refresh-btn");
 if (refreshBtn) refreshBtn.addEventListener("click", () => {
-if (!isLoading) fetchProducts(true);
+fetchProducts(true);
 });
 const mpBtn = document.getElementById("mp-checkout-btn");
 if (mpBtn) mpBtn.addEventListener("click", pagarConMercadoPago);

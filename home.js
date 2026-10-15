@@ -37,7 +37,6 @@ window.dispatchEvent(new CustomEvent('recentProductsUpdated'));
 } catch(e) {}
 }
 
-// fetchWithRetry ahora vive en common.js (se carga antes que este archivo).
 function showSkeletonFeatured(count = 4) {
 const container = document.getElementById('featured-products');
 if (!container) return;
@@ -173,37 +172,6 @@ Imagen1: card.dataset.imagen,
 Talla: card.dataset.talla
 });
 });
-card.querySelectorAll('.look-slot-image').forEach(div => {
-div.addEventListener('click', () => {
-const productData = {
-ID:  div.dataset.productId,
-Nombre:  div.dataset.nombre  || '',
-Precio:  div.dataset.precio  || 0,
-Categoria:  div.dataset.categoria  || '',
-Talla:  div.dataset.talla  || card.dataset.talla  || '',
-Descripcion: div.dataset.descripcion || card.dataset.descripcion || '',
-Stock:  div.dataset.stock !== undefined ? Number(div.dataset.stock) : (card.dataset.stock !== undefined ? Number(card.dataset.stock) : -1),
-Badge:  div.dataset.badge  || card.dataset.badge  || '',
-Imagen1:  div.dataset.imagen1  || '',
-Imagen2:  '',
-Imagen3:  '',
-};
-openImageModal(div.dataset.modalUrl, div.dataset.productId, [], productData);
-});
-});
-card.querySelectorAll('.look-product-add').forEach(btn => {
-btn.addEventListener('click', () => addToCart({
-ID: btn.dataset.id,
-Nombre: btn.dataset.nombre,
-Precio: Number(btn.dataset.precio),
-Imagen1: btn.dataset.imagen,
-Talla: btn.dataset.talla
-}));
-});
-card.querySelectorAll('.look-product-reload').forEach(btn => {
-btn.addEventListener('click', (e) => reloadHomeLookSlot(btn.dataset.lookId, btn.dataset.slotKey, e));
-});
-card.querySelector('.buy-look-btn')?.addEventListener('click', () => addHomeLookToCart(card.dataset.lookId));
 return card;
 }
 function getRecentProductIds() {
@@ -773,33 +741,12 @@ function createHomeLookCard(look) {
     toggleLookWishlist(look.id, e);
   });
 
-  card.querySelectorAll('.look-slot-image').forEach(div => {
-    div.addEventListener('click', () => openImageModal(div.dataset.modalUrl, div.dataset.productId));
-  });
 
   card.querySelectorAll('.look-product-reload').forEach(btn => {
     btn.addEventListener('click', (e) => reloadHomeLookSlot(btn.dataset.lookId, btn.dataset.slotKey, e));
   });
 
   return card;
-}
-function addCompleteLookToCart(look) {
-let addedCount = 0;
-for (const product of Object.values(look.products)) {
-if (product) {
-addToCart({
-ID: product.id,
-Nombre: product.name,
-Precio: product.price,
-Imagen1: product.image,
-Talla: product.size || ''
-});
-addedCount++;
-}
-}
-if (typeof showTemporaryMessage === 'function') {
-showTemporaryMessage(` ${addedCount} productos agregados al carrito`, 'success');
-}
 }
 function initCartAndWishlist() {
   if (typeof loadCartFromStorage === 'function') loadCartFromStorage();
@@ -891,7 +838,6 @@ setupEventListeners();
 updateWishlistBadge();
 updateCartBadge();
 });
-window.addCompleteLookToCart = addCompleteLookToCart;
 window.addToRecentProducts = addToRecentProducts;
 window.addHomeLookToCart = addHomeLookToCart;
 window.reloadHomeLookSlot = reloadHomeLookSlot;

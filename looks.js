@@ -1,6 +1,5 @@
 (function () {
 'use strict';
-const WEATHER_API_URL = API_URL;
 const LOOKS_CACHE_KEY = 'zr_looks_generated_v2';
 const MAX_WEATHER_RETRIES = 5;
 const RETRY_DELAYS = [1000, 3000, 5000, 10000, 30000];
@@ -13,7 +12,6 @@ let bgProductsRetryCount = 0;
 let bgProductsRetryTimer = null;
 const MAX_BG_PRODUCTS_RETRIES = 5;
 const BG_PRODUCTS_RETRY_DELAYS = [3000, 6000, 10000, 20000, 30000];
-let weatherUpdateInterval = null;
 let currentWeather = null;
 let allProducts = [];
 let productsByCategoryIndex = new Map();
@@ -145,17 +143,6 @@ function classifyTemperature(feelsLike) {
 if (feelsLike >= 28) return 'calor';
 if (feelsLike <= 15) return 'frio';
 return 'templado';
-}
-function getOutfitTip(classified) {
-const { feelsLike, condition } = classified;
-if (condition === 'nieve') return ' Abrigo grueso';
-if (condition === 'lluvia' || condition === 'tormenta') return ' Lleva impermeable';
-if (feelsLike >= 32) return ' Ropa muy ligera';
-if (feelsLike >= 26) return ' Ropa ligera';
-if (feelsLike >= 20) return ' Outfit casual';
-if (feelsLike >= 15) return ' Lleva chamarra';
-if (feelsLike >= 10) return ' Abrígate bien';
-return ' Mucho frío hoy';
 }
 function getImageKey(timeOfDay, condition, hasRainWithNubes = false) {
 if (condition === 'tormenta_viento_fuerte') return 'tormenta_viento_fuerte';

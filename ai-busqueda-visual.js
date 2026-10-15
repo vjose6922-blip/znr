@@ -248,7 +248,8 @@ async function _buscarPorFoto(file) {
   _toggleOverlayCarga(true);
 
   try {
-    const resultado = await clasificarImagen(file);
+    // La inferencia local (CPU) y la descarga de embeddings (red) son independientes: en paralelo.
+    const [resultado, tabla] = await Promise.all([clasificarImagen(file), _obtenerEmbeddingsCatalogo()]);
     if (!resultado || !resultado.embedding) {
       if (DEBUG_AI) console.error('[ai-busqueda-visual] clasificarImagen no devolvió embedding:', resultado);
       if (typeof window.showTemporaryMessage === 'function') {
@@ -258,7 +259,6 @@ async function _buscarPorFoto(file) {
     }
     if (DEBUG_AI) console.error(`[ai-busqueda-visual] Embedding de la foto de búsqueda: ${resultado.embedding.length} valores.`);
 
-    const tabla = await _obtenerEmbeddingsCatalogo();
     if (!tabla) {
       if (typeof window.showTemporaryMessage === 'function') {
         window.showTemporaryMessage('El buscador por foto no está disponible ahora mismo.', 'error');

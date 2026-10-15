@@ -886,7 +886,12 @@ function ajustarAreaVisible() {
   app.style.setProperty("--pp-top", Math.round(vv.offsetTop) + "px");
   if (ui.ta && ui.msgs && document.activeElement === ui.ta) ui.msgs.scrollTop = ui.msgs.scrollHeight;
 }
-if (window.visualViewport) ["resize", "scroll"].forEach((ev) => window.visualViewport.addEventListener(ev, ajustarAreaVisible));
+let _vvRaf = 0; // un solo ajuste por frame durante la animacion del teclado
+const ajustarAreaVisibleRaf = () => {
+  if (_vvRaf) return;
+  _vvRaf = requestAnimationFrame(() => { _vvRaf = 0; ajustarAreaVisible(); });
+};
+if (window.visualViewport) ["resize", "scroll"].forEach((ev) => window.visualViewport.addEventListener(ev, ajustarAreaVisibleRaf));
 window.addEventListener("orientationchange", () => setTimeout(ajustarAreaVisible, 200));
 ajustarAreaVisible();
 

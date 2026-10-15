@@ -93,6 +93,11 @@ function _setDailyCache(key, data) {
   try { localStorage.setItem(key, JSON.stringify({ data, timestamp: Date.now() })); } catch (e) {}
 }
 
+function parseJsonSeguro(text) {
+  try { return JSON.parse(text); }
+  catch (_) { throw new Error('La API devolvió una respuesta no válida'); }
+}
+
 window.apiFetch = async function(data, method = 'POST') {
   const API_BASE = resolverApiUrl(data && data.action);
   if (!API_BASE) throw new Error('API_URL no está disponible');
@@ -133,7 +138,7 @@ window.apiFetch = async function(data, method = 'POST') {
 
     const res = await fetchWithTimeout(`${API_BASE}?${params.toString()}`, { method: 'GET' });
     const text = await res.text();
-    return checkTokenInvalid(JSON.parse(text));
+    return checkTokenInvalid(parseJsonSeguro(text));
   }
 
   const params = new URLSearchParams();
@@ -148,17 +153,10 @@ window.apiFetch = async function(data, method = 'POST') {
   });
 
   const text = await res.text();
-  return checkTokenInvalid(JSON.parse(text));
+  return checkTokenInvalid(parseJsonSeguro(text));
 };
 
 
-function injectStyles(id, css) {
-if (document.getElementById(id)) return;
-const style = document.createElement('style');
-style.id = id;
-style.textContent = css;
-document.head.appendChild(style);
-}
 
 // ──────────────────────────────────────────────
 // CACHÉ DE PRODUCTOS DE VENDEDOR — nivel superior
@@ -1783,13 +1781,9 @@ cancelBtn.addEventListener('click', window.cancelEdit);
 }
 }
 
-function initPendingVendors() {
-return;
-}
 
 document.addEventListener('DOMContentLoaded', () => {
 initVendorPanel();
-initPendingVendors();
 
 const submitBtn = document.getElementById('submit-product-btn');
 if (submitBtn) {
@@ -2869,44 +2863,53 @@ window.verMisEstadisticas = async function(forceRefresh) {
 
   const result = { stats: null, rating: null };
 
-  try {
-    const url = `${CATALOGO_API_URL}?${new URLSearchParams({
-      action: 'misProductosComunidad',
-      vendorToken: vendorSession.token,
-      limit: '200', page: '1'
-    })}`;
-    const res = await fetch(url);
-    const data = await res.json();
-    if (!data.ok) throw new Error(data.error || 'Error al cargar');
-    const all = data.products || [];
-    result.stats = {
-      total: all.length,
-      aprobados: all.filter(p => p.estado === 'aprobado').length,
-      pendientes: all.filter(p => p.estado === 'pendiente').length,
-      valorInventario: all.filter(p => p.estado === 'aprobado' && p.tipoVenta !== 'personalizado')
-        .reduce((s, p) => s + (Number(p.precio) || 0) * (Number(p.stock) || 0), 0)
-    };
-  } catch (err) {
-    grid.innerHTML = `<p style="grid-column:span 2;color:#ef4444;text-align:center;">Error: ${err.message}</p>`;
-  }
-
-  try {
-    let rData = null;
-    if (window.znrFirestore && window.znrFirestore.getCalificacionesVendedor) {
-      rData = await window.znrFirestore.getCalificacionesVendedor(vendorSession.uid);
+  // Las 3 consultas son independientes (cada una escribe un campo distinto de result)
+  const tarea1 = (async () => {
+    try {
+      const url = `${CATALOGO_API_URL}?${new URLSearchParams({
+        action: 'misProductosComunidad',
+        vendorToken: vendorSession.token,
+        limit: '200', page: '1'
+      })}`;
+      const res = await fetch(url);
+      const data = await res.json();
+      if (!data.ok) throw new Error(data.error || 'Error al cargar');
+      const all = data.products || [];
+      result.stats = {
+        total: all.length,
+        aprobados: all.filter(p => p.estado === 'aprobado').length,
+        pendientes: all.filter(p => p.estado === 'pendiente').length,
+        valorInventario: all.filter(p => p.estado === 'aprobado' && p.tipoVenta !== 'personalizado')
+          .reduce((s, p) => s + (Number(p.precio) || 0) * (Number(p.stock) || 0), 0)
+      };
+    } catch (err) {
+      grid.innerHTML = `<p style="grid-column:span 2;color:#ef4444;text-align:center;">Error: ${err.message}</p>`;
     }
-    if (!rData || !rData.ok) {
-      const rUrl = `${window.API_URL}?${new URLSearchParams({ action: 'obtenerCalificacionesVendedor', vendedor_uid: vendorSession.uid })}`;
-      const rRes = await fetch(rUrl);
-      rData = await rRes.json();
-    }
-    if (rData.ok) result.rating = { promedio: rData.promedio, total: rData.total };
-  } catch (e) { }
+  })();
 
-  try {
-    const vRes = await apiCall({ action: 'obtenerEstadisticasVendedor', vendorToken: vendorSession.token });
-    if (vRes.ok) result.ventas = { conversion: vRes.conversion, historialMeses: vRes.historialMeses, tiempoRespuestaMin: vRes.tiempoRespuestaMin };
-  } catch (e) { }
+  const tarea2 = (async () => {
+    try {
+      let rData = null;
+      if (window.znrFirestore && window.znrFirestore.getCalificacionesVendedor) {
+        rData = await window.znrFirestore.getCalificacionesVendedor(vendorSession.uid);
+      }
+      if (!rData || !rData.ok) {
+        const rUrl = `${window.API_URL}?${new URLSearchParams({ action: 'obtenerCalificacionesVendedor', vendedor_uid: vendorSession.uid })}`;
+        const rRes = await fetch(rUrl);
+        rData = await rRes.json();
+      }
+      if (rData.ok) result.rating = { promedio: rData.promedio, total: rData.total };
+    } catch (e) { }
+  })();
+
+  const tarea3 = (async () => {
+    try {
+      const vRes = await apiCall({ action: 'obtenerEstadisticasVendedor', vendorToken: vendorSession.token });
+      if (vRes.ok) result.ventas = { conversion: vRes.conversion, historialMeses: vRes.historialMeses, tiempoRespuestaMin: vRes.tiempoRespuestaMin };
+    } catch (e) { }
+  })();
+
+  await Promise.allSettled([tarea1, tarea2, tarea3]);
 
   if (result.stats) {
     _setDailyCache(cacheKey, result);
@@ -3084,27 +3087,9 @@ if (btn) { btn.disabled = false; btn.innerHTML = Icon('star') + ' Solicitar plan
 }
 }
 
-async function apiCall(data) {
-  const API_BASE = resolverApiUrl(data && data.action);
-  if (!API_BASE) throw new Error('API_URL no está disponible');
-
-  const params = new URLSearchParams();
-  Object.entries(data || {}).forEach(([k, v]) => {
-    if (v !== undefined && v !== null) params.append(k, v);
-  });
-
-  const res = await fetch(API_BASE, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: params.toString()
-  });
-
-  const text = await res.text();
-  try {
-    return JSON.parse(text);
-  } catch (_) {
-    throw new Error('La API devolvió una respuesta no válida');
-  }
+// Wrapper unificado: apiCall es un alias de apiFetch (timeout 15s + manejo de token invalido).
+function apiCall(data) {
+  return window.apiFetch(data, 'POST');
 }
 
 window.toggleSettingsSection = function(btn) {
