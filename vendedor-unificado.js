@@ -1253,6 +1253,22 @@ return url;
 window.uploadVendorLogo = uploadVendorLogo; // openSettingsModal vive fuera de initVendorPanel y la necesita
 
 // --- Tipo de venta (stock | personalizado) ---
+// Producto de temporada: checkbox -> select Festividad/Temporada -> select con la lista (temporadas.js)
+window.aplicarTemporada = function() {
+  const on = !!document.getElementById('pEsTemporada')?.checked;
+  const box = document.getElementById('temporada-opciones');
+  const tipoEl = document.getElementById('pTemporadaTipo');
+  const nombreEl = document.getElementById('pTemporadaNombre');
+  if (!box || !tipoEl || !nombreEl) return;
+  box.style.display = on ? '' : 'none';
+  if (!on) { tipoEl.value = ''; nombreEl.value = ''; }
+  const lista = (window.ZNR_TEMPORADAS && window.ZNR_TEMPORADAS.listas[tipoEl.value]) || [];
+  const actual = nombreEl.value;
+  nombreEl.innerHTML = '<option value="">— Elige —</option>' + lista.map(n => `<option value="${n.replace(/"/g, '&quot;')}">${n}</option>`).join('');
+  nombreEl.style.display = on && lista.length ? '' : 'none';
+  if (lista.includes(actual)) nombreEl.value = actual;
+};
+
 window.aplicarTipoVenta = function() {
   const sel = document.getElementById('pTipoVenta');
   const pers = !!sel && sel.value === 'personalizado';
@@ -1313,6 +1329,24 @@ window.editProduct = async function(id) {
   document.getElementById('pCategoria').value = p.categoria || '';
   document.getElementById('pTalla').value = p.talla || '';
   document.getElementById('pDescripcion').value = p.descripcion || '';
+  {
+    const chkMulti = document.getElementById('pMulticolor');
+    if (chkMulti) chkMulti.checked = p.multicolor === true || p.multicolor === 'true';
+    const chkTemp = document.getElementById('pEsTemporada');
+    const tipoEl = document.getElementById('pTemporadaTipo');
+    const nombreEl = document.getElementById('pTemporadaNombre');
+    if (chkTemp && tipoEl && nombreEl) {
+      const tiene = !!(p.temporadaTipo && p.temporada);
+      chkTemp.checked = tiene;
+      tipoEl.value = tiene ? p.temporadaTipo : '';
+      window.aplicarTemporada();
+      if (tiene) {
+        // Si el nombre ya no está en la lista actual, se conserva para no perderlo al guardar.
+        if (![...nombreEl.options].some(o => o.value === p.temporada)) nombreEl.add(new Option(p.temporada, p.temporada));
+        nombreEl.value = p.temporada;
+      }
+    }
+  }
   [1,2,3].forEach(n => {
     const imgUrl = p[`imagen${n}`] || '';
     const slot = document.getElementById(`slot-${n}`);
@@ -1386,6 +1420,12 @@ if (el) el.value = '';
 }
 const cat = document.getElementById('pCategoria');
 if (cat) cat.value = '';
+{
+  const chkMulti = document.getElementById('pMulticolor');
+  if (chkMulti) chkMulti.checked = false;
+  const chkTemp = document.getElementById('pEsTemporada');
+  if (chkTemp) { chkTemp.checked = false; if (window.aplicarTemporada) window.aplicarTemporada(); }
+}
 [1,2,3].forEach(n => {
   clearSlotPreview(n);
   const fileInput = document.getElementById(`file-${n}`);
@@ -1627,6 +1667,13 @@ if (!nombre || isNaN(precio) || precio < 0) {
 showTemporaryMessage(' Nombre y precio son requeridos', 'error');
 return;
 }
+const esTemporada = !!document.getElementById('pEsTemporada')?.checked;
+const temporadaTipo = esTemporada ? (document.getElementById('pTemporadaTipo')?.value || '') : '';
+const temporadaNombre = esTemporada ? (document.getElementById('pTemporadaNombre')?.value || '') : '';
+if (esTemporada && (!temporadaTipo || !temporadaNombre)) {
+showTemporaryMessage(' Elige si es festividad o temporada y cuál', 'error');
+return;
+}
 if (esPersonalizado) {
 if (!precio) { showTemporaryMessage(' Indica el precio "desde" del artículo', 'error'); return; }
 if (!tiempoDias || tiempoDias < 1 || tiempoDias > 120) { showTemporaryMessage(' Indica el tiempo de elaboración (1 a 120 días)', 'error'); return; }
@@ -1661,6 +1708,9 @@ OpcionesPersonalizacion: esPersonalizado ? opcionesPers : '',
 Descripcion: document.getElementById('pDescripcion')?.value.trim() || '',
 Talla: document.getElementById('pTalla')?.value.trim() || '',
 Categoria: document.getElementById('pCategoria')?.value || '',
+TemporadaTipo: temporadaTipo,
+Temporada: temporadaNombre,
+Multicolor: !!document.getElementById('pMulticolor')?.checked,
 Badge: '',
 Imagen1: uploadedImages[1] || '',
 Imagen2: uploadedImages[2] || '',

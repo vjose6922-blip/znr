@@ -485,10 +485,24 @@ h3 {
 <option>Automotriz</option>
 <option>Alimentos y bebidas</option>
 <option>Salud y bienestar</option>
-<option>Temporada</option>
  </select>
  </div>
- <div class="field-group"><label>INFO</label><input type="text" id="pTalla" placeholder="Tallas, Medidas, etc.."></div>
+ <div class="field-group"><label>INFO</label><input type="text" id="pTalla" placeholder="Tallas, Medidas, colores, etc.."></div>
+ <div class="field-group">
+ <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;"><input type="checkbox" id="pMulticolor" style="width:20px;height:20px;margin:0;flex:none"> Disponible en varios colores</label>
+ <p style="margin:2px 0 0;font-size:.73rem;color:#aaa;">Se mostrará un chip "Multicolor" en tu producto. Escribe los colores en INFO o en la descripción.</p>
+ </div>
+ <div class="field-group">
+ <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;"><input type="checkbox" id="pEsTemporada" style="width:20px;height:20px;margin:0;flex:none" onchange="window.aplicarTemporada && window.aplicarTemporada()"> Producto de temporada</label>
+ <div id="temporada-opciones" style="display:none;margin-top:8px;">
+ <select id="pTemporadaTipo" onchange="window.aplicarTemporada && window.aplicarTemporada()">
+ <option value="">— ¿Festividad o temporada? —</option>
+ <option value="festividad">Festividad</option>
+ <option value="temporada">Temporada</option>
+ </select>
+ <select id="pTemporadaNombre" style="display:none;margin-top:8px;"></select>
+ </div>
+ </div>
  <div class="field-group"><label>Descripción</label><textarea id="pDescripcion" placeholder="Describe tu producto..." maxlength="500"></textarea></div>
 
  <!-- Menú "Tomar foto / Elegir de galería" para los slots de product00000000o -->
@@ -639,6 +653,7 @@ h3 {
  <script src="error-monitor.js" defer></script>
  <script src="feedback.js" defer></script>
  <script src="ciudades.js" defer></script>
+ <script src="temporadas.js" defer></script>
  <script src="vendedor-unificado.js" defer></script>
  <script src="historias-visor.js" defer></script>
  <script src="historias-vendedor.js" defer></script>

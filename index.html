@@ -540,6 +540,10 @@
  <p style="color:var(--color-text-muted); margin: 0 0 12px; font-size:14px; text-align:center;">Productos únicos de vendedores locales de tu región.
  </p>
 
+ <div id="home-comunidad-temporada-wrap" style="display:none;justify-content:center;margin:0 0 12px;">
+ <select id="home-comunidad-temporada" aria-label="Filtrar por festividad o temporada" class="comunidad-cat-select" style="max-width:260px;"></select>
+ </div>
+
  <div class="products-container" id="home-comunidad-grid">
  <div style="grid-column:1/-1; text-align:center; padding:30px; color:#aaa;">Cargando...
  </div>
@@ -698,6 +702,7 @@
  obs.observe(looksSection);
 })();
 </script>
+<script src="temporadas.js" defer></script>
 <script src="home.js" defer></script>
 
 <script>
@@ -733,6 +738,7 @@
  </div>
  ${p.vendedor_nombre ? `<div style="font-size:11px;color:var(--color-text-muted);margin-top:2px;"> ${esc(p.vendedor_nombre)}</div>` : ''}
  ${p.talla ? `<div style="font-size:11px;color:var(--color-text-muted);margin-top:2px;">Info: ${esc(p.talla)}</div>` : ''}
+ ${window.ZNR_TEMPORADAS ? window.ZNR_TEMPORADAS.chipsHTML(p) : ''}
  <div style="display:flex;align-items:center;gap:6px;margin-top:6px;">
  ${esPersonal
  ? `<span style="color:#a855f7;font-size:11px;font-weight:600;">Bajo pedido${diasElab ? ' · ' + diasElab + (diasElab === 1 ? ' día' : ' días') : ''}</span>`
@@ -825,6 +831,44 @@
  return card;
  }
 
+ let homeComunidadLista = [];
+
+ // Pinta la vista previa de Comunidad (con el filtro de temporada si hay uno elegido). Devuelve false si no hay nada que mostrar.
+ function pintarHomeComunidad() {
+ const grid = document.getElementById('home-comunidad-grid');
+ const sel = document.getElementById('home-comunidad-temporada');
+ const temporada = sel ? sel.value : '';
+ const lista = temporada ? homeComunidadLista.filter(p => p.temporada === temporada) : homeComunidadLista;
+ grid.innerHTML = '';
+ const verMas = document.querySelector('.home-comunidad-section a[href^="comunidad.html"].hero-btn-primary');
+ if (verMas) verMas.href = temporada ? 'comunidad.html?temporada=' + encodeURIComponent(temporada) : 'comunidad.html';
+ if (!lista.length) {
+ grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:24px;color:var(--color-text-muted)">' + (temporada ? 'Aún no hay productos de esta temporada en tu ciudad.' : 'Pronto habrá productos de la comunidad aquí.') + '</div>';
+ return false;
+ }
+ lista.slice(0, PREVIEW_COUNT).forEach(p => grid.appendChild(buildComunidadCard(p)));
+ return true;
+ }
+
+ // El filtro solo ofrece las festividades/temporadas que sí tienen productos en la ciudad del comprador.
+ function prepararFiltroTemporada(lista) {
+ const wrap = document.getElementById('home-comunidad-temporada-wrap');
+ const sel = document.getElementById('home-comunidad-temporada');
+ if (!wrap || !sel || !window.ZNR_TEMPORADAS) return;
+ const presentes = new Set(lista.map(p => p.temporada).filter(Boolean));
+ const T = window.ZNR_TEMPORADAS;
+ const grupos = Object.keys(T.listas).map(tipo => {
+ const nombres = T.listas[tipo].filter(n => presentes.has(n));
+ return nombres.length ? '<optgroup label="' + T.etiquetas[tipo] + '">' + nombres.map(n => '<option value="' + n.replace(/"/g, '&quot;') + '">' + n + '</option>').join('') + '</optgroup>' : '';
+ }).join('');
+ if (!grupos) { wrap.style.display = 'none'; return; }
+ const actual = sel.value;
+ sel.innerHTML = '<option value="">Todas las temporadas</option>' + grupos;
+ if (actual && presentes.has(actual)) sel.value = actual;
+ wrap.style.display = 'flex';
+ if (!sel.dataset.bound) { sel.dataset.bound = '1'; sel.addEventListener('change', pintarHomeComunidad); }
+ }
+
  async function loadHomeComunidad() {
  const grid = document.getElementById('home-comunidad-grid');
  if (!grid) return;
@@ -844,14 +888,10 @@
  // generarSnapshotCatalogo), el filtro por ciudad se aplica acá,
  // igual que ya hace comunidad.js con este mismo snapshot.
  const soloComunidad = (window.ordenarCatalogoComunidad ? window.ordenarCatalogoComunidad(data.products) : data.products).filter(p => !p.es_znr && Number(stockVivo(p) || 0) > 0 && (!miCiudad || p.ciudad === miCiudad));
- const aprobados = soloComunidad.slice(0, PREVIEW_COUNT);
  window.allCommunityProductsIndexed = soloComunidad;
- grid.innerHTML = '';
- if (!aprobados.length) {
- grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:24px;color:var(--color-text-muted)">Pronto habrá productos de la comunidad aquí.</div>';
- return;
- }
- aprobados.forEach(p => grid.appendChild(buildComunidadCard(p)));
+ homeComunidadLista = soloComunidad;
+ prepararFiltroTemporada(soloComunidad);
+ if (!pintarHomeComunidad()) return;
 
  const savedLayout = localStorage.getItem('products_layout') || 'grid';
  if (savedLayout === 'grid') grid.classList.add('layout-grid');

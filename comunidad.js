@@ -131,7 +131,7 @@ let currentPage = 1;              // página actual
 let totalPagesGlobal = 1;         // total de páginas devuelto por el backend
 let currentFilters = {};          // filtros activos (para mantenerlos al cambia00000
 let isLoading = false;
-let gridContainer, catSelect, vendorSelect, paginationDiv;
+let gridContainer, catSelect, vendorSelect, temporadaSelect, paginationDiv;
 let hasLoadedOnce = false; 
 let debounceTimer = null;
 let inspectorMode = false;
@@ -188,6 +188,7 @@ return {
 busqueda: urlParams.get('busqueda') || '',
 categoria: urlParams.get('categoria') || '',
 vendedor: urlParams.get('vendedor') || '',
+temporada: urlParams.get('temporada') || '',
 orden: urlParams.get('orden') || ''
 };
 }
@@ -195,6 +196,7 @@ function updateURLWithFilters() {
 const searchTerm = getSearchValue();
 const category = catSelect ? catSelect.value : '';
 const vendor = vendorSelect ? vendorSelect.value : '';
+const temporada = temporadaSelect ? temporadaSelect.value : '';
 const ordenEl = document.getElementById('comunidad-orden');
 const orden = ordenEl ? ordenEl.value : '';
 const params = new URLSearchParams();
@@ -204,6 +206,7 @@ params.set('inspector', '1');
 if (searchTerm) params.set('busqueda', searchTerm);
 if (category) params.set('categoria', category);
 if (vendor) params.set('vendedor', vendor);
+if (temporada) params.set('temporada', temporada);
 if (orden) params.set('orden', orden);
 const newURL = `${window.location.pathname}${params.toString() ? '?' + params.toString() : ''}`;
 window.history.replaceState({}, '', newURL);
@@ -244,6 +247,7 @@ function buildComunidadUrl(page, filters) {
   if (filters.categoria)  u.searchParams.set('categoria',    filters.categoria);
   if (filters.busqueda)   u.searchParams.set('busqueda',     filters.busqueda);
   if (filters.vendedor)   u.searchParams.set('vendedor_uid', filters.vendedor);
+  if (filters.temporada)  u.searchParams.set('temporada',    filters.temporada);
   if (filters.orden === 'verificados') u.searchParams.set('soloPro', 'true');
   if (filters.orden)      u.searchParams.set('orden',       filters.orden);
   return u.toString();
@@ -332,7 +336,7 @@ async function loadComunidadPageGAS(page, filters, opts = {}) {
     }
 
     // Cachear solo la primera página sin filtros (igual que en script.js)
-    if (page === 1 && !filters.categoria && !filters.busqueda && !filters.vendedor && !filters.orden) {
+    if (page === 1 && !filters.categoria && !filters.busqueda && !filters.vendedor && !filters.temporada && !filters.orden) {
       setComunidadCache(allCommunityProducts);
     }
 
@@ -453,7 +457,7 @@ function aplicarOrdenLocal(orden) {
 // ── Vista por defecto = sin ningún filtro activo (ahí aplica el orden
 // aleatorio con la página 1 reservada a verificados + ZNR) ────────────────
 function esVistaComunidadPorDefecto(filters) {
-  return !filters.categoria && !filters.busqueda && !filters.vendedor && !filters.orden;
+  return !filters.categoria && !filters.busqueda && !filters.vendedor && !filters.temporada && !filters.orden;
 }
 
 function shuffleArray(arr) {
@@ -594,6 +598,7 @@ async function loadComunidadPageAlgolia(page, filters, opts = {}) {
       if (miCiudad) filterParts.push('ciudad:"' + String(miCiudad).replace(/"/g, '') + '"');
       if (filters.categoria) filterParts.push('categoria:"' + String(filters.categoria).replace(/"/g, '') + '"');
       if (filters.vendedor)  filterParts.push('vendedor_uid:"' + String(filters.vendedor).replace(/"/g, '') + '"');
+      if (filters.temporada) filterParts.push('temporada:"' + String(filters.temporada).replace(/"/g, '') + '"');
       if (filters.orden === 'verificados') filterParts.push('vendedor_plan:"plus"');
       const filterString = filterParts.join(' AND ');
 
@@ -702,9 +707,10 @@ function applyFilters() {
     const busqueda  = getSearchValue();
     const categoria = catSelect    ? catSelect.value    : '';
     const vendedor  = vendorSelect ? vendorSelect.value : '';
+    const temporada = temporadaSelect ? temporadaSelect.value : '';
     const ordenEl   = document.getElementById('comunidad-orden');
     const orden     = ordenEl ? ordenEl.value : '';
-    const filters = { busqueda, categoria, vendedor, orden };
+    const filters = { busqueda, categoria, vendedor, temporada, orden };
     // Eliminar vacíos
     Object.keys(filters).forEach(k => { if (!filters[k]) delete filters[k]; });
     currentFilters = filters;
@@ -729,6 +735,7 @@ function updateComunidadChips(filters) {
   if (filters.busqueda)  chips.push({ label: `${Icon('search')} "${filters.busqueda}"`, clear: () => { const el = document.getElementById('comunidad-search'); if (el) el.value = ''; applyFilters(); } });
   if (filters.categoria) chips.push({ label: `${filters.categoria}`, clear: () => { if (catSelect) catSelect.value = ''; applyFilters(); } });
   if (filters.vendedor)  chips.push({ label: `${vendorSelect && vendorSelect.selectedOptions[0] ? vendorSelect.selectedOptions[0].textContent : 'Vendedor'}`, clear: () => { if (vendorSelect) vendorSelect.value = ''; applyFilters(); } });
+  if (filters.temporada) chips.push({ label: `${filters.temporada}`, clear: () => { if (temporadaSelect) temporadaSelect.value = ''; applyFilters(); } });
   if (filters.orden)     chips.push({ label: ordenLabels[filters.orden] || filters.orden, clear: () => { const el = document.getElementById('comunidad-orden'); if (el) el.value = ''; applyFilters(); } });
 
   if (!chips.length) { bar.style.display = 'none'; bar.innerHTML = ''; return; }
@@ -742,7 +749,7 @@ function updateComunidadChips(filters) {
     btn.addEventListener('click', () => {
       const idx = btn.dataset.chip;
       if (idx === 'all') {
-        ['comunidad-cat','comunidad-vendor','comunidad-orden'].forEach(id => {
+        ['comunidad-cat','comunidad-vendor','comunidad-temporada','comunidad-orden'].forEach(id => {
           const el = document.getElementById(id); if (el) el.value = '';
         });
         const si = document.getElementById('comunidad-search'); if (si) si.value = '';
@@ -1165,6 +1172,7 @@ ${vendorName ? `<div style="font-size:11px;color:var(--color-text-muted,#888);ma
 ${esDonativo && product.beneficiario_id ? `<button class="btn-ver-beneficiario" data-ben-id="${esc(safeString(product.beneficiario_id))}" style="background:none;border:none;padding:0;color:#f97316;font-weight:600;font-size:11px;cursor:pointer;text-decoration:underline;">Ver beneficiario</button>` : ''}
 </div>` : ''}
 ${product.talla ? `<div style="font-size:11px;color:var(--color-text-muted);margin-top:2px;">Info: ${esc(safeString(product.talla))}</div>` : ''}
+${window.ZNR_TEMPORADAS ? window.ZNR_TEMPORADAS.chipsHTML(product) : ''}
 <div style="display:flex;align-items:center;gap:6px;margin-top:6px;flex-wrap:wrap;">
 ${esPersonal
 ? `<span style="color:#a855f7;font-size:11px;font-weight:600;">Bajo pedido${diasElab ? ' · ' + diasElab + (diasElab === 1 ? ' día' : ' días') : ''}</span>`
@@ -1365,6 +1373,8 @@ debounceTimer = setTimeout(updateHandler, 400);
 }
 if (catSelectEl) catSelectEl.addEventListener('change', updateHandler);
 if (vendorSelectEl) vendorSelectEl.addEventListener('change', updateHandler);
+const temporadaSelectEl = document.getElementById('comunidad-temporada');
+if (temporadaSelectEl) temporadaSelectEl.addEventListener('change', updateHandler);
 if (ordenEl) ordenEl.addEventListener('change', updateHandler);
 }
 function initCartAndUI() {
@@ -1532,6 +1542,13 @@ if (!window.vendorSession) {
 gridContainer = document.getElementById('comunidad-grid');
 catSelect = document.getElementById('comunidad-cat');
 vendorSelect = document.getElementById('comunidad-vendor');
+temporadaSelect = document.getElementById('comunidad-temporada');
+if (temporadaSelect && window.ZNR_TEMPORADAS) {
+  // Lista fija (temporadas.js); si la URL trae ?temporada=..., se deja seleccionada.
+  const valorURL = new URLSearchParams(window.location.search).get('temporada') || '';
+  temporadaSelect.innerHTML = '<option value="">Temporada</option>' + window.ZNR_TEMPORADAS.opcionesFiltroHTML();
+  if (valorURL) temporadaSelect.value = valorURL;
+}
 paginationDiv = document.getElementById('comunidad-pagination');
 if (!gridContainer) {
 console.warn('No se encontró #comunidad-grid');
