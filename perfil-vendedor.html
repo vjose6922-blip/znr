@@ -890,6 +890,7 @@
   <script type="module" src="firestore-init.js"></script>
   <script src="icons.js" defer></script>
   <script src="ciudades.js" defer></script>
+  <script src="temporadas.js" defer></script>
  <script src="common.js" defer></script>
   <script src="historias-visor.js" defer></script>
   <script src="historias-perfil.js" defer></script>
@@ -1557,7 +1558,8 @@ const infoBits = [
                 TipoVenta: p.tipoVenta || 'stock',
                 TiempoElaboracionDias: Number(p.tiempoElaboracionDias) || 0,
                 OpcionesPersonalizacion: p.opcionesPersonalizacion || '',
-                Badge: p.badge || '',
+                temporada: p.temporada || '', multicolor: p.multicolor === true || p.multicolor === 'true',
+Badge: p.badge || '',
                 Imagen1: p.imagen1 || '',
                 Imagen2: p.imagen2 || '',
                 Imagen3: p.imagen3 || '',
@@ -1718,7 +1720,8 @@ const infoBits = [
                 TipoVenta: p.tipoVenta || 'stock',
                 TiempoElaboracionDias: Number(p.tiempoElaboracionDias) || 0,
                 OpcionesPersonalizacion: p.opcionesPersonalizacion || '',
-            Badge: p.badge || '',
+            temporada: p.temporada || '', multicolor: p.multicolor === true || p.multicolor === 'true',
+Badge: p.badge || '',
             Imagen1: p.imagen1 || '',
             Imagen2: p.imagen2 || '',
             Imagen3: p.imagen3 || '',

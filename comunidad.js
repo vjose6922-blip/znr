@@ -678,7 +678,7 @@ function loadCommunityProducts() {
 function populateFiltersFromOptions(filterOptions) {
   if (catSelect && filterOptions.categories) {
     const currentVal = catSelect.value;
-    catSelect.innerHTML = '<option value="">Categorías</option>';
+    catSelect.innerHTML = '<option value="">Todas las categorías</option>';
     filterOptions.categories.forEach(cat => {
       const opt = document.createElement('option');
       opt.value = cat; opt.textContent = cat;
@@ -688,7 +688,7 @@ function populateFiltersFromOptions(filterOptions) {
   }
   if (vendorSelect && filterOptions.vendors) {
     const currentVal = vendorSelect.value;
-    vendorSelect.innerHTML = '<option value="">Vendedores</option>';
+    vendorSelect.innerHTML = '<option value="">Todos los vendedores</option>';
     filterOptions.vendors.forEach(v => {
       const opt = document.createElement('option');
       // Soporta objetos {uid, nombre} (Algolia) y strings sueltos (respaldo GAS)
@@ -723,7 +723,47 @@ function applyFilters() {
 }
 
 // ── Chips de filtros activos (mismo patrón visual que catálogo) ──────────
+// Panel de filtros (bottom sheet en móvil): los selects viven dentro del panel, así que
+// el resto de la lógica (ids, eventos, URL) no cambia.
+function initFiltrosSheet() {
+  const sheet = document.getElementById('comunidad-filtros-sheet');
+  const btn = document.getElementById('btn-abrir-filtros');
+  if (!sheet || !btn) return;
+  document.body.appendChild(sheet); // fuera de contenedores con transform, para que position:fixed funcione
+  const abrir = () => {
+    sheet.classList.add('open');
+    btn.setAttribute('aria-expanded', 'true');
+    document.body.style.overflow = 'hidden';
+    setTimeout(() => sheet.querySelector('select')?.focus(), 60);
+  };
+  const cerrar = () => {
+    sheet.classList.remove('open');
+    btn.setAttribute('aria-expanded', 'false');
+    document.body.style.overflow = '';
+    btn.focus();
+  };
+  btn.addEventListener('click', abrir);
+  sheet.querySelectorAll('[data-cerrar-filtros]').forEach(el => el.addEventListener('click', cerrar));
+  document.getElementById('filtros-aplicar')?.addEventListener('click', cerrar);
+  document.getElementById('filtros-limpiar')?.addEventListener('click', () => {
+    ['comunidad-cat', 'comunidad-vendor', 'comunidad-temporada', 'comunidad-orden'].forEach(id => {
+      const el = document.getElementById(id); if (el) el.value = '';
+    });
+    applyFilters();
+  });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && sheet.classList.contains('open')) cerrar(); });
+}
+
+function actualizarBadgeFiltros(filters) {
+  const badge = document.getElementById('filtros-badge');
+  if (!badge) return;
+  const n = ['categoria', 'vendedor', 'temporada', 'orden'].filter(k => filters && filters[k]).length;
+  badge.textContent = String(n);
+  badge.style.display = n ? 'inline-flex' : 'none';
+}
+
 function updateComunidadChips(filters) {
+  actualizarBadgeFiltros(filters);
   const bar = document.getElementById('comunidad-filter-chips');
   if (!bar) return;
   const ordenLabels = {
@@ -789,6 +829,7 @@ function crearMiniCardComunidad(p, badgeHtml) {
       Stock: p.tipoVenta === 'personalizado' ? -1 : (stockVivo(p) !== undefined ? Number(stockVivo(p)) : -1),
       TipoVenta: p.tipoVenta || 'stock', TiempoElaboracionDias: Number(p.tiempoElaboracionDias) || 0,
       OpcionesPersonalizacion: p.opcionesPersonalizacion || '',
+      temporada: p.temporada || '', multicolor: p.multicolor === true || p.multicolor === 'true',
       Badge: p.badge || '', Imagen1: p.imagen1 || '', Imagen2: p.imagen2 || '', Imagen3: p.imagen3 || '',
       _comunidad: true, _vendedorNombre: p.vendedor_nombre || '', _vendedorUid: p.vendedor_uid || '',
       _vendedorTel: p.vendedor_tel || '', _vendedorLogo: p.vendedor_logo || '', _vendedorPlan: p.vendedor_plan || '',
@@ -954,6 +995,8 @@ function handleInitialHashComunidad(intentos = 0) {
     TipoVenta: product.tipoVenta || 'stock',
     TiempoElaboracionDias: Number(product.tiempoElaboracionDias) || 0,
     OpcionesPersonalizacion: product.opcionesPersonalizacion || '',
+    temporada: product.temporada || '',
+    multicolor: product.multicolor === true || product.multicolor === 'true',
     Badge: product.badge || '',
     Imagen1: product.imagen1 || '',
     Imagen2: product.imagen2 || '',
@@ -1220,6 +1263,8 @@ Stock:  esPersonal ? -1 : (stockVivo(product) !== undefined ? Number(stockVivo(p
 TipoVenta: product.tipoVenta || 'stock',
 TiempoElaboracionDias: diasElab,
 OpcionesPersonalizacion: product.opcionesPersonalizacion || '',
+temporada: product.temporada || '',
+multicolor: product.multicolor === true || product.multicolor === 'true',
 Badge:  product.badge  || '',
 Imagen1:  product.imagen1  || '',
 Imagen2:  product.imagen2  || '',
@@ -1546,7 +1591,7 @@ temporadaSelect = document.getElementById('comunidad-temporada');
 if (temporadaSelect && window.ZNR_TEMPORADAS) {
   // Lista fija (temporadas.js); si la URL trae ?temporada=..., se deja seleccionada.
   const valorURL = new URLSearchParams(window.location.search).get('temporada') || '';
-  temporadaSelect.innerHTML = '<option value="">Temporada</option>' + window.ZNR_TEMPORADAS.opcionesFiltroHTML();
+  temporadaSelect.innerHTML = '<option value="">Todas</option>' + window.ZNR_TEMPORADAS.opcionesFiltroHTML();
   if (valorURL) temporadaSelect.value = valorURL;
 }
 paginationDiv = document.getElementById('comunidad-pagination');
@@ -1556,6 +1601,7 @@ return;
 }
 await initInspectorMode();
 bindFilterChangeEvents();
+initFiltrosSheet();
 initCartAndUI();
 loadCommunityProducts();
 checkLiveBanner();

@@ -1082,6 +1082,7 @@ ${entregaHtml}
 <div class="im-info-meta">
 ${catHtml}${badgeHtml}${stockHtml}
 </div>
+${window.ZNR_TEMPORADAS ? window.ZNR_TEMPORADAS.chipsHTML(p) : ''}
 ${tallaHtml}
 ${esPersonal && opcionesPers ? `<div class="im-info-talla">Personalizable: <strong>${escapeHtml(opcionesPers)}</strong></div>` : ''}
 ${descHtml}
