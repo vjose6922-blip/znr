@@ -129,6 +129,11 @@ let allCommunityProducts = [];    // productos de
 let filteredProducts = [];        // alias de allComm000
 let currentPage = 1;              // página actual
 let totalPagesGlobal = 1;         // total de páginas devuelto por el backend
+// "Ver más" de un carrusel: funciona como un filtro más (reemplaza el listado por todo ese grupo)
+let vistaActiva = '';             // '' | 'ofertas' | 'recomendado' | 'temporada'
+let vistaCache = null;            // { vista, lista } para que la paginación no cambie al reordenar
+let carruselesPintados = false;   // true cuando los carruseles ya se dibujaron (vista por defecto o entrada directa a un "Ver más")
+const VISTA_LABELS = { ofertas: 'Ofertas destacadas', recomendado: 'Recomendado para ti', temporada: 'Podría interesarte' };
 let currentFilters = {};          // filtros activos (para mantenerlos al cambia00000
 let isLoading = false;
 let gridContainer, catSelect, vendorSelect, temporadaSelect, paginationDiv;
@@ -189,6 +194,7 @@ busqueda: urlParams.get('busqueda') || '',
 categoria: urlParams.get('categoria') || '',
 vendedor: urlParams.get('vendedor') || '',
 temporada: urlParams.get('temporada') || '',
+vista: VISTA_LABELS[urlParams.get('vista')] ? urlParams.get('vista') : '',
 orden: urlParams.get('orden') || ''
 };
 }
@@ -207,6 +213,7 @@ if (searchTerm) params.set('busqueda', searchTerm);
 if (category) params.set('categoria', category);
 if (vendor) params.set('vendedor', vendor);
 if (temporada) params.set('temporada', temporada);
+if (vistaActiva) params.set('vista', vistaActiva);
 if (orden) params.set('orden', orden);
 const newURL = `${window.location.pathname}${params.toString() ? '?' + params.toString() : ''}`;
 window.history.replaceState({}, '', newURL);
@@ -456,8 +463,35 @@ function aplicarOrdenLocal(orden) {
 
 // ── Vista por defecto = sin ningún filtro activo (ahí aplica el orden
 // aleatorio con la página 1 reservada a verificados + ZNR) ────────────────
+// Carga (una sola vez) el catálogo de la ciudad del comprador que usan la vista por defecto,
+// los carruseles y las vistas "Ver más".
+async function asegurarCatalogoBase() {
+  if (communityRandomOrder) return communityRandomOrder;
+        const miCiudad = await obtenerCiudadComprador();
+        const snapshot = await intentarCatalogoDesdeSnapshot(miCiudad);
+        if (snapshot) {
+          communityRandomOrder = window.ordenarCatalogoComunidad ? window.ordenarCatalogoComunidad(snapshot.products) : snapshot.products;
+          if (snapshot.filterOptions) {
+            populateFiltersFromOptions(snapshot.filterOptions);
+            comunidadFilterOptionsLoaded = true;
+          }
+        } else {
+          // Sin snapshot fresco: camino original, vía Algolia.
+          loadComunidadFilterOptionsAlgolia();
+          const searchResult = await window.algoliaIndex.search('', {
+            hitsPerPage: 300,
+            facets: ['categoria', 'vendedor_nombre']
+          });
+          communityRandomOrder = construirOrdenAleatorioComunidad(searchResult.hits || []);
+        }
+        // Filtra al catálogo de la ciudad del comprador (el feed de ciudad ya viene filtrado).
+        communityRandomOrder = communityRandomOrder.filter((p) => p.ciudad === miCiudad);
+        window.communityRandomOrder = communityRandomOrder;
+  return communityRandomOrder;
+}
+
 function esVistaComunidadPorDefecto(filters) {
-  return !filters.categoria && !filters.busqueda && !filters.vendedor && !filters.temporada && !filters.orden;
+  return !filters.vista && !filters.categoria && !filters.busqueda && !filters.vendedor && !filters.temporada && !filters.orden;
 }
 
 function shuffleArray(arr) {
@@ -551,28 +585,7 @@ async function loadComunidadPageAlgolia(page, filters, opts = {}) {
       // ── Vista por defecto: se trae un lote grande UNA sola vez y se pagina
       // en memoria (así la página 1 queda reservada a verificados+ZNR y el
       // resto se mantiene fijo mientras el usuario navega de página) ──────
-      if (!communityRandomOrder) {
-        const miCiudad = await obtenerCiudadComprador();
-        const snapshot = await intentarCatalogoDesdeSnapshot(miCiudad);
-        if (snapshot) {
-          communityRandomOrder = window.ordenarCatalogoComunidad ? window.ordenarCatalogoComunidad(snapshot.products) : snapshot.products;
-          if (snapshot.filterOptions) {
-            populateFiltersFromOptions(snapshot.filterOptions);
-            comunidadFilterOptionsLoaded = true;
-          }
-        } else {
-          // Sin snapshot fresco: camino original, vía Algolia.
-          loadComunidadFilterOptionsAlgolia();
-          const searchResult = await window.algoliaIndex.search('', {
-            hitsPerPage: 300,
-            facets: ['categoria', 'vendedor_nombre']
-          });
-          communityRandomOrder = construirOrdenAleatorioComunidad(searchResult.hits || []);
-        }
-        // Filtra al catálogo de la ciudad del comprador (el feed de ciudad ya viene filtrado).
-        communityRandomOrder = communityRandomOrder.filter((p) => p.ciudad === miCiudad);
-        window.communityRandomOrder = communityRandomOrder;
-      }
+      await asegurarCatalogoBase();
 
       currentPage      = page;
       totalPagesGlobal = Math.max(1, Math.ceil(communityRandomOrder.length / PAGE_SIZE));
@@ -581,7 +594,7 @@ async function loadComunidadPageAlgolia(page, filters, opts = {}) {
       filteredProducts     = [...allCommunityProducts];
       window.allCommunityProductsIndexed = allCommunityProducts;
 
-      if (page === 1) { setComunidadCache(allCommunityProducts); renderOfertasCarousel(communityRandomOrder); renderRecomendadoParaTi(communityRandomOrder); }
+      if (page === 1) { setComunidadCache(allCommunityProducts); renderOfertasCarousel(communityRandomOrder); renderRecomendadoParaTi(communityRandomOrder); renderTemporadaCarousel(communityRandomOrder); carruselesPintados = true; }
 
     } else {
       // ── Con filtros/búsqueda/orden activos: paginado normal vía Algolia ──
@@ -650,6 +663,7 @@ async function loadComunidadPageAlgolia(page, filters, opts = {}) {
 
 // ── Punto de entrada: decide si usar Algolia (público) o GAS (modo inspector/admin) ──
 async function loadComunidadPage(page, filters, opts = {}) {
+  if (filters && filters.vista) return cargarVistaComunidad(page, filters);
   // El modo inspector necesita ver productos pendientes también, que no viven en Algolia
   if (inspectorMode) {
     return loadComunidadPageGAS(page, filters, opts);
@@ -669,6 +683,7 @@ function loadCommunityProducts() {
     const el = document.getElementById('comunidad-orden');
     if (el) el.value = urlFilters.orden;
   }
+  vistaActiva = urlFilters.vista || '';
   currentFilters = urlFilters;
   updateComunidadChips(urlFilters);
   return loadComunidadPage(1, urlFilters);
@@ -710,7 +725,7 @@ function applyFilters() {
     const temporada = temporadaSelect ? temporadaSelect.value : '';
     const ordenEl   = document.getElementById('comunidad-orden');
     const orden     = ordenEl ? ordenEl.value : '';
-    const filters = { busqueda, categoria, vendedor, temporada, orden };
+    const filters = { busqueda, categoria, vendedor, temporada, vista: vistaActiva, orden };
     // Eliminar vacíos
     Object.keys(filters).forEach(k => { if (!filters[k]) delete filters[k]; });
     currentFilters = filters;
@@ -873,7 +888,10 @@ function updateComunidadChips(filters) {
     calificacion: `${Icon('star')} Mejor calificado`,
     precio_asc:   `${Icon('dollar')} Menor a mayor precio`
   };
+  const carr = document.getElementById('comunidad-carruseles');
+  if (carr) carr.style.display = filters.vista ? 'none' : '';
   const chips = [];
+  if (filters.vista)     chips.push({ label: `${VISTA_LABELS[filters.vista] || filters.vista}`, clear: () => { vistaActiva = ''; vistaCache = null; applyFilters(); } });
   if (filters.busqueda)  chips.push({ label: `${Icon('search')} "${filters.busqueda}"`, clear: () => { const el = document.getElementById('comunidad-search'); if (el) el.value = ''; applyFilters(); } });
   if (filters.categoria) chips.push({ label: `${filters.categoria}`, clear: () => { if (catSelect) catSelect.value = ''; applyFilters(); } });
   if (filters.vendedor)  chips.push({ label: `${vendorSelect && vendorSelect.selectedOptions[0] ? vendorSelect.selectedOptions[0].textContent : 'Vendedor'}`, clear: () => { if (vendorSelect) vendorSelect.value = ''; applyFilters(); } });
@@ -895,6 +913,7 @@ function updateComunidadChips(filters) {
           const el = document.getElementById(id); if (el) el.value = '';
         });
         const si = document.getElementById('comunidad-search'); if (si) si.value = '';
+        vistaActiva = ''; vistaCache = null;
         applyFilters();
       } else {
         chips[Number(idx)].clear();
@@ -959,14 +978,60 @@ function iniciarAutoScrollCarrusel(track) {
   }, 30);
 }
 
+// ── Listas completas de cada grupo (los carruseles toman solo los primeros 10; "Ver más" muestra todos) ──
+function calcularOfertas(products) {
+  return (products || [])
+    .filter(p => Number(stockVivo(p) || 0) > 0 && (Number(p.precio_original) || 0) > (Number(p.precio) || 0))
+    .sort((a, b) => (1 - a.precio / a.precio_original) < (1 - b.precio / b.precio_original) ? 1 : -1);
+}
+
+// Según las categorías más vistas por este dispositivo; sin historial, cae a vendedores Plus.
+function calcularRecomendados(products, limite = Infinity) {
+  const categorias = obtenerCategoriasPreferidas();
+  const conStock = (products || []).filter(p => Number(stockVivo(p) || 0) > 0);
+  if (!categorias.length) return conStock.filter(p => p.vendedor_plan === 'plus').slice(0, limite);
+  // Un balde por categoría preferida (más vista primero), barajado internamente
+  const baldes = categorias.map(cat => shuffleArray(conStock.filter(p => p.categoria === cat)));
+  const out = [];
+  let i = 0;
+  while (out.length < limite && baldes.some(b => b.length)) {
+    const balde = baldes[i % baldes.length];
+    if (balde.length) out.push(balde.shift());
+    i++;
+  }
+  return out;
+}
+
+// Artículos de la festividad/temporada que está ocurriendo hoy (calendario en temporadas.js);
+// primero los de la que termina antes.
+function calcularTemporadaActual(products) {
+  if (!window.ZNR_TEMPORADAS || !window.ZNR_TEMPORADAS.activas) return [];
+  const orden = new Map(window.ZNR_TEMPORADAS.activas().map((a, i) => [a.nombre, i]));
+  if (!orden.size) return [];
+  return (products || [])
+    .filter(p => p.temporada && orden.has(p.temporada) && Number(stockVivo(p) || 0) > 0)
+    .sort((a, b) => orden.get(a.temporada) - orden.get(b.temporada));
+}
+
+function actualizarLayoutDual() {
+  const row = document.getElementById('comunidad-dual-row');
+  const r = document.getElementById('comunidad-recomendado-wrap');
+  const t = document.getElementById('comunidad-temporada-wrap');
+  if (!row || !r || !t) return;
+  row.classList.toggle('es-dual', r.style.display !== 'none' && t.style.display !== 'none');
+}
+
+function mostrarTile(id, visible) {
+  const el = document.getElementById(id);
+  if (el) el.style.display = visible ? '' : 'none';
+}
+
 function renderOfertasCarousel(products) {
   const wrap = document.getElementById('comunidad-ofertas-wrap');
   const track = document.getElementById('comunidad-ofertas-track');
   if (!wrap || !track) return;
-  const ofertas = (products || [])
-    .filter(p => Number(stockVivo(p) || 0) > 0 && (Number(p.precio_original) || 0) > (Number(p.precio) || 0))
-    .sort((a, b) => (1 - a.precio / a.precio_original) < (1 - b.precio / b.precio_original) ? 1 : -1)
-    .slice(0, 10);
+  const ofertas = calcularOfertas(products).slice(0, 10);
+  mostrarTile('tile-ofertas', ofertas.length > 0);
   if (!ofertas.length) { wrap.style.display = 'none'; return; }
   wrap.style.display = '';
   track.innerHTML = '';
@@ -979,32 +1044,110 @@ function renderOfertasCarousel(products) {
   iniciarAutoScrollCarrusel(track);
 }
 
-// ── Recomendado para ti: según la categoría más vista por este dispositivo; sin historial, cae a vendedores Plus ──
+// ── Recomendado para ti ──
 function renderRecomendadoParaTi(products) {
   const wrap = document.getElementById('comunidad-recomendado-wrap');
   const track = document.getElementById('comunidad-recomendado-track');
   if (!wrap || !track) return;
-  const categorias = obtenerCategoriasPreferidas();
-  const conStock = (products || []).filter(p => Number(stockVivo(p) || 0) > 0);
-  let recomendados = [];
-  if (categorias.length) {
-    // Un balde por categoría preferida (más vista primero), barajado internamente
-    const baldes = categorias.map(cat => shuffleArray(conStock.filter(p => p.categoria === cat)));
-    let i = 0;
-    while (recomendados.length < 10 && baldes.some(b => b.length)) {
-      const balde = baldes[i % baldes.length];
-      if (balde.length) recomendados.push(balde.shift());
-      i++;
-    }
-  } else {
-    recomendados = conStock.filter(p => p.vendedor_plan === 'plus').slice(0, 10);
-  }
-  if (!recomendados.length) { wrap.style.display = 'none'; return; }
+  const recomendados = calcularRecomendados(products, 10);
+  mostrarTile('tile-recomendado', recomendados.length > 0);
+  if (!recomendados.length) { wrap.style.display = 'none'; actualizarLayoutDual(); return; }
   wrap.style.display = '';
   track.innerHTML = '';
   recomendados.forEach(p => track.appendChild(crearMiniCardComunidad(p, '')));
   initLazyImages();
   iniciarAutoScrollCarrusel(track);
+  actualizarLayoutDual();
+}
+
+// ── Podría interesarte: 10 artículos de la festividad/temporada en curso ──
+function renderTemporadaCarousel(products) {
+  const wrap = document.getElementById('comunidad-temporada-wrap');
+  const track = document.getElementById('comunidad-temporada-track');
+  if (!wrap || !track) return;
+  const todos = calcularTemporadaActual(products);
+  const lista = todos.slice(0, 10);
+  mostrarTile('tile-temporada', lista.length > 0);
+  if (!lista.length) { wrap.style.display = 'none'; actualizarLayoutDual(); return; }
+  const nombres = [...new Set(todos.map(p => p.temporada))].slice(0, 2).join(' y ');
+  const desc = document.getElementById('tile-temporada-desc');
+  if (desc) desc.textContent = `${nombres}: artículos para esta fecha.`;
+  wrap.style.display = '';
+  track.innerHTML = '';
+  lista.forEach(p => track.appendChild(crearMiniCardComunidad(p, '')));
+  initLazyImages();
+  iniciarAutoScrollCarrusel(track);
+  actualizarLayoutDual();
+}
+
+// ── "Ver más": reemplaza el listado por todo el grupo, como un filtro más (se combina con búsqueda/categoría/etc.) ──
+function calcularVista(vista, base) {
+  if (vista === 'ofertas') return calcularOfertas(base);
+  if (vista === 'recomendado') return calcularRecomendados(base);
+  if (vista === 'temporada') return calcularTemporadaActual(base);
+  return base || [];
+}
+
+function filtrarLocal(lista, f) {
+  const norm = (t) => String(t == null ? '' : t).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+  let out = lista.slice();
+  if (f.busqueda) {
+    const q = norm(f.busqueda);
+    out = out.filter(p => norm([p.nombre, p.descripcion, p.talla, p.categoria, p.vendedor_nombre].join(' ')).includes(q));
+  }
+  if (f.categoria) out = out.filter(p => p.categoria === f.categoria);
+  if (f.vendedor) out = out.filter(p => p.vendedor_uid === f.vendedor);
+  if (f.temporada) out = out.filter(p => p.temporada === f.temporada);
+  if (f.orden === 'precio_asc') out.sort((a, b) => (Number(a.precio) || 0) - (Number(b.precio) || 0));
+  return out;
+}
+
+async function cargarVistaComunidad(page, filters) {
+  try {
+    if (gridContainer && !communityRandomOrder) showSkeletonComunidad(gridContainer, 6);
+    const base = await asegurarCatalogoBase();
+    // Entrada directa por enlace (?vista=...): se dibujan también los carruseles/tiles del banner.
+    if (!carruselesPintados) {
+      renderOfertasCarousel(base); renderRecomendadoParaTi(base); renderTemporadaCarousel(base);
+      carruselesPintados = true;
+    }
+    if (!vistaCache || vistaCache.vista !== filters.vista) {
+      vistaCache = { vista: filters.vista, lista: calcularVista(filters.vista, base) };
+    }
+    const lista = filtrarLocal(vistaCache.lista, filters);
+    totalPagesGlobal = Math.max(1, Math.ceil(lista.length / PAGE_SIZE));
+    currentPage = Math.min(Math.max(1, page || 1), totalPagesGlobal);
+    const start = (currentPage - 1) * PAGE_SIZE;
+    allCommunityProducts = lista.slice(start, start + PAGE_SIZE);
+    filteredProducts = [...allCommunityProducts];
+    window.allCommunityProductsIndexed = allCommunityProducts;
+    renderProducts();
+  } catch (err) {
+    console.error('Error en cargarVistaComunidad:', err);
+    if (gridContainer) gridContainer.innerHTML = '<div style="grid-column:1/-1; text-align:center; padding:40px;">No se pudo cargar esta sección. Intenta de nuevo.</div>';
+  } finally {
+    if (typeof window.hideLoader === 'function') window.hideLoader();
+  }
+}
+
+function abrirVistaComunidad(vista) {
+  if (!VISTA_LABELS[vista]) return;
+  // Si está abierta la vista de refugios, se regresa primero a productos.
+  const ben = document.getElementById('comunidad-beneficiarios-wrap');
+  if (ben && ben.style.display === 'block') document.getElementById('btn-ver-fundaciones')?.click();
+  vistaActiva = vista;
+  vistaCache = null; // recalcula (y re-baraja "Recomendado") al entrar
+  applyFilters();
+  setTimeout(() => (document.querySelector('.comunidad-toolbar') || gridContainer)?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 60);
+}
+
+function initVistasComunidad() {
+  document.addEventListener('click', (e) => {
+    const b = e.target.closest('[data-vista]');
+    if (!b) return;
+    e.preventDefault();
+    abrirVistaComunidad(b.dataset.vista);
+  });
 }
 
 function renderProducts() {
@@ -1704,6 +1847,7 @@ return;
 await initInspectorMode();
 bindFilterChangeEvents();
 initFiltrosSheet();
+initVistasComunidad();
 initCartAndUI();
 loadCommunityProducts();
 checkLiveBanner();
@@ -1713,6 +1857,13 @@ initBeneficiariosToggle();
 
 // ── Grid de fundaciones/beneficiarios ──────────────────────────────────
 let beneficiariosCargados = false;
+function setVerRefugiosLabel(btn, titulo, desc, go) {
+  const t = btn.querySelector('.com-tile-t');
+  if (!t) { btn.textContent = titulo; return; }
+  t.textContent = titulo;
+  const d = btn.querySelector('.com-tile-d'); if (d) d.textContent = desc;
+  const g = btn.querySelector('.com-tile-go'); if (g) g.textContent = go;
+}
 function initBeneficiariosToggle() {
   const btn = document.getElementById('btn-ver-fundaciones');
   if (!btn) return;
@@ -1734,7 +1885,10 @@ function initBeneficiariosToggle() {
       if (toolbarArea) toolbarArea.style.display = '';
       if (ofertasWrap && ofertasWrap.dataset.hadContent) ofertasWrap.style.display = '';
       if (recomendadoWrap && recomendadoWrap.dataset.hadContent) recomendadoWrap.style.display = '';
-      btn.innerHTML = Icon('heart') + ' Ver refugios';
+      setVerRefugiosLabel(btn, 'Ver refugios', 'Dona artículos a un refugio o fundación.', 'Entrar');
+      const carrB = document.getElementById('comunidad-carruseles');
+      if (carrB) carrB.style.display = vistaActiva ? 'none' : '';
+      updateComunidadChips(currentFilters || {});
     } else {
       // Mostrar fundaciones
       wrap.style.display = 'block';
@@ -1744,7 +1898,9 @@ function initBeneficiariosToggle() {
       if (toolbarArea) toolbarArea.style.display = 'none';
       if (ofertasWrap) { ofertasWrap.dataset.hadContent = ofertasWrap.style.display !== 'none' ? '1' : ''; ofertasWrap.style.display = 'none'; }
       if (recomendadoWrap) { recomendadoWrap.dataset.hadContent = recomendadoWrap.style.display !== 'none' ? '1' : ''; recomendadoWrap.style.display = 'none'; }
-      btn.innerHTML = Icon('shopping-bag') + ' Ver productos';
+      setVerRefugiosLabel(btn, 'Ver productos', 'Volver a los productos de la comunidad.', 'Volver');
+      const carrA = document.getElementById('comunidad-carruseles');
+      if (carrA) carrA.style.display = 'none';
       if (!beneficiariosCargados) loadBeneficiariosGrid();
     }
   });

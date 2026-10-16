@@ -39,5 +39,65 @@
     ).join('');
   }
 
-  window.ZNR_TEMPORADAS = { listas: LISTAS, etiquetas: ETIQUETAS, chipsHTML, opcionesFiltroHTML, esMulticolor };
+  // ── Calendario: cuándo está "en curso" cada festividad/temporada (para "Podría interesarte") ──
+  // Cada entrada devuelve los rangos [inicio, fin] que le corresponden en el año `y`.
+  // Edita aquí las fechas si quieres que arranquen antes o terminen después.
+  const D = (y, m, d, fin) => (fin ? new Date(y, m - 1, d, 23, 59, 59) : new Date(y, m - 1, d));
+  // Rango fijo mes/día → mes/día; si cruza de año (ej. 26 dic → 3 ene) cubre ambos años.
+  const fija = (m1, d1, m2, d2) => (y) => (m1 * 100 + d1 <= m2 * 100 + d2)
+    ? [[D(y, m1, d1), D(y, m2, d2, true)]]
+    : [[D(y, m1, d1), D(y + 1, m2, d2, true)], [D(y - 1, m1, d1), D(y, m2, d2, true)]];
+  const nesimoDia = (y, mes0, diaSemana, n) => { // n-ésimo domingo(0)/jueves(4)... del mes
+    const primero = new Date(y, mes0, 1);
+    return new Date(y, mes0, 1 + ((diaSemana - primero.getDay() + 7) % 7) + (n - 1) * 7);
+  };
+  const pascua = (y) => { // algoritmo de Meeus/Jones/Butcher
+    const a = y % 19, b = Math.floor(y / 100), c = y % 100, d = Math.floor(b / 4), e = b % 4;
+    const f = Math.floor((b + 8) / 25), g = Math.floor((b - f + 1) / 3), h = (19 * a + b - d - g + 15) % 30;
+    const i = Math.floor(c / 4), k = c % 4, l = (32 + 2 * e + 2 * i - h - k) % 7;
+    const m = Math.floor((a + 11 * h + 22 * l) / 451), mes = Math.floor((h + l - 7 * m + 114) / 31);
+    return new Date(y, mes - 1, ((h + l - 7 * m + 114) % 31) + 1);
+  };
+  const VENTANAS = {
+    'Año Nuevo': fija(12, 26, 1, 3),
+    'Día de Reyes': fija(12, 28, 1, 6),
+    'Día de la Candelaria': fija(1, 25, 2, 2),
+    'San Valentín (Amor y Amistad)': fija(2, 1, 2, 14),
+    'Día Internacional de la Mujer': fija(3, 1, 3, 8),
+    'Semana Santa': (y) => { const p = pascua(y); return [[new Date(y, p.getMonth(), p.getDate() - 21), new Date(y, p.getMonth(), p.getDate(), 23, 59, 59)]]; },
+    'Día del Niño': fija(4, 15, 4, 30),
+    'Día del Maestro': fija(5, 8, 5, 15),
+    'Día de las Madres': fija(5, 1, 5, 10),
+    'Día del Padre': (y) => { const f = nesimoDia(y, 5, 0, 3); return [[D(y, 6, 1), new Date(y, 5, f.getDate(), 23, 59, 59)]]; },
+    'Fiestas Patrias (Septiembre)': fija(9, 1, 9, 16),
+    'Halloween': fija(10, 15, 10, 31),
+    'Día de Muertos': fija(10, 20, 11, 2),
+    'Acción de Gracias': (y) => { const f = nesimoDia(y, 10, 4, 4); return [[D(y, 11, 10), new Date(y, 10, f.getDate(), 23, 59, 59)]]; },
+    'Posadas': fija(12, 12, 12, 24),
+    'Navidad': fija(12, 1, 12, 25),
+    'Fin de Año': fija(12, 20, 12, 31),
+    'Regreso a clases': fija(7, 25, 9, 10),
+    'Vacaciones de verano': fija(6, 15, 8, 15),
+    'Vacaciones de invierno': fija(12, 10, 1, 6),
+    'Graduaciones': fija(5, 20, 7, 10),
+    'Temporada de bodas': (y) => [...fija(3, 1, 6, 30)(y), ...fija(9, 15, 11, 30)(y)],
+    'Hot Sale': fija(5, 25, 6, 5),
+    'Buen Fin': fija(11, 8, 11, 20),
+    'Black Friday': fija(11, 20, 11, 30),
+    'Rebajas de fin de temporada': (y) => [...fija(1, 7, 2, 15)(y), ...fija(7, 15, 8, 15)(y)]
+  };
+
+  // Festividades/temporadas en curso hoy (la que termina antes va primero).
+  function activas(hoy) {
+    const ahora = hoy instanceof Date ? hoy : new Date();
+    const out = [];
+    Object.keys(VENTANAS).forEach((nombre) => {
+      const rangos = VENTANAS[nombre](ahora.getFullYear());
+      const r = rangos.find(([ini, fin]) => ahora >= ini && ahora <= fin);
+      if (r) out.push({ nombre, fin: r[1], dias: Math.ceil((r[1] - ahora) / 86400000) });
+    });
+    return out.sort((a, b) => a.dias - b.dias);
+  }
+
+  window.ZNR_TEMPORADAS = { listas: LISTAS, etiquetas: ETIQUETAS, chipsHTML, opcionesFiltroHTML, esMulticolor, activas, ventanas: VENTANAS };
 })();

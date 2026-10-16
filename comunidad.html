@@ -112,6 +112,38 @@
  }
  .community-hero h1 { margin: 0 0 8px; font-size: 1.8rem; }
  .community-hero p { margin: 0 0 16px; opacity: 0.9; }
+
+ /* ── Banner con tiles (estilo index) ── */
+ .community-hero h1 { margin: 0 0 10px; font-size: 1.5rem; }
+ .com-tiles { display: flex; gap: 10px; overflow-x: auto; scroll-snap-type: x proximity; padding: 2px 6px 6px; text-align: left; scrollbar-width: none; }
+ .com-tiles::-webkit-scrollbar { display: none; }
+ .com-tile {
+ flex: 0 0 min(230px, 70%); box-sizing: border-box; scroll-snap-align: start;
+ display: flex; flex-direction: column; gap: 4px; padding: 14px 16px;
+ background: rgba(255,255,255,.96); color: #1f2430; border: none; border-radius: var(--radius-lg, 16px);
+ font-family: inherit; text-align: left; text-decoration: none; cursor: pointer;
+ box-shadow: 0 4px 14px rgba(0,0,0,.12);
+ }
+ .com-tile:active { transform: scale(.98); }
+ .com-tile-t { font-size: 15px; font-weight: 700; color: #1f2430; }
+ .com-tile-d { font-size: 12.5px; line-height: 1.4; color: #5b6170; }
+ .com-tile-go { margin-top: 2px; font-size: 12.5px; font-weight: 700; color: var(--color-accent-solid); }
+ .com-tile-go::after { content: " \2192"; }
+
+ /* ── Carruseles: encabezado con "Ver más" + fila doble (Recomendado | Podría interesarte) ── */
+ .carr-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 0 0 8px; padding: 0 16px; }
+ .carr-head h2 { margin: 0; font-size: 15px; color: var(--color-text-primary); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+ .carr-vermas { flex: none; border: none; background: transparent; color: var(--color-accent-solid); font-size: 12.5px; font-weight: 700; font-family: inherit; cursor: pointer; padding: 4px 0; }
+ .carr-track { display: flex; gap: 10px; overflow-x: auto; overflow-y: hidden; padding: 0 16px 8px; scroll-snap-type: x proximity; scrollbar-width: none; }
+ .carr-track::-webkit-scrollbar { display: none; }
+ .dual-row { display: flex; gap: 10px; padding: 0 16px; }
+ .dual-row > .carr-wrap { flex: 1 1 0; min-width: 0; }
+ .dual-row .carr-head, .dual-row .carr-track { padding-left: 0; padding-right: 0; }
+ @media (max-width: 699px) {
+ /* Compartiendo fila caben 1.5 artículos por carrusel */
+ .dual-row.es-dual .carr-track .product-card { width: calc((50vw - 31px) / 1.5) !important; min-width: calc((50vw - 31px) / 1.5) !important; max-width: calc((50vw - 31px) / 1.5) !important; }
+ .dual-row.es-dual .carr-head h2 { font-size: 13px; }
+ }
  .vendor-buttons { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
  .btn-outline-light {
  background: transparent;
@@ -130,6 +162,8 @@
  flex-direction: column;
  gap: 8px;
  margin-bottom: 16px;
+ padding: 0 16px;
+ box-sizing: border-box;
  }
  .comunidad-toolbar-selects {
  display: flex;
@@ -500,25 +534,34 @@
 
  <div class="community-hero">
  <h1>Z&R Comunidad</h1>
- <div class="vendor-buttons">
- <button onclick="openBeneficiarioRegister()" class="btn-outline-light" style="background:transparent;border: 1.5px solid rgba(255,255,255,0.7);">Tienes un refugio?</button>
- <button id="btn-ver-fundaciones" class="btn-outline-light" style="background:transparent;border: 1.5px solid rgba(255,255,255,0.7);">
-  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" aria-hidden="true"><use href="#ic-heart"/></svg> Ver refugios</button>
- <a href="vendedor.html" class="btn-outline-light">Mi cuenta de vendedor</a> 
+ <div class="com-tiles" role="list" aria-label="Qué encontrar en Comunidad">
+ <button type="button" class="com-tile" id="tile-ofertas" data-vista="ofertas" style="display:none"><span class="com-tile-t">Ofertas destacadas</span><span class="com-tile-d">Los mayores descuentos de tu ciudad.</span><span class="com-tile-go">Ver más</span></button>
+ <button type="button" class="com-tile" id="tile-recomendado" data-vista="recomendado" style="display:none"><span class="com-tile-t">Recomendado para ti</span><span class="com-tile-d">Artículos según lo que más has visto.</span><span class="com-tile-go">Ver más</span></button>
+ <button type="button" class="com-tile" id="tile-temporada" data-vista="temporada" style="display:none"><span class="com-tile-t">Temporada</span><span class="com-tile-d" id="tile-temporada-desc">Artículos para esta fecha.</span><span class="com-tile-go">Ver más</span></button>
+ <button type="button" class="com-tile" id="btn-ver-fundaciones"><span class="com-tile-t">Ver refugios</span><span class="com-tile-d">Dona artículos a un refugio o fundación.</span><span class="com-tile-go">Entrar</span></button>
+ <a href="vendedor.html" class="com-tile"><span class="com-tile-t">Mi cuenta de vendedor</span><span class="com-tile-d">Administra tu tienda y tus productos.</span><span class="com-tile-go">Abrir</span></a>
  </div>
  </div>
 
  <div id="live-banner-slot"></div>
 
  
- <div id="comunidad-ofertas-wrap" style="display:none;padding:12px 0 0;">
- <h2 style="margin:0 0 8px;padding:0 16px;font-size:15px;color:var(--color-text-primary);">🔥 Ofertas destacadas</h2>
- <div id="comunidad-ofertas-track" style="display:flex;gap:10px;overflow-x:auto;overflow-y:hidden;padding:0 16px 8px;scroll-snap-type:x proximity;"></div>
+ <div id="comunidad-carruseles">
+ <div id="comunidad-ofertas-wrap" class="carr-wrap" style="display:none;padding:12px 0 0;">
+ <div class="carr-head"><h2>🔥 Ofertas destacadas</h2><button type="button" class="carr-vermas" data-vista="ofertas">Ver más</button></div>
+ <div id="comunidad-ofertas-track" class="carr-track"></div>
  </div>
 
- <div id="comunidad-recomendado-wrap" style="display:none;padding:12px 0 0;">
- <h2 style="margin:0 0 8px;padding:0 16px;font-size:15px;color:var(--color-text-primary);">✨ Recomendado para ti</h2>
- <div id="comunidad-recomendado-track" style="display:flex;gap:10px;overflow-x:auto;overflow-y:hidden;padding:0 16px 8px;scroll-snap-type:x proximity;"></div>
+ <div id="comunidad-dual-row" class="dual-row" style="padding-top:12px;">
+ <div id="comunidad-recomendado-wrap" class="carr-wrap" style="display:none;">
+ <div class="carr-head"><h2>✨ Recomendado para ti</h2><button type="button" class="carr-vermas" data-vista="recomendado">Ver más</button></div>
+ <div id="comunidad-recomendado-track" class="carr-track"></div>
+ </div>
+ <div id="comunidad-temporada-wrap" class="carr-wrap" style="display:none;">
+ <div class="carr-head"><h2>🎯 Podría interesarte</h2><button type="button" class="carr-vermas" data-vista="temporada">Ver más</button></div>
+ <div id="comunidad-temporada-track" class="carr-track"></div>
+ </div>
+ </div>
  </div>
 
  <div style="padding: 0;">
@@ -582,6 +625,10 @@
  <div id="comunidad-pagination" class="comunidad-pagination admin-pagination"></div>
 
  <div id="comunidad-beneficiarios-wrap" style="display:none;">
+ <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;padding:14px 16px 0;">
+ <h2 style="margin:0;font-size:16px;">Refugios y fundaciones</h2>
+ <button type="button" onclick="openBeneficiarioRegister()" style="border:1.5px solid var(--color-border-subtle);background:var(--color-surface-2);color:var(--color-text-main);border-radius:40px;padding:8px 16px;font-size:13px;font-weight:600;font-family:inherit;cursor:pointer;">¿Tienes un refugio? Regístralo</button>
+ </div>
  <div id="comunidad-beneficiarios-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;padding:12px 16px;">
  <div style="grid-column:1/-1; text-align:center; padding:40px;">Cargando fundaciones...</div>
  </div>
