@@ -311,6 +311,47 @@
 <div id="toast" role="status"></div>
 
 
+<script>
+/* Diálogos ZNR (reemplazan alert/confirm nativos: "znrcommunity.com says").
+   alert() y confirm() devuelven Promesa -> usar `await confirm(...)`. Usan los estilos .custom-alert-* de styles.css */
+(function () {
+  if (window.__znrDialogs) return;
+  window.__znrDialogs = true;
+  const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  function abrir(titulo, mensaje, botones) {
+    return new Promise((resolve) => {
+      const m = document.createElement('div');
+      m.className = 'custom-alert-modal';
+      m.setAttribute('role', 'dialog');
+      m.setAttribute('aria-modal', 'true');
+      m.innerHTML = '<div class="custom-alert-content">' +
+        '<div class="custom-alert-header"><h3>' + esc(titulo) + '</h3></div>' +
+        '<div class="custom-alert-body"><p style="white-space:pre-line;margin:0">' + esc(mensaje) + '</p></div>' +
+        '<div class="custom-alert-footer">' +
+        botones.map((b) => '<button type="button" class="custom-alert-btn ' + b.cls + '">' + esc(b.txt) + '</button>').join('') +
+        '</div></div>';
+      document.body.appendChild(m);
+      let cerrado = false;
+      const salida = botones.length > 1 ? false : undefined;
+      const onKey = (e) => { if (e.key === 'Escape') { e.stopPropagation(); cerrar(salida); } };
+      const cerrar = (valor) => {
+        if (cerrado) return;
+        cerrado = true;
+        document.removeEventListener('keydown', onKey, true);
+        m.classList.add('closing');
+        setTimeout(() => { m.remove(); resolve(valor); }, 150);
+      };
+      document.addEventListener('keydown', onKey, true);
+      botones.forEach((b) => m.querySelector('.custom-alert-btn.' + b.cls).addEventListener('click', () => cerrar(b.valor)));
+      m.addEventListener('click', (e) => { if (e.target === m) cerrar(salida); });
+      const ok = m.querySelector('.custom-alert-btn.confirm');
+      if (ok) setTimeout(() => ok.focus(), 50);
+    });
+  }
+  window.alert = (msg) => abrir('Aviso', msg, [{ cls: 'confirm', txt: 'Aceptar', valor: undefined }]);
+  window.confirm = (msg) => abrir('Confirmar', msg, [{ cls: 'cancel', txt: 'Cancelar', valor: false }, { cls: 'confirm', txt: 'Aceptar', valor: true }]);
+})();
+</script>
 <script src="znr-devconsole.js"></script>
 
 

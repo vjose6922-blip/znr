@@ -538,6 +538,47 @@
     document.addEventListener('focusin', () => setTimeout(reset, 50));
   })();
 </script>
+<script>
+/* Diálogos ZNR (reemplazan alert/confirm nativos: "znrcommunity.com says").
+   alert() y confirm() devuelven Promesa -> usar `await confirm(...)`. Usan los estilos .custom-alert-* de styles.css */
+(function () {
+  if (window.__znrDialogs) return;
+  window.__znrDialogs = true;
+  const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  function abrir(titulo, mensaje, botones) {
+    return new Promise((resolve) => {
+      const m = document.createElement('div');
+      m.className = 'custom-alert-modal';
+      m.setAttribute('role', 'dialog');
+      m.setAttribute('aria-modal', 'true');
+      m.innerHTML = '<div class="custom-alert-content">' +
+        '<div class="custom-alert-header"><h3>' + esc(titulo) + '</h3></div>' +
+        '<div class="custom-alert-body"><p style="white-space:pre-line;margin:0">' + esc(mensaje) + '</p></div>' +
+        '<div class="custom-alert-footer">' +
+        botones.map((b) => '<button type="button" class="custom-alert-btn ' + b.cls + '">' + esc(b.txt) + '</button>').join('') +
+        '</div></div>';
+      document.body.appendChild(m);
+      let cerrado = false;
+      const salida = botones.length > 1 ? false : undefined;
+      const onKey = (e) => { if (e.key === 'Escape') { e.stopPropagation(); cerrar(salida); } };
+      const cerrar = (valor) => {
+        if (cerrado) return;
+        cerrado = true;
+        document.removeEventListener('keydown', onKey, true);
+        m.classList.add('closing');
+        setTimeout(() => { m.remove(); resolve(valor); }, 150);
+      };
+      document.addEventListener('keydown', onKey, true);
+      botones.forEach((b) => m.querySelector('.custom-alert-btn.' + b.cls).addEventListener('click', () => cerrar(b.valor)));
+      m.addEventListener('click', (e) => { if (e.target === m) cerrar(salida); });
+      const ok = m.querySelector('.custom-alert-btn.confirm');
+      if (ok) setTimeout(() => ok.focus(), 50);
+    });
+  }
+  window.alert = (msg) => abrir('Aviso', msg, [{ cls: 'confirm', txt: 'Aceptar', valor: undefined }]);
+  window.confirm = (msg) => abrir('Confirmar', msg, [{ cls: 'cancel', txt: 'Cancelar', valor: false }, { cls: 'confirm', txt: 'Aceptar', valor: true }]);
+})();
+</script>
 <script src="live-publisher.js"></script>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-app.js";
@@ -1241,7 +1282,7 @@ function renderScheduled() {
   });
 
   document.getElementById('btn-cancelar').addEventListener('click', async () => {
-    if (!confirm('¿Cancelar esta transmisión programada?')) return;
+    if (!(await confirm('¿Cancelar esta transmisión programada?'))) return;
     await apiFetch({ action: 'actualizarEstadoLive', vendorToken: vendorSession.token, id: currentSesion.id, estado: 'terminado' });
     currentSesion = null;
     renderCreateForm();
@@ -1306,8 +1347,8 @@ async function renderLiveFallback() {
     setTimeout(() => { btn.innerHTML = Icon('link'); }, 1500);
   });
   document.getElementById('btn-viewers').addEventListener('click', mostrarEspectadores);
-  document.getElementById('btn-finalizar').addEventListener('click', () => {
-    if (!confirm('¿Finalizar la transmisión en vivo?')) return;
+  document.getElementById('btn-finalizar').addEventListener('click', async () => {
+    if (!(await confirm('¿Finalizar la transmisión en vivo?'))) return;
     finalizarTransmision(document.getElementById('btn-finalizar'));
   });
   await certificarVendedorEnLive(currentSesion.id);
@@ -1583,8 +1624,8 @@ IDs cargados: ${esc(allProducts.map(p => p.id).join(', '))}</div>`
     }
   });
 
-  document.getElementById('btn-finalizar').addEventListener('click', () => {
-    if (!confirm('¿Finalizar la transmisión en vivo?')) return;
+  document.getElementById('btn-finalizar').addEventListener('click', async () => {
+    if (!(await confirm('¿Finalizar la transmisión en vivo?'))) return;
     finalizarTransmision(document.getElementById('btn-finalizar'));
   });
 
@@ -1690,8 +1731,8 @@ function alternarSonido() {
   document.getElementById('btn-camara').textContent = v.muted ? '🔇 Sonido' : '🔊 Sonido';
 }
 
-function volverAGrabarAqui() {
-  if (!confirm('El otro dispositivo dejará de grabar y este volverá a transmitir. ¿Continuar?')) return;
+async function volverAGrabarAqui() {
+  if (!(await confirm('El otro dispositivo dejará de grabar y este volverá a transmitir. ¿Continuar?'))) return;
   volviendo = true;
   update(ctrlRef(), { pedir: 'soltar', ts: Date.now() }).catch(() => { volviendo = false; });
 }
@@ -1878,11 +1919,11 @@ function renderResumenVentas(rev) {
       </div>`;
 
     wrap.querySelectorAll('.rv-x').forEach((btn) => {
-      btn.addEventListener('click', () => {
+      btn.addEventListener('click', async () => {
         const gi = Number(btn.dataset.g), i = Number(btn.dataset.i), id = `${gi}|${i}`;
         if (excluidos.has(id)) { excluidos.delete(id); pintar(); return; }
         const it = grupos[gi].items[i];
-        if (confirm(`¿Marcar "${it.nombre}" como sin existencia?\n\nAl confirmar el resumen su stock quedará en 0 y se le avisará a ${grupos[gi].nombre || 'el comprador'}.`)) {
+        if (await confirm(`¿Marcar "${it.nombre}" como sin existencia?\n\nAl confirmar el resumen su stock quedará en 0 y se le avisará a ${grupos[gi].nombre || 'el comprador'}.`)) {
           excluidos.add(id); pintar();
         }
       });
@@ -1893,7 +1934,7 @@ function renderResumenVentas(rev) {
       const btn = e.currentTarget;
       if (!compradoresOk && !sinStock) return;
       const avisoSin = sinStock ? `\n• ${sinStock} artículo(s) quedarán con stock 0 y se avisará a los compradores` : '';
-      if (!confirm(`¿Confirmar y enviar?\n\n• ${compradoresOk} comprador(es) recibirán el detalle de su compra${avisoSin}`)) return;
+      if (!(await confirm(`¿Confirmar y enviar?\n\n• ${compradoresOk} comprador(es) recibirán el detalle de su compra${avisoSin}`))) return;
       btn.disabled = true; btn.textContent = 'Confirmando…';
       const excluir = [...excluidos].map((id) => {
         const [gi, i] = id.split('|').map(Number);
@@ -1984,13 +2025,13 @@ function renderEnded(entregaUrl, pendienteRevision) {
   });
 }
 
-function marcarVendido(liveId, key, msg) {
+async function marcarVendido(liveId, key, msg) {
   // El mensaje escrito a mano ya no muestra la foto del artículo, así que el aviso
   // dice a qué artículo se va a registrar la venta (el que estaba destacado al escribirlo).
   const prodMsg = msg.producto_id ? allProducts.find(p => String(p.id) === String(msg.producto_id)) : null;
   const art = prodMsg ? `\nArtículo: ${prodMsg.nombre}` : '\n(No había artículo destacado cuando escribió)';
   if (msg.vendido) {
-    if (confirm(`¿Quitar el marcado de vendido a "${msg.text}" de ${msg.author}?`)) {
+    if (await confirm(`¿Quitar el marcado de vendido a "${msg.text}" de ${msg.author}?`)) {
       update(ref(db, `chats/${liveId}/messages/${key}`), { vendido: false }).catch(err => {
         console.error('marcarVendido (quitar) falló:', err);
         alert('No se pudo quitar el marcado de vendido: ' + err.message);
@@ -1998,7 +2039,7 @@ function marcarVendido(liveId, key, msg) {
     }
     return;
   }
-  if (confirm(`¿Marcar "${msg.text}" de ${msg.author} como vendido?${art}`)) {
+  if (await confirm(`¿Marcar "${msg.text}" de ${msg.author} como vendido?${art}`)) {
     update(ref(db, `chats/${liveId}/messages/${key}`), { vendido: true }).catch(err => {
       console.error('marcarVendido falló:', err);
       alert('No se pudo marcar como vendido: ' + err.message);
