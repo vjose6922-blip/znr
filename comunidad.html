@@ -174,6 +174,31 @@
  .filtros-btn { flex: 1; padding: 13px; border-radius: 12px; font-size: 15px; font-weight: 700; font-family: inherit; cursor: pointer; border: 1.5px solid transparent; }
  .filtros-btn-sec { background: transparent; border-color: var(--color-border-subtle); color: var(--color-text-main); flex: 0 0 34%; }
  .filtros-btn-pri { background: var(--color-primary); color: #fff; }
+
+ /* ── Selector propio (reemplaza la lista nativa del navegador/Android) ── */
+ .filtros-field select.comunidad-cat-select { display: none; }
+ .filtros-picker-btn {
+ display: flex; align-items: center; justify-content: space-between; gap: 8px; width: 100%;
+ padding: 12px 14px; border-radius: 12px; cursor: pointer; text-align: left;
+ border: 1.5px solid var(--color-border-subtle); background: var(--color-surface-2);
+ color: var(--color-text-main); font-size: 15px; font-family: inherit;
+ }
+ .filtros-picker-btn .fp-val { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+ .filtros-picker-btn.activo { border-color: var(--color-primary); font-weight: 600; }
+ .filtros-picker-btn svg { flex: none; opacity: .6; }
+ #filtros-picker { z-index: 100002; }
+ .fp-search { margin: 4px 20px 8px; padding: 11px 14px; border-radius: 12px; font-size: 15px; font-family: inherit;
+ border: 1.5px solid var(--color-border-subtle); background: var(--color-surface-2); color: var(--color-text-main); width: calc(100% - 40px); box-sizing: border-box; }
+ .fp-list { overflow-y: auto; padding: 0 12px 12px; display: flex; flex-direction: column; }
+ .fp-group { padding: 12px 8px 4px; font-size: 11px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--color-text-muted); }
+ .fp-opt {
+ display: flex; align-items: center; justify-content: space-between; gap: 10px;
+ padding: 13px 10px; border: none; background: transparent; color: var(--color-text-main);
+ font-size: 15px; font-family: inherit; text-align: left; cursor: pointer; border-radius: 10px;
+ }
+ .fp-opt:active, .fp-opt:hover { background: var(--color-surface-2); }
+ .fp-opt.sel { color: var(--color-primary); font-weight: 700; }
+ .fp-empty { padding: 24px; text-align: center; color: var(--color-text-muted); font-size: 14px; }
  @keyframes filtrosUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
  @keyframes filtrosFade { from { opacity: 0; } to { opacity: 1; } }
  @media (min-width: 700px) { .filtros-panel { bottom: auto; top: 50%; transform: translateY(-50%); border-radius: 20px; animation: filtrosFade .2s ease; } }
