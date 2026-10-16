@@ -136,7 +136,12 @@
     if (!fila || fila._zpm) return;
     fila._zpm = true;
     // En fase de captura: también cubre el botón de la cámara, que antes abría el selector directo.
-    fila.addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); abrirMenu(); }, true);
+    fila.addEventListener('click', (e) => {
+      // El <input type=file> vive DENTRO de esta fila: su click programatico (inp.click() de
+      // "Cambiar foto") tambien pasa por aqui. Si se cancela, el selector de archivos nunca abre.
+      if (e.target && e.target.id === 'settings-photo-input') return;
+      e.preventDefault(); e.stopPropagation(); abrirMenu();
+    }, true);
     fila.addEventListener('keydown', (e) => {
       if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); abrirMenu(); }
     });
