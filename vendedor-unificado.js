@@ -1304,6 +1304,20 @@ window.editProduct = async function(id) {
     } catch (e) { /* ignorar, se maneja abajo */ }
   }
 
+  // Siempre se parte de la versión más reciente del servidor: la lista en caché (hasta 3 min) podría
+  // traer datos viejos y, al guardar, pisar la temporada ya guardada. Si falla la red se usa la caché.
+  if (p && vendorSession && vendorSession.token) {
+    try {
+      if (typeof showLoader === 'function') showLoader('Cargando producto...');
+      const fresco = await apiFetch({ action: 'misProductosComunidad', vendorToken: vendorSession.token, limit: 200, page: 1 }, 'GET');
+      if (fresco && fresco.ok && fresco.products) {
+        const f = fresco.products.find(x => String(x.id) === String(id) && x.vendedor_uid === vendorSession.uid);
+        if (f) Object.assign(p, f);
+      }
+    } catch (e) { /* se queda con la versión en caché */ }
+    finally { if (typeof hideLoader === 'function') hideLoader(); }
+  }
+
   if (!p) {
     if (typeof showTemporaryMessage === 'function') {
       showTemporaryMessage('No se pudo cargar el producto para editar.', 'error');
@@ -1326,7 +1340,12 @@ window.editProduct = async function(id) {
     if (ops) ops.value = p.opcionesPersonalizacion || '';
     window.aplicarTipoVenta();
   }
-  document.getElementById('pCategoria').value = p.categoria || '';
+  {
+    // Si la categoría guardada ya no está en la lista (ej. la antigua "Temporada"), se conserva para no perderla.
+    const selCat = document.getElementById('pCategoria');
+    selCat.value = p.categoria || '';
+    if (p.categoria && selCat.value !== p.categoria) { selCat.add(new Option(p.categoria, p.categoria)); selCat.value = p.categoria; }
+  }
   document.getElementById('pTalla').value = p.talla || '';
   document.getElementById('pDescripcion').value = p.descripcion || '';
   {
@@ -1730,7 +1749,12 @@ editId
 );
 console.log(" Respuesta del servidor:", res);
 if (!res.ok) throw new Error(res.error || 'Error del servidor');
-showTemporaryMessage(editId ? ' Producto actualizado' : ' Producto publicado', 'success');
+// Comprobación: si el servidor no confirma la temporada, el backend desplegado no es la última versión.
+if (productData.Temporada && res.temporada !== productData.Temporada) {
+  showTemporaryMessage(' Se guardó el producto, pero el servidor NO guardó la temporada: falta desplegar la última versión de catalogo-api.', 'error');
+} else {
+  showTemporaryMessage(editId ? ' Producto actualizado' : ' Producto publicado', 'success');
+}
 cancelEdit();
 window.invalidateVendorProductsCache();
 loadMyProducts(true);
