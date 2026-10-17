@@ -422,8 +422,8 @@ body {
   -webkit-appearance: none;
   -moz-appearance: none;
   box-sizing: border-box;
-  height: 30px;
-  min-height: 30px;
+  height: 40px;
+  min-height: 40px;
   padding: 0 38px 0 16px;
   line-height: 1.2;
   border: 1px solid #e0e0e0;
@@ -2071,7 +2071,7 @@ a[data-loading="true"] {
 }
 
 .look-product-item:hover {
-  background: #fafaff;
+  background: rgba(var(--color-accent-rgb), 0.08);
 }
 
 .look-product-info {
