@@ -417,7 +417,7 @@ function hexShade(hex, percent) {
  */
 function buildCoverPatternSvg(iconIds, iconColor) {
   const CELL = 68;
-  const ids = (iconIds || []).filter(id => COVER_ICON_LIBRARY[id]).slice(0, 6);
+  const ids = (iconIds || []).filter(id => COVER_ICON_LIBRARY[id]).slice(0, 8);
   if (!ids.length) return null;
 
   const tileW = CELL * ids.length;
