@@ -360,9 +360,6 @@ h3 {
  <div class="vendor-section">
  <div id="vendor-plan-panel" style="margin:4px 0 16px;"><i class="vp-sk" style="height:128px;border-radius:14px"></i></div>
  <div id="stock-alert-banner"></div>
- <a href="mis-pedidos.html?rol=vendedor" id="pedidos-pers-link" style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0 0 14px;padding:12px 14px;border-radius:14px;border:1.5px solid #a855f7;background:rgba(168,85,247,.08);color:inherit;text-decoration:none;font-weight:700;font-size:14px;">
-   <span>Pedidos personalizados<br><small style="font-weight:500;opacity:.75;">Solicitudes, chats y cotizaciones de tus clientes</small></span><span aria-hidden="true">›</span>
- </a>
  <div class="crear-row" style="display:flex;gap:10px;margin-bottom:16px;">
   <button id="btn-crear-producto" class="btn-primary" onclick="window.switchTab && window.switchTab('form')" style="flex:1;min-width:0;width:auto;margin:0;"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" aria-hidden="true"><use href="#ic-plus"/></svg> Crear producto</button>
   <button id="btn-crear-historia" type="button" class="btn-primary" style="flex:1;min-width:0;width:auto;margin:0;background:linear-gradient(135deg,#7c3aed,#a855f7);"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" aria-hidden="true"><use href="#ic-camera"/></svg> Crear historia</button>
@@ -746,7 +743,7 @@ document.addEventListener('DOMContentLoaded', () => {
  </script>
 
 <div id="settings-modal" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.65);align-items:flex-end;justify-content:center;">
-  <div style="background:#fff;width:100%;height:98%;overflow-y:auto;padding:0 0 32px;">
+  <div style="background:#fff;width:100%;height:95%;overflow-y:auto;padding:0 0 32px;">
 
     <div style="position:sticky;top:0;background:#fff;z-index:1;padding:16px 20px 12px;border-bottom:1px solid #f0f0f0;display:flex;align-items:center;justify-content:space-between;">
       <h2 style="margin:0;font-size:1rem;font-weight:700;color:#111;">Ajustes de cuenta</h2>
@@ -1101,6 +1098,10 @@ document.addEventListener('DOMContentLoaded', () => {
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" aria-hidden="true"><use href="#ic-box"/></svg> Ver entregas
           <span id="entregas-btn-plus-badge" style="display:none;background:linear-gradient(135deg,#7c3aed,#a855f7);color:#fff;font-size:10px;font-weight:800;padding:2px 9px;border-radius:999px;letter-spacing:.02em;">PLUS</span>
         </button>
+        <a href="mis-pedidos.html?rol=vendedor" id="pedidos-pers-link"
+          style="display:flex;width:100%;box-sizing:border-box;align-items:center;justify-content:center;gap:8px;padding:12px;border-radius:10px;border:1.5px solid #a855f7;background:#faf5ff;color:#7e22ce;font-size:.9rem;font-weight:700;cursor:pointer;text-decoration:none;margin-bottom:10px;">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" aria-hidden="true"><use href="#ic-list"/></svg> Pedidos personalizados
+        </a>
       </div>
 
       <div style="padding:0 0 10px;">
