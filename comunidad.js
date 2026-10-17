@@ -165,7 +165,8 @@ history.replaceState(null, '', cleanUrl.toString());
 }
 try {
 const api = _resolverApiUrlInspector('verificarAdmin');
-const res = await fetch(api + "?" + new URLSearchParams({ action: "verificarAdmin", token: token }).toString());
+// POST: el token va en el body y no en la URL (auth-api acepta verificarAdmin por POST).
+const res = await fetch(api, { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: new URLSearchParams({ action: "verificarAdmin", token }).toString() });
 const data = await res.json();
 if (data.ok === true) {
 inspectorMode = true;
