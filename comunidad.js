@@ -964,6 +964,60 @@ function crearMiniCardComunidad(p, badgeHtml) {
   return mini;
 }
 
+// ── Carruseles en bucle ──────────────────────────────────────────────────
+// En vez de regresar al inicio al llegar al final, el contenido se repite (3 copias) y cuando el scroll
+// sale de la copia central se reacomoda exactamente un "ancho de copia": da la ilusión de que nunca termina.
+// `factory` crea copias nuevas de las tarjetas (con sus eventos); sin factory se clonan los nodos.
+function quitarClonesCarrusel(track) {
+  track.querySelectorAll('[data-clone="1"]').forEach(n => n.remove());
+  track.dataset.loopW = '';
+}
+
+function prepararLoopCarrusel(track) {
+  if (!track) return false;
+  quitarClonesCarrusel(track);
+  const orig = [...track.children].filter(n => getComputedStyle(n).display !== 'none');
+  if (orig.length < 2 || !track.clientWidth) return false;
+  if (track.scrollWidth <= track.clientWidth + 4) return false; // cabe completo: no hace falta bucle
+  const gap = parseFloat(getComputedStyle(track).columnGap) || 0;
+  const r0 = orig[0].getBoundingClientRect();
+  const r1 = orig[orig.length - 1].getBoundingClientRect();
+  const setW = r1.right - r0.left + gap;
+  for (let k = 0; k < 2; k++) {
+    const copias = track._factory ? track._factory() : orig.map(n => n.cloneNode(true));
+    copias.forEach(c => { c.dataset.clone = '1'; c.setAttribute('aria-hidden', 'true'); track.appendChild(c); });
+  }
+  track.dataset.loopW = String(setW);
+  track.scrollLeft = setW; // empieza en la copia central
+  return true;
+}
+
+function ajustarLoopCarrusel(track) {
+  const w = parseFloat(track.dataset.loopW);
+  if (!w) return;
+  if (track.scrollLeft >= 2 * w) track.scrollLeft -= w;
+  else if (track.scrollLeft < w) track.scrollLeft += w;
+}
+
+function activarLoopCarrusel(track, factory) {
+  if (!track) return;
+  track._factory = factory || null;
+  track._lastCW = 0;
+  prepararLoopCarrusel(track);
+  if (track._loopListo) return;
+  track._loopListo = true;
+  track.addEventListener('scroll', () => ajustarLoopCarrusel(track), { passive: true });
+  // Si el carrusel estaba oculto o cambia de ancho (fila compartida, rotar el teléfono), se prepara de nuevo.
+  if (typeof ResizeObserver === 'function') {
+    new ResizeObserver(() => {
+      const cw = track.clientWidth;
+      if (!cw || track._lastCW === cw) return;
+      track._lastCW = cw;
+      prepararLoopCarrusel(track);
+    }).observe(track);
+  }
+}
+
 // ── Auto-scroll suave para carruseles horizontales; se pausa unos segundos si el usuario interactúa ──
 function iniciarAutoScrollCarrusel(track) {
   if (!track || track.dataset.autoScroll === '1') return;
@@ -971,14 +1025,38 @@ function iniciarAutoScrollCarrusel(track) {
   let pausadoHasta = 0;
   const pausar = () => { pausadoHasta = Date.now() + 3000; };
   track.addEventListener('pointerdown', pausar, { passive: true });
+  track.addEventListener('touchstart', pausar, { passive: true });
   track.addEventListener('wheel', pausar, { passive: true });
   setInterval(() => {
     if (Date.now() < pausadoHasta) return;
+    if (parseFloat(track.dataset.loopW)) {       // bucle: avanza y se reacomoda sin saltos visibles
+      track.scrollLeft += 0.6;
+      ajustarLoopCarrusel(track);
+      return;
+    }
     const maxScroll = track.scrollWidth - track.clientWidth;
     if (maxScroll <= 1) return;
     track.scrollLeft += 0.6;
     if (track.scrollLeft >= maxScroll) track.scrollLeft = 0;
   }, 30);
+}
+
+// Banner de tiles: se repite al deslizar (sin auto-avance). Se reconstruye cuando cambia qué tiles se ven.
+function actualizarLoopBanner() {
+  const t = document.querySelector('.com-tiles');
+  if (!t) return;
+  clearTimeout(t._loopTimer);
+  t._loopTimer = setTimeout(() => {
+    activarLoopCarrusel(t, () => [...t.children]
+      .filter(n => !n.dataset.clone && getComputedStyle(n).display !== 'none')
+      .map(n => {
+        const c = n.cloneNode(true);
+        c.removeAttribute('id');
+        c.querySelectorAll('[id]').forEach(x => x.removeAttribute('id'));
+        if (n.id === 'btn-ver-fundaciones') c.dataset.forward = 'btn-ver-fundaciones'; // el original tiene su propio listener
+        return c;
+      }));
+  }, 0);
 }
 
 // ── Listas completas de cada grupo (los carruseles toman solo los primeros 10; "Ver más" muestra todos) ──
@@ -1027,6 +1105,7 @@ function actualizarLayoutDual() {
 function mostrarTile(id, visible) {
   const el = document.getElementById(id);
   if (el) el.style.display = visible ? '' : 'none';
+  actualizarLoopBanner();
 }
 
 function renderOfertasCarousel(products) {
@@ -1038,12 +1117,14 @@ function renderOfertasCarousel(products) {
   if (!ofertas.length) { wrap.style.display = 'none'; return; }
   wrap.style.display = '';
   track.innerHTML = '';
-  ofertas.forEach(p => {
+  const construir = () => ofertas.map(p => {
     const pct = p.precio_original > 0 ? Math.round((1 - p.precio / p.precio_original) * 100) : 0;
     const badge = `<span style="position:absolute;top:6px;left:6px;background:#ef4444;color:#fff;font-size:10px;font-weight:800;padding:2px 6px;border-radius:10px;">-${pct}%</span>`;
-    track.appendChild(crearMiniCardComunidad(p, badge));
+    return crearMiniCardComunidad(p, badge);
   });
+  construir().forEach(c => track.appendChild(c));
   initLazyImages();
+  activarLoopCarrusel(track, construir);
   iniciarAutoScrollCarrusel(track);
 }
 
@@ -1057,8 +1138,10 @@ function renderRecomendadoParaTi(products) {
   if (!recomendados.length) { wrap.style.display = 'none'; actualizarLayoutDual(); return; }
   wrap.style.display = '';
   track.innerHTML = '';
-  recomendados.forEach(p => track.appendChild(crearMiniCardComunidad(p, '')));
+  const construir = () => recomendados.map(p => crearMiniCardComunidad(p, ''));
+  construir().forEach(c => track.appendChild(c));
   initLazyImages();
+  activarLoopCarrusel(track, construir);
   iniciarAutoScrollCarrusel(track);
   actualizarLayoutDual();
 }
@@ -1077,8 +1160,10 @@ function renderTemporadaCarousel(products) {
   if (desc) desc.textContent = `${nombres}: artículos para esta fecha.`;
   wrap.style.display = '';
   track.innerHTML = '';
-  lista.forEach(p => track.appendChild(crearMiniCardComunidad(p, '')));
+  const construir = () => lista.map(p => crearMiniCardComunidad(p, ''));
+  construir().forEach(c => track.appendChild(c));
   initLazyImages();
+  activarLoopCarrusel(track, construir);
   iniciarAutoScrollCarrusel(track);
   actualizarLayoutDual();
 }
@@ -1146,6 +1231,8 @@ function abrirVistaComunidad(vista) {
 
 function initVistasComunidad() {
   document.addEventListener('click', (e) => {
+    const fwd = e.target.closest('[data-forward]'); // copia del tile de refugios (bucle del banner)
+    if (fwd) { e.preventDefault(); document.getElementById(fwd.dataset.forward)?.click(); return; }
     const b = e.target.closest('[data-vista]');
     if (!b) return;
     e.preventDefault();
@@ -1851,6 +1938,7 @@ await initInspectorMode();
 bindFilterChangeEvents();
 initFiltrosSheet();
 initVistasComunidad();
+actualizarLoopBanner();
 initCartAndUI();
 loadCommunityProducts();
 checkLiveBanner();
@@ -1866,6 +1954,12 @@ function setVerRefugiosLabel(btn, titulo, desc, go) {
   t.textContent = titulo;
   const d = btn.querySelector('.com-tile-d'); if (d) d.textContent = desc;
   const g = btn.querySelector('.com-tile-go'); if (g) g.textContent = go;
+  // Las copias del banner (bucle) también cambian de texto.
+  document.querySelectorAll('.com-tiles [data-forward="' + btn.id + '"]').forEach(c => {
+    const ct = c.querySelector('.com-tile-t'); if (ct) ct.textContent = titulo;
+    const cd = c.querySelector('.com-tile-d'); if (cd) cd.textContent = desc;
+    const cg = c.querySelector('.com-tile-go'); if (cg) cg.textContent = go;
+  });
 }
 function initBeneficiariosToggle() {
   const btn = document.getElementById('btn-ver-fundaciones');
