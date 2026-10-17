@@ -852,24 +852,7 @@
  return true;
  }
 
- // El filtro solo ofrece las festividades/temporadas que sí tienen productos en la ciudad del comprador.
- function prepararFiltroTemporada(lista) {
- const wrap = document.getElementById('home-comunidad-temporada-wrap');
- const sel = document.getElementById('home-comunidad-temporada');
- if (!wrap || !sel || !window.ZNR_TEMPORADAS) return;
- const presentes = new Set(lista.map(p => p.temporada).filter(Boolean));
- const T = window.ZNR_TEMPORADAS;
- const grupos = Object.keys(T.listas).map(tipo => {
- const nombres = T.listas[tipo].filter(n => presentes.has(n));
- return nombres.length ? '<optgroup label="' + T.etiquetas[tipo] + '">' + nombres.map(n => '<option value="' + n.replace(/"/g, '&quot;') + '">' + n + '</option>').join('') + '</optgroup>' : '';
- }).join('');
- if (!grupos) { wrap.style.display = 'none'; return; }
- const actual = sel.value;
- sel.innerHTML = '<option value="">Todas las temporadas</option>' + grupos;
- if (actual && presentes.has(actual)) sel.value = actual;
- wrap.style.display = 'flex';
- if (!sel.dataset.bound) { sel.dataset.bound = '1'; sel.addEventListener('change', pintarHomeComunidad); }
- }
+
 
  async function loadHomeComunidad() {
  const grid = document.getElementById('home-comunidad-grid');
@@ -892,7 +875,6 @@
  const soloComunidad = (window.ordenarCatalogoComunidad ? window.ordenarCatalogoComunidad(data.products) : data.products).filter(p => !p.es_znr && Number(stockVivo(p) || 0) > 0 && (!miCiudad || p.ciudad === miCiudad));
  window.allCommunityProductsIndexed = soloComunidad;
  homeComunidadLista = soloComunidad;
- prepararFiltroTemporada(soloComunidad);
  if (!pintarHomeComunidad()) return;
 
  const savedLayout = localStorage.getItem('products_layout') || 'grid';
