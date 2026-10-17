@@ -51,7 +51,11 @@ const ZR_ICONS = {
   'x': { attrs: 'viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"', body: `<path d="M6 18L18 6M6 6l12 12"/>` },
   // buscar / lupa
   'search': { attrs: 'viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"', body: `<path d="m21 21-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607Z"/>` },
-
+  // Ver mas
+    // ver más / opciones (Tabler icon-dots-vertical)
+  'more': { attrs: 'viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"', body: `<path d="M11 12a1 1 0 1 0 2 0a1 1 0 1 0 -2 0"/><path d="M11 19a1 1 0 1 0 2 0a1 1 0 1 0 -2 0"/><path d="M11 5a1 1 0 1 0 2 0a1 1 0 1 0 -2 0"/>` },
+  
+  
   // ===== Acciones sobre contenido =====
 
     // huella / login biométrico (Tabler icon-fingerprint)
