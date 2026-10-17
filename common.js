@@ -2059,8 +2059,8 @@ function _collectAddressAndSchedule() {
         const dayBtns = DAYS.map(d => {
             const active = savedDayArr.includes(d);
             return `<button type="button" class="_day-btn${active?' _day-active':''}" data-day="${d}"
-            style="padding:6px 10px;border-radius:20px;border:1.5px solid ${active?'var(--color-accent-solid, #ec4899)':'var(--color-border, #d1d5db)'};
-            background:${active?'rgba(var(--color-accent-rgb, 236, 72, 153),0.18)':'transparent'};color:${active?'var(--color-accent-solid, #ec4899)':'var(--color-text-secondary, #666)'};
+            style="padding:6px 10px;border-radius:20px;border:1.5px solid ${active?'var(--color-accent-solid, #ec4899)':'rgba(128,128,128,0.3)'};
+            background:${active?'rgba(var(--color-accent-rgb, 236, 72, 153),0.18)':'transparent'};color:${active?'var(--color-accent-solid, #ec4899)':'inherit'};
             font-size:12px;font-weight:600;cursor:pointer;transition:all .15s">${d}</button>`;
         }).join('');
         
@@ -2068,54 +2068,57 @@ function _collectAddressAndSchedule() {
             `<option value="${h}"${sel===h?' selected':''}>${h}</option>`
         ).join('');
         
-        // CORRECCIÓN: Colores adaptados para que los selects sean visibles en tema claro u oscuro
-        const selectStyle = 'width:100%;background:var(--color-input-bg, #f3f4f6);border:1px solid var(--color-border, #d1d5db);color:var(--color-text-primary, #111);border-radius:10px;padding:10px 12px;font-size:13px;font-family:inherit;box-sizing:border-box;appearance:none;cursor:pointer;outline:none;';
+        // CORRECCIÓN: Fondo blanco fijo y texto negro para inputs y selects
+        const selectStyle = 'width:100%;background:#ffffff;border:1px solid #d1d5db;color:#111111;border-radius:10px;padding:10px 12px;font-size:13px;font-family:inherit;box-sizing:border-box;appearance:none;cursor:pointer;outline:none;';
+        
+        const inputStyle = 'width:100%;background:#ffffff;border:1px solid #d1d5db;color:#111111;border-radius:12px;padding:12px;font-family:inherit;resize:none;box-sizing:border-box;margin-bottom:16px;outline:none;';
         
         const overlay = document.createElement('div');
-        // CORRECCIÓN: align-items:center y contenedor full-height
         overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.65);backdrop-filter:blur(6px);z-index:20000;display:flex;align-items:center;justify-content:center;overflow-y:auto;';
         
         overlay.innerHTML = `
-        <!-- CORRECCIÓN: height: 100vh, sin border-radius, flexbox column para empujar botones al fondo -->
-        <div style="background:var(--color-surface, #fff);padding:24px 20px 40px;width:100%;max-width:500px;height:100vh;overflow-y:auto;box-sizing:border-box;display:flex;flex-direction:column;box-shadow:0 0 40px rgba(0,0,0,.2)">
+        <style>
+            #_addr-modal textarea::placeholder { color: #9ca3af !important; }
+            #_addr-modal textarea:focus, #_addr-modal select:focus { border-color: var(--color-accent-solid, #ec4899) !important; }
+        </style>
+        <div id="_addr-modal" style="background:var(--color-surface, #252831);padding:24px 20px 40px;width:100%;max-width:500px;height:100vh;overflow-y:auto;box-sizing:border-box;display:flex;flex-direction:column;box-shadow:0 0 40px rgba(0,0,0,.2)">
         
-        <h3 style="margin:0 0 4px;font-size:18px;color:var(--color-text-primary, #111)">Datos de entrega</h3>
-        <p style="margin:0 0 18px;font-size:13px;color:var(--color-text-secondary, #666)">Para coordinar tu pedido de la mejor manera.</p>
+        <h3 style="margin:0 0 4px;font-size:18px;color:inherit">Datos de entrega</h3>
+        <p style="margin:0 0 18px;font-size:13px;color:inherit;opacity:0.7">Para coordinar tu pedido de la mejor manera.</p>
         
         <!-- ADDRESS -->
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
-        <label style="font-size:12px;font-weight:600;color:var(--color-text-secondary, #666);text-transform:uppercase;letter-spacing:.05em">Dirección</label>
+        <label style="font-size:12px;font-weight:600;color:inherit;opacity:0.7;text-transform:uppercase;letter-spacing:.05em">Dirección</label>
         <button type="button" id="_gps-btn" style="background:rgba(var(--color-accent-rgb, 236, 72, 153),0.12);border:1px solid rgba(var(--color-accent-rgb, 236, 72, 153),0.22);color:var(--color-accent-solid, #ec4899);border-radius:20px;padding:4px 12px;font-size:11px;font-weight:600;cursor:pointer"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z"/></svg> Usar GPS</button>
         </div>
         <textarea id="_addr-input" rows="2" placeholder="Calle, número, colonia, ciudad…"
-        style="width:100%;background:var(--color-input-bg, #f3f4f6);border:1px solid var(--color-border, #d1d5db);color:var(--color-text-primary, #111);border-radius:12px;padding:12px;font-size:14px;font-family:inherit;resize:none;box-sizing:border-box;margin-bottom:16px;outline:none">${escapeHtml(saved)}</textarea>
+        style="${inputStyle}font-size:14px;">${escapeHtml(saved)}</textarea>
         
         <!-- DAYS -->
-        <label style="display:block;font-size:12px;font-weight:600;color:var(--color-text-secondary, #666);margin-bottom:8px;text-transform:uppercase;letter-spacing:.05em">Días disponibles</label>
+        <label style="display:block;font-size:12px;font-weight:600;color:inherit;opacity:0.7;margin-bottom:8px;text-transform:uppercase;letter-spacing:.05em">Días disponibles</label>
         <div id="_days-row" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px">
         ${dayBtns}
         </div>
         
         <!-- HOURS -->
-        <label style="display:block;font-size:12px;font-weight:600;color:var(--color-text-secondary, #666);margin-bottom:8px;text-transform:uppercase;letter-spacing:.05em">Horario</label>
+        <label style="display:block;font-size:12px;font-weight:600;color:inherit;opacity:0.7;margin-bottom:8px;text-transform:uppercase;letter-spacing:.05em">Horario</label>
         <div style="display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:8px;margin-bottom:16px">
         <select id="_hour-from" style="${selectStyle}">
         <option value="">Desde</option>${hourOpts(savedFrom)}
         </select>
-        <span style="color:var(--color-text-secondary, #666);font-size:13px">a</span>
+        <span style="color:inherit;opacity:0.7;font-size:13px">a</span>
         <select id="_hour-to" style="${selectStyle}">
         <option value="">Hasta</option>${hourOpts(savedTo)}
         </select>
         </div>
         
         <!-- NOTES -->
-        <label style="display:block;font-size:12px;font-weight:600;color:var(--color-text-secondary, #666);margin-bottom:6px;text-transform:uppercase;letter-spacing:.05em">Comentarios o instrucciones</label>
+        <label style="display:block;font-size:12px;font-weight:600;color:inherit;opacity:0.7;margin-bottom:6px;text-transform:uppercase;letter-spacing:.05em">Comentarios o instrucciones</label>
         <textarea id="_note-input" rows="2" placeholder="Ej: Tocar el timbre 2 veces, preguntar por Juan, dejar con el vecino…"
-        style="width:100%;background:var(--color-input-bg, #f3f4f6);border:1px solid var(--color-border, #d1d5db);color:var(--color-text-primary, #111);border-radius:12px;padding:12px;font-size:13px;font-family:inherit;resize:none;box-sizing:border-box;margin-bottom:20px;outline:none">${escapeHtml(savedNote)}</textarea>
+        style="${inputStyle}font-size:13px;margin-bottom:20px;">${escapeHtml(savedNote)}</textarea>
         
-        <!-- CORRECCIÓN: margin-top:auto empuja los botones al fondo de la pantalla -->
         <div style="display:flex;gap:10px; margin-top:auto;">
-        <button id="_addr-cancel" style="flex:1;padding:13px;background:var(--color-surface-light, #f3f4f6);border:1px solid var(--color-border, #e5e7eb);border-radius:14px;color:var(--color-text-secondary, #666);font-size:14px;font-weight:600;cursor:pointer"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" aria-hidden="true"><use href="#ic-x"/></svg> Cancelar</button>
+        <button id="_addr-cancel" style="flex:1;padding:13px;background:#f3f4f6;border:1px solid #e5e7eb;border-radius:14px;color:#374151;font-size:14px;font-weight:600;cursor:pointer"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" aria-hidden="true"><use href="#ic-x"/></svg> Cancelar</button>
         <button id="_addr-confirm" style="flex:2;padding:13px;background:var(--gradient-accent, linear-gradient(to right, #ec4899, #f97316));border:none;border-radius:14px;color:#fff;font-size:14px;font-weight:700;cursor:pointer"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" aria-hidden="true"><use href="#ic-check"/></svg> Confirmar</button>
         </div>
         </div>
@@ -2124,7 +2127,7 @@ function _collectAddressAndSchedule() {
         document.body.appendChild(overlay);
         setTimeout(() => overlay.querySelector('textarea').focus(), 100);
 
-        // ... (El resto del código de lógica se mantiene exactamente igual) ...
+        // ... (Lógica de carga de perfil y GPS se mantiene igual) ...
         
         if (savedPhoneForPerfil.length === 10) {
             fetch(`${AUTH_API_URL_CART}?${new URLSearchParams({ action: 'leerPerfilComprador', telefono: savedPhoneForPerfil, compradorToken: localStorage.getItem('comprador_token') || '' })}`)
@@ -2166,9 +2169,9 @@ function _collectAddressAndSchedule() {
         overlay.querySelectorAll('._day-btn').forEach(btn => {
             btn.addEventListener('click', () => {
                 const active = btn.classList.toggle('_day-active');
-                btn.style.border  = `1.5px solid ${active ? 'var(--color-accent-solid, #ec4899)' : 'var(--color-border, #d1d5db)'}`;
+                btn.style.border  = `1.5px solid ${active ? 'var(--color-accent-solid, #ec4899)' : 'rgba(128,128,128,0.3)'}`;
                 btn.style.background  = active ? 'rgba(var(--color-accent-rgb, 236, 72, 153),0.18)' : 'transparent';
-                btn.style.color  = active ? 'var(--color-accent-solid, #ec4899)' : 'var(--color-text-secondary, #666)';
+                btn.style.color  = active ? 'var(--color-accent-solid, #ec4899)' : 'inherit';
             });
         });
 
@@ -2256,6 +2259,7 @@ function _collectAddressAndSchedule() {
         });
     });
 }
+
 async function continueCheckout() {
 const items = Object.values(localCart);
 if (items.length === 0) return;
