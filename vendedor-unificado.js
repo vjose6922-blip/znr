@@ -3197,7 +3197,7 @@ if (prod.imagen1) {
   modal.id = 'modal-donar-productos';
   modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.65);backdrop-filter:blur(4px);z-index:99999;display:flex;align-items:flex-end;justify-content:center;';
   modal.innerHTML = `
-    <div style="background:#fff;border-radius:20px 20px 0 0;width:100%;max-width:480px;padding:0 0 36px;">
+    <div style="background:#fff;color:#111;border-radius:20px 20px 0 0;width:100%;max-width:480px;padding:0 0 36px;">
       <div style="padding:16px 20px 12px;border-bottom:1px solid #f0f0f0;display:flex;align-items:center;justify-content:space-between;">
         <h2 style="margin:0;font-size:1rem;font-weight:800;">${Icon('heart-fill')} Donar producto</h2>
         <button id="btn-close-donar" style="background:none;border:none;font-size:22px;cursor:pointer;color:#888;line-height:1;">×</button>
@@ -3313,7 +3313,7 @@ window.openGestionarDonacionesModal = async function(page = 1) {
     modal.id = 'modal-gestionar-donaciones';
     modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.65);backdrop-filter:blur(4px);z-index:99999;display:flex;align-items:flex-end;justify-content:center;';
     modal.innerHTML = `
-      <div style="background:#fff;border-radius:20px 20px 0 0;width:100%;max-height:96vh;overflow-y:auto;padding:0 0 32px;">
+      <div style="background:#fff;color:#111;border-radius:20px 20px 0 0;width:100%;max-height:96vh;overflow-y:auto;padding:0 0 32px;">
         <div style="position:sticky;top:0;background:#fff;z-index:1;padding:16px 20px 12px;border-bottom:1px solid #f0f0f0;display:flex;align-items:center;justify-content:space-between;">
           <h2 style="margin:0;font-size:1rem;font-weight:800;">${Icon('heart-fill')} Gestionar donaciones</h2>
           <button id="btn-close-gestionar" style="background:none;border:none;font-size:22px;cursor:pointer;color:#888;line-height:1;">×</button>
@@ -3437,9 +3437,9 @@ window.openEntregasLiveModal = async function() {
   // (para que vean la función), pero solo Plan Plus puede ver el contenido real.
   if (!vendorSession || vendorSession.plan !== 'plus') {
     modal.innerHTML = `
-      <div style="background:#fff;border-radius:20px 20px 0 0;width:100%;max-height:96vh;overflow-y:auto;padding:0 0 32px;">
+      <div style="background:#fff;color:#111;border-radius:20px 20px 0 0;width:100%;max-height:96vh;overflow-y:auto;padding:0 0 32px;">
         <div style="position:sticky;top:0;background:#fff;z-index:1;padding:16px 20px 12px;border-bottom:1px solid #f0f0f0;display:flex;align-items:center;justify-content:space-between;">
-          <h2 style="margin:0;font-size:1rem;font-weight:800;">${Icon('box')} Entregas de tus transmisiones</h2>
+          <h2 style="margin:0;font-size:1rem;font-weight:800;color:#111;">${Icon('box')} Entregas de tus transmisiones</h2>
           <button id="btn-close-entregas-live" style="background:none;border:none;font-size:22px;cursor:pointer;color:#888;line-height:1;">×</button>
         </div>
         <div style="padding:36px 20px;text-align:center;">
@@ -3456,9 +3456,9 @@ window.openEntregasLiveModal = async function() {
   }
 
   modal.innerHTML = `
-    <div style="background:#fff;border-radius:20px 20px 0 0;width:100%;max-height:96vh;overflow-y:auto;padding:0 0 32px;">
+    <div style="background:#fff;color:#111;border-radius:20px 20px 0 0;width:100%;max-height:96vh;overflow-y:auto;padding:0 0 32px;">
       <div style="position:sticky;top:0;background:#fff;z-index:1;padding:16px 20px 12px;border-bottom:1px solid #f0f0f0;display:flex;align-items:center;justify-content:space-between;">
-        <h2 style="margin:0;font-size:1rem;font-weight:800;">${Icon('box')} Entregas de tus transmisiones</h2>
+        <h2 style="margin:0;font-size:1rem;font-weight:800;color:#111;">${Icon('box')} Entregas de tus transmisiones</h2>
         <button id="btn-close-entregas-live" style="background:none;border:none;font-size:22px;cursor:pointer;color:#888;line-height:1;">×</button>
       </div>
       <div id="entregas-live-lista" style="padding:32px 20px;text-align:center;color:#aaa;">Cargando…</div>
@@ -3692,7 +3692,7 @@ function abrirEditarFundacionVendedor(miBen) {
   modal.id = 'modal-editar-fundacion';
   modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.65);backdrop-filter:blur(4px);z-index:99999;display:flex;align-items:flex-end;justify-content:center;';
   modal.innerHTML = `
-    <div style="background:#fff;border-radius:20px 20px 0 0;width:100%;max-height:90%;overflow-y:auto;padding:24px 20px 36px;">
+    <div style="background:#fff;color:#111;border-radius:20px 20px 0 0;width:100%;max-height:90%;overflow-y:auto;padding:24px 20px 36px;">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
         <h2 style="margin:0;font-size:1rem;font-weight:800;">Editar tu fundación</h2>
         <button id="btn-close-edit-fund" style="background:none;border:none;font-size:22px;cursor:pointer;line-height:1;">×</button>
