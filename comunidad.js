@@ -1023,12 +1023,13 @@ function iniciarAutoScrollCarrusel(track) {
   if (!track || track.dataset.autoScroll === '1') return;
   track.dataset.autoScroll = '1';
   let pausadoHasta = 0;
-  const pausar = () => { pausadoHasta = Date.now() + 3000; };
+  const pausar = () => { pausadoHasta = Date.now() + 3000; track.style.scrollSnapType = ''; };
   track.addEventListener('pointerdown', pausar, { passive: true });
   track.addEventListener('touchstart', pausar, { passive: true });
   track.addEventListener('wheel', pausar, { passive: true });
   setInterval(() => {
     if (Date.now() < pausadoHasta) return;
+    if (track.style.scrollSnapType !== 'none') track.style.scrollSnapType = 'none';
     if (parseFloat(track.dataset.loopW)) {       // bucle: avanza y se reacomoda sin saltos visibles
       track.scrollLeft += 0.6;
       ajustarLoopCarrusel(track);
@@ -1041,7 +1042,7 @@ function iniciarAutoScrollCarrusel(track) {
   }, 30);
 }
 
-// Banner de tiles: se repite al deslizar (sin auto-avance). Se reconstruye cuando cambia qué tiles se ven.
+// Banner de tiles: avanza solo y se repite en bucle (también al deslizar). Se reconstruye cuando cambia qué tiles se ven.
 function actualizarLoopBanner() {
   const t = document.querySelector('.com-tiles');
   if (!t) return;
@@ -1056,6 +1057,7 @@ function actualizarLoopBanner() {
         if (n.id === 'btn-ver-fundaciones') c.dataset.forward = 'btn-ver-fundaciones'; // el original tiene su propio listener
         return c;
       }));
+    iniciarAutoScrollCarrusel(t);
   }, 0);
 }
 

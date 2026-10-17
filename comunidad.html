@@ -132,8 +132,8 @@
 
  /* ── Carruseles: encabezado con "Ver más" + fila doble (Recomendado | Podría interesarte) ── */
  .carr-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 0 0 8px; padding: 0 16px; }
- .carr-head h2 { margin: 0; font-size: 15px; color: var(--color-text-primary); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
- .carr-vermas { flex: none; border: none; background: transparent; color: var(--color-accent-solid); font-size: 12.5px; font-weight: 700; font-family: inherit; cursor: pointer; padding: 4px 0; }
+ .carr-head h2 { margin: 0; font-size: 15px; line-height: 1.2; color: var(--color-text-primary); min-width: 0; white-space: normal; overflow-wrap: anywhere; }
+ .carr-vermas { flex: none; white-space: nowrap; border: none; background: transparent; color: var(--color-accent-solid); font-size: 12.5px; font-weight: 700; font-family: inherit; cursor: pointer; padding: 4px 0; }
  .carr-track { display: flex; gap: 10px; overflow-x: auto; overflow-y: hidden; padding: 0 16px 8px; scroll-snap-type: x proximity; scrollbar-width: none; }
  .carr-track::-webkit-scrollbar { display: none; }
  .dual-row { display: flex; gap: 10px; padding: 0 16px; }
@@ -143,6 +143,9 @@
  /* Compartiendo fila caben 1.5 artículos por carrusel */
  .dual-row.es-dual .carr-track .product-card { width: calc((50vw - 31px) / 1.5) !important; min-width: calc((50vw - 31px) / 1.5) !important; max-width: calc((50vw - 31px) / 1.5) !important; }
  .dual-row.es-dual .carr-head h2 { font-size: 13px; }
+ /* El título puede ocupar 2 líneas: se reserva el alto en ambas columnas para que los carruseles queden alineados */
+ .dual-row.es-dual .carr-head { min-height: 32px; align-items: flex-start; }
+ .dual-row.es-dual .carr-vermas { padding-top: 2px; }
  }
  .vendor-buttons { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
  .btn-outline-light {
