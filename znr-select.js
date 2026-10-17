@@ -95,7 +95,7 @@
     'border-top-color', 'border-right-color', 'border-bottom-color', 'border-left-color',
     'border-top-left-radius', 'border-top-right-radius', 'border-bottom-right-radius', 'border-bottom-left-radius',
     'background-color', 'color', 'font-family', 'font-size', 'font-weight', 'font-style',
-    'line-height', 'letter-spacing', 'text-transform', 'box-shadow', 'opacity', 'box-sizing',
+    'line-height', 'letter-spacing', 'text-transform', 'box-shadow', 'box-sizing',
     'min-width', 'max-width', 'min-height',
     'margin-top', 'margin-right', 'margin-bottom', 'margin-left',
     'flex-grow', 'flex-shrink', 'flex-basis', 'align-self', 'justify-self', 'vertical-align',
@@ -150,7 +150,7 @@
         }
         ancho += 'height:' + r.height + 'px;';
       }
-      btn.style.cssText = css + ancho + 'display:' + disp + ';';
+      btn.style.cssText = css + ancho + 'display:' + disp + '; opacity: 1;';
       st.disp = disp;
       st.oculto = false;
       if (!medible && io && st.reintentos < 3) { st.reintentos++; io.observe(btn); }
