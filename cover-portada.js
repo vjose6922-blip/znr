@@ -506,7 +506,7 @@ function renderCoverIconPicker(containerEl, selectedIds, onChange) {
       const checkbox = label.querySelector('input');
       const currentlySelected = containerEl.querySelectorAll('input[data-cover-icon-checkbox]:checked').length;
 
-      if (!checkbox.checked && currentlySelected >= 6) {
+      if (!checkbox.checked && currentlySelected >= 8) {
         return; // límite de 6 iconos
       }
       checkbox.checked = !checkbox.checked;
