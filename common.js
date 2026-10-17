@@ -2042,200 +2042,219 @@ return;
 continueCheckout();
 }
 function _collectAddressAndSchedule() {
-return new Promise(resolve => {
-const saved  = localStorage.getItem('client_address')  || '';
-const savedDays = localStorage.getItem('client_days')  || '';
-const savedFrom = localStorage.getItem('client_hour_from')|| '';
-const savedTo  = localStorage.getItem('client_hour_to')  || '';
-const savedNote = localStorage.getItem('client_note')  || '';
-const savedPhoneForPerfil = (localStorage.getItem('client_phone') || '').replace(/\D/g, '');
-const AUTH_API_URL_CART = "https://auth-api-1038143238323.us-central1.run.app";
-const DAYS  = ['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'];
-const HOURS = ['7:00 AM','8:00 AM','9:00 AM','10:00 AM','11:00 AM','12:00 PM',
-'1:00 PM','2:00 PM','3:00 PM','4:00 PM','5:00 PM','6:00 PM',
-'7:00 PM','8:00 PM','9:00 PM'];
-const savedDayArr = savedDays ? savedDays.split(',') : [];
-const dayBtns = DAYS.map(d => {
-const active = savedDayArr.includes(d);
-return `<button type="button" class="_day-btn${active?' _day-active':''}" data-day="${d}"
-style="padding:6px 10px;border-radius:20px;border:1.5px solid ${active?'var(--color-accent-solid)':'rgba(255,255,255,.15)'};
-background:${active?'rgba(var(--color-accent-rgb),0.18)':'transparent'};color:${active?'var(--color-accent-solid)':'#aaa'};
-font-size:12px;font-weight:600;cursor:pointer;transition:all .15s">${d}</button>`;
-}).join('');
-const hourOpts = (sel) =>HOURS.map(h =>
-`<option value="${h}"${sel===h?' selected':''}>${h}</option>`
-).join('');
-const selectStyle = 'width:100%;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);color:#fff;border-radius:10px;padding:10px 12px;font-size:13px;font-family:inherit;box-sizing:border-box;appearance:none;cursor:pointer';
-const overlay = document.createElement('div');
-overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.65);backdrop-filter:blur(6px);z-index:20000;display:flex;align-items:flex-end;justify-content:center;overflow-y:auto';
-overlay.innerHTML = `
-<div style="background:var(--color-surface,#252831);border-radius:24px 24px 0 0;padding:24px 20px 40px;width:100%;max-width:500px;box-shadow:0 -10px 40px rgba(0,0,0,.5)">
-<div style="width:40px;height:4px;background:rgba(255,255,255,.15);border-radius:2px;margin:0 auto 18px"></div>
-<h3 style="margin:0 0 4px;font-size:18px;color:var(--color-text-primary,#fff)">Datos de entrega</h3>
-<p style="margin:0 0 18px;font-size:13px;color:#888">Para coordinar tu pedido de la mejor manera.</p>
-<!-- ADDRESS -->
-<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
-<label style="font-size:12px;font-weight:600;color:#aaa;text-transform:uppercase;letter-spacing:.05em">Dirección</label>
-<button type="button" id="_gps-btn" style="background:rgba(var(--color-accent-rgb),0.12);border:1px solid rgba(var(--color-accent-rgb),0.22);color:var(--color-accent-solid);border-radius:20px;padding:4px 12px;font-size:11px;font-weight:600;cursor:pointer"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z"/></svg> Usar GPS</button>
-</div>
-<textarea id="_addr-input" rows="2" placeholder="Calle, número, colonia, ciudad…"
-style="width:100%;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);color:var(--color-text-primary,#fff);border-radius:12px;padding:12px;font-size:14px;font-family:inherit;resize:none;box-sizing:border-box;margin-bottom:16px">${escapeHtml(saved)}</textarea>
-<!-- DAYS -->
-<label style="display:block;font-size:12px;font-weight:600;color:#aaa;margin-bottom:8px;text-transform:uppercase;letter-spacing:.05em">Días disponibles</label>
-<div id="_days-row" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px">
-${dayBtns}
-</div>
-<!-- HOURS -->
-<label style="display:block;font-size:12px;font-weight:600;color:#aaa;margin-bottom:8px;text-transform:uppercase;letter-spacing:.05em">Horario</label>
-<div style="display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:8px;margin-bottom:16px">
-<select id="_hour-from" style="${selectStyle}">
-<option value="">Desde</option>${hourOpts(savedFrom)}
-</select>
-<span style="color:#aaa;font-size:13px">a</span>
-<select id="_hour-to" style="${selectStyle}">
-<option value="">Hasta</option>${hourOpts(savedTo)}
-</select>
-</div>
-<!-- NOTES -->
-<label style="display:block;font-size:12px;font-weight:600;color:#aaa;margin-bottom:6px;text-transform:uppercase;letter-spacing:.05em">Comentarios o instrucciones</label>
-<textarea id="_note-input" rows="2" placeholder="Ej: Tocar el timbre 2 veces, preguntar por Juan, dejar con el vecino…"
-style="width:100%;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);color:var(--color-text-primary,#fff);border-radius:12px;padding:12px;font-size:13px;font-family:inherit;resize:none;box-sizing:border-box;margin-bottom:20px">${escapeHtml(savedNote)}</textarea>
-<div style="display:flex;gap:10px">
-<button id="_addr-cancel" style="flex:1;padding:13px;background:rgba(255,255,255,.07);border:none;border-radius:14px;color:#aaa;font-size:14px;font-weight:600;cursor:pointer"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" aria-hidden="true"><use href="#ic-x"/></svg> Cancelar</button>
-<button id="_addr-confirm" style="flex:2;padding:13px;background:var(--gradient-accent);border:none;border-radius:14px;color:#fff;font-size:14px;font-weight:700;cursor:pointer"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" aria-hidden="true"><use href="#ic-check"/></svg> Confirmar</button>
-</div>
-</div>
-`;
-document.body.appendChild(overlay);
-setTimeout(() => overlay.querySelector('textarea').focus(), 100);
+    return new Promise(resolve => {
+        const saved  = localStorage.getItem('client_address')  || '';
+        const savedDays = localStorage.getItem('client_days')  || '';
+        const savedFrom = localStorage.getItem('client_hour_from')|| '';
+        const savedTo  = localStorage.getItem('client_hour_to')  || '';
+        const savedNote = localStorage.getItem('client_note')  || '';
+        const savedPhoneForPerfil = (localStorage.getItem('client_phone') || '').replace(/\D/g, '');
+        const AUTH_API_URL_CART = "https://auth-api-1038143238323.us-central1.run.app";
+        const DAYS  = ['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'];
+        const HOURS = ['7:00 AM','8:00 AM','9:00 AM','10:00 AM','11:00 AM','12:00 PM',
+        '1:00 PM','2:00 PM','3:00 PM','4:00 PM','5:00 PM','6:00 PM',
+        '7:00 PM','8:00 PM','9:00 PM'];
+        const savedDayArr = savedDays ? savedDays.split(',') : [];
+        
+        const dayBtns = DAYS.map(d => {
+            const active = savedDayArr.includes(d);
+            return `<button type="button" class="_day-btn${active?' _day-active':''}" data-day="${d}"
+            style="padding:6px 10px;border-radius:20px;border:1.5px solid ${active?'var(--color-accent-solid, #ec4899)':'var(--color-border, #d1d5db)'};
+            background:${active?'rgba(var(--color-accent-rgb, 236, 72, 153),0.18)':'transparent'};color:${active?'var(--color-accent-solid, #ec4899)':'var(--color-text-secondary, #666)'};
+            font-size:12px;font-weight:600;cursor:pointer;transition:all .15s">${d}</button>`;
+        }).join('');
+        
+        const hourOpts = (sel) =>HOURS.map(h =>
+            `<option value="${h}"${sel===h?' selected':''}>${h}</option>`
+        ).join('');
+        
+        // CORRECCIÓN: Colores adaptados para que los selects sean visibles en tema claro u oscuro
+        const selectStyle = 'width:100%;background:var(--color-input-bg, #f3f4f6);border:1px solid var(--color-border, #d1d5db);color:var(--color-text-primary, #111);border-radius:10px;padding:10px 12px;font-size:13px;font-family:inherit;box-sizing:border-box;appearance:none;cursor:pointer;outline:none;';
+        
+        const overlay = document.createElement('div');
+        // CORRECCIÓN: align-items:center y contenedor full-height
+        overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.65);backdrop-filter:blur(6px);z-index:20000;display:flex;align-items:center;justify-content:center;overflow-y:auto;';
+        
+        overlay.innerHTML = `
+        <!-- CORRECCIÓN: height: 100vh, sin border-radius, flexbox column para empujar botones al fondo -->
+        <div style="background:var(--color-surface, #fff);padding:24px 20px 40px;width:100%;max-width:500px;height:100vh;overflow-y:auto;box-sizing:border-box;display:flex;flex-direction:column;box-shadow:0 0 40px rgba(0,0,0,.2)">
+        
+        <h3 style="margin:0 0 4px;font-size:18px;color:var(--color-text-primary, #111)">Datos de entrega</h3>
+        <p style="margin:0 0 18px;font-size:13px;color:var(--color-text-secondary, #666)">Para coordinar tu pedido de la mejor manera.</p>
+        
+        <!-- ADDRESS -->
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+        <label style="font-size:12px;font-weight:600;color:var(--color-text-secondary, #666);text-transform:uppercase;letter-spacing:.05em">Dirección</label>
+        <button type="button" id="_gps-btn" style="background:rgba(var(--color-accent-rgb, 236, 72, 153),0.12);border:1px solid rgba(var(--color-accent-rgb, 236, 72, 153),0.22);color:var(--color-accent-solid, #ec4899);border-radius:20px;padding:4px 12px;font-size:11px;font-weight:600;cursor:pointer"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z"/></svg> Usar GPS</button>
+        </div>
+        <textarea id="_addr-input" rows="2" placeholder="Calle, número, colonia, ciudad…"
+        style="width:100%;background:var(--color-input-bg, #f3f4f6);border:1px solid var(--color-border, #d1d5db);color:var(--color-text-primary, #111);border-radius:12px;padding:12px;font-size:14px;font-family:inherit;resize:none;box-sizing:border-box;margin-bottom:16px;outline:none">${escapeHtml(saved)}</textarea>
+        
+        <!-- DAYS -->
+        <label style="display:block;font-size:12px;font-weight:600;color:var(--color-text-secondary, #666);margin-bottom:8px;text-transform:uppercase;letter-spacing:.05em">Días disponibles</label>
+        <div id="_days-row" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px">
+        ${dayBtns}
+        </div>
+        
+        <!-- HOURS -->
+        <label style="display:block;font-size:12px;font-weight:600;color:var(--color-text-secondary, #666);margin-bottom:8px;text-transform:uppercase;letter-spacing:.05em">Horario</label>
+        <div style="display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:8px;margin-bottom:16px">
+        <select id="_hour-from" style="${selectStyle}">
+        <option value="">Desde</option>${hourOpts(savedFrom)}
+        </select>
+        <span style="color:var(--color-text-secondary, #666);font-size:13px">a</span>
+        <select id="_hour-to" style="${selectStyle}">
+        <option value="">Hasta</option>${hourOpts(savedTo)}
+        </select>
+        </div>
+        
+        <!-- NOTES -->
+        <label style="display:block;font-size:12px;font-weight:600;color:var(--color-text-secondary, #666);margin-bottom:6px;text-transform:uppercase;letter-spacing:.05em">Comentarios o instrucciones</label>
+        <textarea id="_note-input" rows="2" placeholder="Ej: Tocar el timbre 2 veces, preguntar por Juan, dejar con el vecino…"
+        style="width:100%;background:var(--color-input-bg, #f3f4f6);border:1px solid var(--color-border, #d1d5db);color:var(--color-text-primary, #111);border-radius:12px;padding:12px;font-size:13px;font-family:inherit;resize:none;box-sizing:border-box;margin-bottom:20px;outline:none">${escapeHtml(savedNote)}</textarea>
+        
+        <!-- CORRECCIÓN: margin-top:auto empuja los botones al fondo de la pantalla -->
+        <div style="display:flex;gap:10px; margin-top:auto;">
+        <button id="_addr-cancel" style="flex:1;padding:13px;background:var(--color-surface-light, #f3f4f6);border:1px solid var(--color-border, #e5e7eb);border-radius:14px;color:var(--color-text-secondary, #666);font-size:14px;font-weight:600;cursor:pointer"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" aria-hidden="true"><use href="#ic-x"/></svg> Cancelar</button>
+        <button id="_addr-confirm" style="flex:2;padding:13px;background:var(--gradient-accent, linear-gradient(to right, #ec4899, #f97316));border:none;border-radius:14px;color:#fff;font-size:14px;font-weight:700;cursor:pointer"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" aria-hidden="true"><use href="#ic-check"/></svg> Confirmar</button>
+        </div>
+        </div>
+        `;
+        
+        document.body.appendChild(overlay);
+        setTimeout(() => overlay.querySelector('textarea').focus(), 100);
 
-// Si ya hay un teléfono guardado en este navegador, precarga lo que
-// tengamos guardado en su perfil (mismo compradores/{telefono} que ya
-// usa comprador-live.html) — solo rellena los campos que sigan vacíos,
-// nunca pisa lo que la persona ya tenga puesto o guardado localmente.
-if (savedPhoneForPerfil.length === 10) {
-fetch(`${AUTH_API_URL_CART}?${new URLSearchParams({ action: 'leerPerfilComprador', telefono: savedPhoneForPerfil, compradorToken: localStorage.getItem('comprador_token') || '' })}`)
-.then(r => r.json()).then(resp => {
-const perfil = resp && resp.ok ? resp.perfil : null;
-if (!perfil) return;
-const addrInput = overlay.querySelector('#_addr-input');
-if (perfil.direccion && !addrInput.value.trim()) addrInput.value = perfil.direccion;
-if (Array.isArray(perfil.dias) && !savedDays) {
-overlay.querySelectorAll('._day-btn').forEach(btn => {
-if (perfil.dias.includes(btn.dataset.day)) {
-btn.classList.add('_day-active');
-btn.style.border = '1.5px solid var(--color-accent-solid)'; btn.style.background = 'rgba(var(--color-accent-rgb),0.18)'; btn.style.color = 'var(--color-accent-solid)';
-}
-});
-}
-if (perfil.horaDesde && !savedFrom) overlay.querySelector('#_hour-from').value = perfil.horaDesde;
-if (perfil.horaHasta && !savedTo) overlay.querySelector('#_hour-to').value = perfil.horaHasta;
-if (perfil.nota && !savedNote) overlay.querySelector('#_note-input').value = perfil.nota;
-}).catch(() => {});
-}
-const prevLat = localStorage.getItem('client_gps_lat');
-const prevLng = localStorage.getItem('client_gps_lng');
-if (prevLat && prevLng && saved) {
-const mapsUrl  = `https://www.google.com/maps?q=${prevLat},${prevLng}`;
-const mapsLink = document.createElement('a');
-mapsLink.id  = '_maps-link';
-mapsLink.href  = mapsUrl;
-mapsLink.target = '_blank';
-mapsLink.rel  = 'noopener noreferrer';
-mapsLink.style.cssText = 'display:inline-flex;align-items:center;gap:5px;font-size:12px;color:var(--color-accent-solid);text-decoration:none;font-weight:600;margin-bottom:16px';
-mapsLink.innerHTML = ' Ver ubicación en Google Maps';
-overlay.querySelector('#_addr-input').insertAdjacentElement('afterend', mapsLink);
-}
-overlay.querySelectorAll('._day-btn').forEach(btn => {
-btn.addEventListener('click', () => {
-const active = btn.classList.toggle('_day-active');
-btn.style.border  = `1.5px solid ${active ? 'var(--color-accent-solid)' : 'rgba(255,255,255,.15)'}`;
-btn.style.background  = active ? 'rgba(var(--color-accent-rgb),0.18)' : 'transparent';
-btn.style.color  = active ? 'var(--color-accent-solid)' : '#aaa';
-});
-});
-overlay.querySelector('#_gps-btn').addEventListener('click', () => {
-const gpsBtn = overlay.querySelector('#_gps-btn');
-gpsBtn.innerHTML = Icon('clock') + ' Obteniendo…';
-gpsBtn.disabled = true;
-if (!navigator.geolocation) {
-gpsBtn.textContent = ' Sin GPS';
-return;
-}
-navigator.geolocation.getCurrentPosition(
-async (pos) => {
-const { latitude: lat, longitude: lng } = pos.coords;
-overlay._gpsLat = lat;
-overlay._gpsLng = lng;
-localStorage.setItem('client_gps_lat', lat);
-localStorage.setItem('client_gps_lng', lng);
-let addr = `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
-try {
-const res  = await fetch(
-`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&accept-language=es`,
-{ headers: { 'Accept-Language': 'es' } }
-);
-if (res.ok) {
-const data = await res.json();
-if (data.display_name) addr = data.display_name;
-}
-} catch {  }
-overlay.querySelector('#_addr-input').value = addr;
-gpsBtn.textContent = ' Ubicación obtenida';
-const mapsUrl  = `https://www.google.com/maps?q=${lat},${lng}`;
-let mapsLink = overlay.querySelector('#_maps-link');
-if (!mapsLink) {
-mapsLink = document.createElement('a');
-mapsLink.id  = '_maps-link';
-mapsLink.target = '_blank';
-mapsLink.rel  = 'noopener noreferrer';
-mapsLink.style.cssText = 'display:inline-flex;align-items:center;gap:5px;font-size:12px;color:var(--color-accent-solid);text-decoration:none;font-weight:600;margin-bottom:16px';
-overlay.querySelector('#_addr-input').insertAdjacentElement('afterend', mapsLink);
-}
-mapsLink.href  = mapsUrl;
-mapsLink.innerHTML = ' Ver ubicación en Google Maps';
-gpsBtn.disabled = false;
-},
-() => {
-gpsBtn.textContent = ' Sin permiso';
-gpsBtn.disabled = false;
-},
-{ enableHighAccuracy: true, timeout: 10000 }
-);
-});
-overlay.querySelector('#_addr-cancel').addEventListener('click', () => {
-overlay.remove(); resolve(null);
-});
-overlay.querySelector('#_addr-confirm').addEventListener('click', () => {
-const address = overlay.querySelector('#_addr-input').value.trim();
-if (!address) {
-overlay.querySelector('#_addr-input').style.borderColor = '#ef4444';
-overlay.querySelector('#_addr-input').focus();
-return;
-}
-const selectedDays = [...overlay.querySelectorAll('._day-active')].map(b => b.dataset.day);
-const hourFrom = overlay.querySelector('#_hour-from').value;
-const hourTo  = overlay.querySelector('#_hour-to').value;
-const note  = overlay.querySelector('#_note-input').value.trim();
-let schedule = '';
-if (selectedDays.length) schedule += selectedDays.join(', ');
-if (hourFrom && hourTo)  schedule += (schedule ? ' · ' : '') + `${hourFrom} – ${hourTo}`;
-else if (hourFrom)  schedule += (schedule ? ' · ' : '') + `desde ${hourFrom}`;
-else if (hourTo)  schedule += (schedule ? ' · ' : '') + `hasta ${hourTo}`;
-localStorage.setItem('client_days',  selectedDays.join(','));
-localStorage.setItem('client_hour_from', hourFrom);
-localStorage.setItem('client_hour_to',  hourTo);
-overlay.remove();
-// Deja el perfil actualizado (compradores/{telefono}) para la próxima
-// compra, en cualquier página — no bloquea el checkout si falla.
-if (savedPhoneForPerfil.length === 10) {
-const payload = { action: 'guardarPerfilComprador', telefono: savedPhoneForPerfil, compradorToken: localStorage.getItem('comprador_token') || '', direccion: address, dias: selectedDays.join(','), horaDesde: hourFrom, horaHasta: hourTo, nota: note };
-if (overlay._gpsLat !== undefined && overlay._gpsLng !== undefined) { payload.lat = overlay._gpsLat; payload.lng = overlay._gpsLng; }
-fetch(AUTH_API_URL_CART, { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams(payload).toString() }).catch(() => {});
-}
-resolve({ address, schedule, note });
-});
-});
+        // ... (El resto del código de lógica se mantiene exactamente igual) ...
+        
+        if (savedPhoneForPerfil.length === 10) {
+            fetch(`${AUTH_API_URL_CART}?${new URLSearchParams({ action: 'leerPerfilComprador', telefono: savedPhoneForPerfil, compradorToken: localStorage.getItem('comprador_token') || '' })}`)
+            .then(r => r.json()).then(resp => {
+                const perfil = resp && resp.ok ? resp.perfil : null;
+                if (!perfil) return;
+                const addrInput = overlay.querySelector('#_addr-input');
+                if (perfil.direccion && !addrInput.value.trim()) addrInput.value = perfil.direccion;
+                if (Array.isArray(perfil.dias) && !savedDays) {
+                    overlay.querySelectorAll('._day-btn').forEach(btn => {
+                        if (perfil.dias.includes(btn.dataset.day)) {
+                            btn.classList.add('_day-active');
+                            btn.style.border = '1.5px solid var(--color-accent-solid, #ec4899)'; 
+                            btn.style.background = 'rgba(var(--color-accent-rgb, 236, 72, 153),0.18)'; 
+                            btn.style.color = 'var(--color-accent-solid, #ec4899)';
+                        }
+                    });
+                }
+                if (perfil.horaDesde && !savedFrom) overlay.querySelector('#_hour-from').value = perfil.horaDesde;
+                if (perfil.horaHasta && !savedTo) overlay.querySelector('#_hour-to').value = perfil.horaHasta;
+                if (perfil.nota && !savedNote) overlay.querySelector('#_note-input').value = perfil.nota;
+            }).catch(() => {});
+        }
+
+        const prevLat = localStorage.getItem('client_gps_lat');
+        const prevLng = localStorage.getItem('client_gps_lng');
+        if (prevLat && prevLng && saved) {
+            const mapsUrl  = `https://www.google.com/maps?q=${prevLat},${prevLng}`;
+            const mapsLink = document.createElement('a');
+            mapsLink.id  = '_maps-link';
+            mapsLink.href  = mapsUrl;
+            mapsLink.target = '_blank';
+            mapsLink.rel  = 'noopener noreferrer';
+            mapsLink.style.cssText = 'display:inline-flex;align-items:center;gap:5px;font-size:12px;color:var(--color-accent-solid, #ec4899);text-decoration:none;font-weight:600;margin-bottom:16px';
+            mapsLink.innerHTML = ' Ver ubicación en Google Maps';
+            overlay.querySelector('#_addr-input').insertAdjacentElement('afterend', mapsLink);
+        }
+
+        overlay.querySelectorAll('._day-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const active = btn.classList.toggle('_day-active');
+                btn.style.border  = `1.5px solid ${active ? 'var(--color-accent-solid, #ec4899)' : 'var(--color-border, #d1d5db)'}`;
+                btn.style.background  = active ? 'rgba(var(--color-accent-rgb, 236, 72, 153),0.18)' : 'transparent';
+                btn.style.color  = active ? 'var(--color-accent-solid, #ec4899)' : 'var(--color-text-secondary, #666)';
+            });
+        });
+
+        overlay.querySelector('#_gps-btn').addEventListener('click', () => {
+            const gpsBtn = overlay.querySelector('#_gps-btn');
+            gpsBtn.innerHTML = Icon('clock') + ' Obteniendo…';
+            gpsBtn.disabled = true;
+            if (!navigator.geolocation) {
+                gpsBtn.textContent = ' Sin GPS';
+                return;
+            }
+            navigator.geolocation.getCurrentPosition(
+                async (pos) => {
+                    const { latitude: lat, longitude: lng } = pos.coords;
+                    overlay._gpsLat = lat;
+                    overlay._gpsLng = lng;
+                    localStorage.setItem('client_gps_lat', lat);
+                    localStorage.setItem('client_gps_lng', lng);
+                    let addr = `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+                    try {
+                        const res  = await fetch(
+                            `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&accept-language=es`,
+                            { headers: { 'Accept-Language': 'es' } }
+                        );
+                        if (res.ok) {
+                            const data = await res.json();
+                            if (data.display_name) addr = data.display_name;
+                        }
+                    } catch {  }
+                    overlay.querySelector('#_addr-input').value = addr;
+                    gpsBtn.textContent = ' Ubicación obtenida';
+                    const mapsUrl  = `https://www.google.com/maps?q=${lat},${lng}`;
+                    let mapsLink = overlay.querySelector('#_maps-link');
+                    if (!mapsLink) {
+                        mapsLink = document.createElement('a');
+                        mapsLink.id  = '_maps-link';
+                        mapsLink.target = '_blank';
+                        mapsLink.rel  = 'noopener noreferrer';
+                        mapsLink.style.cssText = 'display:inline-flex;align-items:center;gap:5px;font-size:12px;color:var(--color-accent-solid, #ec4899);text-decoration:none;font-weight:600;margin-bottom:16px';
+                        overlay.querySelector('#_addr-input').insertAdjacentElement('afterend', mapsLink);
+                    }
+                    mapsLink.href  = mapsUrl;
+                    mapsLink.innerHTML = ' Ver ubicación en Google Maps';
+                    gpsBtn.disabled = false;
+                },
+                () => {
+                    gpsBtn.textContent = ' Sin permiso';
+                    gpsBtn.disabled = false;
+                },
+                { enableHighAccuracy: true, timeout: 10000 }
+            );
+        });
+
+        overlay.querySelector('#_addr-cancel').addEventListener('click', () => {
+            overlay.remove(); resolve(null);
+        });
+
+        overlay.querySelector('#_addr-confirm').addEventListener('click', () => {
+            const address = overlay.querySelector('#_addr-input').value.trim();
+            if (!address) {
+                overlay.querySelector('#_addr-input').style.borderColor = '#ef4444';
+                overlay.querySelector('#_addr-input').focus();
+                return;
+            }
+            const selectedDays = [...overlay.querySelectorAll('._day-active')].map(b => b.dataset.day);
+            const hourFrom = overlay.querySelector('#_hour-from').value;
+            const hourTo  = overlay.querySelector('#_hour-to').value;
+            const note  = overlay.querySelector('#_note-input').value.trim();
+            let schedule = '';
+            if (selectedDays.length) schedule += selectedDays.join(', ');
+            if (hourFrom && hourTo)  schedule += (schedule ? ' · ' : '') + `${hourFrom} – ${hourTo}`;
+            else if (hourFrom)  schedule += (schedule ? ' · ' : '') + `desde ${hourFrom}`;
+            else if (hourTo)  schedule += (schedule ? ' · ' : '') + `hasta ${hourTo}`;
+            localStorage.setItem('client_days',  selectedDays.join(','));
+            localStorage.setItem('client_hour_from', hourFrom);
+            localStorage.setItem('client_hour_to',  hourTo);
+            overlay.remove();
+            
+            if (savedPhoneForPerfil.length === 10) {
+                const payload = { action: 'guardarPerfilComprador', telefono: savedPhoneForPerfil, compradorToken: localStorage.getItem('comprador_token') || '', direccion: address, dias: selectedDays.join(','), horaDesde: hourFrom, horaHasta: hourTo, nota: note };
+                if (overlay._gpsLat !== undefined && overlay._gpsLng !== undefined) { payload.lat = overlay._gpsLat; payload.lng = overlay._gpsLng; }
+                fetch(AUTH_API_URL_CART, { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams(payload).toString() }).catch(() => {});
+            }
+            resolve({ address, schedule, note });
+        });
+    });
 }
 async function continueCheckout() {
 const items = Object.values(localCart);
