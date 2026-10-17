@@ -1525,9 +1525,9 @@ function initImageModalControls() {
   -webkit-backdrop-filter: blur(6px);
   z-index: 8000;
   display: none;
-  align-items: center;
+  align-items: stretch;
   justify-content: center;
-  padding: 12px;
+  padding: 0;
   box-sizing: border-box;
 }
 .image-modal.open { display: flex; }
@@ -1536,12 +1536,16 @@ function initImageModalControls() {
   display: flex;
   flex-direction: column;
   align-items: stretch;
-  width: min(480px, 96vw);
-  max-height: 92dvh;
+  width: 100vw;
+  height: 100dvh;
+  max-height: 100dvh;
   background: #0d0d14;
-  border-radius: 22px;
-  overflow: hidden;
-  box-shadow: 0 32px 80px rgba(0,0,0,.75);
+  border-radius: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  box-sizing: border-box;
   animation: im-fade-in .22s ease;
 }
 @keyframes im-fade-in { from { opacity:0; transform:scale(.96); } to { opacity:1; transform:scale(1); } }
@@ -1556,6 +1560,7 @@ function initImageModalControls() {
   width: 100%;
   box-sizing: border-box;
   min-height: 62px;
+  padding-top: calc(10px + env(safe-area-inset-top, 0px));
   border-bottom: 1px solid rgba(255,255,255,.06);
   flex-shrink: 0;
 }
@@ -1654,7 +1659,7 @@ function initImageModalControls() {
 
 .im-wrapper {
   width: 100%;
-  height: 50dvh;
+  height: 56dvh;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1902,7 +1907,7 @@ function initImageModalControls() {
 .im-related-price { font-size: 12px; font-weight: 800; color: var(--color-accent-solid); margin-top: 1px; }
 
 .im-magazine-layout.im-no-panel .im-hero-col { flex: 1 1 auto; }
-.im-magazine-layout.im-no-panel .im-wrapper { height: 82dvh; }
+.im-magazine-layout.im-no-panel .im-wrapper { height: 70dvh; }
 
 @keyframes im-slide-in-right  { from{opacity:0;transform:translateX(40px)} to{opacity:1;transform:translateX(0)} }
 @keyframes im-slide-in-left  { from{opacity:0;transform:translateX(-40px)} to{opacity:1;transform:translateX(0)} }
@@ -1914,11 +1919,10 @@ function initImageModalControls() {
 .im-exit-right  { animation: im-slide-out-right .2s ease forwards; }
 
 @media (min-width: 600px) {
-  .im-magazine-layout { width: min(520px, 92vw); }
-  .im-wrapper { height: 54dvh; }
+  .im-wrapper { height: 60dvh; }
 }
 
-[data-theme="light"] .im-magazine-layout { background: #ffffff; box-shadow: 0 32px 80px rgba(0,0,0,.25); }
+[data-theme="light"] .im-magazine-layout { background: #ffffff; }
 [data-theme="light"] .im-top-bar { background: #ffffff; border-bottom-color: rgba(0,0,0,.08); }
 [data-theme="light"] .im-vendor-pill { background: rgba(0,0,0,.06); color: #222; }
 [data-theme="light"] .im-ver-beneficiario-btn { background: rgba(0,0,0,.06); color: #b45309; }
@@ -2083,7 +2087,7 @@ function _collectAddressAndSchedule() {
         <style>
             * { box-sizing: border-box; }
             .modal-content {
-                background: #252831;
+                background: var(--color-surface, #252831);
                 padding: 24px 20px 40px;
                 width: 100vw;
                 max-width: 500px;
@@ -2092,7 +2096,7 @@ function _collectAddressAndSchedule() {
                 display: flex;
                 flex-direction: column;
                 box-shadow: 0 0 40px rgba(0,0,0,.5);
-                color: #ffffff;
+                color: var(--color-text-main, #ffffff);
                 font-family: system-ui, -apple-system, sans-serif;
             }
             textarea::placeholder { color: #9ca3af !important; }
@@ -4172,4 +4176,26 @@ window.verResenasVendedor = function (data, titulo) {
   document.body.appendChild(ov);
 };
 
-(()=>{const f=()=>{const m=document.querySelector('meta[name=theme-color]');if(m)m.content=document.documentElement.dataset.theme==='dark'?'#1e2128':'#ffffff'};f();new MutationObserver(f).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']})})();
+(() => {
+  // Android calcula el color de los iconos de la barra de sistema (estado y navegación) cuando
+  // cambia el <meta theme-color>. Si al cargar la meta ya trae el valor correcto no hay cambio y
+  // los botones quedan blancos sobre blanco. Por eso se recrea la meta (con un valor intermedio
+  // primero) al cargar y cada vez que cambia el tema.
+  const colorTema = () => document.documentElement.dataset.theme === 'dark' ? '#1e2128' : '#ffffff';
+  const poner = (color) => {
+    document.querySelectorAll('meta[name="theme-color"]').forEach(m => m.remove());
+    const m = document.createElement('meta');
+    m.name = 'theme-color';
+    m.content = color;
+    document.head.appendChild(m);
+  };
+  const aplicar = () => {
+    const c = colorTema();
+    poner(c === '#ffffff' ? '#fefefe' : '#1e2129');
+    requestAnimationFrame(() => poner(colorTema()));
+  };
+  aplicar();
+  window.addEventListener('load', () => setTimeout(aplicar, 150));
+  window.addEventListener('pageshow', (e) => { if (e.persisted) aplicar(); });
+  new MutationObserver(aplicar).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+})();
