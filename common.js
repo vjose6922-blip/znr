@@ -2059,8 +2059,8 @@ function _collectAddressAndSchedule() {
         const dayBtns = DAYS.map(d => {
             const active = savedDayArr.includes(d);
             return `<button type="button" class="_day-btn${active?' _day-active':''}" data-day="${d}"
-            style="padding:6px 10px;border-radius:20px;border:1.5px solid ${active?'var(--color-accent-solid, #ec4899)':'rgba(128,128,128,0.3)'};
-            background:${active?'rgba(var(--color-accent-rgb, 236, 72, 153),0.18)':'transparent'};color:${active?'var(--color-accent-solid, #ec4899)':'inherit'};
+            style="padding:6px 10px;border-radius:20px;border:1.5px solid ${active?'#ec4899':'rgba(128,128,128,0.3)'};
+            background:${active?'rgba(236,72,153,0.18)':'transparent'};color:${active?'#ec4899':'inherit'};
             font-size:12px;font-weight:600;cursor:pointer;transition:all .15s">${d}</button>`;
         }).join('');
         
@@ -2068,90 +2068,109 @@ function _collectAddressAndSchedule() {
             `<option value="${h}"${sel===h?' selected':''}>${h}</option>`
         ).join('');
         
-        // CORRECCIÓN: Fondo blanco fijo y texto negro para inputs y selects
-        const selectStyle = 'width:100%;background:#ffffff;border:1px solid #d1d5db;color:#111111;border-radius:10px;padding:10px 12px;font-size:13px;font-family:inherit;box-sizing:border-box;appearance:none;cursor:pointer;outline:none;';
+        // Estilos forzados con !important para inputs y selects
+        const selectStyle = 'width:100% !important; background:#ffffff !important; border:1px solid #d1d5db !important; color:#111111 !important; border-radius:10px !important; padding:10px 12px !important; font-size:13px !important; font-family:inherit !important; box-sizing:border-box !important; appearance:none !important; cursor:pointer !important; outline:none !important;';
         
-        const inputStyle = 'width:100%;background:#ffffff;border:1px solid #d1d5db;color:#111111;border-radius:12px;padding:12px;font-family:inherit;resize:none;box-sizing:border-box;margin-bottom:16px;outline:none;';
+        const inputStyle = 'width:100% !important; background:#ffffff !important; border:1px solid #d1d5db !important; color:#111111 !important; border-radius:12px !important; padding:12px !important; font-family:inherit !important; resize:none !important; box-sizing:border-box !important; margin-bottom:16px !important; outline:none !important;';
         
         const overlay = document.createElement('div');
         overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.65);backdrop-filter:blur(6px);z-index:20000;display:flex;align-items:center;justify-content:center;overflow-y:auto;';
         
-        overlay.innerHTML = `
+        // Aislamiento total con Shadow DOM
+        const shadow = overlay.attachShadow({ mode: 'open' });
+        
+        shadow.innerHTML = `
         <style>
-            #_addr-modal textarea::placeholder { color: #9ca3af !important; }
-            #_addr-modal textarea:focus, #_addr-modal select:focus { border-color: var(--color-accent-solid, #ec4899) !important; }
+            * { box-sizing: border-box; }
+            .modal-content {
+                background: #252831;
+                padding: 24px 20px 40px;
+                width: 100vw;
+                max-width: 500px;
+                height: 100vh;
+                overflow-y: auto;
+                display: flex;
+                flex-direction: column;
+                box-shadow: 0 0 40px rgba(0,0,0,.5);
+                color: #ffffff;
+                font-family: system-ui, -apple-system, sans-serif;
+            }
+            textarea::placeholder { color: #9ca3af !important; }
+            textarea:focus, select:focus { border-color: #ec4899 !important; }
+            button { font-family: inherit; }
         </style>
-        <div id="_addr-modal" style="background:var(--color-surface, #252831);padding:24px 20px 40px;width:100%;max-width:500px;height:100vh;overflow-y:auto;box-sizing:border-box;display:flex;flex-direction:column;box-shadow:0 0 40px rgba(0,0,0,.2)">
         
-        <h3 style="margin:0 0 4px;font-size:18px;color:inherit">Datos de entrega</h3>
-        <p style="margin:0 0 18px;font-size:13px;color:inherit;opacity:0.7">Para coordinar tu pedido de la mejor manera.</p>
-        
-        <!-- ADDRESS -->
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
-        <label style="font-size:12px;font-weight:600;color:inherit;opacity:0.7;text-transform:uppercase;letter-spacing:.05em">Dirección</label>
-        <button type="button" id="_gps-btn" style="background:rgba(var(--color-accent-rgb, 236, 72, 153),0.12);border:1px solid rgba(var(--color-accent-rgb, 236, 72, 153),0.22);color:var(--color-accent-solid, #ec4899);border-radius:20px;padding:4px 12px;font-size:11px;font-weight:600;cursor:pointer"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z"/></svg> Usar GPS</button>
-        </div>
-        <textarea id="_addr-input" rows="2" placeholder="Calle, número, colonia, ciudad…"
-        style="${inputStyle}font-size:14px;">${escapeHtml(saved)}</textarea>
-        
-        <!-- DAYS -->
-        <label style="display:block;font-size:12px;font-weight:600;color:inherit;opacity:0.7;margin-bottom:8px;text-transform:uppercase;letter-spacing:.05em">Días disponibles</label>
-        <div id="_days-row" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px">
-        ${dayBtns}
-        </div>
-        
-        <!-- HOURS -->
-        <label style="display:block;font-size:12px;font-weight:600;color:inherit;opacity:0.7;margin-bottom:8px;text-transform:uppercase;letter-spacing:.05em">Horario</label>
-        <div style="display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:8px;margin-bottom:16px">
-        <select id="_hour-from" style="${selectStyle}">
-        <option value="">Desde</option>${hourOpts(savedFrom)}
-        </select>
-        <span style="color:inherit;opacity:0.7;font-size:13px">a</span>
-        <select id="_hour-to" style="${selectStyle}">
-        <option value="">Hasta</option>${hourOpts(savedTo)}
-        </select>
-        </div>
-        
-        <!-- NOTES -->
-        <label style="display:block;font-size:12px;font-weight:600;color:inherit;opacity:0.7;margin-bottom:6px;text-transform:uppercase;letter-spacing:.05em">Comentarios o instrucciones</label>
-        <textarea id="_note-input" rows="2" placeholder="Ej: Tocar el timbre 2 veces, preguntar por Juan, dejar con el vecino…"
-        style="${inputStyle}font-size:13px;margin-bottom:20px;">${escapeHtml(savedNote)}</textarea>
-        
-        <div style="display:flex;gap:10px; margin-top:auto;">
-        <button id="_addr-cancel" style="flex:1;padding:13px;background:#f3f4f6;border:1px solid #e5e7eb;border-radius:14px;color:#374151;font-size:14px;font-weight:600;cursor:pointer"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" aria-hidden="true"><use href="#ic-x"/></svg> Cancelar</button>
-        <button id="_addr-confirm" style="flex:2;padding:13px;background:var(--gradient-accent, linear-gradient(to right, #ec4899, #f97316));border:none;border-radius:14px;color:#fff;font-size:14px;font-weight:700;cursor:pointer"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" aria-hidden="true"><use href="#ic-check"/></svg> Confirmar</button>
-        </div>
+        <div class="modal-content">
+            <h3 style="margin:0 0 4px;font-size:18px;color:inherit">Datos de entrega</h3>
+            <p style="margin:0 0 18px;font-size:13px;color:inherit;opacity:0.7">Para coordinar tu pedido de la mejor manera.</p>
+            
+            <!-- ADDRESS -->
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+            <label style="font-size:12px;font-weight:600;color:inherit;opacity:0.7;text-transform:uppercase;letter-spacing:.05em">Dirección</label>
+            <button type="button" id="_gps-btn" style="background:rgba(236,72,153,0.12);border:1px solid rgba(236,72,153,0.22);color:#ec4899;border-radius:20px;padding:4px 12px;font-size:11px;font-weight:600;cursor:pointer">📍 Usar GPS</button>
+            </div>
+            <textarea id="_addr-input" rows="2" placeholder="Calle, número, colonia, ciudad…"
+            style="${inputStyle}font-size:14px !important;">${escapeHtml(saved)}</textarea>
+            
+            <!-- DAYS -->
+            <label style="display:block;font-size:12px;font-weight:600;color:inherit;opacity:0.7;margin-bottom:8px;text-transform:uppercase;letter-spacing:.05em">Días disponibles</label>
+            <div id="_days-row" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px">
+            ${dayBtns}
+            </div>
+            
+            <!-- HOURS -->
+            <label style="display:block;font-size:12px;font-weight:600;color:inherit;opacity:0.7;margin-bottom:8px;text-transform:uppercase;letter-spacing:.05em">Horario</label>
+            <div style="display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:8px;margin-bottom:16px">
+            <select id="_hour-from" style="${selectStyle}">
+            <option value="">Desde</option>${hourOpts(savedFrom)}
+            </select>
+            <span style="color:inherit;opacity:0.7;font-size:13px">a</span>
+            <select id="_hour-to" style="${selectStyle}">
+            <option value="">Hasta</option>${hourOpts(savedTo)}
+            </select>
+            </div>
+            
+            <!-- NOTES -->
+            <label style="display:block;font-size:12px;font-weight:600;color:inherit;opacity:0.7;margin-bottom:6px;text-transform:uppercase;letter-spacing:.05em">Comentarios o instrucciones</label>
+            <textarea id="_note-input" rows="2" placeholder="Ej: Tocar el timbre 2 veces, preguntar por Juan, dejar con el vecino…"
+            style="${inputStyle}font-size:13px !important;margin-bottom:20px !important;">${escapeHtml(savedNote)}</textarea>
+            
+            <div style="display:flex;gap:10px; margin-top:auto;">
+            <button id="_addr-cancel" style="flex:1;padding:13px;background:#f3f4f6;border:1px solid #e5e7eb;border-radius:14px;color:#374151;font-size:14px;font-weight:600;cursor:pointer">✕ Cancelar</button>
+            <button id="_addr-confirm" style="flex:2;padding:13px;background:linear-gradient(to right, #ec4899, #f97316);border:none;border-radius:14px;color:#fff;font-size:14px;font-weight:700;cursor:pointer">✓ Confirmar</button>
+            </div>
         </div>
         `;
         
         document.body.appendChild(overlay);
-        setTimeout(() => overlay.querySelector('textarea').focus(), 100);
+        setTimeout(() => shadow.querySelector('textarea').focus(), 100);
 
-        // ... (Lógica de carga de perfil y GPS se mantiene igual) ...
-        
+        // 1. Cargar perfil si existe
         if (savedPhoneForPerfil.length === 10) {
             fetch(`${AUTH_API_URL_CART}?${new URLSearchParams({ action: 'leerPerfilComprador', telefono: savedPhoneForPerfil, compradorToken: localStorage.getItem('comprador_token') || '' })}`)
             .then(r => r.json()).then(resp => {
                 const perfil = resp && resp.ok ? resp.perfil : null;
                 if (!perfil) return;
-                const addrInput = overlay.querySelector('#_addr-input');
+                const addrInput = shadow.querySelector('#_addr-input');
                 if (perfil.direccion && !addrInput.value.trim()) addrInput.value = perfil.direccion;
+                
                 if (Array.isArray(perfil.dias) && !savedDays) {
-                    overlay.querySelectorAll('._day-btn').forEach(btn => {
+                    shadow.querySelectorAll('._day-btn').forEach(btn => {
                         if (perfil.dias.includes(btn.dataset.day)) {
                             btn.classList.add('_day-active');
-                            btn.style.border = '1.5px solid var(--color-accent-solid, #ec4899)'; 
-                            btn.style.background = 'rgba(var(--color-accent-rgb, 236, 72, 153),0.18)'; 
-                            btn.style.color = 'var(--color-accent-solid, #ec4899)';
+                            btn.style.border = '1.5px solid #ec4899'; 
+                            btn.style.background = 'rgba(236,72,153,0.18)'; 
+                            btn.style.color = '#ec4899';
                         }
                     });
                 }
-                if (perfil.horaDesde && !savedFrom) overlay.querySelector('#_hour-from').value = perfil.horaDesde;
-                if (perfil.horaHasta && !savedTo) overlay.querySelector('#_hour-to').value = perfil.horaHasta;
-                if (perfil.nota && !savedNote) overlay.querySelector('#_note-input').value = perfil.nota;
+                if (perfil.horaDesde && !savedFrom) shadow.querySelector('#_hour-from').value = perfil.horaDesde;
+                if (perfil.horaHasta && !savedTo) shadow.querySelector('#_hour-to').value = perfil.horaHasta;
+                if (perfil.nota && !savedNote) shadow.querySelector('#_note-input').value = perfil.nota;
             }).catch(() => {});
         }
 
+        // 2. Enlace de Google Maps previo
         const prevLat = localStorage.getItem('client_gps_lat');
         const prevLng = localStorage.getItem('client_gps_lng');
         if (prevLat && prevLng && saved) {
@@ -2161,26 +2180,28 @@ function _collectAddressAndSchedule() {
             mapsLink.href  = mapsUrl;
             mapsLink.target = '_blank';
             mapsLink.rel  = 'noopener noreferrer';
-            mapsLink.style.cssText = 'display:inline-flex;align-items:center;gap:5px;font-size:12px;color:var(--color-accent-solid, #ec4899);text-decoration:none;font-weight:600;margin-bottom:16px';
-            mapsLink.innerHTML = ' Ver ubicación en Google Maps';
-            overlay.querySelector('#_addr-input').insertAdjacentElement('afterend', mapsLink);
+            mapsLink.style.cssText = 'display:inline-flex;align-items:center;gap:5px;font-size:12px;color:#ec4899;text-decoration:none;font-weight:600;margin-bottom:16px';
+            mapsLink.innerHTML = '📍 Ver ubicación en Google Maps';
+            shadow.querySelector('#_addr-input').insertAdjacentElement('afterend', mapsLink);
         }
 
-        overlay.querySelectorAll('._day-btn').forEach(btn => {
+        // 3. Lógica de botones de días
+        shadow.querySelectorAll('._day-btn').forEach(btn => {
             btn.addEventListener('click', () => {
                 const active = btn.classList.toggle('_day-active');
-                btn.style.border  = `1.5px solid ${active ? 'var(--color-accent-solid, #ec4899)' : 'rgba(128,128,128,0.3)'}`;
-                btn.style.background  = active ? 'rgba(var(--color-accent-rgb, 236, 72, 153),0.18)' : 'transparent';
-                btn.style.color  = active ? 'var(--color-accent-solid, #ec4899)' : 'inherit';
+                btn.style.border  = `1.5px solid ${active ? '#ec4899' : 'rgba(128,128,128,0.3)'}`;
+                btn.style.background  = active ? 'rgba(236,72,153,0.18)' : 'transparent';
+                btn.style.color  = active ? '#ec4899' : 'inherit';
             });
         });
 
-        overlay.querySelector('#_gps-btn').addEventListener('click', () => {
-            const gpsBtn = overlay.querySelector('#_gps-btn');
-            gpsBtn.innerHTML = Icon('clock') + ' Obteniendo…';
+        // 4. Lógica del botón GPS
+        shadow.querySelector('#_gps-btn').addEventListener('click', () => {
+            const gpsBtn = shadow.querySelector('#_gps-btn');
+            gpsBtn.innerHTML = '⏳ Obteniendo…';
             gpsBtn.disabled = true;
             if (!navigator.geolocation) {
-                gpsBtn.textContent = ' Sin GPS';
+                gpsBtn.textContent = '⚠️ Sin GPS';
                 return;
             }
             navigator.geolocation.getCurrentPosition(
@@ -2201,53 +2222,59 @@ function _collectAddressAndSchedule() {
                             if (data.display_name) addr = data.display_name;
                         }
                     } catch {  }
-                    overlay.querySelector('#_addr-input').value = addr;
-                    gpsBtn.textContent = ' Ubicación obtenida';
+                    shadow.querySelector('#_addr-input').value = addr;
+                    gpsBtn.textContent = '✅ Ubicación obtenida';
+                    
                     const mapsUrl  = `https://www.google.com/maps?q=${lat},${lng}`;
-                    let mapsLink = overlay.querySelector('#_maps-link');
+                    let mapsLink = shadow.querySelector('#_maps-link');
                     if (!mapsLink) {
                         mapsLink = document.createElement('a');
                         mapsLink.id  = '_maps-link';
                         mapsLink.target = '_blank';
                         mapsLink.rel  = 'noopener noreferrer';
-                        mapsLink.style.cssText = 'display:inline-flex;align-items:center;gap:5px;font-size:12px;color:var(--color-accent-solid, #ec4899);text-decoration:none;font-weight:600;margin-bottom:16px';
-                        overlay.querySelector('#_addr-input').insertAdjacentElement('afterend', mapsLink);
+                        mapsLink.style.cssText = 'display:inline-flex;align-items:center;gap:5px;font-size:12px;color:#ec4899;text-decoration:none;font-weight:600;margin-bottom:16px';
+                        shadow.querySelector('#_addr-input').insertAdjacentElement('afterend', mapsLink);
                     }
                     mapsLink.href  = mapsUrl;
-                    mapsLink.innerHTML = ' Ver ubicación en Google Maps';
+                    mapsLink.innerHTML = '📍 Ver ubicación en Google Maps';
                     gpsBtn.disabled = false;
                 },
                 () => {
-                    gpsBtn.textContent = ' Sin permiso';
+                    gpsBtn.textContent = '❌ Sin permiso';
                     gpsBtn.disabled = false;
                 },
                 { enableHighAccuracy: true, timeout: 10000 }
             );
         });
 
-        overlay.querySelector('#_addr-cancel').addEventListener('click', () => {
+        // 5. Botón Cancelar
+        shadow.querySelector('#_addr-cancel').addEventListener('click', () => {
             overlay.remove(); resolve(null);
         });
 
-        overlay.querySelector('#_addr-confirm').addEventListener('click', () => {
-            const address = overlay.querySelector('#_addr-input').value.trim();
+        // 6. Botón Confirmar
+        shadow.querySelector('#_addr-confirm').addEventListener('click', () => {
+            const address = shadow.querySelector('#_addr-input').value.trim();
             if (!address) {
-                overlay.querySelector('#_addr-input').style.borderColor = '#ef4444';
-                overlay.querySelector('#_addr-input').focus();
+                shadow.querySelector('#_addr-input').style.borderColor = '#ef4444';
+                shadow.querySelector('#_addr-input').focus();
                 return;
             }
-            const selectedDays = [...overlay.querySelectorAll('._day-active')].map(b => b.dataset.day);
-            const hourFrom = overlay.querySelector('#_hour-from').value;
-            const hourTo  = overlay.querySelector('#_hour-to').value;
-            const note  = overlay.querySelector('#_note-input').value.trim();
+            const selectedDays = [...shadow.querySelectorAll('._day-active')].map(b => b.dataset.day);
+            const hourFrom = shadow.querySelector('#_hour-from').value;
+            const hourTo  = shadow.querySelector('#_hour-to').value;
+            const note  = shadow.querySelector('#_note-input').value.trim();
+            
             let schedule = '';
             if (selectedDays.length) schedule += selectedDays.join(', ');
             if (hourFrom && hourTo)  schedule += (schedule ? ' · ' : '') + `${hourFrom} – ${hourTo}`;
             else if (hourFrom)  schedule += (schedule ? ' · ' : '') + `desde ${hourFrom}`;
             else if (hourTo)  schedule += (schedule ? ' · ' : '') + `hasta ${hourTo}`;
+            
             localStorage.setItem('client_days',  selectedDays.join(','));
             localStorage.setItem('client_hour_from', hourFrom);
             localStorage.setItem('client_hour_to',  hourTo);
+            
             overlay.remove();
             
             if (savedPhoneForPerfil.length === 10) {
@@ -2255,11 +2282,11 @@ function _collectAddressAndSchedule() {
                 if (overlay._gpsLat !== undefined && overlay._gpsLng !== undefined) { payload.lat = overlay._gpsLat; payload.lng = overlay._gpsLng; }
                 fetch(AUTH_API_URL_CART, { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams(payload).toString() }).catch(() => {});
             }
+            
             resolve({ address, schedule, note });
         });
     });
 }
-
 async function continueCheckout() {
 const items = Object.values(localCart);
 if (items.length === 0) return;
