@@ -749,12 +749,11 @@ function initFiltrosSheet() {
   const btn = document.getElementById('btn-abrir-filtros');
   if (!sheet || !btn) return;
   document.body.appendChild(sheet); // fuera de contenedores con transform, para que position:fixed funcione
-  initPickersFiltros(sheet);
   const abrir = () => {
     sheet.classList.add('open');
     btn.setAttribute('aria-expanded', 'true');
     document.body.style.overflow = 'hidden';
-    setTimeout(() => sheet.querySelector('.filtros-picker-btn')?.focus(), 60);
+    setTimeout(() => sheet.querySelector('.znr-sel-btn')?.focus(), 60);
   };
   const cerrar = () => {
     sheet.classList.remove('open');
@@ -775,105 +774,6 @@ function initFiltrosSheet() {
 }
 
 
-// Selectores propios para el panel de filtros: el <select> real se conserva (oculto) para no tocar
-// el resto de la lógica; al elegir una opción se asigna su valor y se dispara "change".
-function initPickersFiltros(sheet) {
-  const selects = [...sheet.querySelectorAll('.filtros-field select')];
-  if (!selects.length) return;
-  const chevron = '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>';
-  const check = '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>';
-  const esc = (t) => String(t == null ? '' : t).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-
-  const picker = document.createElement('div');
-  picker.id = 'filtros-picker';
-  picker.className = 'filtros-sheet';
-  picker.setAttribute('role', 'dialog');
-  picker.setAttribute('aria-modal', 'true');
-  picker.innerHTML = '<div class="filtros-backdrop" data-fp-cerrar></div><div class="filtros-panel"><div class="filtros-handle" aria-hidden="true"></div>' +
-    '<div class="filtros-head"><h3 id="fp-titulo"></h3><button type="button" class="filtros-cerrar" data-fp-cerrar aria-label="Cerrar">&times;</button></div>' +
-    '<input type="search" class="fp-search" id="fp-search" placeholder="Buscar..." autocomplete="off" style="display:none">' +
-    '<div class="fp-list" id="fp-list" role="listbox"></div></div>';
-  document.body.appendChild(picker);
-  const listEl = picker.querySelector('#fp-list');
-  const searchEl = picker.querySelector('#fp-search');
-  let activo = null;
-
-  const textoSel = (sel) => (sel.selectedOptions[0] ? sel.selectedOptions[0].textContent : '');
-  const botones = new Map();
-  function refrescar() {
-    selects.forEach((sel) => {
-      const b = botones.get(sel);
-      if (!b) return;
-      b.querySelector('.fp-val').textContent = textoSel(sel);
-      b.classList.toggle('activo', !!sel.value);
-    });
-  }
-
-  function pintarLista(filtro) {
-    const q = (filtro || '').trim().toLowerCase();
-    let html = '', hay = false, grupoActual = null;
-    [...activo.children].forEach((node) => {
-      const opts = node.tagName === 'OPTGROUP' ? [...node.children].map((o) => ({ o, g: node.label })) : [{ o: node, g: null }];
-      opts.forEach(({ o, g }) => {
-        if (q && !o.textContent.toLowerCase().includes(q)) return;
-        if (g && g !== grupoActual) { html += '<div class="fp-group">' + esc(g) + '</div>'; grupoActual = g; }
-        if (!g) grupoActual = null;
-        hay = true;
-        const sel = o.value === activo.value;
-        html += '<button type="button" class="fp-opt' + (sel ? ' sel' : '') + '" role="option" aria-selected="' + sel + '" data-v="' + esc(o.value) + '"><span>' + esc(o.textContent) + '</span>' + (sel ? check : '') + '</button>';
-      });
-    });
-    listEl.innerHTML = hay ? html : '<div class="fp-empty">Sin resultados</div>';
-  }
-
-  function abrir(sel, titulo) {
-    activo = sel;
-    picker.querySelector('#fp-titulo').textContent = titulo;
-    const total = sel.querySelectorAll('option').length;
-    searchEl.value = '';
-    searchEl.style.display = total > 8 ? '' : 'none';
-    pintarLista('');
-    picker.classList.add('open');
-    document.addEventListener('keydown', onKey, true);
-    const sel0 = listEl.querySelector('.fp-opt.sel');
-    if (sel0) sel0.scrollIntoView({ block: 'center' });
-  }
-  function cerrar() {
-    picker.classList.remove('open');
-    document.removeEventListener('keydown', onKey, true);
-    activo = null;
-  }
-  function onKey(e) { if (e.key === 'Escape') { e.stopPropagation(); cerrar(); } }
-
-  picker.querySelectorAll('[data-fp-cerrar]').forEach((el) => el.addEventListener('click', cerrar));
-  searchEl.addEventListener('input', () => pintarLista(searchEl.value));
-  listEl.addEventListener('click', (e) => {
-    const b = e.target.closest('.fp-opt');
-    if (!b || !activo) return;
-    const sel = activo;
-    sel.value = b.dataset.v;
-    sel.dispatchEvent(new Event('change', { bubbles: true }));
-    cerrar();
-    refrescar();
-  });
-
-  selects.forEach((sel) => {
-    const titulo = (sel.closest('.filtros-field')?.querySelector('span')?.textContent || 'Elegir').trim();
-    const b = document.createElement('button');
-    b.type = 'button';
-    b.className = 'filtros-picker-btn';
-    b.innerHTML = '<span class="fp-val"></span>' + chevron;
-    b.addEventListener('click', () => abrir(sel, titulo));
-    sel.parentNode.insertBefore(b, sel);
-    botones.set(sel, b);
-    sel.addEventListener('change', refrescar);
-    // Las opciones de categoría/vendedor se cargan después: se actualiza la etiqueta cuando cambien.
-    new MutationObserver(refrescar).observe(sel, { childList: true, subtree: true });
-  });
-  refrescar();
-  window.__refrescarPickersFiltros = refrescar;
-}
-
 function actualizarBadgeFiltros(filters) {
   const badge = document.getElementById('filtros-badge');
   if (!badge) return;
@@ -884,7 +784,6 @@ function actualizarBadgeFiltros(filters) {
 
 function updateComunidadChips(filters) {
   actualizarBadgeFiltros(filters);
-  if (window.__refrescarPickersFiltros) window.__refrescarPickersFiltros();
   const bar = document.getElementById('comunidad-filter-chips');
   if (!bar) return;
   const ordenLabels = {

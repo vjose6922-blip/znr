@@ -2547,3 +2547,70 @@ button > svg:only-child, .icon-button svg { margin-right: 0; }
   60%  { box-shadow: 0 0 0 5px rgba(var(--color-accent-rgb),0.22); }
   100% { box-shadow: 0 0 0 0 rgba(var(--color-accent-rgb),0); }
 }
+
+/* =========================================================================
+   Selectores propios (znr-select.js) — reemplazan la lista nativa del móvil
+   ========================================================================= */
+/* <select> real: sigue en el DOM (fuente de verdad) pero invisible e inerte */
+.znr-sel-real {
+  position: absolute !important; width: 1px !important; height: 1px !important;
+  margin: -1px !important; padding: 0 !important; border: 0 !important;
+  overflow: hidden !important; clip: rect(0, 0, 0, 0) !important; white-space: nowrap !important;
+  opacity: 0 !important; pointer-events: none !important;
+}
+/* Botón que ocupa su lugar. El aspecto (padding, borde, fondo, fuente, ancho...) lo copia
+   znr-sel.js del <select> original; aquí solo va lo que es común a todos. */
+.znr-sel-btn {
+  appearance: none; -webkit-appearance: none; cursor: pointer; text-align: left;
+  align-items: center; justify-content: space-between; gap: 8px; overflow: hidden;
+  -webkit-tap-highlight-color: transparent;
+}
+.znr-sel-btn:disabled { cursor: not-allowed; }
+.znr-sel-btn:focus-visible { outline: 2px solid var(--color-primary, #6d28d9); outline-offset: 2px; }
+.znr-sel-btn .znr-sel-txt { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.znr-sel-btn .znr-sel-txt:empty::before { content: '\00a0'; }
+.znr-sel-btn svg.znr-sel-chev { flex: none; margin: 0; opacity: .6; }
+.znr-sel-btn.znr-sel-vacio .znr-sel-txt { opacity: .65; }
+.znr-sel-btn.znr-sel-activo { border-color: var(--color-primary, #6d28d9) !important; font-weight: 600 !important; }
+
+/* Hoja de selección (una sola por página) */
+.znr-sel-sheet { position: fixed; inset: 0; z-index: 2147483000; display: none; }
+.znr-sel-sheet.open { display: block; }
+.znr-sel-backdrop { position: absolute; inset: 0; background: rgba(0,0,0,.45); touch-action: none; animation: znrSelFade .2s ease; }
+.znr-sel-panel {
+  position: absolute; left: 0; right: 0; bottom: 0; margin: 0 auto; max-width: 520px;
+  background: var(--color-surface, #fff); color: var(--color-text-main, #1a1a2e);
+  border-radius: 20px 20px 0 0; max-height: 85vh; max-height: 85dvh; display: flex; flex-direction: column;
+  box-shadow: 0 -10px 40px rgba(0,0,0,.25); animation: znrSelUp .25s ease;
+  padding-bottom: env(safe-area-inset-bottom, 0px); outline: none;
+}
+.znr-sel-handle { width: 40px; height: 4px; border-radius: 2px; background: var(--color-border-subtle, #ccc); margin: 10px auto 0; flex: none; }
+.znr-sel-head { display: flex; align-items: center; justify-content: space-between; padding: 8px 20px 4px; flex: none; }
+.znr-sel-head h3 { margin: 0; font-size: 18px; }
+.znr-sel-x {
+  border: none; background: var(--color-surface-2, #f6f7f9); color: var(--color-text-main, #1a1a2e);
+  width: 34px; height: 34px; border-radius: 50%; font-size: 22px; line-height: 1; cursor: pointer; padding: 0;
+}
+.znr-sel-search {
+  margin: 4px 20px 8px; padding: 11px 14px; border-radius: 12px; font-size: 16px; font-family: inherit;
+  border: 1.5px solid var(--color-border-subtle, #ddd); background: var(--color-surface-2, #f6f7f9);
+  color: var(--color-text-main, #1a1a2e); width: calc(100% - 40px); box-sizing: border-box; flex: none;
+}
+.znr-sel-list { overflow-y: auto; overscroll-behavior: contain; padding: 0 12px 12px; display: flex; flex-direction: column; min-height: 0; }
+.znr-sel-group { padding: 12px 8px 4px; font-size: 11px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--color-text-muted, #777); }
+.znr-sel-opt {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  padding: 13px 10px; border: none; background: transparent; color: var(--color-text-main, #1a1a2e);
+  font-size: 15px; font-family: inherit; text-align: left; cursor: pointer; border-radius: 10px;
+}
+.znr-sel-opt svg { flex: none; margin: 0; }
+.znr-sel-opt:active, .znr-sel-opt:hover, .znr-sel-opt:focus-visible { background: var(--color-surface-2, #f6f7f9); outline: none; }
+.znr-sel-opt.sel { color: var(--color-primary, #6d28d9); font-weight: 700; }
+.znr-sel-opt:disabled { opacity: .45; cursor: not-allowed; }
+.znr-sel-empty, .znr-sel-mas { padding: 18px; text-align: center; color: var(--color-text-muted, #777); font-size: 14px; }
+@keyframes znrSelUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+@keyframes znrSelFade { from { opacity: 0; } to { opacity: 1; } }
+@media (min-width: 700px) {
+  .znr-sel-panel { bottom: auto; top: 50%; transform: translateY(-50%); border-radius: 20px; animation: znrSelFade .2s ease; }
+}
+@media (prefers-reduced-motion: reduce) { .znr-sel-panel, .znr-sel-backdrop { animation: none; } }

@@ -44,6 +44,7 @@ const STATIC_ASSETS = [
   '/znr/error-monitor.js',
   '/znr/feedback.js',
   '/znr/icons.js',
+  '/znr/znr-select.js',
   '/znr/manifest.json',
   '/znr/placeholder.svg',
 ];
