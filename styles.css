@@ -2644,3 +2644,12 @@ button > svg:only-child, .icon-button svg { margin-right: 0; }
 /* Placeholders de los campos del panel vendedor (visibles en oscuro y claro) */
 .field-group input::placeholder,
 .field-group textarea::placeholder { color: var(--color-text-soft, #9ca3af); opacity: 1; }
+
+/* Barra de botones del sistema Android (atrás/inicio): franja oscura fija en ambos temas.
+   Solo tiene efecto si Chrome dibuja la página bajo esa barra (viewport-fit=cover); si no, env() vale 0 y no cambia nada. */
+.bottom-nav { padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px)); }
+body::after {
+  content: ""; position: fixed; left: 0; right: 0; bottom: 0;
+  height: env(safe-area-inset-bottom, 0px);
+  background: #1e2128; pointer-events: none; z-index: calc(var(--z-nav, 100) + 1);
+}
