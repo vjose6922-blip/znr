@@ -46,6 +46,7 @@ const STATIC_ASSETS = [
   '/znr/icons.js',
   '/znr/znr-select.js',
   '/znr/manifest.json',
+  '/znr/manifest-dark.json',
   '/znr/placeholder.svg',
 ];
 
