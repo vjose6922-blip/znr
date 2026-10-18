@@ -126,6 +126,9 @@ function getCacheStrategy(request) {
   // de Android). Con CACHE_FIRST se quedaba para siempre la primera copia y la app instalada
   // nunca recibía los colores nuevos.
   if (request.destination === 'manifest' || url.pathname.endsWith('/manifest.json')) return 'NETWORK_FIRST_FRESH';
+  // La lista de ciudades pesa bastante y casi nunca cambia: se baja una vez y se actualiza en segundo plano
+  // (al cambiarla, la versión nueva se ve en la siguiente visita). Sin esto se descargaría completa en cada página.
+  if (url.pathname.endsWith('/ciudades.js')) return 'STALE_WHILE_REVALIDATE';
   if (['document','script'].includes(request.destination)) return 'NETWORK_FIRST_FRESH';
   if (request.destination === 'style') return 'STALE_WHILE_REVALIDATE';
   return 'CACHE_FIRST';
