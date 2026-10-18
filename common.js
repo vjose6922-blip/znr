@@ -4176,5 +4176,6 @@ window.verResenasVendedor = function (data, titulo) {
   document.body.appendChild(ov);
 };
 
-// theme-color: el HTML trae #1e2128 (fija la barra de botones de abajo); aquí solo se cambia la barra de arriba según el tema.
-(()=>{const f=()=>{const m=document.querySelector('meta[name=theme-color]');if(m)m.content=document.documentElement.dataset.theme==='dark'?'#1e2128':'#ffffff'};f();new MutationObserver(f).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']})})();
+// theme-color fijo oscuro (#1e2128) en ambos temas: así los iconos de la barra de estado y de la barra de botones
+// de Android salen blancos siempre. El HTML ya lo trae; aquí solo se asegura.
+(()=>{const m=document.querySelector('meta[name=theme-color]');if(m)m.content='#1e2128'})();
