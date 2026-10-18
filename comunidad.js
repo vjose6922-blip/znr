@@ -942,22 +942,36 @@ function iniciarAutoScrollCarrusel(track) {
   }, 30);
 }
 
-// Banner de tiles: avanza solo y se repite en bucle (también al deslizar). Se reconstruye cuando cambia qué tiles se ven.
+// Banner (como el hero de index): una tarjeta a la vez, swipe nativo y avance cada 6 s. Se recalcula cuando cambia qué tiles se ven.
 function actualizarLoopBanner() {
   const t = document.querySelector('.com-tiles');
   if (!t) return;
   clearTimeout(t._loopTimer);
   t._loopTimer = setTimeout(() => {
-    activarLoopCarrusel(t, () => [...t.children]
-      .filter(n => !n.dataset.clone && getComputedStyle(n).display !== 'none')
-      .map(n => {
-        const c = n.cloneNode(true);
-        c.removeAttribute('id');
-        c.querySelectorAll('[id]').forEach(x => x.removeAttribute('id'));
-        if (n.id === 'btn-ver-fundaciones') c.dataset.forward = 'btn-ver-fundaciones'; // el original tiene su propio listener
-        return c;
-      }));
-    iniciarAutoScrollCarrusel(t);
+    const dots = document.getElementById('com-dots');
+    const visibles = () => [...t.children].filter(n => getComputedStyle(n).display !== 'none');
+    const indice = () => Math.round(t.scrollLeft / (t.clientWidth || 1)) || 0;
+    const marcar = () => {
+      if (!dots) return;
+      const i = indice();
+      dots.querySelectorAll('i').forEach((d, k) => d.classList.toggle('on', k === i));
+    };
+    const n = visibles().length;
+    if (dots) dots.innerHTML = n > 1 ? '<i></i>'.repeat(n) : '';
+    marcar();
+    if (t._bannerListo) return; // listeners y temporizador solo una vez
+    t._bannerListo = true;
+    let raf, quieto = 0, enPantalla = true;
+    t.addEventListener('scroll', () => { cancelAnimationFrame(raf); raf = requestAnimationFrame(marcar); }, { passive: true });
+    ['pointerdown', 'wheel'].forEach(ev => t.addEventListener(ev, () => { quieto = Date.now() + 8000; }, { passive: true }));
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    if ('IntersectionObserver' in window) new IntersectionObserver(e => { enPantalla = e[0].isIntersecting; }).observe(t);
+    setInterval(() => {
+      if (!enPantalla || document.hidden || Date.now() < quieto) return;
+      const total = visibles().length;
+      if (total < 2) return;
+      t.scrollTo({ left: ((indice() + 1) % total) * t.clientWidth, behavior: 'smooth' });
+    }, 6000);
   }, 0);
 }
 

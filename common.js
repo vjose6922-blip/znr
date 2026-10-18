@@ -1028,6 +1028,7 @@ dots.innerHTML = _modalImages.map((_, i) =>
 function _renderProductInfo(modal) {
 const el = modal.querySelector('#im-product-info');
 if (!el) return;
+modal.querySelector('.im-hero-col')?.style.removeProperty('flex'); // al cambiar de producto se vuelve al alto normal de la imagen
 const p = _modalProduct;
 if (!p) { el.innerHTML = ''; el.style.display = 'none'; return; }
 const nombre  = p.Nombre  || p.nombre  || '';
@@ -1108,7 +1109,11 @@ _handleModalBuyClick(p);
 }
 el.querySelectorAll('.im-desc-toggle').forEach(b => b.addEventListener('click', e => {
 e.stopPropagation();
-el.querySelector('.im-desc-wrap').classList.toggle('open');
+const wrap = el.querySelector('.im-desc-wrap');
+const hero = modal.querySelector('.im-hero-col');
+const hAntes = hero ? hero.offsetHeight : 0; // medir antes de abrir: la imagen conserva su alto y el contenido crece hacia abajo (el modal hace scroll)
+const abierto = wrap.classList.toggle('open');
+if (hero) hero.style.flex = abierto ? '0 0 ' + hAntes + 'px' : '';
 }));
 }
 
@@ -1760,18 +1765,12 @@ function initImageModalControls() {
 }
 .im-product-info { position: relative; z-index: 2; }
 .im-desc-wrap { position: relative; }
-.im-desc-wrap.open > .im-info-desc, .im-desc-wrap.open > .im-desc-toggle { visibility: hidden; }
-.im-desc-pop {
-  display: none; position: absolute; z-index: 5; left: -16px; right: -16px; top: -6px;
-  max-height: min(260px, 45dvh); overflow-y: auto; padding: 6px 16px 10px;
-  background: rgba(13,13,20,.94); backdrop-filter: blur(6px);
-  box-shadow: 0 8px 24px rgba(0,0,0,.5); border-radius: 0 0 22px 22px;
-}
-.im-desc-pop p { margin: 0 0 6px; font-size: 13px; line-height: 1.5; color: rgba(255,255,255,.85); white-space: pre-line; }
+/* Al abrir, el texto completo se muestra en su lugar (empuja lo de abajo; ya no flota sobre las imágenes) */
+.im-desc-wrap.open > .im-info-desc, .im-desc-wrap.open > .im-desc-toggle { display: none; }
+.im-desc-pop { display: none; }
 .im-desc-wrap.open .im-desc-pop { display: block; }
-.im-no-panel .im-desc-pop { top: auto; bottom: -12px; border-radius: 0; }
-[data-theme="light"] .im-desc-pop { background: rgba(255,255,255,.96); }
-[data-theme="light"] .im-desc-pop p { color: #333; }
+.im-desc-pop p { margin: 4px 0 6px; font-size: 13px; line-height: 1.5; color: rgba(255,255,255,.5); white-space: pre-line; }
+[data-theme="light"] .im-desc-pop p { color: #777; }
 .im-info-cat {
   background: rgba(255,255,255,.08);
   color: rgba(255,255,255,.7);

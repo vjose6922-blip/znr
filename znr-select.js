@@ -190,7 +190,7 @@
 
     // Si el select llegó clonado junto con un botón nuestro, quitar el botón viejo.
     var prev = sel.previousElementSibling;
-    if (prev && prev.classList.contains('znr-sel-btn')) prev.remove();
+    if (prev && prev.classList.contains('znr-sel-btn') && !prev.__znrSel) prev.remove(); // solo botones copiados por clonación (los vivos tienen __znrSel y son de otro select)
     sel.classList.remove(REAL);
 
     var btn = document.createElement('button');

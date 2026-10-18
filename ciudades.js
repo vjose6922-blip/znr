@@ -139,10 +139,23 @@ function llenarSelectCiudad(select, pais, estado) {
 // Enlaza país→estado→ciudad. El select de estado se crea solo, justo antes del de ciudad (hereda clase y estilo del de país).
 function enlazarPaisCiudad(selectPais, selectCiudad) {
   const selectEstado = selectCiudad._estado = document.createElement('select');
-  selectEstado.className = selectPais.className;
+  selectEstado.className = selectPais.className.replace(/\bznr-sel-real\b/g, '').trim(); // sin la clase que oculta el select ya mejorado
   selectEstado.style.cssText = selectPais.style.cssText;
-  selectEstado.style.marginBottom = '10px';
-  selectCiudad.before(selectEstado);
+  const grupo = selectCiudad.closest('.field-group'), lbl = grupo && grupo.querySelector(':scope > label');
+  if (grupo && lbl) {
+    // Formulario con campos etiquetados (p. ej. registro de vendedor): el estado va en su propio campo "Estado *", antes del de ciudad.
+    const g = grupo.cloneNode(false);
+    g.removeAttribute('id');
+    const l = lbl.cloneNode(true);
+    l.textContent = 'Estado *';
+    g.append(l, selectEstado);
+    grupo.before(g);
+  } else {
+    selectEstado.style.marginBottom = '10px';
+    // Si el select de ciudad ya tiene su botón de znr-select.js, el estado debe quedar ANTES de ese botón (no entre el botón y su select).
+    const ant = selectCiudad.previousElementSibling;
+    (ant && ant.classList.contains('znr-sel-btn') ? ant : selectCiudad).before(selectEstado);
+  }
   llenarSelectPais(selectPais);
   llenarSelectEstado(selectEstado, '');
   llenarSelectCiudad(selectCiudad, '', '');

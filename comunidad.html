@@ -113,21 +113,20 @@
  .community-hero h1 { margin: 0 0 8px; font-size: 1.8rem; }
  .community-hero p { margin: 0 0 16px; opacity: 0.9; }
 
- /* ── Banner con tiles (estilo index) ── */
+ /* ── Banner (igual que el hero de index): una tarjeta a la vez, avanza sola cada 6 s ── */
  .community-hero h1 { margin: 0 0 10px; font-size: 1.5rem; }
- .com-tiles { display: flex; gap: 10px; overflow-x: auto; scroll-snap-type: x proximity; padding: 2px 6px 6px; text-align: left; scrollbar-width: none; }
+ .community-hero .m-hero { margin: 0 4px 4px; }
+ .com-tiles { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; overscroll-behavior-x: contain; scrollbar-width: none; text-align: left; }
  .com-tiles::-webkit-scrollbar { display: none; }
  .com-tile {
- flex: 0 0 min(230px, 70%); box-sizing: border-box; scroll-snap-align: start;
- display: flex; flex-direction: column; gap: 4px; padding: 14px 16px;
- background: rgba(255,255,255,.96); color: #1f2430; border: none; border-radius: var(--radius-lg, 16px);
+ flex: 0 0 100%; box-sizing: border-box; scroll-snap-align: center; scroll-snap-stop: always;
+ display: flex; flex-direction: column; gap: 6px; padding: 20px 20px 36px;
+ background: none; color: #1f2430; border: none; border-radius: 0;
  font-family: inherit; text-align: left; text-decoration: none; cursor: pointer;
- box-shadow: 0 4px 14px rgba(0,0,0,.12);
  }
- .com-tile:active { transform: scale(.98); }
- .com-tile-t { font-size: 15px; font-weight: 700; color: #1f2430; }
- .com-tile-d { font-size: 12.5px; line-height: 1.4; color: #5b6170; }
- .com-tile-go { margin-top: 2px; font-size: 12.5px; font-weight: 700; color: var(--color-accent-solid); }
+ .com-tile-t { font-size: 17px; font-weight: 700; color: #1f2430; }
+ .com-tile-d { font-size: 13.5px; line-height: 1.45; color: #5b6170; }
+ .com-tile-go { margin-top: 4px; font-size: 13px; font-weight: 700; color: var(--color-accent-solid); }
  .com-tile-go::after { content: " \2192"; }
 
  /* ── Carruseles: encabezado con "Ver más" + fila doble (Recomendado | Podría interesarte) ── */
@@ -513,12 +512,15 @@
 
  <div class="community-hero">
  <h1>Z&R Comunidad</h1>
+  <div class="m-hero" id="com-hero">
  <div class="com-tiles" role="list" aria-label="Qué encontrar en Comunidad">
  <button type="button" class="com-tile" id="tile-ofertas" data-vista="ofertas" style="display:none"><span class="com-tile-t">Ofertas destacadas</span><span class="com-tile-d">Los mayores descuentos de tu ciudad.</span><span class="com-tile-go">Ver más</span></button>
  <button type="button" class="com-tile" id="tile-recomendado" data-vista="recomendado" style="display:none"><span class="com-tile-t">Recomendado para ti</span><span class="com-tile-d">Artículos según lo que más has visto.</span><span class="com-tile-go">Ver más</span></button>
  <button type="button" class="com-tile" id="tile-temporada" data-vista="temporada" style="display:none"><span class="com-tile-t">Temporada</span><span class="com-tile-d" id="tile-temporada-desc">Artículos para esta fecha.</span><span class="com-tile-go">Ver más</span></button>
  <button type="button" class="com-tile" id="btn-ver-fundaciones"><span class="com-tile-t">Ver refugios</span><span class="com-tile-d">Dona artículos a un refugio o fundación.</span><span class="com-tile-go">Entrar</span></button>
  <a href="vendedor.html" class="com-tile"><span class="com-tile-t">Mi cuenta de vendedor</span><span class="com-tile-d">Administra tu tienda y tus productos.</span><span class="com-tile-go">Abrir</span></a>
+ </div>
+ <div class="m-hero-dots" id="com-dots" aria-hidden="true"></div>
  </div>
  </div>
 
