@@ -4176,26 +4176,5 @@ window.verResenasVendedor = function (data, titulo) {
   document.body.appendChild(ov);
 };
 
-(() => {
-  // Android calcula el color de los iconos de la barra de sistema (estado y navegación) cuando
-  // cambia el <meta theme-color>. Si al cargar la meta ya trae el valor correcto no hay cambio y
-  // los botones quedan blancos sobre blanco. Por eso se recrea la meta (con un valor intermedio
-  // primero) al cargar y cada vez que cambia el tema.
-  const colorTema = () => document.documentElement.dataset.theme === 'dark' ? '#1e2128' : '#ffffff';
-  const poner = (color) => {
-    document.querySelectorAll('meta[name="theme-color"]').forEach(m => m.remove());
-    const m = document.createElement('meta');
-    m.name = 'theme-color';
-    m.content = color;
-    document.head.appendChild(m);
-  };
-  const aplicar = () => {
-    const c = colorTema();
-    poner(c === '#ffffff' ? '#fefefe' : '#1e2129');
-    requestAnimationFrame(() => poner(colorTema()));
-  };
-  aplicar();
-  window.addEventListener('load', () => setTimeout(aplicar, 150));
-  window.addEventListener('pageshow', (e) => { if (e.persisted) aplicar(); });
-  new MutationObserver(aplicar).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
-})();
+// theme-color: el HTML trae #1e2128 (fija la barra de botones de abajo); aquí solo se cambia la barra de arriba según el tema.
+(()=>{const f=()=>{const m=document.querySelector('meta[name=theme-color]');if(m)m.content=document.documentElement.dataset.theme==='dark'?'#1e2128':'#ffffff'};f();new MutationObserver(f).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']})})();
