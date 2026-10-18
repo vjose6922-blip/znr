@@ -121,6 +121,11 @@ function getCacheStrategy(request) {
   // seguir sirviendo la copia vieja varios minutos incluso con
   // {cache:'reload'}. NETWORK_FIRST_FRESH agrega un parámetro que cambia
   // en cada intento para forzar que Fastly vaya siempre a origen.
+  // El manifest SIEMPRE por red: Chrome lo relee para actualizar la app instalada (WebAPK:
+  // theme_color/background_color → colores de la barra de estado y de la barra de botones
+  // de Android). Con CACHE_FIRST se quedaba para siempre la primera copia y la app instalada
+  // nunca recibía los colores nuevos.
+  if (request.destination === 'manifest' || url.pathname.endsWith('/manifest.json')) return 'NETWORK_FIRST_FRESH';
   if (['document','script'].includes(request.destination)) return 'NETWORK_FIRST_FRESH';
   if (request.destination === 'style') return 'STALE_WHILE_REVALIDATE';
   return 'CACHE_FIRST';
