@@ -4189,22 +4189,7 @@ window.verResenasVendedor = function (data, titulo) {
     m.content = color;
     document.head.appendChild(m);
   };
-  // Manifest claro/oscuro: Android toma de ahí el color de la barra de botones. Se intercambia
-  // el <link rel="manifest"> según el tema (lo aplica el navegador cuando revisa el manifest).
-  const ponerManifest = () => {
-    const link = document.querySelector('link[rel="manifest"]');
-    if (!link) return;
-    const base = (link.dataset.base || link.getAttribute('href')).replace('manifest-dark.json', 'manifest.json');
-    const href = document.documentElement.dataset.theme === 'dark' ? base.replace('manifest.json', 'manifest-dark.json') : base;
-    if (link.getAttribute('href') === href) return;
-    const nuevo = document.createElement('link');
-    nuevo.rel = 'manifest';
-    nuevo.href = href;
-    nuevo.dataset.base = base;
-    link.replaceWith(nuevo);
-  };
   const aplicar = () => {
-    ponerManifest();
     const c = colorTema();
     poner(c === '#ffffff' ? '#fefefe' : '#1e2129');
     requestAnimationFrame(() => poner(colorTema()));
