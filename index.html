@@ -494,7 +494,7 @@
 [data-theme="light"] .home-page .header-right { padding: 0; gap: 10px; }
 [data-theme="light"] .home-page .app-header .icon-button { width: 44px; height: 44px; background: #fff; color: var(--ix-ink); box-shadow: 0 4px 14px rgba(120, 60, 50, 0.12); }
 [data-theme="light"] .home-page .app-header .logo-touch-area { width: auto; height: auto; padding: 0 4px; border-radius: 0; background: none; box-shadow: none; color: var(--ix-ink); font: 700 38px/1 'ZNR Serif', Georgia, 'Times New Roman', serif; letter-spacing: -1px; }
-[data-theme="light"] .home-page .app-header .logo-mark span { color: var(--color-accent-solid); }
+[data-theme="light"] .home-page .app-header .logo-mark span { color: var(--color-accent-solid); font-family: Georgia, 'Times New Roman', serif; font-weight: 700; font-size: 0.92em; }
 
 /* Hero */
 [data-theme="light"] .home-page .hero-section { background: transparent; color: var(--ix-ink); text-align: left; padding: 6px 16px 0; margin-bottom: 20px; }
@@ -938,7 +938,7 @@
  }
 
  // Vendedor destacado: un vendedor verificado (Plan Plus) de la ciudad del comprador.
- // Se queda el mismo durante la sesión de la pestaña mientras siga con productos en stock.
+ // Cambia en cada carga de página; cada vendedor cuenta una sola vez (sin importar cuántos productos tenga).
  function pintarVendedorDestacado(lista) {
  const box = document.getElementById('featured-seller');
  if (!box) return;
@@ -949,13 +949,8 @@
  if (p.vendedor_plan === 'plus' && p.vendedor_uid && p.vendedor_nombre && !porVendedor.has(p.vendedor_uid)) porVendedor.set(p.vendedor_uid, p);
  });
  if (!porVendedor.size) { box.classList.remove('is-on'); box.innerHTML = ''; return; }
- let uid = '';
- try { uid = sessionStorage.getItem('znr_vendedor_destacado') || ''; } catch (e) {}
- if (!porVendedor.has(uid)) {
  const uids = Array.from(porVendedor.keys());
- uid = uids[Math.floor(Math.random() * uids.length)];
- try { sessionStorage.setItem('znr_vendedor_destacado', uid); } catch (e) {}
- }
+ const uid = uids[Math.floor(Math.random() * uids.length)];
  const p = porVendedor.get(uid);
  const nombre = String(p.vendedor_nombre);
  const iniciales = nombre.trim().split(/\s+/).map(w => w[0]).slice(0, 2).join('').toUpperCase();
