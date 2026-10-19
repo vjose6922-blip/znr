@@ -2701,15 +2701,9 @@ button > svg:only-child, .icon-button svg { margin-right: 0; }
 html { font-family: var(--font-body); -webkit-text-size-adjust: 100%; }
 button, input, select, textarea { font-family: inherit; }
 
-/* Encabezado: transparente sobre el degradado; se vuelve sólido al bajar (CSS puro, sin JS) */
-.app-header { background: transparent; border-bottom: 1px solid transparent; backdrop-filter: none; padding: 12px 16px 8px; }
-@keyframes znr-hdr-solid { to { background: var(--header-footer-bg); backdrop-filter: var(--hdr-solid-blur); border-bottom-color: var(--border-header); } }
-@supports (animation-timeline: scroll()) {
-  .app-header { animation: znr-hdr-solid linear both; animation-timeline: scroll(root block); animation-range: 0 70px; }
-}
-@supports not (animation-timeline: scroll()) {
-  .app-header { background: var(--header-footer-bg); backdrop-filter: blur(18px); border-bottom-color: var(--border-header); }
-}
+/* Encabezado: pinta el mismo degradado que la página (la franja de arriba), así nunca cambia de fondo:
+   en el tope se confunde con la página y al hacer scroll tapa el contenido sin estados ni JS (sin destellos) */
+.app-header { background: var(--page-bg); border-bottom: 0; backdrop-filter: none; padding: 12px 16px 8px; transition: none; }
 .header-left { min-width: 0; gap: 10px; }
 .header-text { min-width: 0; }
 .header-right { padding: 0; gap: 10px; }
