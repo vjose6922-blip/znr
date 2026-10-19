@@ -198,7 +198,13 @@
   // ────────────────────────────────────────────────────────────────
   //  PARTE 3 · UI (botón + panel + chat)
   // ────────────────────────────────────────────────────────────────
-  const ESTADO = { abierto: false, historial: [] };
+  const ESTADO = {
+  abierto: false,
+  historial: [],
+  preguntasRespondidas: 0,
+  utilidadMostrada: false,
+  waVisible: false
+};
   let $panel, $body, $input, $form;
 
   const CSS = `
@@ -295,14 +301,34 @@
     flex-shrink: 0;
   }
   .asistente-wa {
-    display: flex; align-items: center; justify-content: center; gap: 8px;
-    width: 100%; padding: 10px; border-radius: 12px;
-    background: rgba(37,211,102,.12); color: #25D366;
-    border: 1px solid rgba(37,211,102,.35);
-    font-size: 13px; font-weight: 600;
-    cursor: pointer; text-decoration: none; margin-bottom: 8px;
-    font-family: inherit;
-  }
+  display: none;                    /* ← oculto por defecto */
+  align-items: center; justify-content: center; gap: 8px;
+  width: 100%; padding: 10px; border-radius: 12px;
+  background: rgba(37,211,102,.12); color: #25D366;
+  border: 1px solid rgba(37,211,102,.35);
+  font-size: 13px; font-weight: 600;
+  cursor: pointer; text-decoration: none; margin-bottom: 8px;
+  font-family: inherit;
+}
+.asistente-wa.visible { display: flex; }   /* ← se revela aquí */
+
+/* Chips de "¿Te resultó útil?" */
+.asistente-utility-chips {
+  display: flex; gap: 8px; align-self: flex-start; flex-wrap: wrap;
+}
+.asistente-utility-chip {
+  padding: 8px 16px; border-radius: 999px; font-size: 13px; font-weight: 600;
+  border: 1px solid rgba(128,128,128,.3); background: rgba(128,128,128,.08);
+  color: inherit; cursor: pointer; font-family: inherit;
+  transition: background .15s, border-color .15s;
+}
+.asistente-utility-chip.yes:hover { background: rgba(34,197,94,.15);  border-color: rgba(34,197,94,.4); }
+.asistente-utility-chip.no:hover  { background: rgba(239,68,68,.15);  border-color: rgba(239,68,68,.4); }
+
+@keyframes asst-pulse {
+  0%, 100% { transform: scale(1);    box-shadow: 0 0 0 0  rgba(37,211,102,.4); }
+  50%      { transform: scale(1.02); box-shadow: 0 0 0 8px rgba(37,211,102,0);  }
+}
   .asistente-form { display: flex; gap: 8px; }
   .asistente-input {
     flex: 1; padding: 11px 14px; border-radius: 999px;
@@ -428,12 +454,13 @@
   }
 
   function responderCon(entrada) {
-    addMsg(entrada.q, 'user');
-    setTimeout(() => {
-      addMsg(entrada.a, 'bot');
-      const relacionadas = ZNR_FAQ.entradas
-        .filter(e => e.c === entrada.c && e.q !== entrada.q)
-        .slice(0, 3);
+  addMsg(entrada.q, 'user');
+  setTimeout(() => {
+    addMsg(entrada.a, 'bot');
+    registrarRespuesta();                 // ← NUEVA LÍNEA
+    const relacionadas = ZNR_FAQ.entradas
+      .filter(e => e.c === entrada.c && e.q !== entrada.q)
+      .slice(0, 3);
       const chips = [{ label: '↩ Volver a categorías', cat: true, onClick: mostrarBienvenida }];
       relacionadas.forEach(e => chips.push({ label: e.q, onClick: () => responderCon(e) }));
       addChips(chips);
@@ -453,6 +480,7 @@
       typing.remove();
       if (!resultados.length) {
         addMsg('No encontré una respuesta exacta. Prueba con otras palabras, revisa las categorías, o escríbenos por WhatsApp.', 'bot');
+        mostrarWhatsAppBtn(); 
         addChips([
           { label: '↩ Ver categorías', cat: true, onClick: mostrarBienvenida },
           { label: '💬 Hablar con una persona', cat: true, onClick: abrirWhatsApp }
@@ -463,6 +491,7 @@
       const score2 = resultados[1] ? resultados[1]._score : 0;
       if (top._score >= 20 || top._score >= score2 * 1.8) {
         addMsg(top.a, 'bot');
+        registrarRespuesta();
         const otras = resultados.slice(1, 4);
         const chips = [{ label: '↩ Volver a categorías', cat: true, onClick: mostrarBienvenida }];
         if (otras.length) {
@@ -481,11 +510,100 @@
     }, 350);
   }
 
-  function abrirWhatsApp() {
-    const url = 'https://wa.me/' + ZNR_FAQ.wa + '?text=' +
-                encodeURIComponent('Hola, tengo una duda sobre Z&R');
-    window.open(url, '_blank', 'noopener');
+ function abrirWhatsApp() {
+  const origWa = document.querySelector('.floating-wa');
+
+  if (origWa) {
+    const href = (origWa.getAttribute('href') || '').trim();
+
+    // Caso 1: el backend ya seteó un href real (wa.me, api.whatsapp.com, etc.)
+    //         → abrirlo directamente. Es lo más confiable.
+    if (href && href !== '#' && !href.startsWith('javascript:')) {
+      window.open(href, '_blank', 'noopener');
+      return;
+    }
+
+    // Caso 2: el backend usa un click handler (addEventListener / onclick)
+    //         → disparar el click del elemento original para que corra su lógica.
+    //         Neutralizamos el href="#" con un preventDefault de captura
+    //         para no abrir about:blank.
+    const preventNav = (e) => e.preventDefault();
+    origWa.addEventListener('click', preventNav, { capture: true, once: true });
+
+    try {
+      origWa.click();
+      if (typeof origWa.onclick === 'function') {
+        try {
+          origWa.onclick(new MouseEvent('click', { bubbles: true, cancelable: true, view: window }));
+        } catch (_) {}
+      }
+    } catch (_) {}
+
+    return;
   }
+
+  // Caso 3: no existe .floating-wa (backend no cargó o lo removieron)
+  //         → fallback al número configurado en ZNR_FAQ.wa
+  const url = 'https://wa.me/' + ZNR_FAQ.wa + '?text=' +
+              encodeURIComponent('Hola, tengo una duda sobre Z&R');
+  window.open(url, '_blank', 'noopener');
+}
+
+
+// ── Utilidad y escalado a WhatsApp ───────────────────────────
+function registrarRespuesta() {
+  if (ESTADO.waVisible || ESTADO.utilidadMostrada) return;
+  ESTADO.preguntasRespondidas++;
+  if (ESTADO.preguntasRespondidas >= 3) {
+    setTimeout(mostrarPreguntaUtilidad, 500);
+  }
+}
+
+function mostrarPreguntaUtilidad() {
+  if (ESTADO.utilidadMostrada || ESTADO.waVisible) return;
+  ESTADO.utilidadMostrada = true;
+  addMsg('¿Te resultó útil el asistente?', 'bot');
+
+  const wrap = document.createElement('div');
+  wrap.className = 'asistente-utility-chips';
+
+  const yes = document.createElement('button');
+  yes.type = 'button';
+  yes.className = 'asistente-utility-chip yes';
+  yes.textContent = '👍 Sí, me sirvió';
+  yes.onclick = () => {
+    wrap.remove();
+    addMsg('¡Genial! Sigo aquí por si necesitas algo más.', 'bot');
+  };
+
+  const no = document.createElement('button');
+  no.type = 'button';
+  no.className = 'asistente-utility-chip no';
+  no.textContent = '👎 No, necesito ayuda';
+  no.onclick = () => {
+    wrap.remove();
+    addMsg('Entiendo. Te conecto con una persona del equipo Z&R para ayudarte mejor.', 'bot');
+    mostrarWhatsAppBtn();
+  };
+
+  wrap.appendChild(yes);
+  wrap.appendChild(no);
+  $body.appendChild(wrap);
+  $body.scrollTop = $body.scrollHeight;
+}
+
+function mostrarWhatsAppBtn() {
+  if (ESTADO.waVisible) return;
+  ESTADO.waVisible = true;
+  const waBtn = $panel.querySelector('.asistente-wa');
+  if (waBtn) {
+    waBtn.classList.add('visible');
+    waBtn.style.animation = 'none';
+    void waBtn.offsetWidth;             // reinicia la animación
+    waBtn.style.animation = 'asst-pulse 1.2s ease 2';
+  }
+}
+  
 
   // ── Abrir / cerrar ───────────────────────────────────────────
   function abrir() {
@@ -504,41 +622,42 @@
 
   // ── Instalación ──────────────────────────────────────────────
   function instalar() {
-    if (document.getElementById('floating-asistente-btn')) return;
-    inyectarCSS();
+  if (window._znrAsistenteInstalado) return;
+  window._znrAsistenteInstalado = true;
 
-    // Reemplaza el .floating-wa existente (o crea el botón si no hay)
-    const waBtn = document.querySelector('.floating-wa');
-    const btn = crearBoton();
-    if (waBtn && waBtn.parentNode) waBtn.replaceWith(btn);
-    else document.body.appendChild(btn);
-    btn.addEventListener('click', abrir);
+  inyectarCSS();
 
-    // Panel
-    $panel = crearPanel();
-    $body  = $panel.querySelector('#asistente-body');
-    $input = $panel.querySelector('#asistente-input');
-    $form  = $panel.querySelector('#asistente-form');
+  // Usa el botón del HTML si existe; si no, lo crea (y reemplaza el viejo .floating-wa)
+ let btn = document.getElementById('floating-asistente-btn');
+if (!btn) {
+  btn = crearBoton();
+  document.body.appendChild(btn);   // ← SIEMPRE añadir, NUNCA reemplazar .floating-wa
+}
+btn.addEventListener('click', abrir);
 
-    // Href del link de WhatsApp de respaldo
-    $panel.querySelector('.asistente-wa').href =
-      'https://wa.me/' + ZNR_FAQ.wa + '?text=' +
-      encodeURIComponent('Hola, tengo una duda sobre Z&R');
+  $panel = crearPanel();
+  $body  = $panel.querySelector('#asistente-body');
+  $input = $panel.querySelector('#asistente-input');
+  $form  = $panel.querySelector('#asistente-form');
 
-    // Eventos
-    $panel.addEventListener('click', e => { if (e.target === $panel) cerrar(); });
-    $panel.querySelector('.asistente-close').addEventListener('click', cerrar);
-    $form.addEventListener('submit', e => {
-      e.preventDefault();
-      const q = $input.value.trim();
-      if (!q) return;
-      $input.value = '';
-      procesarBusqueda(q);
-    });
-    document.addEventListener('keydown', e => {
-      if (e.key === 'Escape' && ESTADO.abierto) cerrar();
-    });
-  }
+  // Href del link de WhatsApp de respaldo (oculto por defecto)
+  $panel.querySelector('.asistente-wa').href =
+    'https://wa.me/' + ZNR_FAQ.wa + '?text=' +
+    encodeURIComponent('Hola, tengo una duda sobre Z&R');
+
+  $panel.addEventListener('click', e => { if (e.target === $panel) cerrar(); });
+  $panel.querySelector('.asistente-close').addEventListener('click', cerrar);
+  $form.addEventListener('submit', e => {
+    e.preventDefault();
+    const q = $input.value.trim();
+    if (!q) return;
+    $input.value = '';
+    procesarBusqueda(q);
+  });
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && ESTADO.abierto) cerrar();
+  });
+}
 
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', instalar);
