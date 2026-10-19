@@ -620,31 +620,42 @@ function mostrarWhatsAppBtn() {
     document.body.style.overflow = '';
   }
 
-  // ── Instalación ──────────────────────────────────────────────
-  function instalar() {
+ // ── Instalación ──────────────────────────────────────────────
+function instalar() {
   if (window._znrAsistenteInstalado) return;
   window._znrAsistenteInstalado = true;
 
   inyectarCSS();
 
-  // Usa el botón del HTML si existe; si no, lo crea (y reemplaza el viejo .floating-wa)
- let btn = document.getElementById('floating-asistente-btn');
-if (!btn) {
-  btn = crearBoton();
-  document.body.appendChild(btn);   // ← SIEMPRE añadir, NUNCA reemplazar .floating-wa
-}
-btn.addEventListener('click', abrir);
+  // Usa el botón del HTML si existe; si no, lo crea.
+  // ⚠️ NUNCA reemplaza .floating-wa — el backend lo necesita intacto.
+  let btn = document.getElementById('floating-asistente-btn');
+  if (!btn) {
+    btn = crearBoton();
+    document.body.appendChild(btn);
+  }
+  btn.addEventListener('click', abrir);
 
   $panel = crearPanel();
   $body  = $panel.querySelector('#asistente-body');
   $input = $panel.querySelector('#asistente-input');
   $form  = $panel.querySelector('#asistente-form');
 
-  // Href del link de WhatsApp de respaldo (oculto por defecto)
-  $panel.querySelector('.asistente-wa').href =
-    'https://wa.me/' + ZNR_FAQ.wa + '?text=' +
-    encodeURIComponent('Hola, tengo una duda sobre Z&R');
+  // ── Botón verde "Hablar con una persona" ─────────────────
+  // NO usar href fijo. Cada click pasa por abrirWhatsApp(), que:
+  //   1) Lee el href real de .floating-wa (lo setea el backend)
+  //   2) Si no hay href, dispara el .click() del original
+  //   3) Si no existe, cae al número de respaldo ZNR_FAQ.wa
+  const waLink = $panel.querySelector('.asistente-wa');
+  waLink.removeAttribute('href');
+  waLink.style.cursor = 'pointer';
+  waLink.addEventListener('click', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    abrirWhatsApp();
+  });
 
+  // ── Listeners del panel ──────────────────────────────────
   $panel.addEventListener('click', e => { if (e.target === $panel) cerrar(); });
   $panel.querySelector('.asistente-close').addEventListener('click', cerrar);
   $form.addEventListener('submit', e => {
@@ -659,12 +670,11 @@ btn.addEventListener('click', abrir);
   });
 }
 
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', instalar);
-  } else {
-    instalar();
-  }
-
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', instalar);
+} else {
+  instalar();
+}
   // Exponer por si se necesita abrir por código
   window.abrirAsistenteZNR = abrir;
 })();
