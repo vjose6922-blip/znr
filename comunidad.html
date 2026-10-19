@@ -107,11 +107,9 @@
  text-align: left;
  color: var(--ink-title);
  }
- .community-hero h1 { margin: 6px 0 8px; font-size: 1.8rem; }
  .community-hero p { margin: 0 0 16px; opacity: 0.9; }
 
  /* ── Banner (igual que el hero de index): una tarjeta a la vez, avanza sola cada 6 s ── */
- .community-hero h1 { margin: 6px 0 14px; font-family: var(--font-display); font-weight: 700; font-size: 2rem; line-height: 1.1; letter-spacing: -0.5px; color: var(--ink-title); }
  .community-hero .m-hero { margin: 0 0 4px; }
  .com-tiles { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; overscroll-behavior-x: contain; scrollbar-width: none; text-align: left; }
  .com-tiles::-webkit-scrollbar { display: none; }
@@ -491,7 +489,7 @@
  <div class="loader-text">Cargando comunidad...</div>
  </div>
 
- <header class="app-header">
+ <header class="app-header app-header--titled">
  <div class="header-left">
  <div class="logo-touch-area logo-wordmark" id="secret-logo" onclick="location.href='index.html'" style="cursor:pointer;">
  <span class="logo-mark">Z<span class="znr-amp">&amp;</span>R</span>
@@ -508,7 +506,6 @@
  </header>
 
  <div class="community-hero">
- <h1>Z<span class="znr-amp">&amp;</span>R Comunidad</h1>
   <div class="m-hero" id="com-hero">
  <div class="com-tiles" role="list" aria-label="Qué encontrar en Comunidad">
  <button type="button" class="com-tile" id="tile-ofertas" data-vista="ofertas" style="display:none"><span class="com-tile-t">Ofertas destacadas</span><span class="com-tile-d">Los mayores descuentos de tu ciudad.</span><span class="com-tile-go">Ver más</span></button>

@@ -441,14 +441,11 @@
    ═══════════════════════════════════════════════════════════════ */
 
 /* Encabezado del home: el logo (wordmark serif) vive en styles.css (.logo-wordmark) y es el mismo en todas las páginas */
-.home-page .header-text { display: none; }
+.home-page .app-header .app-title { white-space: normal; line-height: 1.05; text-wrap: balance; }
 
 /* Hero */
 .home-page .hero-section { background: transparent; color: var(--ink-title); text-align: left; padding: 6px 16px 0; margin-bottom: 20px; }
-.home-page .hero-title { font-family: var(--font-display); font-weight: 700; font-size: 2.2rem; line-height: 1.1; letter-spacing: -0.5px; margin: 6px 0; color: var(--ink-title); }
-.home-page .hero-sub { display: flex; align-items: center; gap: 6px; margin: 0 0 16px; font-size: 1rem; color: var(--color-text-muted); }
-.home-page .hero-sub svg { color: var(--color-accent-solid); }
-.home-page .hero-buttons { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.home-page .hero-buttons { margin-top: 10px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
 .home-page .hero-buttons .hero-btn { display: flex; align-items: center; justify-content: center; gap: 6px; padding: 14px 6px; border-radius: 18px; font-size: 0.8rem; line-height: 1.15; text-align: center; background: var(--ghost-bg); color: var(--ghost-text); border: 1px solid var(--ghost-border); box-shadow: var(--ghost-shadow); }
 .home-page .hero-buttons .hero-btn svg { display: block; flex-shrink: 0; margin: 0; color: var(--color-accent-solid); }
 .home-page .hero-buttons .hero-btn-primary { background: var(--gradient-accent); color: #fff; border-color: transparent; box-shadow: 0 10px 22px rgba(var(--color-accent-rgb), 0.32); }
@@ -514,13 +511,13 @@
 
  
 
- <header class="app-header">
+ <header class="app-header app-header--titled">
  <div class="header-left">
  <div class="logo-touch-area logo-wordmark" id="secret-logo" onclick="location.href='index.html'" style="cursor:pointer;">
  <span class="logo-mark">Z<span class="znr-amp">&amp;</span>R</span>
  </div>
  <div class="header-text">
- <h1 class="app-title">Inicio</h1>
+ <h1 class="app-title">Descubre lo nuevo</h1>
  <p class="app-subtitle"></p>
  </div>
  </div>
@@ -531,8 +528,6 @@
  </header>
 
  <section class="hero-section">
- <h1 class="hero-title" data-anim="up">Descubre lo nuevo</h1>
- <p class="hero-sub" data-anim="up">Tendencias frescas, estilos únicos. <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" aria-hidden="true"><use href="#ic-heart-fill"/></svg></p>
  <div class="hero-buttons" data-anim="up">
  <a href="catalogo.html" class="hero-btn hero-btn-primary" data-anim="shine"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" aria-hidden="true"><use href="#ic-grid"/></svg>Ver Catálogo</a>
  <a href="outfit.html" class="hero-btn hero-btn-secondary"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" aria-hidden="true"><use href="#ic-outfit"/></svg>Crear Outfit</a>

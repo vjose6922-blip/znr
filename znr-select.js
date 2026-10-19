@@ -193,6 +193,19 @@
     if (prev && prev.classList.contains('znr-sel-btn') && !prev.__znrSel) prev.remove(); // solo botones copiados por clonación (los vivos tienen __znrSel y son de otro select)
     sel.classList.remove(REAL);
 
+    // Quitar botones huérfanos: algunas pantallas (p. ej. el catálogo) reemplazan un <select> por su clon
+    // para quitarle listeners. El <select> viejo sale del DOM pero su botón se quedaba, y el filtro salía duplicado.
+    var hermanos = sel.parentNode.children;
+    for (var h = hermanos.length - 1; h >= 0; h--) {
+      var b = hermanos[h];
+      if (b.classList && b.classList.contains('znr-sel-btn') && b.__znrSel && !b.__znrSel.isConnected) {
+        var viejo = b.__znrSel;
+        if (viejo.__znr && viejo.__znr.obs) viejo.__znr.obs.disconnect();
+        enhanced.delete(viejo);
+        b.remove();
+      }
+    }
+
     var btn = document.createElement('button');
     btn.type = 'button';
     btn.className = 'znr-sel-btn';
