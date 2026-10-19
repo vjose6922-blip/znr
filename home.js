@@ -2,8 +2,8 @@
 'use strict';
 window.allProducts = window.allProducts || [];
 const CATEGORIES = [
-{ name: 'Caballero', icon: 'shirt', filter: 'HOMBRE', url: 'catalogo.html?gender=HOMBRE' },
-{ name: 'Dama', icon: 'dress', filter: 'MUJER', url: 'catalogo.html?gender=MUJER' }
+{ name: 'Caballero', sub: 'Estilo y comodidad', icon: 'shirt', filter: 'HOMBRE', url: 'catalogo.html?gender=HOMBRE' },
+{ name: 'Dama', sub: 'Elegancia actual', icon: 'dress', filter: 'MUJER', url: 'catalogo.html?gender=MUJER' }
 ];
 const GENDER_BY_CATEGORY = {
 'Playeras': 'HOMBRE',
@@ -75,12 +75,21 @@ looksContainer.innerHTML = `
 function renderCategories() {
 const container = document.getElementById('categories-grid');
 if (!container) return;
-container.innerHTML = CATEGORIES.map(cat => `
-<a href="${cat.url}" class="category-card">
+container.innerHTML = CATEGORIES.map(cat => {
+const img = categoryImage(cat.filter);
+return `
+<a href="${cat.url}" class="category-card" data-g="${cat.filter}">
+<span class="category-media">${img ? `<img src="${escapeHtml(img)}" alt="" loading="lazy" onerror="this.remove()">` : Icon(cat.icon, { size: 26 })}</span>
+<span class="category-text"><span class="category-name">${cat.name}</span><span class="category-sub">${cat.sub}</span></span>
 <span class="category-icon">${Icon(cat.icon, { size: 34 })}</span>
-<span class="category-name">${cat.name}</span>
 </a>
-`).join('');
+`;
+}).join('');
+}
+// Foto de la categoría: un producto con stock del catálogo para ese género (si ya cargó)
+function categoryImage(filter) {
+const p = (window.allProducts || []).find(x => GENDER_BY_CATEGORY[x.Categoria] === filter && Number(x.Stock) > 0 && x.Imagen1);
+return p ? optimizeDriveUrl(p.Imagen1, 200) : '';
 }
 function renderFeaturedProducts() {
 const container = document.getElementById('featured-products');
@@ -115,7 +124,7 @@ const stockLabel = !hasStock
 ? `<span style="color:var(--color-error,#ef4444);font-size:11px;font-weight:600;">Sin stock</span>`
 : stockNum <= 3
 ? `<span style="color:var(--color-warning,#f97316);font-size:11px;">Últimas ${stockNum}</span>`
-: `<span style="color:var(--color-success,#22c55e);font-size:11px;">En stock</span>`;
+: `<span style="color:var(--color-success,#22c55e);font-size:11px;display:inline-flex;align-items:center;gap:5px;"><i style="width:7px;height:7px;border-radius:50%;background:currentColor;display:inline-block;"></i>En stock (${stockNum})</span>`;
 const genderRaw = (GENDER_BY_CATEGORY[product.Categoria] || '').toLowerCase();
 const genderLabel = genderRaw === 'hombre' ? ' Caballero' : genderRaw === 'mujer' ? ' Dama' : '';
 const sizesHtml = product.Talla
