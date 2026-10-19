@@ -1943,7 +1943,8 @@ if (!data || !data.ok) {
 }
     
     if (!data.ok) throw new Error(data.error || 'Error del servidor');
-    const beneficiarios = data.beneficiarios || [];
+    // Fundaciones con la cuenta suspendida no se muestran (el backend tampoco deja asignarles donaciones).
+    const beneficiarios = (data.beneficiarios || []).filter(b => !b.suspendido);
     beneficiariosCargados = true;
     if (beneficiarios.length === 0) {
       grid.innerHTML = '<div style="grid-column:1/-1; text-align:center; padding:40px; color:#888;">Aún no hay fundaciones aprobadas.</div>';
