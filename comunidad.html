@@ -100,32 +100,29 @@
   }
 
   .community-hero {
- background: linear-gradient(135deg, #1a0f2e 0%, #3b1f5f 50%, var(--color-accent-solid) 100%);
+ background: transparent;
  border-radius: 0;
- margin-bottom: 24px;
- padding: 10px 10px;
- text-align: center;
- color: white;
+ margin-bottom: 20px;
+ padding: 6px 16px 0;
+ text-align: left;
+ color: var(--ink-title);
  }
- [data-theme="light"] .community-hero {
- background: linear-gradient(135deg, #ff9f6e 0%, #ff7a4f 50%, var(--color-accent-solid) 100%);
- }
- .community-hero h1 { margin: 0 0 8px; font-size: 1.8rem; }
+ .community-hero h1 { margin: 6px 0 8px; font-size: 1.8rem; }
  .community-hero p { margin: 0 0 16px; opacity: 0.9; }
 
  /* ── Banner (igual que el hero de index): una tarjeta a la vez, avanza sola cada 6 s ── */
- .community-hero h1 { margin: 0 0 10px; font-size: 1.5rem; }
- .community-hero .m-hero { margin: 0 4px 4px; }
+ .community-hero h1 { margin: 6px 0 14px; font-family: var(--font-display); font-weight: 700; font-size: 2rem; line-height: 1.1; letter-spacing: -0.5px; color: var(--ink-title); }
+ .community-hero .m-hero { margin: 0 0 4px; }
  .com-tiles { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; overscroll-behavior-x: contain; scrollbar-width: none; text-align: left; }
  .com-tiles::-webkit-scrollbar { display: none; }
  .com-tile {
  flex: 0 0 100%; box-sizing: border-box; scroll-snap-align: center; scroll-snap-stop: always;
  display: flex; flex-direction: column; gap: 6px; padding: 20px 20px 36px;
- background: none; color: #1f2430; border: none; border-radius: 0;
+ background: none; color: var(--color-text-main); border: none; border-radius: 0;
  font-family: inherit; text-align: left; text-decoration: none; cursor: pointer;
  }
- .com-tile-t { font-size: 17px; font-weight: 700; color: #1f2430; }
- .com-tile-d { font-size: 13.5px; line-height: 1.45; color: #5b6170; }
+ .com-tile-t { font-size: 17px; font-weight: 700; color: var(--color-text-main); }
+ .com-tile-d { font-size: 13.5px; line-height: 1.45; color: var(--color-text-muted); }
  .com-tile-go { margin-top: 4px; font-size: 13px; font-weight: 700; color: var(--color-accent-solid); }
  .com-tile-go::after { content: " \2192"; }
 
@@ -487,7 +484,7 @@
  }
  </style>
 </head>
-<body class="theme-aeromexico">
+<body class="theme-aeromexico grad-strong">
 
  <div id="global-loader" class="global-loader hidden">
  <div class="loader-spinner"></div>

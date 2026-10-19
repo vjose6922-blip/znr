@@ -74,7 +74,14 @@
     .vp-l3{height:22px;width:80px;border-radius:20px}
  html[data-vsess] #bottom-nav-guest { display: none !important; }
  html[data-vsess] #bottom-nav-vendor { display: flex !important; }
- </style>
+ 
+  /* Tema: la tarjeta de plan y los filtros se arman en vendedor-unificado.js con colores fijos (#f8f8fc, #000) */
+  [style*="background:#f8f8fc"] { background: var(--color-surface-2) !important; color: var(--color-text-main) !important; }
+  [style*="background:#f8f8fc"] [style*="color:#000"] { color: var(--color-text-main) !important; }
+  [style*="background:#e6e6ee"] { background: var(--color-surface-3) !important; }
+  .filter-status-btn:not(.active) { color: var(--color-text-main) !important; border-color: var(--color-border) !important; }
+  #vendor-search { background: var(--color-surface); color: var(--color-text-main); border-color: var(--color-border) !important; }
+</style>
 <link rel="preload" href="styles.css" as="style">
  <link rel="stylesheet" href="styles.css">
  <style>
@@ -268,7 +275,7 @@ h3 {
  #panel-section .product-actions .btn-secondary { flex: 1 1 auto; min-width: 0; padding: 8px 10px; text-align: center; }
  </style>
 </head>
-<body class="theme-aeromexico">
+<body class="theme-aeromexico grad-strong">
 
  <div id="global-loader" class="global-loader hidden">
  <div class="loader-spinner"></div>
