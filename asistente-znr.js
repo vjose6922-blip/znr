@@ -1,17 +1,18 @@
 // asistente-znr.js — Asistente de FAQs de Z&R (autocontenido, sin backend)
 //
 // ────────────────────────────────────────────────────────────────────
+// ────────────────────────────────────────────────────────────────────
 //  PARTE 1 · DATOS
 //  Para agregar preguntas: añade objetos a `entradas` con la forma
 //  { c:'categoría', q:'pregunta', a:'respuesta' }.
-//  Para cambiar el número de WhatsApp de respaldo: edita `wa`.
+//  El número de WhatsApp NO está aquí: lo resuelve el backend y se
+//  aplica al <a class="floating-wa"> oculto (contacto_admin en RTDB).
 // ────────────────────────────────────────────────────────────────────
 (function () {
   'use strict';
 
   // ── Datos ─────────────────────────────────────────────────────
   const ZNR_FAQ = {
-    wa: '528671781272', // WhatsApp de soporte (sin + ni espacios)
     categorias: [
       { id: 'general',   label: 'General',         emoji: 'ℹ️' },
       { id: 'comprador', label: 'Comprar',          emoji: '🛒' },
@@ -480,8 +481,9 @@
 
     setTimeout(() => {
       typing.remove();
-      if (!resultados.length) {
-  addMsg('No encontré una respuesta exacta...', 'bot');
+        if (!resultados.length) {
+  addMsg('No encontré una respuesta exacta. Prueba con otras palabras, revisa las categorías, o escríbenos por WhatsApp.', 'bot');
+   window._znrContextoWA = query;        
   mostrarWhatsAppBtn();
   addChips([
     { label: '↩ Ver categorías', cat: true, onClick: mostrarBienvenida },
@@ -548,8 +550,8 @@ function abrirWhatsApp(contexto) {
   if (origWa) {
     const href = (origWa.getAttribute('href') || '').trim();
 
-    // Caso 1: el backend ya seteó un href real → extraemos su número
-    //          y reconstruimos con NUESTRO mensaje.
+    // Caso 1: el backend ya seteó un href real (contacto_admin en RTDB)
+    //         → extraemos su número y reconstruimos con NUESTRO mensaje.
     if (href && href !== '#' && !href.startsWith('javascript:')) {
       const phone = extraerTelefono(href);
       if (phone) {
@@ -576,8 +578,17 @@ function abrirWhatsApp(contexto) {
     return;
   }
 
-  // Caso 3: no existe .floating-wa → fallback al número de ZNR_FAQ
-  window.open(`https://wa.me/${ZNR_FAQ.wa}?text=${msg}`, '_blank', 'noopener');
+  // Caso 3: no existe .floating-wa (el frontend aún no leyó contacto_admin
+  //         o falló la sincronización). En vez de abrir una URL rota,
+  //         avisamos en el propio chat con el correo de soporte.
+  addMsg(
+    'No pude abrir WhatsApp automáticamente en este momento. Escríbenos a znrcomunity@gmail.com y te ayudamos con tu caso.',
+    'bot'
+  );
+  addChips([
+    { label: '↩ Volver a categorías', cat: true, onClick: mostrarBienvenida }
+  ]);
+  return;
 }
 
 
