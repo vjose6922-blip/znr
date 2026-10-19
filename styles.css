@@ -2748,3 +2748,21 @@ div[style*="z-index: 10001"][style*="position: fixed"] { background: var(--color
 /* --color-bg-secondary se usaba (vendedor.html) sin estar definido: caía en un lavanda fijo */
 :root { --color-bg-secondary: rgba(255,255,255,0.05); }
 [data-theme="light"] { --color-bg-secondary: #fbf5f2; }
+
+
+/* ═══════════════════════════════════════════════════════════════
+   LOGO DEL ENCABEZADO — wordmark serif, igual en todas las páginas
+   (antes vivía solo en index.html bajo .home-page).
+   El "&" de Playfair Display es muy ornamental y se lee raro: en
+   cualquier título serif se envuelve en <span class="znr-amp">.
+   ═══════════════════════════════════════════════════════════════ */
+.app-header .logo-touch-area.logo-wordmark { width: auto; height: auto; padding: 0 4px; border-radius: 0; background: none; box-shadow: none; color: var(--ink-title); font: 700 38px/1 var(--font-display); letter-spacing: -1px; }
+.app-header .logo-touch-area.logo-wordmark:active { box-shadow: none; }
+.znr-amp { color: var(--color-accent-solid); font-family: Georgia, 'Times New Roman', serif; font-weight: 700; font-size: 0.92em; letter-spacing: 0; }
+
+/* Con wordmark el texto del encabezado se oculta (como en index)... */
+.app-header .logo-wordmark ~ .header-text { display: none; }
+/* ...salvo en páginas sin otro título en el cuerpo: ahí queda solo el título, sin subtítulo */
+.app-header--titled .logo-wordmark ~ .header-text { display: block; }
+.app-header--titled .header-text .app-subtitle { display: none; }
+.app-header--titled .header-text .app-title { font-size: clamp(1.05rem, 5vw, 1.35rem); }

@@ -440,10 +440,8 @@
    de styles.css (cada tema define los suyos); aquí solo la estructura del home.
    ═══════════════════════════════════════════════════════════════ */
 
-/* Encabezado del home: logo grande serif (el "&" va en otra tipografía) */
+/* Encabezado del home: el logo (wordmark serif) vive en styles.css (.logo-wordmark) y es el mismo en todas las páginas */
 .home-page .header-text { display: none; }
-.home-page .app-header .logo-touch-area { width: auto; height: auto; padding: 0 4px; border-radius: 0; background: none; box-shadow: none; color: var(--ink-title); font: 700 38px/1 var(--font-display); letter-spacing: -1px; }
-.home-page .app-header .logo-mark span { color: var(--color-accent-solid); font-family: Georgia, 'Times New Roman', serif; font-weight: 700; font-size: 0.92em; }
 
 /* Hero */
 .home-page .hero-section { background: transparent; color: var(--ink-title); text-align: left; padding: 6px 16px 0; margin-bottom: 20px; }
@@ -518,8 +516,8 @@
 
  <header class="app-header">
  <div class="header-left">
- <div class="logo-touch-area" id="secret-logo" onclick="location.href='index.html'" style="cursor:pointer;">
- <span class="logo-mark">Z<span>&amp;</span>R</span>
+ <div class="logo-touch-area logo-wordmark" id="secret-logo" onclick="location.href='index.html'" style="cursor:pointer;">
+ <span class="logo-mark">Z<span class="znr-amp">&amp;</span>R</span>
  </div>
  <div class="header-text">
  <h1 class="app-title">Inicio</h1>
@@ -581,7 +579,7 @@
  </section>
 
  <section class="home-comunidad-section">
- <h2 class="section-title" style="margin-bottom: 12px;">Comunidad Z&R</h2>
+ <h2 class="section-title" style="margin-bottom: 12px;">Comunidad Z<span class="znr-amp">&amp;</span>R</h2>
 
  <div style="text-align:center; margin-bottom: 10px;">
 
@@ -603,7 +601,7 @@
 </section>
 
 <section class="home-features">
- <h2 class="section-title" style="margin-bottom: 5px;">Otras formas de compra en Z&amp;R</h2>
+ <h2 class="section-title" style="margin-bottom: 5px;">Otras formas de compra en Z<span class="znr-amp">&amp;</span>R</h2>
  <p class="home-features-intro">Más que un catálogo: compra en vivo, compra articulos donados para apoyar una causa y sobre todo apoya a vendedores de tu ciudad.</p>
  <div class="home-features-grid">
  <article class="home-feature">
