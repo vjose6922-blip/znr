@@ -487,15 +487,38 @@
 .home-page .category-icon svg { width: 13px; height: 13px; margin: 0; }
 
 /* Tarjetas de producto (Destacados y Comunidad en el home) */
-.home-page :is(#featured-products, #home-comunidad-grid) .product-card { padding: 10px; gap: 8px; border-radius: 22px; background: var(--color-surface); }
-.home-page :is(#featured-products, #home-comunidad-grid) .product-slider { aspect-ratio: 1 / 1; border-radius: 16px; background: #fff; }
-.home-page :is(#featured-products, #home-comunidad-grid) .product-info { padding: 0 !important; }
-.home-page :is(#featured-products, #home-comunidad-grid) .product-title-row { flex-direction: column; align-items: flex-start; gap: 2px; }
-.home-page :is(#featured-products, #home-comunidad-grid) .product-name { font-size: 0.95rem !important; font-weight: 700; }
-.home-page :is(#featured-products, #home-comunidad-grid) .product-price { padding: 0; background: none; font-size: 1.15rem !important; color: var(--color-accent-solid); }
-.home-page :is(#featured-products, #home-comunidad-grid) .product-actions { margin-top: 4px !important; padding-top: 0; border-top: none; }
-.home-page :is(#featured-products, #home-comunidad-grid) .product-actions .primary-button { display: flex; align-items: center; justify-content: center; gap: 6px; width: 100%; padding: 11px 12px !important; border-radius: 999px; font-size: 0.9rem !important; }
-.home-page :is(#featured-products, #home-comunidad-grid) .product-badge { background: var(--gradient-accent); }
+.home-page :is(#featured-products, #home-comunidad-grid, #recent-products) .product-card { padding: 10px; gap: 8px; border-radius: 22px; background: var(--color-surface); }
+.home-page :is(#featured-products, #home-comunidad-grid, #recent-products) .product-slider { aspect-ratio: 1 / 1; border-radius: 16px; background: #fff; }
+.home-page :is(#featured-products, #home-comunidad-grid, #recent-products) .product-info { padding: 0 !important; }
+.home-page :is(#featured-products, #home-comunidad-grid, #recent-products) .product-title-row { flex-direction: column; align-items: flex-start; gap: 2px; }
+.home-page :is(#featured-products, #home-comunidad-grid, #recent-products) .product-name { font-size: 0.95rem !important; font-weight: 700; }
+.home-page :is(#featured-products, #home-comunidad-grid, #recent-products) .product-price { padding: 0; background: none; font-size: 1.15rem !important; color: var(--color-accent-solid); }
+.home-page :is(#featured-products, #home-comunidad-grid, #recent-products) .product-actions { margin-top: 4px !important; padding-top: 0; border-top: none; }
+.home-page :is(#featured-products, #home-comunidad-grid, #recent-products) .product-actions .primary-button { display: flex; align-items: center; justify-content: center; gap: 6px; width: 100%; padding: 11px 12px !important; border-radius: 999px; font-size: 0.9rem !important; }
+.home-page :is(#featured-products, #home-comunidad-grid, #recent-products) .product-badge { background: var(--gradient-accent); }
+
+/* ── Carruseles del home: las secciones de artículos se deslizan hacia los lados (máx. 10) ──
+   El tamaño de la tarjeta sigue la preferencia de vista:
+   · cuadrícula → tarjetas compactas (se ven ~2 a la vez)
+   · lista      → tarjetas grandes y completas (una a la vez, asoma la siguiente) */
+.home-page :is(#featured-products, #home-comunidad-grid, #recent-products, #home-looks-container).h-carousel.h-carousel {
+  display: flex !important; flex-direction: row !important; grid-template-columns: none !important;
+  gap: 12px !important; align-items: stretch;
+  overflow-x: auto; overflow-y: hidden; scroll-snap-type: x proximity; overscroll-behavior-x: contain;
+  -webkit-overflow-scrolling: touch; scrollbar-width: none;
+  width: 100%; max-width: none !important; min-height: 0 !important; margin: 0 !important;
+  padding: 4px 16px 16px !important; box-sizing: border-box; scroll-padding-inline: 16px; contain: none;
+}
+.home-page .h-carousel::-webkit-scrollbar { display: none; }
+.home-page .h-carousel > :is(.product-card, .recent-product-card, .skeleton-product-card, .look-card) { min-width: 0; margin: 0 !important; scroll-snap-align: start; }
+/* modo cuadrícula: compactas */
+.home-page .h-carousel.layout-grid > :is(.product-card, .recent-product-card, .skeleton-product-card) { flex: 0 0 clamp(150px, 44vw, 210px); }
+.home-page #home-looks-container.h-carousel.layout-grid > .look-card { flex: 0 0 clamp(210px, 62vw, 280px); max-width: none; height: auto; }
+/* modo lista: grandes, una a la vez */
+.home-page .h-carousel:not(.layout-grid) > :is(.product-card, .recent-product-card, .skeleton-product-card, .look-card) { flex: 0 0 min(calc(100% - 44px), 440px); max-width: none; }
+/* mensajes (cargando, error, vacío) y spinners ocupan todo el ancho */
+.home-page .h-carousel > :not(.product-card):not(.recent-product-card):not(.skeleton-product-card):not(.look-card) { flex: 1 0 100%; grid-column: auto; }
+.home-page .recent-products { padding: 0; max-width: none; text-align: left; }
 
 /* Otras secciones: mismos botones en degradado y tarjetas redondeadas */
 .home-page section:not(.hero-section) .hero-btn-primary { background: var(--gradient-accent); color: #fff; }
@@ -555,7 +578,7 @@
  <section>
   <div class="section-head"><h2 class="section-title">Productos Destacados</h2><a class="section-link" href="catalogo.html">Ver todos &rsaquo;</a></div>
   <div class="featured-products">
- <div class="products-container" id="featured-products" style="padding:0 8px;">
+ <div class="products-container h-carousel" id="featured-products">
 <div class="skeleton-product-card"><div class="sk-img shimmer"></div><div class="sk-body"><div class="sk-line sk-title shimmer"></div><div class="sk-line sk-price shimmer"></div><div class="sk-line sk-badge shimmer"></div></div></div>
 <div class="skeleton-product-card"><div class="sk-img shimmer"></div><div class="sk-body"><div class="sk-line sk-title shimmer"></div><div class="sk-line sk-price shimmer"></div><div class="sk-line sk-badge shimmer"></div></div></div>
 <div class="skeleton-product-card"><div class="sk-img shimmer"></div><div class="sk-body"><div class="sk-line sk-title shimmer"></div><div class="sk-line sk-price shimmer"></div><div class="sk-line sk-badge shimmer"></div></div></div>
@@ -570,7 +593,7 @@
  ¿No sabes qué combinar? Nosotros armamos tu outfit automáticamente según el clima y tus gustos.</p>
  <a href="outfit.html" class="hero-btn hero-btn-primary" style="display: inline-block; margin 10px; box-shadow: 0 15px 30px rgba(0,0,0,0.15);"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.348a1.125 1.125 0 010 1.971l-11.54 6.347a1.125 1.125 0 01-1.667-.985V5.653z"/></svg> Probar Ahora</a>
  <h2 style="font-size: 1.3rem; margin: 8px;">Looks basados en tus favoritos</h2>
- <div id="home-looks-container" style="min-height:280px;"></div>
+ <div id="home-looks-container" class="h-carousel"></div>
  </section>
 
  <section class="home-comunidad-section">
@@ -589,7 +612,7 @@
  <select id="home-comunidad-temporada" aria-label="Filtrar por festividad o temporada" class="comunidad-cat-select" style="max-width:260px;"></select>
  </div>
 
- <div class="products-container" id="home-comunidad-grid">
+ <div class="products-container h-carousel" id="home-comunidad-grid">
  <div style="grid-column:1/-1; text-align:center; padding:30px; color:#aaa;">Cargando...
  </div>
  </div>
@@ -625,9 +648,9 @@
  </section>
 
 <section>
-  <h2 class="section-title">Vistos Recientemente</h2>
+  <div class="section-head"><h2 class="section-title">Vistos Recientemente</h2></div>
   <div class="recent-products">
-    <div class="recent-scroll" id="recent-products"></div>
+    <div class="products-container h-carousel" id="recent-products"></div>
   </div>
 </section>
 
@@ -759,7 +782,7 @@
 <script>
 
 (function() {
- const PREVIEW_COUNT = 6;
+ const PREVIEW_COUNT = 10; // tope de cada carrusel del home
 
  function buildComunidadCard(p) {
  const esc  = typeof escapeHtml === 'function' ? escapeHtml : s =>String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));

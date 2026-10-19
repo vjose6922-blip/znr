@@ -104,7 +104,7 @@ const withoutBadge = featured.filter(p => !p.Badge);
 featured = [...withBadge, ...withoutBadge];
 // Reordenar según preferencia de tallas del usuario (si configuró alguna en el panel)
 if (typeof window.sortByUserSize === 'function') featured = window.sortByUserSize(featured);
-featured = featured.slice(0, 8);
+featured = featured.slice(0, 10);
 container.innerHTML = '';
 featured.forEach(product => {
 container.appendChild(createMiniProductCard(product));
@@ -197,7 +197,7 @@ if (product && product.Stock > 0 && product.Stock !== "0") {
 recentProducts.push(product);
 }
 }
-return recentProducts.slice(0, 8);
+return recentProducts.slice(0, 10);
 }
 function clearRecentProducts() {
 try {
@@ -209,9 +209,9 @@ function renderRecentProducts() {
   const container = document.getElementById('recent-products');
   if (!container) return;
 
-  const savedLayout = localStorage.getItem('products_layout') || 'list';
+  // Mismo estilo que Destacados y Comunidad: tarjeta de producto en carrusel (cuadrícula: compactas, lista: grandes)
+  const savedLayout = localStorage.getItem('products_layout') || 'grid';
   container.classList.toggle('layout-grid', savedLayout === 'grid');
-  container.classList.toggle('layout-list', savedLayout === 'list');
 
   if (!window.allProducts.length) {
     container.innerHTML = '<p style="text-align: center; color: var(--color-text-muted);">Cargando productos...</p>';
@@ -224,11 +224,6 @@ function renderRecentProducts() {
   if (section && !section.querySelector('.clear-recents-btn')) {
     const titleEl = section.querySelector('.section-title');
     if (titleEl) {
-      titleEl.style.display = 'flex';
-      titleEl.style.alignItems = 'center';
-      titleEl.style.justifyContent = 'center';
-      titleEl.style.gap = '12px';
-
       const clearBtn = document.createElement('button');
       clearBtn.className = 'clear-recents-btn';
       clearBtn.type = 'button';
@@ -248,7 +243,7 @@ function renderRecentProducts() {
       `;
 
       clearBtn.addEventListener('click', clearRecentProducts);
-      titleEl.appendChild(clearBtn);
+      (section.querySelector('.section-head') || titleEl).appendChild(clearBtn);
     }
   }
 if (recentProducts.length === 0) {
@@ -261,40 +256,8 @@ container.innerHTML = `
 `;
 return;
 }
-container.innerHTML = recentProducts.map(product => {
-const stockNum = Number(product.Stock || 0);
-const hasStock = stockNum > 0;
-const stockLabel = !hasStock
-? `<span style="color:var(--color-error,#ef4444);font-size:11px;">Sin stock</span>`
-: stockNum <= 3
-? `<span style="color:var(--color-warning,#f97316);font-size:11px;">Últimas ${stockNum}</span>`
-: `<span style="color:var(--color-success,#22c55e);font-size:11px;">En stock</span>`;
-const sizesHtml = product.Talla
-? `<div style="font-size:11px;color:var(--color-text-muted);margin-top:2px;">Tallas: ${escapeHtml(product.Talla)}</div>`
-: '';
-const genderRaw = (GENDER_BY_CATEGORY[product.Categoria] || '').toLowerCase();
-const genderLabel = genderRaw === 'hombre' ? ' Caballero' : genderRaw === 'mujer' ? ' Dama' : '';
-const shippingIcon = `<span title="Envío disponible" style="font-size:11px;color:var(--color-info,#3b82f6);"></span>`;
-const descHtml = product.Descripcion
-? `<div style="font-size:11px;color:var(--color-text-muted);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="${escapeHtml(product.Descripcion)}">${escapeHtml(product.Descripcion)}</div>`
-: '';
-return `
-<a href="catalogo.html#producto-${product.ID}" class="recent-product-card">
-<img class="recent-product-img" src="${optimizeDriveUrl(product.Imagen1 || product.Imagen2 || '', 200)}" alt="${escapeHtml(product.Nombre)}" loading="lazy" onerror="window.znrLoadImgWithRetry(this)">
-<div class="recent-product-info">
-<div class="recent-product-name">${escapeHtml(product.Nombre)}</div>
-${descHtml}
-<div class="recent-product-price">${formatCurrency(product.Precio)}</div>
-${sizesHtml}
-<div style="display:flex;align-items:center;gap:6px;margin-top:4px;flex-wrap:wrap;">
-${stockLabel}
-${genderLabel ? `<span style="font-size:11px;color:var(--color-text-muted);">${genderLabel}</span>` : ''}
-${shippingIcon}
-</div>
-</div>
-</a>
-`;
-}).join('');
+container.innerHTML = '';
+recentProducts.forEach(product => container.appendChild(createMiniProductCard(product)));
 }
 let homeLooksDelegated = false;
 async function generateHomeLooksFromWishlist() {
@@ -809,7 +772,6 @@ const container = document.getElementById('recent-products');
 if (!container) return;
 const isGrid = e.detail.layout === 'grid';
 container.classList.toggle('layout-grid', isGrid);
-container.classList.toggle('layout-list', !isGrid);
 });
 window.addEventListener('theme-toggle', () => {
 const themeBtn = document.getElementById('theme-toggle');
