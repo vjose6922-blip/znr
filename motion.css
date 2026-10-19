@@ -96,16 +96,16 @@ a.hero-btn, a.category-card { transition: transform var(--m-fast) var(--m-ease),
 }
 
 /* 9. Hero informativo: tarjetas blancas de texto, swipe nativo (scroll-snap) */
-.m-hero { position: relative; margin: 14px 4px 6px; border-radius: var(--radius-lg); overflow: hidden; background: #fff; box-shadow: var(--shadow-soft); text-align: left; }
+.m-hero { position: relative; margin: 14px 4px 6px; border-radius: var(--radius-lg); overflow: hidden; background: var(--color-surface); border: 1px solid var(--card-border); box-shadow: var(--shadow-soft); text-align: left; }
 .m-hero-track { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; overscroll-behavior-x: contain; scrollbar-width: none; }
 .m-hero-track::-webkit-scrollbar { display: none; }
 .m-hero-slide { flex: 0 0 100%; box-sizing: border-box; scroll-snap-align: center; scroll-snap-stop: always; display: flex; flex-direction: column; gap: 6px; padding: 20px 20px 36px; text-decoration: none; }
-.m-hero-t { font-size: 17px; font-weight: 700; color: #1f2430; }
-.m-hero-d { font-size: 13.5px; line-height: 1.45; color: #5b6170; }
+.m-hero-t { font-size: 17px; font-weight: 700; color: var(--color-text-main); }
+.m-hero-d { font-size: 13.5px; line-height: 1.45; color: var(--color-text-muted); }
 .m-hero-go { margin-top: 4px; font-size: 13px; font-weight: 700; color: var(--color-accent-solid); }
 .m-hero-go::after { content: " \2192"; }
 .m-hero-dots { position: absolute; left: 0; right: 0; bottom: 14px; display: flex; justify-content: center; gap: 5px; pointer-events: none; }
-.m-hero-dots i { width: 6px; height: 6px; border-radius: 50%; background: rgba(0, 0, 0, .2); transition: transform var(--m-base) var(--m-ease), background var(--m-base) var(--m-ease); }
+.m-hero-dots i { width: 6px; height: 6px; border-radius: 50%; background: var(--color-border); transition: transform var(--m-base) var(--m-ease), background var(--m-base) var(--m-ease); }
 .m-hero-dots i.on { background: var(--color-accent-solid); transform: scale(1.35); }
 
 /* 10. Banner de Live (el punto es el único movimiento continuo del home) */
