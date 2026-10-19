@@ -173,7 +173,8 @@ window.znrFirestore.signIn = async function (ownerType, ownerRef) {
 window.znrFirestore.getBeneficiariosAprobados = async function () {
   try {
     const snap = await _fsConReintentos(() => getDocs(collection(db, 'beneficiarios_aprobados')));
-    const beneficiarios = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    // Fundaciones con la cuenta suspendida no se ofrecen en ningún lugar (comunidad, donar desde el panel del vendedor).
+    const beneficiarios = snap.docs.map(d => ({ id: d.id, ...d.data() })).filter(b => !b.suspendido);
     return { ok: true, beneficiarios };
   } catch (err) {
     console.warn('Firestore beneficiarios_aprobados falló:', err);
