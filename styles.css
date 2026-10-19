@@ -116,8 +116,8 @@
   --gradient-primary: linear-gradient(135deg, #6d28d9, #8b5cf6);
   --shadow-soft: 0 6px 22px rgba(120,60,50,0.09);
   
-  --page-bg: linear-gradient(180deg, rgba(255,251,249,0) 15%, #fffbf9 100%) top / 100% 380px no-repeat, linear-gradient(115deg, #ffd9c2 0%, #ffc7d4 100%) top / 100% 380px no-repeat, #fffbf9;
-  --page-bg-linear: linear-gradient(180deg, rgba(255,251,249,0) 15%, #fffbf9 100%) top / 100% 380px no-repeat, linear-gradient(115deg, #ffd9c2 0%, #ffc7d4 100%) top / 100% 380px no-repeat, #fffbf9;
+  --page-bg: linear-gradient(180deg, rgba(255,255,255,0) 28%, #fffbf9 100%) top / 100% 500px no-repeat, linear-gradient(118deg, #ffa872 0%, #ff8ba0 100%) top / 100% 500px no-repeat, #fffbf9;
+  --page-bg-linear: linear-gradient(180deg, rgba(255,255,255,0) 28%, #fffbf9 100%) top / 100% 500px no-repeat, linear-gradient(118deg, #ffa872 0%, #ff8ba0 100%) top / 100% 500px no-repeat, #fffbf9;
   --header-footer-bg: rgba(255,255,255,0.92);
   --footer-bg: linear-gradient(135deg, #fbf5f2, #ffffff);
   --border-header: #f0e4de;
@@ -2754,9 +2754,3 @@ div[style*="z-index: 10001"][style*="position: fixed"] { background: var(--color
 /* --color-bg-secondary se usaba (vendedor.html) sin estar definido: caía en un lavanda fijo */
 :root { --color-bg-secondary: rgba(255,255,255,0.05); }
 [data-theme="light"] { --color-bg-secondary: #fbf5f2; }
-
-/* Degradado intenso del hero (como el home): clase opcional en <body> */
-[data-theme="light"] .grad-strong {
-  --page-bg: linear-gradient(180deg, rgba(255,255,255,0) 28%, #fffbf9 100%) top / 100% 500px no-repeat, linear-gradient(118deg, #ffa872 0%, #ff8ba0 100%) top / 100% 500px no-repeat, #fffbf9;
-  --page-bg-linear: var(--page-bg);
-}

@@ -462,12 +462,6 @@
    de styles.css (cada tema define los suyos); aquí solo la estructura del home.
    ═══════════════════════════════════════════════════════════════ */
 
-/* El home conserva el degradado intenso del hero (las demás páginas usan el suave) */
-[data-theme="light"] .home-page {
-  --page-bg: linear-gradient(180deg, rgba(255,255,255,0) 28%, #fffbf9 100%) top / 100% 500px no-repeat, linear-gradient(118deg, #ffa872 0%, #ff8ba0 100%) top / 100% 500px no-repeat, #fffbf9;
-  --page-bg-linear: var(--page-bg);
-}
-
 /* Encabezado del home: logo grande serif (el "&" va en otra tipografía) */
 .home-page .header-text { display: none; }
 .home-page .app-header .logo-touch-area { width: auto; height: auto; padding: 0 4px; border-radius: 0; background: none; box-shadow: none; color: var(--ink-title); font: 700 38px/1 var(--font-display); letter-spacing: -1px; }

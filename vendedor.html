@@ -88,8 +88,9 @@
  /* body es display:flex: sin min-width:0 el panel crece hasta el ancho minimo de su contenido
     y el overflow-x:hidden global recorta el lado derecho. */
  .vendor-wrap  { max-width: 640px; width: 100%; min-width: 0; box-sizing: border-box; margin: 0 auto; padding: 0; }
- .vendor-section{ box-sizing: border-box; min-width: 0; background: var(--color-surface, #fff);  padding: 4px; margin-bottom: 20px;
- box-shadow: 0 2px 12px rgba(0,0,0,.06); }
+ .vendor-section{ box-sizing: border-box; min-width: 0; background: transparent; padding: 4px; margin-bottom: 20px; }
+ /* el login sí es una tarjeta; el panel deja ver el degradado de la página */
+ #login-card{ background: var(--color-surface, #fff); border: 1px solid var(--card-border); border-radius: 22px; margin: 16px 16px 20px; box-shadow: var(--shadow-soft); }
  .vendor-section h2{ margin: 0 0 18px; font-size: 18px; color: var(--color-text-primary, #1a1a2e); }
 
  .field-group  { margin-bottom: 14px; }
@@ -275,7 +276,7 @@ h3 {
  #panel-section .product-actions .btn-secondary { flex: 1 1 auto; min-width: 0; padding: 8px 10px; text-align: center; }
  </style>
 </head>
-<body class="theme-aeromexico grad-strong">
+<body class="theme-aeromexico">
 
  <div id="global-loader" class="global-loader hidden">
  <div class="loader-spinner"></div>
