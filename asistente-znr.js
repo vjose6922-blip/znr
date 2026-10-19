@@ -103,6 +103,8 @@
     ]
   };
 
+
+  const WA_MSG = 'Hola, necesito ayuda con un tema de ZNR';
   // ────────────────────────────────────────────────────────────────
   //  PARTE 2 · MOTOR DE BÚSQUEDA
   // ────────────────────────────────────────────────────────────────
@@ -479,14 +481,15 @@
     setTimeout(() => {
       typing.remove();
       if (!resultados.length) {
-        addMsg('No encontré una respuesta exacta. Prueba con otras palabras, revisa las categorías, o escríbenos por WhatsApp.', 'bot');
-        mostrarWhatsAppBtn(); 
-        addChips([
-          { label: '↩ Ver categorías', cat: true, onClick: mostrarBienvenida },
-          { label: '💬 Hablar con una persona', cat: true, onClick: abrirWhatsApp }
-        ]);
-        return;
-      }
+  addMsg('No encontré una respuesta exacta...', 'bot');
+  mostrarWhatsAppBtn();
+  addChips([
+    { label: '↩ Ver categorías', cat: true, onClick: mostrarBienvenida },
+    { label: '💬 Hablar con una persona', cat: true,
+      onClick: () => abrirWhatsApp(query) }   // ← pasa lo que buscó
+  ]);
+  return;
+}
       const top = resultados[0];
       const score2 = resultados[1] ? resultados[1]._score : 0;
       if (top._score >= 20 || top._score >= score2 * 1.8) {
@@ -510,26 +513,58 @@
     }, 350);
   }
 
- function abrirWhatsApp() {
+ // Extrae solo el teléfono de un href tipo wa.me o api.whatsapp.com
+function extraerTelefono(href) {
+  try {
+    const u = new URL(href, location.origin);
+    const host = u.hostname.toLowerCase();
+    if (!host.includes('wa.me') && !host.includes('whatsapp.com')) return null;
+
+    // wa.me/521234567890  →  teléfono en el path
+    const pathPhone = u.pathname.replace(/^\/+/, '').split('/')[0];
+    if (pathPhone && /^\d+$/.test(pathPhone)) return pathPhone;
+
+    // api.whatsapp.com/send?phone=521234567890  →  teléfono en query
+    const qPhone = u.searchParams.get('phone');
+    if (qPhone) return qPhone.replace(/\D/g, '');
+
+    return null;
+  } catch (_) { return null; }
+}
+
+function abrirWhatsApp(contexto) {
+  // Si viene desde un onclick, llega un Event: lo ignoramos.
+  if (contexto instanceof Event) contexto = null;
+
+  // Arma el mensaje final (con contexto opcional entre comillas).
+  let texto = WA_MSG;
+  if (contexto && typeof contexto === 'string' && contexto.trim()) {
+    texto += `\n\n(Consulta desde el asistente: "${contexto.trim()}")`;
+  }
+  const msg = encodeURIComponent(texto);
+
   const origWa = document.querySelector('.floating-wa');
 
   if (origWa) {
     const href = (origWa.getAttribute('href') || '').trim();
 
-    // Caso 1: el backend ya seteó un href real (wa.me, api.whatsapp.com, etc.)
-    //         → abrirlo directamente. Es lo más confiable.
+    // Caso 1: el backend ya seteó un href real → extraemos su número
+    //          y reconstruimos con NUESTRO mensaje.
     if (href && href !== '#' && !href.startsWith('javascript:')) {
+      const phone = extraerTelefono(href);
+      if (phone) {
+        window.open(`https://wa.me/${phone}?text=${msg}`, '_blank', 'noopener');
+        return;
+      }
+      // Si no se pudo extraer el número, abrimos tal cual (mensaje del backend)
       window.open(href, '_blank', 'noopener');
       return;
     }
 
-    // Caso 2: el backend usa un click handler (addEventListener / onclick)
-    //         → disparar el click del elemento original para que corra su lógica.
-    //         Neutralizamos el href="#" con un preventDefault de captura
-    //         para no abrir about:blank.
+    // Caso 2: el backend usa un click handler (no controlamos su mensaje).
+    //         Disparamos su click y listo — su texto será el que se use.
     const preventNav = (e) => e.preventDefault();
     origWa.addEventListener('click', preventNav, { capture: true, once: true });
-
     try {
       origWa.click();
       if (typeof origWa.onclick === 'function') {
@@ -538,15 +573,11 @@
         } catch (_) {}
       }
     } catch (_) {}
-
     return;
   }
 
-  // Caso 3: no existe .floating-wa (backend no cargó o lo removieron)
-  //         → fallback al número configurado en ZNR_FAQ.wa
-  const url = 'https://wa.me/' + ZNR_FAQ.wa + '?text=' +
-              encodeURIComponent('Hola, tengo una duda sobre Z&R');
-  window.open(url, '_blank', 'noopener');
+  // Caso 3: no existe .floating-wa → fallback al número de ZNR_FAQ
+  window.open(`https://wa.me/${ZNR_FAQ.wa}?text=${msg}`, '_blank', 'noopener');
 }
 
 
@@ -577,14 +608,18 @@ function mostrarPreguntaUtilidad() {
   };
 
   const no = document.createElement('button');
-  no.type = 'button';
-  no.className = 'asistente-utility-chip no';
-  no.textContent = '👎 No, necesito ayuda';
-  no.onclick = () => {
-    wrap.remove();
-    addMsg('Entiendo. Te conecto con una persona del equipo Z&R para ayudarte mejor.', 'bot');
-    mostrarWhatsAppBtn();
-  };
+no.type = 'button';
+no.className = 'asistente-utility-chip no';
+no.textContent = '👎 No, necesito ayuda';
+no.onclick = () => {
+  wrap.remove();
+  addMsg('Entiendo. Te conecto con una persona del equipo Z&R para ayudarte mejor.', 'bot');
+  mostrarWhatsAppBtn();
+  // Pasa la última pregunta que el bot respondió (si existe)
+  const ult = [...ESTADO.historial].reverse()
+    .find(h => h.who === 'user' && h.text);
+  window._znrContextoWA = ult ? ult.text : null;
+};
 
   wrap.appendChild(yes);
   wrap.appendChild(no);
@@ -620,7 +655,7 @@ function mostrarWhatsAppBtn() {
     document.body.style.overflow = '';
   }
 
- // ── Instalación ──────────────────────────────────────────────
+// ── Instalación ──────────────────────────────────────────────
 function instalar() {
   if (window._znrAsistenteInstalado) return;
   window._znrAsistenteInstalado = true;
@@ -642,7 +677,7 @@ function instalar() {
   $form  = $panel.querySelector('#asistente-form');
 
   // ── Botón verde "Hablar con una persona" ─────────────────
-  // NO usar href fijo. Cada click pasa por abrirWhatsApp(), que:
+  // NO usa href fijo. Cada click pasa por abrirWhatsApp(), que:
   //   1) Lee el href real de .floating-wa (lo setea el backend)
   //   2) Si no hay href, dispara el .click() del original
   //   3) Si no existe, cae al número de respaldo ZNR_FAQ.wa
@@ -652,7 +687,7 @@ function instalar() {
   waLink.addEventListener('click', (e) => {
     e.preventDefault();
     e.stopPropagation();
-    abrirWhatsApp();
+    abrirWhatsApp(window._znrContextoWA);
   });
 
   // ── Listeners del panel ──────────────────────────────────
