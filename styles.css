@@ -2766,3 +2766,10 @@ div[style*="z-index: 10001"][style*="position: fixed"] { background: var(--color
 .app-header--titled .logo-wordmark ~ .header-text { display: block; }
 .app-header--titled .header-text .app-subtitle { display: none; }
 .app-header--titled .header-text .app-title { font-size: clamp(1.05rem, 5vw, 1.35rem); }
+
+/* Header del panel vendedor: nombre del vendedor + botón Compartir bajo el título */
+.app-header--sub .header-left, .app-header--sub .header-text { min-width: 0; }
+.app-header--sub .header-text .app-subtitle { display: block; }
+.header-sub-row { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.header-sub-row .app-subtitle { min-width: 0; margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.85rem; }
+.header-sub-row .btn-secondary { flex-shrink: 0; white-space: nowrap; }

@@ -792,6 +792,8 @@ const PICKUP_HORAS = ['9:00 AM','10:00 AM','11:00 AM','12:00 PM','1:00 PM','2:00
     const data = await fetchNotificaciones();
     cache.items = (data && data.ok && Array.isArray(data.notificaciones)) ? data.notificaciones : [];
     cache.loaded = true;
+    recordarMasReciente(cache.items);
+    _baseListo = true;
     if (autoSelectTab) {
       currentTab = pickTabWithUnread();
       const modal = document.getElementById('nc-modal');
@@ -834,6 +836,8 @@ const PICKUP_HORAS = ['9:00 AM','10:00 AM','11:00 AM','12:00 PM','1:00 PM','2:00
     const data = await fetchNotificaciones();
     if (data && data.ok && Array.isArray(data.notificaciones)) {
       cache.items = data.notificaciones;
+      recordarMasReciente(cache.items);
+      _baseListo = true;
       updateBadge();
     }
   }
@@ -862,6 +866,59 @@ const PICKUP_HORAS = ['9:00 AM','10:00 AM','11:00 AM','12:00 PM','1:00 PM','2:00
     return _rbPromise;
   }
 
+  // ── Consulta frecuente e incremental ──────────────────────────────────
+  // El push no siempre llega (permiso sin dar, app abierta, red) y el refresco completo es cada
+  // ~10 min, así que un mensaje o pedido nuevo no se veía hasta recargar. Mientras la página está
+  // visible se pide cada ~45 s SOLO lo más nuevo que lo ya conocido (si no hay nada nuevo cuesta ~1
+  // lectura). El feed del usuario como "cliente" (si además es vendedor) se revisa 1 de cada 4 veces
+  // para no cambiar de identidad de Firebase en cada vuelta.
+  const FAST_POLL_MS = 45000;
+  const newestRaw = {};       // ownerType -> { t, raw } de la notificación más reciente conocida
+  let _baseListo = false;     // ya hay una carga completa sobre la que sumar
+  let _fastBusy = false;
+  let _fastTick = 0;
+
+  function recordarMasReciente(items) {
+    (items || []).forEach((n) => {
+      if (!n || n._fechaRaw == null || !n.ownerType) return;
+      const t = new Date(n.fecha).getTime();
+      if (isNaN(t)) return;
+      const cur = newestRaw[n.ownerType];
+      if (!cur || t > cur.t) newestRaw[n.ownerType] = { t, raw: n._fechaRaw };
+    });
+  }
+
+  async function refreshNuevas() {
+    if (document.hidden || _fastBusy || !_baseListo || navigator.onLine === false) return;
+    const identity = getIdentity();
+    if (!identity || !(window.znrFirestore && window.znrFirestore.getNotificacionesCentroDesde)) return;
+    _fastBusy = true;
+    try {
+      _fastTick++;
+      const comoCliente = identity.type !== 'vendedor' || (identity.telefono && _fastTick % 4 === 0);
+      const ownerType = comoCliente ? 'cliente' : 'vendedor';
+      const ownerId = comoCliente ? (identity.type === 'vendedor' ? identity.telefono : identity.id) : identity.id;
+      const ref = comoCliente ? ownerId : identity.vendorToken;
+      const ult = newestRaw[ownerType];
+      const r = await window.znrFirestore.getNotificacionesCentroDesde(ownerType, ownerId, ref, ult ? ult.raw : null);
+      if (!r || !r.ok || !Array.isArray(r.notificaciones) || !r.notificaciones.length) return;
+      const conocidos = new Set(cache.items.map((x) => x.id));
+      const nuevas = r.notificaciones.filter((x) => !conocidos.has(x.id));
+      if (!nuevas.length) return;
+      cache.items = nuevas.concat(cache.items)
+        .sort((a, b) => new Date(b.fecha) - new Date(a.fecha))
+        .slice(0, 60);
+      recordarMasReciente(nuevas);
+      updateBadge();
+      const modal = document.getElementById('nc-modal');
+      if (modal && modal.classList.contains('visible')) renderList();
+    } catch (_) {
+      /* sin red o sin sesión: el siguiente ciclo lo reintenta */
+    } finally {
+      _fastBusy = false;
+    }
+  }
+
   // Lo usa burbuja-mensajes.js (mismo feed, sin volver a consultar Firestore).
   window.znrNotifCentro = {
     items: () => cache.items,
@@ -881,12 +938,14 @@ const PICKUP_HORAS = ['9:00 AM','10:00 AM','11:00 AM','12:00 PM','1:00 PM','2:00
   document.addEventListener('visibilitychange', () => {
     if (!document.hidden) refreshBadgeOnly();
   });
+  window.addEventListener('online', refreshBadgeOnly);
 
   function init() {
     injectStyles();
     wireBellButtons();
     refreshBadgeOnly();
     intervalConJitter(refreshBadgeOnly, POLL_MS, 60000); // ±0-60s
+    intervalConJitter(refreshNuevas, FAST_POLL_MS, 15000); // solo lo nuevo, solo con la página visible
   }
 
   if (document.readyState === 'loading') {

@@ -243,6 +243,57 @@ function _fsNormalizarFecha(data) {
   return data;
 }
 
+// Notificación del centro + la fecha tal como está guardada (_fechaRaw, no enumerable):
+// sirve para pedir después SOLO lo más nuevo con where('fecha', '>', _fechaRaw).
+function _fsNotifItem(d, ownerType) {
+  const data = d.data();
+  const item = _fsNormalizarFecha({ id: d.id, ownerType, ...data });
+  Object.defineProperty(item, '_fechaRaw', { value: data.fecha, enumerable: false });
+  return item;
+}
+
+/**
+ * Igual que getNotificacionesCentro pero, si se pasa desdeRaw (la fecha cruda de la notificación
+ * más reciente que ya se tiene), solo trae las más nuevas. Con el feed al día cuesta ~1 lectura,
+ * así que se puede consultar seguido para que burbujas y campana se actualicen sin recargar.
+ */
+window.znrFirestore.getNotificacionesCentroDesde = async function (ownerType, ownerId, ownerRef, desdeRaw) {
+  return _conIdentidadExclusiva(async () => {
+    try {
+      const uid = await window.znrFirestore.ensureSignedIn(ownerType, ownerId, ownerRef);
+      if (!uid) return { ok: false, error: 'sin sesión de Firebase' };
+      const base = collection(db, 'notificaciones_centro', ownerType + '_' + String(ownerId), 'items');
+      const q = desdeRaw != null
+        ? query(base, where('fecha', '>', desdeRaw), orderBy('fecha', 'desc'), limit(30))
+        : query(base, orderBy('fecha', 'desc'), limit(30));
+      const snap = await _fsConReintentos(() => getDocs(q));
+      return { ok: true, notificaciones: snap.docs.map(d => _fsNotifItem(d, ownerType)) };
+    } catch (err) {
+      console.warn('Firestore notificaciones_centro (nuevas) falló:', err);
+      return { ok: false, error: String(err) };
+    }
+  });
+};
+
+/**
+ * Participantes de un pedido personalizado (los lee quien participa en él). La burbuja de mensajes
+ * lo usa para saber qué vendedor es la otra parte y mostrar su foto en vez de la inicial.
+ */
+window.znrFirestore.getParticipantesPedido = async function (pedidoId, ownerType, ownerId, ownerRef) {
+  return _conIdentidadExclusiva(async () => {
+    try {
+      const uid = await window.znrFirestore.ensureSignedIn(ownerType, ownerId, ownerRef);
+      if (!uid) return { ok: false };
+      const snap = await _fsConReintentos(() => getDoc(doc(db, 'pedidos_personalizados', String(pedidoId))));
+      if (!snap.exists()) return { ok: false };
+      const d = snap.data();
+      return { ok: true, participantes: Array.isArray(d.participantes) ? d.participantes : [], vendedorUid: d.vendedorUid || d.vendedor_uid || d.vendedorId || '' };
+    } catch (err) {
+      return { ok: false, error: String(err) };
+    }
+  });
+};
+
 /**
  * Devuelve { ok: true, notificaciones: [...] } igual que
  * misNotificacionesVendedor/misNotificacionesCliente (últimas 30, más
@@ -266,7 +317,7 @@ window.znrFirestore.getNotificacionesCentro = async function (ownerType, ownerId
         limit(30)
       );
       const snap = await _fsConReintentos(() => getDocs(q));
-      const notificaciones = snap.docs.map(d => _fsNormalizarFecha({ id: d.id, ownerType, ...d.data() }));
+      const notificaciones = snap.docs.map(d => _fsNotifItem(d, ownerType));
       return { ok: true, notificaciones };
     } catch (err) {
       console.warn('Firestore notificaciones_centro falló:', err);

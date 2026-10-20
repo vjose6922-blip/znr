@@ -25,6 +25,9 @@
   var abierta = '';
   var vistos = {};
   var dragging = false;
+  var avatares = {};          // pedidoId -> URL de la foto de la otra parte ('' = no tiene / no se pudo)
+  var AV_KEY = 'znb_avatares';
+  var PERFILES_URL = 'https://znr-live-default-rtdb.firebaseio.com/perfiles/';
 
   // ---------- Datos ----------
   function feed() {
@@ -159,7 +162,7 @@
       '.znb-b svg{width:22px;height:22px}',
       '.znb-pedidos{background:var(--color-surface-2,#3a3e4b)}',
       '.znb-count{position:absolute;top:-5px;right:-5px;min-width:18px;height:18px;padding:0 5px;box-sizing:border-box;border-radius:9px;background:#ef4444;color:#fff;font-size:11px;font-weight:800;line-height:18px;text-align:center;box-shadow:0 0 0 2px var(--color-surface,#252831)}',
-      '#znb-card{position:fixed;z-index:9001;right:78px;width:min(310px,calc(100vw - 92px));box-sizing:border-box;background:var(--color-surface,#252831);color:var(--color-text,#f1f1f1);border:1px solid var(--color-border-subtle,rgba(255,255,255,.1));border-radius:16px;box-shadow:0 12px 36px rgba(0,0,0,.5);padding:12px;animation:znb-in .18s ease-out}',
+      '#znb-card{position:fixed;z-index:9001;right:78px;width:min(310px,calc(100vw - 92px));box-sizing:border-box;background:var(--color-surface,#252831);color:var(--color-text-main,#f1f1f1);border:1px solid var(--color-border-subtle,rgba(255,255,255,.1));border-radius:16px;box-shadow:0 12px 36px rgba(0,0,0,.5);padding:12px;animation:znb-in .18s ease-out}',
       '.znb-head{display:flex;align-items:center;gap:10px}',
       '.znb-av{flex:0 0 auto;width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:15px}',
       '.znb-who{min-width:0;flex:1}',
@@ -187,16 +190,90 @@
     return e;
   }
 
+  // ---------- Foto de la otra parte ----------
+  // Si la otra parte es un vendedor se muestra su foto (como en su perfil) en lugar de la inicial.
+  // Se resuelve una sola vez por conversación y se guarda en sessionStorage.
+  try { avatares = JSON.parse(sessionStorage.getItem(AV_KEY) || '{}') || {}; } catch (_) { avatares = {}; }
+  var resolviendo = {};
+
+  function urlValida(u) {
+    return typeof u === 'string' && /^(https?:\/\/|data:image)/i.test(u);
+  }
+
+  function fotoDe(c) {
+    var u = avatares[c.id];
+    return urlValida(u) ? u : '';
+  }
+
+  function guardarAvatar(id, url) {
+    avatares[id] = url || '';
+    // Solo se guarda lo encontrado: un fallo de red no debe dejar sin foto toda la sesión.
+    if (url) { try { sessionStorage.setItem(AV_KEY, JSON.stringify(avatares)); } catch (_) {} }
+  }
+
+  function ponerFoto(nodo, url) {
+    nodo.textContent = '';
+    nodo.style.backgroundImage = 'url("' + String(url).replace(/"/g, '%22') + '")';
+    nodo.style.backgroundSize = 'cover';
+    nodo.style.backgroundPosition = 'center';
+  }
+
+  function resolverAvatar(c) {
+    if (rolDe(c) !== 'comprador') return;                  // si la otra parte es el comprador no hay foto
+    if (c.id in avatares || resolviendo[c.id]) return;
+    resolviendo[c.id] = true;
+    var identity = getIdentity();
+    var m = metaDe(c.notifs[0]);
+    var directa = m.vendedorLogo || m.logo || m.foto || '';
+    var uidMeta = m.vendedorUid || m.vendedor_uid || '';
+
+    function buscarPerfil(uid) {
+      if (!uid) return Promise.resolve('');
+      return fetch(PERFILES_URL + encodeURIComponent(uid) + '.json')
+        .then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (p) { return (p && urlValida(p.logo)) ? p.logo : ''; })
+        .catch(function () { return ''; });
+    }
+
+    var p;
+    if (urlValida(directa)) {
+      p = Promise.resolve(directa);
+    } else if (uidMeta) {
+      p = buscarPerfil(uidMeta);
+    } else if (identity && window.znrFirestore && window.znrFirestore.getParticipantesPedido) {
+      var tel = identity.type === 'vendedor' ? identity.telefono : identity.id;
+      p = window.znrFirestore.getParticipantesPedido(c.id, 'cliente', tel, tel).then(function (r) {
+        if (!r || !r.ok) return '';
+        var uid = r.vendedorUid;
+        if (!uid) {
+          var vend = (r.participantes || []).filter(function (x) { return String(x).indexOf('vendedor_') === 0; })[0];
+          uid = vend ? String(vend).slice('vendedor_'.length) : '';
+        }
+        return buscarPerfil(uid);
+      });
+    } else {
+      p = Promise.resolve('');
+    }
+
+    p.then(function (url) {
+      delete resolviendo[c.id];
+      guardarAvatar(c.id, url);
+      if (url) render();
+    }).catch(function () { delete resolviendo[c.id]; });
+  }
+
   function avatarTexto(c) {
     var n = nombreDe(c).nombre.trim();
     return (n.charAt(0) || '?').toUpperCase();
   }
 
   function crearBurbuja(c, principal) {
-    var b = el('button', 'znb-b' + (principal ? ' znb-main' : ''), avatarTexto(c));
+    var foto = fotoDe(c);
+    var b = el('button', 'znb-b' + (principal ? ' znb-main' : ''), foto ? '' : avatarTexto(c));
     b.type = 'button';
     b.dataset.id = c.id;
     b.style.background = colorDe(c.id);
+    if (foto) ponerFoto(b, foto);
     b.setAttribute('aria-label', 'Mensaje de ' + nombreDe(c).nombre);
     if (abierta === c.id) b.classList.add('znb-activa');
     if (!vistos[c.id]) {
@@ -239,7 +316,7 @@
     stack.textContent = '';
 
     var visibles = convs.slice(0, 1 + MAX_EXTRAS);
-    visibles.forEach(function (c, i) { stack.appendChild(crearBurbuja(c, i === 0)); });
+    visibles.forEach(function (c, i) { stack.appendChild(crearBurbuja(c, i === 0)); resolverAvatar(c); });
     if (convs.length > 1) stack.appendChild(crearBurbujaPedidos(convs.length - visibles.length));
 
     if (abierta && !convs.some(function (c) { return c.id === abierta; })) cerrarCard();
@@ -289,8 +366,10 @@
     var who = nombreDe(c);
 
     var head = el('div', 'znb-head');
-    var av = el('div', 'znb-av', avatarTexto(c));
+    var fotoCard = fotoDe(c);
+    var av = el('div', 'znb-av', fotoCard ? '' : avatarTexto(c));
     av.style.background = colorDe(c.id);
+    if (fotoCard) ponerFoto(av, fotoCard);
     var info = el('div', 'znb-who');
     info.appendChild(el('p', 'znb-name', who.nombre));
     if (who.producto) info.appendChild(el('p', 'znb-prod', who.producto));

@@ -287,23 +287,49 @@ const wishlist = getWishlist();
 const wishlistProducts = wishlist
 .map(w => productsWithStock.find(p =>String(p.ID) === String(w.id)))
 .filter(Boolean);
-const anchors = [];
-if (wishlistProducts.length > 0) {
-anchors.push(...wishlistProducts.slice(0, 2));
-}
-const usedIds = new Set(anchors.map(p =>String(p.ID)));
-const randomPool = productsWithStock.filter(p => !usedIds.has(String(p.ID)));
-shuffle(randomPool);
-while (anchors.length < 3 && randomPool.length > 0) {
-anchors.push(randomPool.shift());
-}
+// Prioridad de las prendas base: favoritos → vistos recientemente → al azar.
+// Sin favoritos guardados, los looks se arman con lo que el usuario vio recientemente.
+const recentForLooks = getRecentProductIds()
+.map(id => productsWithStock.find(p =>String(p.ID) === String(id)))
+.filter(Boolean);
+const randomPool = shuffle(productsWithStock.slice());
+const candidates = [];
+const seenIds = new Set();
+[wishlistProducts.slice(0, 2), recentForLooks, randomPool].forEach(group => {
+group.forEach(p => {
+const key = String(p.ID);
+if (seenIds.has(key)) return;
+seenIds.add(key);
+candidates.push(p);
+});
+});
+// Meta: 5 looks. Hay prendas con las que no se logra completar un look: se sigue con la siguiente.
+const TARGET_LOOKS = 5;
 const looks = [];
 homeLooks = [];
-for (const anchor of anchors) {
-const look = buildLookFromAnchor(anchor, productsWithStock);
+const usedConfigIds = new Set(); // 1.er intento: cada tipo de look (ej. "Verano Hombre") aparece una sola vez
+const usedAnchorIds = new Set();
+for (const anchor of candidates) {
+if (looks.length >= TARGET_LOOKS) break;
+const look = buildLookFromAnchor(anchor, productsWithStock, usedConfigIds);
 if (look && Object.keys(look.products).length >= 2) {
+usedConfigIds.add(look.configId);
+usedAnchorIds.add(String(anchor.ID));
 looks.push(look);
 homeLooks.push(look);
+}
+}
+// 2.º intento: si no se llegó a 5, se completan con looks armados con lo visto recientemente (aquí sí puede repetirse el tipo).
+if (looks.length < TARGET_LOOKS) {
+for (const anchor of recentForLooks) {
+if (looks.length >= TARGET_LOOKS) break;
+if (usedAnchorIds.has(String(anchor.ID))) continue;
+const look = buildLookFromAnchor(anchor, productsWithStock);
+if (look && Object.keys(look.products).length >= 2) {
+usedAnchorIds.add(String(anchor.ID));
+looks.push(look);
+homeLooks.push(look);
+}
 }
 }
 if (looks.length === 0) {
@@ -412,10 +438,11 @@ const j = Math.floor(Math.random() * (i + 1));
 }
 return arr;
 }
-function buildLookFromAnchor(anchorProduct, allProductsWithStock) {
+function buildLookFromAnchor(anchorProduct, allProductsWithStock, usedConfigIds = new Set()) {
 const anchorCategory = anchorProduct.Categoria;
 const anchorGender = GENDER_BY_CATEGORY[anchorCategory] || 'UNISEX';
 let candidateConfigs = window.LOOKS_CONFIG.filter(config => {
+if (usedConfigIds.has(config.id)) return false; // no repetir el mismo look en el home
 const configGender = config.category === 'Mujer' ? 'MUJER' : config.category === 'Hombre' ? 'HOMBRE' : 'UNISEX';
 const genderMatch = anchorGender === 'UNISEX' || configGender === anchorGender || configGender === 'UNISEX';
 if (!genderMatch) return false;
@@ -435,6 +462,7 @@ return true;
 });
 if (candidateConfigs.length === 0) {
 candidateConfigs = window.LOOKS_CONFIG.filter(config => {
+if (usedConfigIds.has(config.id)) return false;
 const configGender = config.category === 'Mujer' ? 'MUJER' : config.category === 'Hombre' ? 'HOMBRE' : 'UNISEX';
 return anchorGender === 'UNISEX' || configGender === anchorGender;
 });
@@ -454,6 +482,7 @@ if (!hasAnchor) return null;
 const totalPrice = Object.values(selected).reduce((sum, p) => sum + (p ? p.price : 0), 0);
 return {
 id: `home_look_${anchorProduct.ID}_${Date.now()}`,
+configId: config.id,
 name: config.name,
 description: config.description,
 category: config.category,

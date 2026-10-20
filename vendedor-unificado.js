@@ -542,13 +542,13 @@ if (headerName) {
   const shareBtn = document.createElement('button');
   shareBtn.id = 'share-vendor-link-header';
   shareBtn.className = 'btn-secondary';
-  shareBtn.style.cssText = 'font-size:11px; padding:4px 10px; margin-left:8px; border-radius:20px;';
+  shareBtn.style.cssText = 'font-size:11px; padding:4px 10px; margin-left:0; border-radius:20px; flex-shrink:0; white-space:nowrap; width:auto;';
   shareBtn.innerHTML = Icon('share') + ' Compartir';
   shareBtn.addEventListener('click', (e) => {
     e.stopPropagation();
     abrirModalCompartirTienda();
   });
-  headerName.appendChild(shareBtn);
+  (headerName.parentElement || headerName).appendChild(shareBtn);
 }
 applyLayoutGlobal(localStorage.getItem('products_layout') || 'grid');
 
