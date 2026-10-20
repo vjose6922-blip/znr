@@ -48,6 +48,9 @@ const MAPA_ACCIONES_MIGRADAS = {
   cambiarPasswordVendedor: VENDEDORES_API_URL,
   actualizarMetodosPago: VENDEDORES_API_URL,
   solicitarResetPasswordVendedor: VENDEDORES_API_URL,
+  avisarAdminSinPregunta: VENDEDORES_API_URL,
+  enviarCodigoResetVendedor: VENDEDORES_API_URL,
+  resetPasswordConCodigo: VENDEDORES_API_URL,
   actualizarPerfilVendedor: VENDEDORES_API_URL,
   marcarChecklistDescartado: VENDEDORES_API_URL,
   actualizarPortadaVendedor: VENDEDORES_API_URL,
@@ -2201,33 +2204,47 @@ function initForgotPasswordModal() {
   const modal = document.getElementById('forgot-password-modal');
   if (modal) modal.addEventListener('click', (e) => { if (e.target === modal) closeForgotPasswordModal(); });
 
-  const continueBtn = document.getElementById('forgot-password-continue-btn');
-  if (continueBtn) continueBtn.addEventListener('click', continuarForgotPassword);
-
-  const submitBtn = document.getElementById('forgot-password-submit-btn');
-  if (submitBtn) submitBtn.addEventListener('click', submitForgotPassword);
-
-  const phoneInput = document.getElementById('forgot-password-phone');
-  if (phoneInput) phoneInput.addEventListener('keypress', e => { if (e.key === 'Enter') continuarForgotPassword(); });
+  const on = (id, ev, fn) => { const el = document.getElementById(id); if (el) el.addEventListener(ev, fn); };
+  on('forgot-password-continue-btn', 'click', continuarForgotPassword);
+  on('forgot-password-code-btn', 'click', () => enviarCodigoForgotPassword(false));
+  on('forgot-password-reenviar', 'click', () => enviarCodigoForgotPassword(true));
+  on('forgot-password-reset-btn', 'click', cambiarPasswordConCodigo);
+  on('forgot-password-submit-btn', 'click', submitForgotPassword); // "ya no tengo ese número": solicitud al admin
+  on('forgot-password-sinnumero-link', 'click', () => {
+    const box = document.getElementById('forgot-password-sinnumero');
+    if (box) box.style.display = box.style.display === 'none' ? 'block' : 'none';
+  });
+  on('forgot-password-phone', 'keypress', e => { if (e.key === 'Enter') continuarForgotPassword(); });
 }
 
 let _forgotPasswordTelefono = '';
+let _forgotPasswordRespuesta = ''; // se conserva para poder pedir otro código sin volver a escribirla
+
+function _forgotMostrar(paso) {
+  ['step1', 'bloqueo', 'step2', 'step3'].forEach(id => {
+    const el = document.getElementById('forgot-password-' + id);
+    if (el) el.style.display = id === paso ? 'block' : 'none';
+  });
+}
+function _forgotMsg(id, texto, color) {
+  const el = document.getElementById(id);
+  if (el) { el.textContent = texto; el.style.color = color || '#ef4444'; }
+}
 
 function openForgotPasswordModal() {
   const modal = document.getElementById('forgot-password-modal');
   if (!modal) return;
   _forgotPasswordTelefono = '';
-  document.getElementById('forgot-password-phone').value = '';
-  const nuevoTelInput = document.getElementById('forgot-password-nuevo-tel');
-  if (nuevoTelInput) nuevoTelInput.value = '';
-  const respuestaInput = document.getElementById('forgot-password-respuesta');
-  if (respuestaInput) respuestaInput.value = '';
-  document.getElementById('forgot-password-msg').textContent = '';
-  const msg2 = document.getElementById('forgot-password-msg2');
-  if (msg2) msg2.textContent = '';
-  document.getElementById('forgot-password-step1').style.display = 'block';
-  document.getElementById('forgot-password-step2').style.display = 'none';
-  document.getElementById('forgot-password-bloqueo').style.display = 'none';
+  _forgotPasswordRespuesta = '';
+  ['forgot-password-phone', 'forgot-password-nuevo-tel', 'forgot-password-respuesta',
+   'forgot-password-codigo', 'forgot-password-nueva', 'forgot-password-nueva2'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+  ['forgot-password-msg', 'forgot-password-msg2', 'forgot-password-msg3'].forEach(id => _forgotMsg(id, ''));
+  const sinNumero = document.getElementById('forgot-password-sinnumero');
+  if (sinNumero) sinNumero.style.display = 'none';
+  _forgotMostrar('step1');
   modal.style.display = 'flex';
   document.body.style.overflow = 'hidden';
 }
@@ -2238,13 +2255,13 @@ function closeForgotPasswordModal() {
   document.body.style.overflow = '';
 }
 
+// Paso 1: teléfono. Con pregunta de seguridad → paso 2. Sin ella → se avisa al administrador (no hay forma de verificarlo solo).
 async function continuarForgotPassword() {
   const phone = document.getElementById('forgot-password-phone')?.value.trim().replace(/\D/g, '');
-  const msgEl = document.getElementById('forgot-password-msg');
   const btn   = document.getElementById('forgot-password-continue-btn');
 
   if (!phone || phone.length !== 10) {
-    if (msgEl) { msgEl.textContent = 'Escribe un teléfono válido de 10 dígitos'; msgEl.style.color = '#ef4444'; }
+    _forgotMsg('forgot-password-msg', 'Escribe un teléfono válido de 10 dígitos');
     return;
   }
 
@@ -2253,48 +2270,94 @@ async function continuarForgotPassword() {
     const res = await apiFetch({ action: 'obtenerPreguntaSecreta', telefono: phone });
     _forgotPasswordTelefono = phone;
     if (res.ok && res.tienePregunta) {
-      document.getElementById('forgot-password-step1').style.display = 'none';
       document.getElementById('forgot-password-pregunta').textContent = res.pregunta;
-      document.getElementById('forgot-password-step2').style.display = 'block';
+      _forgotMostrar('step2');
     } else {
-      document.getElementById('forgot-password-step1').style.display = 'none';
-      document.getElementById('forgot-password-bloqueo').style.display = 'block';
+      // Sin pregunta (o número no registrado: el servidor no distingue): se avisa al admin y se le explica al vendedor.
+      apiFetch({ action: 'avisarAdminSinPregunta', telefono: phone }).catch(() => {});
+      _forgotMostrar('bloqueo');
     }
   } catch (err) {
-    if (msgEl) { msgEl.textContent = 'Error de red, intenta de nuevo'; msgEl.style.color = '#ef4444'; }
+    _forgotMsg('forgot-password-msg', 'Error de red, intenta de nuevo');
   } finally {
     if (btn) { btn.disabled = false; btn.textContent = 'Continuar'; }
   }
 }
 
+// Paso 2: responde la pregunta → el servidor genera el código y avisa al admin, que lo envía por WhatsApp.
+async function enviarCodigoForgotPassword(esReenvio) {
+  const respuestaSecreta = esReenvio
+    ? _forgotPasswordRespuesta
+    : (document.getElementById('forgot-password-respuesta')?.value.trim() || '');
+  const msgId = esReenvio ? 'forgot-password-msg3' : 'forgot-password-msg2';
+  const btn = document.getElementById('forgot-password-code-btn');
+
+  if (!respuestaSecreta) {
+    _forgotMsg(msgId, 'Responde tu pregunta de seguridad');
+    return;
+  }
+
+  if (btn && !esReenvio) { btn.disabled = true; btn.textContent = 'Solicitando...'; }
+  try {
+    const res = await apiFetch({ action: 'enviarCodigoResetVendedor', telefono: _forgotPasswordTelefono, respuestaSecreta });
+    if (!res.ok) throw new Error(res.error || 'No se pudo enviar el código');
+    _forgotPasswordRespuesta = respuestaSecreta;
+    document.getElementById('forgot-password-codigo-info').textContent = 'Ya avisamos al administrador: te enviará el código por WhatsApp en unos minutos. Vale 30 minutos.';
+    _forgotMostrar('step3');
+    if (esReenvio) _forgotMsg('forgot-password-msg3', 'Pedimos otro código. El anterior ya no sirve.', '#16a34a');
+    document.getElementById('forgot-password-codigo')?.focus();
+  } catch (err) {
+    _forgotMsg(msgId, err.message);
+  } finally {
+    if (btn && !esReenvio) { btn.disabled = false; btn.textContent = 'Solicitar código'; }
+  }
+}
+
+// Paso 3: código + contraseña nueva dos veces.
+async function cambiarPasswordConCodigo() {
+  const codigo = document.getElementById('forgot-password-codigo')?.value.trim().replace(/\D/g, '') || '';
+  const nuevaPassword = document.getElementById('forgot-password-nueva')?.value || '';
+  const confirmarPassword = document.getElementById('forgot-password-nueva2')?.value || '';
+  const btn = document.getElementById('forgot-password-reset-btn');
+
+  if (codigo.length !== 6) { _forgotMsg('forgot-password-msg3', 'Escribe el código de 6 dígitos'); return; }
+  if (!nuevaPassword) { _forgotMsg('forgot-password-msg3', 'Escribe tu contraseña nueva'); return; }
+  if (nuevaPassword !== confirmarPassword) { _forgotMsg('forgot-password-msg3', 'Las contraseñas no coinciden'); return; }
+
+  if (btn) { btn.disabled = true; btn.textContent = 'Guardando...'; }
+  try {
+    const res = await apiFetch({ action: 'resetPasswordConCodigo', telefono: _forgotPasswordTelefono, codigo, nuevaPassword, confirmarPassword });
+    if (!res.ok) throw new Error(res.error || 'No se pudo cambiar la contraseña');
+    _forgotMsg('forgot-password-msg3', 'Contraseña actualizada. Ya puedes iniciar sesión.', '#16a34a');
+    const loginPhone = document.getElementById('login-phone');
+    if (loginPhone) loginPhone.value = _forgotPasswordTelefono;
+    setTimeout(() => { closeForgotPasswordModal(); document.getElementById('login-password')?.focus(); }, 2000);
+  } catch (err) {
+    _forgotMsg('forgot-password-msg3', err.message);
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = 'Cambiar contraseña'; }
+  }
+}
+
+// "Ya no tengo ese número": solicitud al administrador (con la respuesta de seguridad y, opcional, el número nuevo).
 async function submitForgotPassword() {
   const respuestaSecreta = document.getElementById('forgot-password-respuesta')?.value.trim() || '';
   const nuevoTelefono = document.getElementById('forgot-password-nuevo-tel')?.value.trim().replace(/\D/g, '') || '';
-  const msgEl = document.getElementById('forgot-password-msg2');
-  const btn   = document.getElementById('forgot-password-submit-btn');
+  const btn = document.getElementById('forgot-password-submit-btn');
 
-  if (!respuestaSecreta) {
-    if (msgEl) { msgEl.textContent = 'Responde tu pregunta de seguridad'; msgEl.style.color = '#ef4444'; }
-    return;
-  }
-  if (nuevoTelefono && nuevoTelefono.length !== 10) {
-    if (msgEl) { msgEl.textContent = 'El número nuevo debe tener 10 dígitos'; msgEl.style.color = '#ef4444'; }
-    return;
-  }
+  if (!respuestaSecreta) { _forgotMsg('forgot-password-msg2', 'Responde tu pregunta de seguridad'); return; }
+  if (nuevoTelefono && nuevoTelefono.length !== 10) { _forgotMsg('forgot-password-msg2', 'El número nuevo debe tener 10 dígitos'); return; }
 
   if (btn) { btn.disabled = true; btn.textContent = 'Enviando...'; }
   try {
     const res = await apiFetch({ action: 'solicitarResetPasswordVendedor', telefono: _forgotPasswordTelefono, respuestaSecreta, nuevoTelefono });
     if (!res.ok) throw new Error(res.error || 'No se pudo enviar la solicitud');
-    if (msgEl) {
-      msgEl.style.color = '#16a34a';
-      msgEl.textContent = 'Si tu respuesta es correcta, un administrador te contactará por WhatsApp con tu nueva contraseña.';
-    }
+    _forgotMsg('forgot-password-msg2', 'Si tu respuesta es correcta, un administrador te contactará por WhatsApp con tu nueva contraseña.', '#16a34a');
     setTimeout(closeForgotPasswordModal, 2500);
   } catch (err) {
-    if (msgEl) { msgEl.style.color = '#ef4444'; msgEl.textContent = err.message; }
+    _forgotMsg('forgot-password-msg2', err.message);
   } finally {
-    if (btn) { btn.disabled = false; btn.textContent = 'Enviar solicitud'; }
+    if (btn) { btn.disabled = false; btn.textContent = 'Enviar solicitud al administrador'; }
   }
 }
 

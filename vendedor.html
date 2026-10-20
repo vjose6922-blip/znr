@@ -1175,21 +1175,42 @@ document.addEventListener('DOMContentLoaded', () => {
       </div>
 
       <div id="forgot-password-bloqueo" style="display:none;">
-        <p style="margin:0 0 16px;font-size:.85rem;color:#666;">No podemos recuperar esta cuenta de forma automática porque no tiene una pregunta de seguridad configurada. Contacta directamente al administrador.</p>
+        <p style="margin:0 0 16px;font-size:.85rem;color:#666;">Esta cuenta no tiene una pregunta de seguridad, así que no podemos verificarte de forma automática. Si el número está registrado, <b>ya avisamos al administrador</b>: te contactará por WhatsApp para ayudarte.</p>
         <button onclick="closeForgotPasswordModal()" class="btn-primary" style="width:100%;">Entendido</button>
       </div>
 
       <div id="forgot-password-step2" style="display:none;">
-        <p style="margin:0 0 10px;font-size:.85rem;color:#666;">Responde tu pregunta de seguridad para continuar.</p>
+        <p style="margin:0 0 10px;font-size:.85rem;color:#666;">Responde tu pregunta de seguridad. Después el administrador te enviará un código por WhatsApp a tu número registrado.</p>
         <p id="forgot-password-pregunta" style="margin:0 0 10px;font-size:.9rem;font-weight:700;color:#111;">—</p>
         <input type="text" id="forgot-password-respuesta" placeholder="Tu respuesta"
-          style="width:100%;box-sizing:border-box;padding:9px 12px;border-radius:10px;border:1px solid #ddd;font-size:.9rem;margin-bottom:14px;outline:none;">
-        <label style="font-size:.8rem;color:#555;display:block;margin-bottom:4px;">¿Ya tienes otro número? <span style="color:#aaa;">(opcional)</span></label>
-        <input type="tel" id="forgot-password-nuevo-tel" placeholder="8671234567" maxlength="10"
-          style="width:100%;box-sizing:border-box;padding:9px 12px;border-radius:10px;border:1px solid #ddd;font-size:.9rem;margin-bottom:14px;outline:none;">
-        <p style="margin:0 0 12px;font-size:.73rem;color:#aaa;">Llénalo solo si cambiaste o perdiste el celular anterior. El administrador también lo actualizará al aprobar tu solicitud.</p>
+          style="width:100%;box-sizing:border-box;padding:9px 12px;border-radius:10px;border:1px solid #ddd;font-size:.9rem;margin-bottom:12px;outline:none;">
         <p id="forgot-password-msg2" style="min-height:16px;font-size:.8rem;margin:0 0 12px;"></p>
-        <button id="forgot-password-submit-btn" class="btn-primary" style="width:100%;">Enviar solicitud</button>
+        <button id="forgot-password-code-btn" class="btn-primary" style="width:100%;">Solicitar código</button>
+        <p style="text-align:center;margin:14px 0 0;font-size:.8rem;"><span id="forgot-password-sinnumero-link" style="color:#888;cursor:pointer;text-decoration:underline;">Ya no tengo ese número</span></p>
+        <div id="forgot-password-sinnumero" style="display:none;margin-top:14px;padding-top:14px;border-top:1px solid #f0f0f0;">
+          <label style="font-size:.8rem;color:#555;display:block;margin-bottom:4px;">Tu número nuevo <span style="color:#aaa;">(opcional)</span></label>
+          <input type="tel" id="forgot-password-nuevo-tel" placeholder="8671234567" maxlength="10"
+            style="width:100%;box-sizing:border-box;padding:9px 12px;border-radius:10px;border:1px solid #ddd;font-size:.9rem;margin-bottom:12px;outline:none;">
+          <p style="margin:0 0 12px;font-size:.73rem;color:#aaa;">Si perdiste o cambiaste de celular no podrás recibir el código. Con tu respuesta de seguridad enviamos una solicitud al administrador, que te contactará y también actualizará tu número.</p>
+          <button id="forgot-password-submit-btn" class="btn-secondary" style="width:100%;">Enviar solicitud al administrador</button>
+        </div>
+      </div>
+
+      <div id="forgot-password-step3" style="display:none;">
+        <p id="forgot-password-codigo-info" style="margin:0 0 12px;font-size:.85rem;color:#666;">El administrador te enviará el código por WhatsApp en unos minutos. Vale 30 minutos.</p>
+        <label style="font-size:.8rem;color:#555;display:block;margin-bottom:4px;">Código de verificación</label>
+        <input type="text" id="forgot-password-codigo" inputmode="numeric" autocomplete="one-time-code" placeholder="123456" maxlength="6"
+          style="width:100%;box-sizing:border-box;padding:9px 12px;border-radius:10px;border:1px solid #ddd;font-size:.9rem;margin-bottom:12px;outline:none;letter-spacing:4px;text-align:center;">
+        <label style="font-size:.8rem;color:#555;display:block;margin-bottom:4px;">Contraseña nueva</label>
+        <input type="password" id="forgot-password-nueva" autocomplete="new-password" placeholder="••••••••"
+          style="width:100%;box-sizing:border-box;padding:9px 12px;border-radius:10px;border:1px solid #ddd;font-size:.9rem;margin-bottom:12px;outline:none;">
+        <label style="font-size:.8rem;color:#555;display:block;margin-bottom:4px;">Repite la contraseña nueva</label>
+        <input type="password" id="forgot-password-nueva2" autocomplete="new-password" placeholder="••••••••"
+          style="width:100%;box-sizing:border-box;padding:9px 12px;border-radius:10px;border:1px solid #ddd;font-size:.9rem;margin-bottom:6px;outline:none;">
+        <p style="margin:0 0 10px;font-size:.73rem;color:#aaa;">Mínimo 8 caracteres, con una mayúscula, un número y un carácter especial.</p>
+        <p id="forgot-password-msg3" style="min-height:16px;font-size:.8rem;margin:0 0 12px;"></p>
+        <button id="forgot-password-reset-btn" class="btn-primary" style="width:100%;">Cambiar contraseña</button>
+        <p style="text-align:center;margin:14px 0 0;font-size:.8rem;"><span id="forgot-password-reenviar" style="color:#888;cursor:pointer;text-decoration:underline;">Pedir otro código</span></p>
       </div>
     </div>
   </div>

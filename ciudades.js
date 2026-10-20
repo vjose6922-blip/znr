@@ -298,79 +298,142 @@ function ciudadMasCercana(lat, lng) {
   ).ciudad;
 }
 
-// Muestra un chip no-bloqueante con selects país→ciudad cuando no hay geolocalización.
-function mostrarSelectorCiudad(resolve) {
-  const chip = document.createElement('div');
-  chip.style.cssText = 'position:fixed;bottom:16px;left:16px;right:16px;max-width:320px;background:#fff;border-radius:12px;box-shadow:0 4px 16px rgba(0,0,0,.2);padding:14px;z-index:10001;font-size:13px;';
-  chip.innerHTML = `<div style="margin-bottom:8px;font-weight:600;">📍 Elige tu ciudad</div>
+// ---------- Elegir y confirmar la ciudad ----------
+// Regla: la ciudad define qué artículos ve el comprador, así que NADA queda como "confirmada" sin un "Sí"
+// explícito en el mensaje de confirmación, venga de donde venga: del select, de "Usar mi ubicación" o de la
+// ciudad que adivinó la IP. El permiso de ubicación del navegador solo se pide si el comprador toca "Usar mi ubicación".
+const _escCiudad = t => String(t).replace(/[&<>"]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch]));
+
+function _capaCiudad() {
+  const ov = document.createElement('div');
+  ov.style.cssText = 'position:fixed;inset:0;z-index:10002;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;padding:16px;';
+  document.body.appendChild(ov);
+  return ov;
+}
+const _tarjetaCiudad = 'background:#fff;color:#222;border-radius:16px;box-shadow:0 8px 32px rgba(0,0,0,.3);padding:20px;width:100%;max-width:340px;font-size:14px;box-sizing:border-box;';
+const _btnCiudad = (a, t, primario) => `<button type="button" data-a="${a}" style="display:block;width:100%;margin-top:8px;padding:11px;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;${primario ? 'border:none;background:#1a1a1a;color:#fff;' : 'border:1px solid #bbb;background:#fff;color:#222;'}">${t}</button>`;
+
+// Selector país→estado→ciudad. Al elegir la ciudad solo la entrega (resolve): quien llama decide cómo confirmarla.
+// cancelable: muestra "Cancelar" (resolve(null)) para volver al mensaje de confirmación.
+function mostrarSelectorCiudad(resolve, opciones = {}) {
+  const ov = _capaCiudad();
+  ov.innerHTML = `<div style="${_tarjetaCiudad}"><div style="margin-bottom:10px;font-weight:700;font-size:16px;">📍 Elige tu ciudad</div>
     <select id="chip-pais" style="width:100%;margin-bottom:6px;padding:8px;border-radius:8px;"></select>
-    <select id="chip-ciudad-sel" style="width:100%;padding:8px;border-radius:8px;"></select>`;
-  document.body.appendChild(chip);
-  const selPais = chip.querySelector('#chip-pais'), selCiudad = chip.querySelector('#chip-ciudad-sel');
+    <select id="chip-ciudad-sel" style="width:100%;padding:8px;border-radius:8px;"></select>
+    ${opciones.cancelable ? _btnCiudad('cancelar', 'Cancelar', false) : ''}</div>`;
+  const selPais = ov.querySelector('#chip-pais'), selCiudad = ov.querySelector('#chip-ciudad-sel');
   enlazarPaisCiudad(selPais, selCiudad);
   selCiudad.addEventListener('change', () => {
     if (!selCiudad.value) return;
-    localStorage.setItem('buyer_ciudad', selCiudad.value);
-    localStorage.setItem('buyer_ciudad_ok', '1');
-    actualizarWaFlotante(true);
-    chip.remove();
+    ov.remove();
     resolve(selCiudad.value);
+  });
+  ov.addEventListener('click', e => { if (e.target.dataset && e.target.dataset.a === 'cancelar') { ov.remove(); resolve(null); } });
+}
+
+// Mensaje de confirmación. Devuelve 'ok' | 'gps' | 'otra'. No se cierra tocando fuera: hay que decidir.
+// via: 'ip' (la adivinó el servidor) | 'select' (la eligió en la lista) | 'gps' (su ubicación actual).
+function modalConfirmarCiudad(ciudad, via, aviso) {
+  return new Promise((resolve) => {
+    const ov = _capaCiudad();
+    ov.innerHTML = `<div role="dialog" aria-modal="true" aria-labelledby="zc-titulo" style="${_tarjetaCiudad}">
+      <div id="zc-titulo" style="font-weight:700;font-size:17px;margin-bottom:8px;">📍 Confirma tu ciudad</div>
+      <p style="margin:0;line-height:1.5;">Únicamente se mostrarán artículos de <b>${_escCiudad(ciudad)}</b>. ¿Es correcta?</p>
+      ${aviso ? `<p style="margin:8px 0 0;color:#c62828;font-size:12px;">${_escCiudad(aviso)}</p>` : ''}
+      ${_btnCiudad('ok', 'Sí, es correcta', true)}
+      ${via === 'gps' ? '' : _btnCiudad('gps', '📡 Usar mi ubicación', false)}
+      ${_btnCiudad('otra', 'Elegir otra ciudad', false)}</div>`;
+    ov.addEventListener('click', e => {
+      const a = e.target.dataset && e.target.dataset.a;
+      if (a) { ov.remove(); resolve(a); }
+    });
   });
 }
 
-// Ciudad del comprador: localStorage → ciudad aproximada por IP contra
-// catalogo-api (sin pedir permiso de ubicación al navegador; ese permiso
-// exacto se pide después, solo en los formularios que sí lo necesitan) →
-// selector manual si no se pudo resolver ninguna de las dos anteriores.
+// Ubicación actual del navegador → { lat, lng, ciudad } (la ciudad de la lista más cercana), o null si no hay permiso/señal.
+function ubicacionActual() {
+  return new Promise((resolve) => {
+    if (!navigator.geolocation) return resolve(null);
+    navigator.geolocation.getCurrentPosition(
+      (p) => resolve({ lat: p.coords.latitude, lng: p.coords.longitude, ciudad: ciudadMasCercana(p.coords.latitude, p.coords.longitude) }),
+      () => resolve(null),
+      { timeout: 10000, maximumAge: 300000 });
+  });
+}
+
+// Guarda la ciudad ya confirmada y avisa a la página ('znr:ciudad': el clima de Outfit, por ejemplo, se actualiza solo).
+function _guardarCiudadConfirmada(ciudad, via, coords) {
+  localStorage.setItem('buyer_ciudad', ciudad);
+  localStorage.setItem('buyer_ciudad_ok', '1');
+  // Las coordenadas solo se guardan si vinieron de "Usar mi ubicación"; se quedan en este navegador.
+  if (via === 'gps' && coords) localStorage.setItem('buyer_coords', JSON.stringify({ ciudad, lat: coords.lat, lng: coords.lng }));
+  else localStorage.removeItem('buyer_coords');
+  actualizarWaFlotante(true);
+  window.dispatchEvent(new CustomEvent('znr:ciudad', { detail: { ciudad } }));
+}
+
+// Bucle de confirmación: sigue hasta que el comprador diga "Sí" a una ciudad. Devuelve la ciudad confirmada.
+async function confirmarCiudad(ciudad, via, coords) {
+  let aviso = '';
+  for (;;) {
+    const r = await modalConfirmarCiudad(ciudad, via, aviso);
+    aviso = '';
+    if (r === 'ok') { _guardarCiudadConfirmada(ciudad, via, coords); return ciudad; }
+    if (r === 'gps') {
+      const u = await ubicacionActual();
+      if (u) { ciudad = u.ciudad; coords = u; via = 'gps'; }
+      else aviso = 'No pudimos obtener tu ubicación. Confirma esta ciudad o elige otra.';
+      continue;
+    }
+    const otra = await new Promise((res) => mostrarSelectorCiudad(res, { cancelable: true }));
+    if (otra) { ciudad = otra; via = 'select'; coords = null; }
+  }
+}
+
+// Ciudad del comprador: localStorage → ciudad aproximada por IP contra catalogo-api (sin pedir permiso de
+// ubicación) → selector manual (con confirmación) si no se pudo resolver. Varias llamadas a la vez comparten el mismo trámite.
+let _ciudadPendiente = null;
 function obtenerCiudadComprador() {
   const guardada = localStorage.getItem('buyer_ciudad');
   if (guardada) return Promise.resolve(guardada);
-  return new Promise((resolve) => {
+  if (_ciudadPendiente) return _ciudadPendiente;
+  const p = new Promise((resolve) => {
+    const manual = () => mostrarSelectorCiudad((c) => confirmarCiudad(c, 'select').then(resolve));
     fetch(window.CATALOGO_API_URL + '?action=ciudadPorIp')
       .then((r) => r.json())
       .then((data) => {
-        if (!data || !data.ok || !data.encontrado) {
-          mostrarSelectorCiudad(resolve);
-          return;
-        }
+        if (!data || !data.ok || !data.encontrado) { manual(); return; }
         const ciudad = ciudadMasCercana(data.lat, data.lng);
-        localStorage.setItem('buyer_ciudad', ciudad);
+        localStorage.setItem('buyer_ciudad', ciudad); // provisional: sigue sin confirmar (buyer_ciudad_ok)
         actualizarWaFlotante(true);
+        window.dispatchEvent(new CustomEvent('znr:ciudad', { detail: { ciudad } }));
         resolve(ciudad);
       })
-      .catch(() => mostrarSelectorCiudad(resolve));
+      .catch(manual);
   });
+  _ciudadPendiente = p;
+  p.finally(() => { _ciudadPendiente = null; });
+  return p;
 }
 
-// La IP solo adivina: hasta que el comprador confirma, se muestra esta franja y no puede agregar al carrito.
+// La IP solo adivina: hasta que el comprador confirma se le muestra el mensaje de confirmación.
 window.ciudadConfirmada = () => localStorage.getItem('buyer_ciudad_ok') === '1';
-const _recargarCiudad = () => mostrarSelectorCiudad(() => location.reload());
-function mostrarFranjaCiudad() {
+let _confirmando = null;
+function mostrarConfirmacionCiudad() {
   const ciudad = localStorage.getItem('buyer_ciudad');
-  if (!ciudad || window.ciudadConfirmada() || document.getElementById('franja-ciudad')) return;
-  const f = document.createElement('div');
-  f.id = 'franja-ciudad';
-  f.style.cssText = 'position:sticky;top:0;z-index:9998;background:#fff8e1;color:#5d4037;padding:8px 12px;font-size:13px;display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(0,0,0,.15)';
-  f.innerHTML = `📍 Mostrando productos de <b>${ciudad}</b> ` + [['ok', 'Es correcta'], ['gps', 'Usar mi ubicación'], ['otra', 'Cambiar']]
-    .map(([a, t]) => `<button data-a="${a}" style="border:1px solid #5d4037;background:#fff;border-radius:14px;padding:4px 10px;font-size:12px">${t}</button>`).join('');
-  f.onclick = (e) => {
-    const a = e.target.dataset.a;
-    if (a === 'ok') { localStorage.setItem('buyer_ciudad_ok', '1'); f.remove(); }
-    if (a === 'otra') _recargarCiudad();
-    if (a === 'gps') navigator.geolocation
-      ? navigator.geolocation.getCurrentPosition(
-          (p) => { localStorage.setItem('buyer_ciudad', ciudadMasCercana(p.coords.latitude, p.coords.longitude)); localStorage.setItem('buyer_ciudad_ok', '1'); location.reload(); },
-          _recargarCiudad)
-      : _recargarCiudad();
-  };
-  document.body.prepend(f);
+  if (!ciudad || window.ciudadConfirmada()) return Promise.resolve();
+  if (_confirmando) return _confirmando;
+  // Si cambia de ciudad, la página ya cargó con la adivinada: se recarga para que todo lea la nueva.
+  _confirmando = confirmarCiudad(ciudad, 'ip').then((nueva) => { if (nueva !== ciudad) location.reload(); });
+  _confirmando.finally(() => { _confirmando = null; });
+  return _confirmando;
 }
 window.pedirConfirmarCiudad = () => {
-  obtenerCiudadComprador().then(mostrarFranjaCiudad);
-  scrollTo({ top: 0, behavior: 'smooth' });
+  obtenerCiudadComprador().then(mostrarConfirmacionCiudad);
   if (window.showTemporaryMessage) window.showTemporaryMessage('Confirma tu ciudad para continuar', 'error');
 };
-if (/^\/(index\.html|catalogo\.html|comunidad\.html)?$/.test(location.pathname)) obtenerCiudadComprador().then(mostrarFranjaCiudad);
+// Páginas de compra (filtran artículos por ciudad): al entrar por primera vez piden confirmar la ciudad.
+if (/^\/(index\.html|catalogo\.html|comunidad\.html|outfit\.html|armar-outfit\.html)?$/.test(location.pathname)) obtenerCiudadComprador().then(mostrarConfirmacionCiudad);
 
 // Pinta en el botón flotante el WhatsApp del admin de la ciudad del comprador (lo resuelve api-config.js; sin admin, el Master).
 // `recargar` = true cuando el comprador cambia de ciudad y hay que volver a leerlo.

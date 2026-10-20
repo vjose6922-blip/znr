@@ -13,6 +13,8 @@ let bgProductsRetryTimer = null;
 const MAX_BG_PRODUCTS_RETRIES = 5;
 const BG_PRODUCTS_RETRY_DELAYS = [3000, 6000, 10000, 20000, 30000];
 let currentWeather = null;
+let _ultimaUbicacionClima = null;
+let _refrescoPorCiudad = false;
 let allProducts = [];
 let productsByCategoryIndex = new Map();
 let looks = [];
@@ -231,26 +233,45 @@ function updateWeatherWidgetUI(classified) {
   `;
   widget.classList.remove('loading');
 }
-function _getCachedWeather() {
+function _getCachedWeather(coords) {
   try {
     const raw = localStorage.getItem(WEATHER_CACHE_KEY);
     if (!raw) return null;
-    const { data, timestamp } = JSON.parse(raw);
-    if (!data || (Date.now() - timestamp) > WEATHER_CACHE_TTL_MS) return null;
+    const { data, timestamp, coords: cachedCoords } = JSON.parse(raw);
+    // El caché es de UNA ubicación: si cambió la ciudad (o las coordenadas), no sirve.
+    if (!data || cachedCoords !== coords || (Date.now() - timestamp) > WEATHER_CACHE_TTL_MS) return null;
     return data;
   } catch (error) {
     return null;
   }
 }
-function _setCachedWeather(data) {
+function _setCachedWeather(coords, data) {
   try {
-    localStorage.setItem(WEATHER_CACHE_KEY, JSON.stringify({ data, timestamp: Date.now() }));
+    localStorage.setItem(WEATHER_CACHE_KEY, JSON.stringify({ data, timestamp: Date.now(), coords }));
   } catch (error) {
     // localStorage lleno o bloqueado: no es crítico, simplemente no se cachea
   }
 }
+// Ubicación para el clima, sin pedir ningún permiso al navegador:
+//  1) si el comprador eligió "Usar mi ubicación" al confirmar su ciudad, se usan esas coordenadas
+//     (redondeadas a 2 decimales, ~1 km, para no mandar el punto exacto);
+//  2) si no, las coordenadas de la ciudad que registró/confirmó (ciudades.js);
+//  3) si todavía no hay ciudad, Nuevo Laredo.
+function _ubicacionClima() {
+  const clave = localStorage.getItem('buyer_ciudad');
+  const lista = window.ZNR_CIUDADES || [];
+  const c = clave && lista.find(x => x.ciudad === clave);
+  try {
+    const g = JSON.parse(localStorage.getItem('buyer_coords') || 'null');
+    if (g && g.ciudad === clave && isFinite(g.lat) && isFinite(g.lng)) {
+      return { coords: `${Number(g.lat).toFixed(2)},${Number(g.lng).toFixed(2)}`, ciudad: c ? c.nombre : 'tu ubicación' };
+    }
+  } catch (e) { /* JSON corrupto: se ignora y se usa la ciudad */ }
+  if (c) return { coords: `${c.lat},${c.lng}`, ciudad: c.nombre };
+  return { coords: DEFAULT_COORDS, ciudad: 'Nuevo Laredo' };
+}
 async function fetchWeatherData(coords = DEFAULT_COORDS) {
-const cached = _getCachedWeather();
+const cached = _getCachedWeather(coords);
 if (cached) {
 console.log('📦 Clima desde caché local (< 30 min)');
 return cached;
@@ -263,7 +284,7 @@ const response = await fetch(url, { signal: controller.signal });
 clearTimeout(timeoutId);
 if (!response.ok) throw new Error(`HTTP ${response.status}`);
 const data = await response.json();
-_setCachedWeather(data);
+_setCachedWeather(coords, data);
 return data;
 } catch (error) {
 clearTimeout(timeoutId);
@@ -310,7 +331,9 @@ const widget = document.getElementById('weather-widget');
 if (widget) {
 widget.classList.add('loading');
 }
-const weatherData = await fetchWeatherData();
+const ubicacion = _ubicacionClima();
+_ultimaUbicacionClima = ubicacion.coords;
+const weatherData = await fetchWeatherData(ubicacion.coords);
 if (!weatherData) {
 if (weatherRetryCount < MAX_WEATHER_RETRIES) {
 const delay = RETRY_DELAYS[weatherRetryCount] || 30000;
@@ -333,7 +356,7 @@ const c = classified.condition;
 currentWeather = {
 weatherType: (c === 'calor' ? 'calor' : (c === 'frio' ? 'frio' : (c.includes('lluvia') || c.includes('tormenta') ? 'lluvioso' : 'templado'))),
 temperature: classified.temperature,
-city: 'Nuevo Laredo'
+city: ubicacion.ciudad
 };
 if (allLooks.length > 0) {
 allLooks = sortLooksByWeather(allLooks);
@@ -354,9 +377,10 @@ const c = classified.condition;
 currentWeather = {
 weatherType: (c === 'calor' ? 'calor' : (c === 'frio' ? 'frio' : (c.includes('lluvia') || c.includes('tormenta') ? 'lluvioso' : 'templado'))),
 temperature: classified.temperature,
-city: 'Nuevo Laredo'
+city: ubicacion.ciudad
 };
-if (isRetrySuccess && allLooks.length > 0) {
+if ((isRetrySuccess || _refrescoPorCiudad) && allLooks.length > 0) {
+_refrescoPorCiudad = false;
 allLooks = sortLooksByWeather(allLooks);
 looks = [...allLooks];
 renderLooks();
@@ -364,6 +388,15 @@ console.log(' Looks re-ordenados con clima real tras reintento exitoso.');
 }
 console.log('Clima aplicado:', classified.timeOfDay, classified.condition, classified.temperature);
 }
+// ciudades.js avisa ('znr:ciudad') cuando el comprador confirma o cambia su ciudad (o elige "Usar mi ubicación"):
+// el clima, el fondo y el orden de los looks se actualizan sin recargar la página.
+window.addEventListener('znr:ciudad', () => {
+  if (_ubicacionClima().coords === _ultimaUbicacionClima) return; // misma ubicación: nada que refrescar
+  if (weatherRetryTimer) { clearTimeout(weatherRetryTimer); weatherRetryTimer = null; }
+  weatherRetryCount = 0;
+  _refrescoPorCiudad = true;
+  initWeatherAndBackground();
+});
 const WEATHER_PRIORITY_SCORES = {
 calor: {
 "look_verano_dama": 100, "look_verano_caballero": 100,

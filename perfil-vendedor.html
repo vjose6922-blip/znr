@@ -1242,6 +1242,10 @@ const infoBits = [
               </div>
             </div>
 
+            <div style="text-align:center;margin:2px 0 14px;">
+              <button type="button" id="profile-report-vendor-btn" style="background:none;border:none;padding:6px 8px;color:var(--color-text-muted,#888);font-size:12px;cursor:pointer;text-decoration:underline;display:inline-flex;align-items:center;gap:4px;">${Icon('flag')} Reportar a este vendedor</button>
+            </div>
+
             <div class="profile-products">
             ${productToolbarHtml}
               <div class="profile-products-grid" id="profile-products-grid"></div>
@@ -1260,6 +1264,7 @@ const infoBits = [
         cargarCalificacionVendedor(v.uid, v.nombre);
         cargarPestanaFundacion(v);
         cargarInsigniaDonador(v);
+        document.getElementById('profile-report-vendor-btn')?.addEventListener('click', () => showReportVendorDialog(v));
 
         // Pestañas (Información / Contacto / Redes sociales): colapsadas por
         // defecto para no ocupar espacio antes de llegar a los productos.
@@ -1454,6 +1459,85 @@ const infoBits = [
           } catch (err) {
             console.error('Error enviando reporte:', err);
             if (typeof showTemporaryMessage === 'function') showTemporaryMessage('No se pudo enviar el reporte. Inténtalo de nuevo.', 'error');
+            return false;
+          }
+        }
+
+        // Reporte de vendedor (catalogo-api · reportarVendedor). Le llega solo al admin; el vendedor no se entera.
+        const MOTIVOS_REPORTE_VENDEDOR = ['Estafa o fraude', 'No entregó lo acordado', 'Trato grosero o acoso', 'Perfil o fotos falsas', 'Vende cosas prohibidas', 'Otro'];
+        function showReportVendorDialog(vendor) {
+          const modal = document.createElement('div');
+          modal.className = 'custom-alert-modal';
+          modal.style.zIndex = '100000';
+          const radios = MOTIVOS_REPORTE_VENDEDOR.map(m => `
+            <label style="display:flex; align-items:center; gap:8px; margin-bottom:8px; cursor:pointer; font-size:14px;">
+              <input type="radio" name="report-vendor-reason" value="${esc(m)}" style="accent-color:var(--color-accent-solid);">
+              ${esc(m)}
+            </label>`).join('');
+          modal.innerHTML = `
+            <div class="custom-alert-content" style="max-width:380px; width:90%;">
+              <div class="custom-alert-header"><h3>Reportar vendedor</h3></div>
+              <div class="custom-alert-body">
+                <p style="font-weight:600; margin-bottom:12px; color:var(--color-text-primary,#1a1a2e);">${esc(vendor.nombre || 'Vendedor')}</p>
+                <p style="margin-bottom:12px; font-size:13px; color:var(--color-text-muted,#666);">Selecciona el motivo. El vendedor no sabrá quién lo reportó.</p>
+                ${radios}
+                <textarea id="report-vendor-detail" rows="3" maxlength="300" placeholder="Cuéntanos qué pasó (opcional; obligatorio si eliges «Otro»)"
+                  style="width:100%; margin-top:4px; padding:10px 12px; border-radius:10px; border:1.5px solid #e0e0e0; font-size:13px; box-sizing:border-box; background:var(--color-input-bg,#f9f9ff); resize:vertical;"></textarea>
+              </div>
+              <div class="custom-alert-footer">
+                <button class="custom-alert-btn cancel" id="report-vendor-cancel-btn">${Icon('x')} Cancelar</button>
+                <button class="custom-alert-btn confirm" id="report-vendor-confirm-btn" style="background:var(--gradient-accent);">${Icon('flag')} Enviar reporte</button>
+              </div>
+            </div>
+          `;
+          document.body.appendChild(modal);
+          const close = () => {
+            modal.classList.add('closing');
+            setTimeout(() => { if (modal.parentNode) modal.remove(); }, 150);
+          };
+          modal.querySelector('#report-vendor-cancel-btn')?.addEventListener('click', close);
+          modal.addEventListener('click', (e) => { if (e.target === modal) close(); });
+          modal.querySelector('#report-vendor-confirm-btn')?.addEventListener('click', async () => {
+            const selected = modal.querySelector('input[name="report-vendor-reason"]:checked');
+            const detalle = (modal.querySelector('#report-vendor-detail').value || '').trim();
+            if (!selected) {
+              if (typeof showTemporaryMessage === 'function') showTemporaryMessage('Selecciona un motivo', 'error');
+              return;
+            }
+            if (selected.value === 'Otro' && detalle.length < 5) {
+              if (typeof showTemporaryMessage === 'function') showTemporaryMessage('Cuéntanos brevemente qué pasó', 'error');
+              return;
+            }
+            const confirmBtn = modal.querySelector('#report-vendor-confirm-btn');
+            const doSend = () => sendVendorReport(vendor, selected.value, detalle);
+            const ok = typeof window.withButtonLoading === 'function'
+              ? await window.withButtonLoading(confirmBtn, doSend, 'Enviando…')
+              : await doSend();
+            if (ok) close();
+          });
+        }
+
+        async function sendVendorReport(vendor, motivo, detalle) {
+          try {
+            const params = new URLSearchParams({
+              action: 'reportarVendedor',
+              vendedorUid: String(vendor.uid || getVendorUid() || ''),
+              motivo,
+              detalle,
+              telefonoUsuario: localStorage.getItem('client_phone') || ''
+            });
+            const res = await fetch('https://catalogo-api-1038143238323.us-central1.run.app', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+              body: params.toString()
+            });
+            const data = await res.json();
+            if (!data.ok) throw new Error(data.error || 'Error al enviar reporte');
+            if (typeof showTemporaryMessage === 'function') showTemporaryMessage('Reporte enviado. Lo revisará el equipo de Z&R. ¡Gracias!', 'success');
+            return true;
+          } catch (err) {
+            console.error('Error enviando reporte de vendedor:', err);
+            if (typeof showTemporaryMessage === 'function') showTemporaryMessage(err.message && err.message !== 'Failed to fetch' ? err.message : 'No se pudo enviar el reporte. Inténtalo de nuevo.', 'error');
             return false;
           }
         }
