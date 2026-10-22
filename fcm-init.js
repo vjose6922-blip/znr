@@ -25,8 +25,7 @@ const CLOUD_FN_ELIMINAR_TOKEN_URL =
 /**
  * Manda el token a la Cloud Function que lo guarda en Firestore
  * (fcm_tokens/{ownerType_ownerId}/tokens/{tokenHash}), de forma
- * idempotente. Antes iba a Apps Script (acción "guardarTokenFCM");
- * eso queda retirado como fuente de escritura para este dato.
+ * idempotente.
  */
 async function registrarTokenFCM(ownerType, ownerId, token) {
   if (!ownerType || !ownerId || !token) return false;

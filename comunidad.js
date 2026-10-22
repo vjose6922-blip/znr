@@ -3,8 +3,7 @@ const COMUNIDAD_CACHE_KEY = 'zr_comunidad_data';
 const COMUNIDAD_CACHE_TTL_SESSION = 5 * 60 * 1000;
 const COMUNIDAD_CACHE_TTL_LOCAL   = 30 * 60 * 1000;
 
-// ── Router de migración GAS → Cloud Run (solo para deleteComunidad,
-// que es la única acción de este archivo que ya migró) ────────────
+// ── Servicios de Cloud Run que usa este archivo (modo inspector y acciones de comunidad) ──
 const CATALOGO_API_URL_INSPECTOR =
   "https://catalogo-api-1038143238323.us-central1.run.app";
 const AUTH_API_URL_INSPECTOR =
@@ -22,7 +21,7 @@ function _resolverApiUrlInspector(action) {
   if (['registrarBeneficiario', 'reportarBeneficiario', 'solicitarEdicionBeneficiario', 'obtenerBeneficiario', 'asignarDonacion', 'desasignarDonacion'].includes(action)) {
     return BENEFICIARIOS_API_URL_INSPECTOR;
   }
-  return window.API_URL;
+  throw new Error('Acción sin servicio asignado: ' + action);
 }
 
 function setComunidadCache(products) {
@@ -243,29 +242,35 @@ const cards = Array.from({length: count}, () => `
 container.innerHTML = cards;
 }
 
-// ── Construye la URL de la API con los parámetros actuales ──────────────────
-function buildComunidadUrl(page, filters) {
-  // Modo inspector (admin): catalogo-api ya migrado, sin filtros de
-  // servidor (lista completa hasta 200, se pagina/ordena localmente).
-  if (inspectorMode) {
-    const token = sessionStorage.getItem('admin_token') || '';
-    return CATALOGO_API_URL_INSPECTOR + '?' + new URLSearchParams({ action: 'listarTodoComunidad', token }).toString();
-  }
-  const u = new URL(window.API_URL);
-  u.searchParams.set('action', 'listarComunidad');
-  u.searchParams.set('page',   String(page));
-  u.searchParams.set('limit',  String(PAGE_SIZE));
-  if (filters.categoria)  u.searchParams.set('categoria',    filters.categoria);
-  if (filters.busqueda)   u.searchParams.set('busqueda',     filters.busqueda);
-  if (filters.vendedor)   u.searchParams.set('vendedor_uid', filters.vendedor);
-  if (filters.temporada)  u.searchParams.set('temporada',    filters.temporada);
-  if (filters.orden === 'verificados') u.searchParams.set('soloPro', 'true');
-  if (filters.orden)      u.searchParams.set('orden',       filters.orden);
-  return u.toString();
+// ── URL del listado del modo inspector (admin) ──────────────────────────────
+// catalogo-api: lista completa hasta 200, sin filtros de servidor (se pagina/ordena localmente).
+function buildComunidadUrl() {
+  const token = sessionStorage.getItem('admin_token') || '';
+  return CATALOGO_API_URL_INSPECTOR + '?' + new URLSearchParams({ action: 'listarTodoComunidad', token }).toString();
 }
 
-// ── Carga y renderiza una página de productos vía GAS (respaldo / modo inspector) ──
-async function loadComunidadPageGAS(page, filters, opts = {}) {
+// ── Si la carga falla: usa la caché si existe; si no, muestra el error con botón de reintentar ──
+function mostrarErrorCargaComunidad(err) {
+  // Si falla y hay caché, la usamos como respaldo
+  const cached = getComunidadCache();
+  if (cached && cached.length > 0 && allCommunityProducts.length === 0) {
+    allCommunityProducts = cached;
+    filteredProducts     = [...cached];
+    renderProducts();
+    if (typeof window.showTemporaryMessage === 'function') {
+      window.showTemporaryMessage('Mostrando datos guardados — sin conexión', 'info');
+    }
+  } else if (allCommunityProducts.length === 0 && gridContainer) {
+    gridContainer.innerHTML = `<div style="grid-column:1/-1; text-align:center; padding:40px; color:var(--color-error,#ef4444);">
+      Error al cargar productos de la comunidad.<br>
+      <small style="color:var(--color-text-muted,#888);font-size:11px;">${err.message || ''}</small><br>
+      <button onclick="loadComunidadPage(1,{})" style="margin-top:12px; padding:8px 20px; border-radius:30px; border:none; background:var(--color-accent-solid); color:white; cursor:pointer; font-weight:600;"  >${Icon('refresh')} Reintentar</button>
+    </div>`;
+  }
+}
+
+// ── Carga y renderiza una página de productos en modo inspector (admin, vía catalogo-api) ──
+async function loadComunidadPageInspector(page, filters, opts = {}) {
   if (isLoading && !opts.force) return;
   isLoading = true;
 
@@ -273,12 +278,6 @@ async function loadComunidadPageGAS(page, filters, opts = {}) {
   // que también llega con isPageChange:false). Antes esto hacía que CUALQUIER cambio de filtro
   // pintara primero el catálogo completo en caché antes de la respuesta real filtrada.
   const isFirstLoad = !hasLoadedOnce;
-
-  if (!window.API_URL) {
-    if (gridContainer) gridContainer.innerHTML = '<div style="grid-column:1/-1; text-align:center; padding:40px; color:var(--color-error,#ef4444);">Error de configuración. Recarga la página.</div>';
-    isLoading = false;
-    return;
-  }
 
   // En la primera carga mostramos caché mientras llega la red
   if (isFirstLoad && !opts.force) {
@@ -300,7 +299,7 @@ async function loadComunidadPageGAS(page, filters, opts = {}) {
 
   try {
     // Si ya tenemos el orden aleatorio armado en esta sesión (por Algolia o
-    // por una llamada GAS previa), solo paginamos en memoria, sin red.
+    // por una carga previa), solo paginamos en memoria, sin red.
     if (esVistaComunidadPorDefecto(filters) && communityRandomOrder && !opts.force) {
       currentPage      = page;
       totalPagesGlobal = Math.max(1, Math.ceil(communityRandomOrder.length / PAGE_SIZE));
@@ -316,7 +315,7 @@ async function loadComunidadPageGAS(page, filters, opts = {}) {
       return;
     }
 
-    const url = buildComunidadUrl(page, filters);
+    const url = buildComunidadUrl();
     const controller = new AbortController();
     const tid = setTimeout(() => controller.abort(), 10000);
     const res = await fetch(url, { signal: controller.signal });
@@ -351,33 +350,18 @@ async function loadComunidadPageGAS(page, filters, opts = {}) {
       setComunidadCache(allCommunityProducts);
     }
 
-    // Respaldo: si el backend GAS aún no soporta 'orden' (calificación/precio),
-    // reordenamos localmente lo que llegó en esta página (no es un orden global,
-    // pero evita que el select quede sin efecto en modo inspector/sin conexión).
+    // En modo inspector el servidor no ordena (calificación/precio): reordenamos
+    // localmente lo que llegó (no es un orden global, pero evita que el select
+    // quede sin efecto).
     aplicarOrdenLocal(filters.orden);
 
     renderProducts();
     handleInitialHashComunidad();
 
   } catch (err) {
-    console.error('Error loadComunidadPageGAS:', err);
-    if (window.ZRMonitor) ZRMonitor.report('CRÍTICO','comunidad.js','loadComunidadPageGAS', err.message || String(err));
-    // Si falla y hay caché, la usamos como respaldo
-    const cached = getComunidadCache();
-    if (cached && cached.length > 0 && allCommunityProducts.length === 0) {
-      allCommunityProducts = cached;
-      filteredProducts     = [...cached];
-      renderProducts();
-      if (typeof window.showTemporaryMessage === 'function') {
-        window.showTemporaryMessage('Mostrando datos guardados — sin conexión', 'info');
-      }
-    } else if (allCommunityProducts.length === 0 && gridContainer) {
-      gridContainer.innerHTML = `<div style="grid-column:1/-1; text-align:center; padding:40px; color:var(--color-error,#ef4444);">
-        Error al cargar productos de la comunidad.<br>
-        <small style="color:var(--color-text-muted,#888);font-size:11px;">${err.message || ''}</small><br>
-        <button onclick="loadComunidadPage(1,{})" style="margin-top:12px; padding:8px 20px; border-radius:30px; border:none; background:var(--color-accent-solid); color:white; cursor:pointer; font-weight:600;"  >${Icon('refresh')} Reintentar</button>
-      </div>`;
-    }
+    console.error('Error loadComunidadPageInspector:', err);
+    if (window.ZRMonitor) ZRMonitor.report('CRÍTICO','comunidad.js','loadComunidadPageInspector', err.message || String(err));
+    mostrarErrorCargaComunidad(err);
   } finally {
     isLoading = false;
     hasLoadedOnce = true;
@@ -393,10 +377,7 @@ async function loadComunidadFilterOptionsAlgolia() {
     // Traemos hits (no solo facets) para poder mapear vendedor_uid -> vendedor_nombre.
     // Antes se armaba el <select> de vendedores con el facet "vendedor_nombre" como value,
     // pero el filtro de búsqueda filtra por "vendedor_uid" (ver loadComunidadPageAlgolia).
-    // Ese desajuste hacía que Algolia no encontrara resultados al elegir un vendedor
-    // y el código caía al respaldo de GAS, cuyo filterOptions se calcula SOBRE la lista
-    // ya filtrada (ver listarProductosComunidad en el backend) — por eso el select se
-    // quedaba solo con la categoría/vendedor ya seleccionado en vez de mostrar todos.
+    // Ese desajuste hacía que Algolia no encontrara resultados al elegir un vendedor.
     const r = await window.algoliaIndex.search('', {
       hitsPerPage: 1000,
       attributesToRetrieve: ['vendedor_uid', 'vendedor_nombre'],
@@ -451,7 +432,7 @@ function getAlgoliaIndexForOrden(orden) {
   }
 }
 
-// ── Orden local de respaldo (modo GAS / sin réplicas de Algolia) ──────────
+// ── Orden local de respaldo (modo inspector / sin réplicas de Algolia) ────
 // Solo reordena lo que ya está cargado en memoria, NO es un orden global
 // del catálogo completo. Se usa como respaldo cuando el orden real (Algolia
 // replica o backend) no está disponible.
@@ -520,8 +501,7 @@ function construirOrdenAleatorioComunidad(hits) {
 }
 
 // ── Snapshot estático del catálogo (RTDB) ──────────────────────────────────
-// Se refresca cada 5 min desde Apps Script (ver generarSnapshotCatalogo /
-// instalarTriggerSnapshotCatalogo en el backend). Es un GET REST corto a
+// Se refresca periódicamente desde el backend (catalogo-api). Es un GET REST corto a
 // Firebase, no una conexión persistente — no compite con el límite de 100
 // conexiones simultáneas de los lives. El objetivo es que la vista por
 // defecto de Comunidad (la de MÁS tráfico: cualquier visitante que entra
@@ -656,8 +636,8 @@ async function loadComunidadPageAlgolia(page, filters, opts = {}) {
   } catch (err) {
     console.error('Error loadComunidadPageAlgolia:', err);
     if (window.ZRMonitor) ZRMonitor.report('ERROR','comunidad.js','loadComunidadPageAlgolia', err.message || String(err));
-    // Si Algolia falla por cualquier razón, caemos de vuelta a GAS para no dejar la tienda sin buscador
-    return loadComunidadPageGAS(page, filters, opts);
+    // Si Algolia falla: caché local si hay, o mensaje de error con botón de reintentar.
+    mostrarErrorCargaComunidad(err);
   } finally {
     isLoading = false;
     hasLoadedOnce = true;
@@ -665,12 +645,12 @@ async function loadComunidadPageAlgolia(page, filters, opts = {}) {
   }
 }
 
-// ── Punto de entrada: decide si usar Algolia (público) o GAS (modo inspector/admin) ──
+// ── Punto de entrada: decide si usar Algolia (público) o catalogo-api (modo inspector/admin) ──
 async function loadComunidadPage(page, filters, opts = {}) {
   if (filters && filters.vista) return cargarVistaComunidad(page, filters);
   // El modo inspector necesita ver productos pendientes también, que no viven en Algolia
   if (inspectorMode) {
-    return loadComunidadPageGAS(page, filters, opts);
+    return loadComunidadPageInspector(page, filters, opts);
   }
   return loadComunidadPageAlgolia(page, filters, opts);
 }
@@ -710,7 +690,7 @@ function populateFiltersFromOptions(filterOptions) {
     vendorSelect.innerHTML = '<option value="">Todos los vendedores</option>';
     filterOptions.vendors.forEach(v => {
       const opt = document.createElement('option');
-      // Soporta objetos {uid, nombre} (Algolia) y strings sueltos (respaldo GAS)
+      // Soporta objetos {uid, nombre} (Algolia) y strings sueltos
       if (v && typeof v === 'object') { opt.value = v.uid; opt.textContent = v.nombre; }
       else { opt.value = v; opt.textContent = v; }
       vendorSelect.appendChild(opt);
@@ -1930,19 +1910,14 @@ function initBeneficiariosToggle() {
 
 async function loadBeneficiariosGrid() {
   const grid = document.getElementById('comunidad-beneficiarios-grid');
-  if (!grid || !window.API_URL) return;
+  if (!grid) return;
   try {
 let data = null;
 if (window.znrFirestore && window.znrFirestore.getBeneficiariosAprobados) {
   data = await window.znrFirestore.getBeneficiariosAprobados();
 }
-if (!data || !data.ok) {
-  // Firestore no disponible o falló: respaldo con GAS (comportamiento anterior)
-  const res = await fetch(window.API_URL + '?' + new URLSearchParams({ action: 'obtenerBeneficiariosAprobados' }));
-  data = await res.json();
-}
-    
-    if (!data.ok) throw new Error(data.error || 'Error del servidor');
+
+    if (!data || !data.ok) throw new Error((data && data.error) || 'Firestore no disponible');
     // Fundaciones con la cuenta suspendida no se muestran (el backend tampoco deja asignarles donaciones).
     const beneficiarios = (data.beneficiarios || []).filter(b => !b.suspendido);
     beneficiariosCargados = true;

@@ -62,9 +62,7 @@
 
   // marcarNotificacionLeida/marcarTodasNotificacionesLeidas ya migraron a
   // vendedores-api. La lectura del feed usa exclusivamente Firestore
-  // (window.znrFirestore.getNotificacionesCentro); el respaldo por GAS
-  // (misNotificacionesVendedor/Cliente) se eliminó porque la migración a
-  // Firestore/Cloud Run ya está 100% completa.
+  // (window.znrFirestore.getNotificacionesCentro).
   const VENDEDORES_API_URL_NOTIF = "https://vendedores-api-1038143238323.us-central1.run.app";
 
   async function fetchFeedVendedor(identity) {

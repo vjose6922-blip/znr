@@ -11,9 +11,7 @@ Object.defineProperty(window, 'vendorSession', {
   configurable: true
 });
 
-const API_BASE = window.API_URL || ""
-
-// ── Router de migración GAS → Cloud Run ──────────────────────────
+// ── Servicios de Cloud Run ───────────────────────────────────────
 const VENDEDORES_API_URL =
   "https://vendedores-api-1038143238323.us-central1.run.app";
 const CATALOGO_API_URL =
@@ -78,7 +76,7 @@ const MAPA_ACCIONES_MIGRADAS = {
   regenerarTokenEntregas: LIVE_API_URL,
 };
 function resolverApiUrl(action) {
-  return MAPA_ACCIONES_MIGRADAS[action] || API_BASE;
+  return MAPA_ACCIONES_MIGRADAS[action] || null;
 }
 
 const DAILY_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
@@ -103,7 +101,7 @@ function parseJsonSeguro(text) {
 
 window.apiFetch = async function(data, method = 'POST') {
   const API_BASE = resolverApiUrl(data && data.action);
-  if (!API_BASE) throw new Error('API_URL no está disponible');
+  if (!API_BASE) throw new Error('Acción sin servicio asignado: ' + (data && data.action));
 
   const TIMEOUT_MS = 15000;
 
@@ -593,9 +591,6 @@ async function loadVendorSaleNotifications() {
     let data = null;
     if (window.znrFirestore && window.znrFirestore.getVentasComunidadVendedor) {
       data = await window.znrFirestore.getVentasComunidadVendedor(vendorSession.uid, vendorSession.token);
-    }
-    if (!data || !data.ok) {
-      data = await apiCall({ action: 'listarNotificacionesVentaComunidad', vendorToken: vendorSession.token });
     }
     if (!data || !data.ok) return;
     // Las ventas de un live (origenLive) ya no se confirman con tarjetas aquí:
@@ -3030,12 +3025,7 @@ window.verMisEstadisticas = async function(forceRefresh) {
       if (window.znrFirestore && window.znrFirestore.getCalificacionesVendedor) {
         rData = await window.znrFirestore.getCalificacionesVendedor(vendorSession.uid);
       }
-      if (!rData || !rData.ok) {
-        const rUrl = `${window.API_URL}?${new URLSearchParams({ action: 'obtenerCalificacionesVendedor', vendedor_uid: vendorSession.uid })}`;
-        const rRes = await fetch(rUrl);
-        rData = await rRes.json();
-      }
-      if (rData.ok) result.rating = { promedio: rData.promedio, total: rData.total };
+      if (rData && rData.ok) result.rating = { promedio: rData.promedio, total: rData.total };
     } catch (e) { }
   })();
 
@@ -3322,7 +3312,6 @@ if (prod.imagen1) {
   selEl.innerHTML = '<option value="">Cargando beneficiarios…</option>';
   try {
 let benData = window.znrFirestore ? await window.znrFirestore.getBeneficiariosAprobados() : { ok:false };
-    if (!benData.ok) benData = await window.apiFetch({ action:'obtenerBeneficiariosAprobados' }, 'GET');
 
     if (!benData.ok) {
       selEl.innerHTML = '<option value="">' + Icon('error') + ' No se pudo cargar — toca para reintentar</option>';
@@ -3675,10 +3664,6 @@ window.openEntregasLiveModal = async function() {
 async function buscarMiPerfilBeneficiario() {
   try {
     let data = window.znrFirestore ? await window.znrFirestore.getBeneficiariosAprobados() : { ok:false };
-    if (!data.ok) {
-      const res = await fetch(window.API_URL + '?' + new URLSearchParams({ action: 'obtenerBeneficiariosAprobados' }));
-      data = await res.json();
-    }
     if (!data.ok) return null;
     const miTel = String(vendorSession.telefono || '').replace(/\D/g, '');
     if (!miTel) return null;

@@ -50,9 +50,8 @@ const GENERO_POR_CATEGORIA = {
   'calzado para dama': 'MUJER', 'sueter para dama': 'MUJER', 'chamarra para dama': 'MUJER', 'faldas': 'MUJER',
   'accesorios': 'UNISEX',
 };
-// Catálogo propio de ZNR (productos_znr) vía Firestore, con los mismos
-// filtros/orden/paginado que antes hacía GAS del lado servidor — el
-// dataset es chico, así que se filtra en cliente. GAS solo como respaldo.
+// Catálogo propio de ZNR (productos_znr) vía Firestore, con filtros/orden/
+// paginado en el cliente — el dataset es chico, así que se filtra aquí.
 async function fetchZNRCatalogo({ page = 1, limit = 10, filters = {} } = {}) {
   let allProducts = null;
   if (window.znrFirestore && window.znrFirestore.getProductosZNR) {
@@ -79,7 +78,7 @@ async function fetchZNRCatalogo({ page = 1, limit = 10, filters = {} } = {}) {
     const start = (page - 1) * limit;
     return { ok: true, products: list.slice(start, start + limit), page, totalPages, total };
   }
-  console.error('fetchZNRCatalogo: Firestore no disponible (GAS fue dado de baja, ya no hay respaldo)');
+  console.error('fetchZNRCatalogo: Firestore no disponible');
   return { ok: false, products: [], page, totalPages: 1, total: 0 };
 }
 let localCart = {};
@@ -136,12 +135,7 @@ async function fetchFilterOptions(force = false) {
         data = { ok: true, categories, sizes };
       }
     }
-    if (!data) {
-      const url = new URL(API_URL);
-      url.searchParams.set('action', 'getFilterOptions');
-      const res = await fetch(url.toString());
-      data = await res.json();
-    }
+    if (!data) throw new Error('Firestore no disponible para los filtros'); // cae al catch: usa la caché local
     if (data.ok) {
       window.globalCategories = data.categories || [];
       window.globalSizes = data.sizes || [];
@@ -2595,7 +2589,8 @@ hideLoader();
 // Punto de entrega / monto mínimo de envío del vendedor, para decidir en
 // el checkout de Comunidad si el pedido califica para domicilio o si se
 // le muestra al comprador dónde recoger. Firestore primero (mismo patrón
-// que perfil-vendedor.html), con fallback a GAS si Firestore no responde.
+// que perfil-vendedor.html). Si Firestore no responde se asume que el
+// vendedor no tiene punto de entrega configurado.
 // Cache en memoria de sesión: evita repetir la consulta si el comprador
 // pasa por el checkout de este vendedor más de una vez (ej. "Volver al
 // carrito" y reintentar).
@@ -2621,18 +2616,7 @@ _entregaVendedorCache.set(vendorUid, resultado);
 return resultado;
 }
 }
-} catch (e) { console.warn('Firestore perfil_vendedor falló, se usará GAS:', e); }
-try {
-if (window.API_URL) {
-const res = await fetch(`${window.API_URL}?action=obtenerPerfilVendedor&uid=${encodeURIComponent(vendorUid)}`);
-const data = await res.json();
-if (data && data.ok && data.vendedor) {
-const resultado = _normalizar(data.vendedor);
-_entregaVendedorCache.set(vendorUid, resultado);
-return resultado;
-}
-}
-} catch (e) { console.warn('No se pudo obtener el punto de entrega del vendedor (GAS):', e); }
+} catch (e) { console.warn('Firestore perfil_vendedor falló:', e); }
 const vacio = { puntoEntrega: '', montoMinimoEnvio: null, puntoEntregaLat: null, puntoEntregaLng: null };
 _entregaVendedorCache.set(vendorUid, vacio);
 return vacio;
@@ -2939,7 +2923,7 @@ sendBtn.style.opacity = '.7';
 sendBtn.textContent = 'Enviando notificación…';
 let ok = false;
 try {
-if (vendorUid && window.API_URL) {
+if (vendorUid) {
 const VENTAS_API_URL_CHECKOUT = "https://ventas-api-1038143238323.us-central1.run.app"; // TODO: pegar la URL real tras el deploy
 const res = await fetch(VENTAS_API_URL_CHECKOUT, {
 method: "POST",
@@ -4050,13 +4034,13 @@ if ('serviceWorker' in navigator) {
 
 
 
-// ── Intervalo con jitter (evita picos de ejecuciones simultáneas en GAS) ──
+// ── Intervalo con jitter (evita picos de peticiones simultáneas al backend) ──
 // Como setInterval, pero con una pizca de aleatoriedad en cada disparo.
 // Sirve para las peticiones que se repiten SOLAS cada cierto tiempo igual
 // para todos los usuarios (campanita, refrescos en segundo plano) — si
 // muchos navegadores abren la app casi al mismo momento (ej. tras una
 // notificación push masiva), sus polls periódicos quedarían alineados y
-// golpearían GAS todos juntos cada N minutos exactos. Con jitter, cada
+// golpearían al backend todos juntos cada N minutos exactos. Con jitter, cada
 // navegador dispara en un momento ligeramente distinto, distribuyendo la
 // carga en vez de agruparla.
 //

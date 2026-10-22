@@ -51,7 +51,6 @@ const STATIC_ASSETS = [
 
 const IMAGE_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.svg'];
 const API_DOMAINS      = [
-  'script.google.com',
   'wttr.in',
   'openweathermap.org',
   'registrar-token-fcm-1038143238323.us-central1.run.app',

@@ -142,7 +142,7 @@ return genderMap[categoriaLower] || null;
 }
 
 // ============================================================
-// CATÁLOGO COMPLETO EN CLIENTE — evita pegarle a GAS en cada filtro
+// CATÁLOGO COMPLETO EN CLIENTE — evita consultar al servidor en cada filtro
 // ============================================================
 let fullCatalogSigRef = null;           // cache al que corresponde la firma
 let fullCatalogSig = null;              // firma del ultimo catalogo (evita re-serializar el cache en cada refresh)
@@ -184,7 +184,7 @@ async function ensureFullCatalog(force = false) {
   try {
     if (!fullCatalogCache) showLoader('Cargando catálogo...');
 
-    // Firestore es la única fuente ahora — GAS fue dado de baja por completo.
+    // Firestore es la única fuente del catálogo.
     if (window.znrFirestore && window.znrFirestore.getProductosZNR) {
       const fs = await window.znrFirestore.getProductosZNR();
       if (fs && fs.ok) {
@@ -211,15 +211,7 @@ async function refreshFullCatalogInBackground() {
       const fs = await window.znrFirestore.getProductosZNR();
       if (fs && fs.ok) fresh = fs.products;
     }
-    if (!fresh) {
-      const url = new URL(API_URL);
-      url.searchParams.set('action', 'list');
-      url.searchParams.set('page', '1');
-      url.searchParams.set('limit', '400');
-      const res = await fetch(url.toString());
-      const data = await res.json();
-      fresh = data.products || [];
-    }
+    if (!fresh) return; // Firestore no respondió: se conserva el catálogo en caché
     const freshSig = JSON.stringify(fresh);
     if (fullCatalogSigRef !== fullCatalogCache) { // el cache cambio por otra via: recalcular su firma
       fullCatalogSig = JSON.stringify(fullCatalogCache);
@@ -235,8 +227,7 @@ async function refreshFullCatalogInBackground() {
   } catch (e) {}
 }
 
-// Replica exactamente la lógica de filtros que antes hacía listProducts() en GAS,
-// pero corriendo en el navegador sobre el catálogo ya descargado.
+// Aplica los filtros del catálogo en el navegador, sobre el catálogo ya descargado.
 function filterCatalogLocal(products, filters) {
   let result = products.filter(p => Number(p.Stock || 0) > 0);
 
@@ -790,47 +781,6 @@ openImageModal(url, ID, images.length ? images : [url], product);
 }
 
   
-let _pagoEnCurso = false; // evita doble compra si tocan el botón dos veces o la red tarda
-
-async function pagarConMercadoPago() {
-if (_pagoEnCurso) return; // ya hay un pago en proceso, ignora el toque extra
-
-const items = Object.values(localCart).map(item => ({
-id: item.id,
-title: item.name,
-quantity: item.quantity,
-unit_price: item.price
-}));
-if (items.length === 0) {
-alert("No hay productos en el carrito");
-return;
-}
-
-_pagoEnCurso = true;
-const mpBtn = document.getElementById('mp-checkout-btn');
-if (mpBtn) { mpBtn.disabled = true; mpBtn.style.opacity = '.6'; }
-
-showLoader("Preparando pago...");
-try {
-const params = new URLSearchParams({ action: "createPreference", items: JSON.stringify(items) });
-const response = await fetch(`${API_URL}?${params.toString()}`, { method: "GET" });
-const data = await response.json();
-if (data.ok && data.initPoint) {
-window.location.href = data.initPoint; // sale de la página, no hace falta re-habilitar nada
-} else {
-throw new Error(data.error || "Error desconocido");
-}
-} catch (error) {
-console.error("Error:", error);
-alert(" Error: " + error.message);
-hideLoader();
-_pagoEnCurso = false; // solo se re-habilita si falló, para que puedan reintentar
-if (mpBtn) { mpBtn.disabled = false; mpBtn.style.opacity = '1'; }
-}
-}
-
-
-  
 function verificarEstadoPago() {
 const urlParams = new URLSearchParams(window.location.search);
 const paymentStatus = urlParams.get("payment");
@@ -850,9 +800,7 @@ window.history.replaceState({}, document.title, window.location.pathname);
 }
 }
 document.addEventListener("DOMContentLoaded", () => {
-  // Escalonamos fetchFilterOptions y fetchProducts para no saturar
-  // el límite de ejecuciones concurrentes de Apps Script (que devuelve 404
-  // desde script.googleusercontent.com/macros/echo cuando se satura).
+  // Escalonamos fetchFilterOptions y fetchProducts para no lanzar todo a la vez.
   fetchFilterOptions();
   setTimeout(() => fetchProducts(), 300);
 startGlobalSliderInterval();
@@ -940,8 +888,6 @@ const refreshBtn = document.getElementById("refresh-btn");
 if (refreshBtn) refreshBtn.addEventListener("click", () => {
 fetchProducts(true);
 });
-const mpBtn = document.getElementById("mp-checkout-btn");
-if (mpBtn) mpBtn.addEventListener("click", pagarConMercadoPago);
 verificarEstadoPago();
 const layoutBtn = document.getElementById("layout-toggle-btn");
 const productsContainer = document.getElementById("products-container");

@@ -16,8 +16,6 @@
         https://*.firebasestorage.app
         https://storage.googleapis.com ;
  connect-src 'self' 
-   https://script.google.com 
-   https://script.googleusercontent.com 
    https://catalogo-api-1038143238323.us-central1.run.app 
    https://wttr.in 
    https://www.gstatic.com 
@@ -49,7 +47,6 @@
  <title>Z&R · Comunidad de vendedores</title>
  <meta name="viewport" content="width=device-width, initial-scale=1">
  <meta name="description" content="Descubre productos de vendedores locales en Z&R Comunidad">
- <link rel="preconnect" href="https://script.google.com" crossorigin>
  <link rel="preconnect" href="https://lh3.googleusercontent.com" crossorigin>
  <link rel="dns-prefetch" href="https://lh3.googleusercontent.com">
  <script>document.documentElement.dataset.theme = localStorage.getItem('theme') || 'light';</script>
@@ -779,7 +776,7 @@
      const client = algoliasearch('RTKTKJMP4V', '6589ae2610ea47996a1321d97aa99861');
      window.algoliaIndex = client.initIndex('znr_comunidad');
    } else {
-     console.warn('⚠️ Algolia no cargó, comunidad usará el respaldo de GAS');
+     console.warn('⚠️ Algolia no cargó: la comunidad no podrá buscar');
    }
  </script>
  <script src="ciudades.js" defer></script>

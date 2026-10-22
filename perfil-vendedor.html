@@ -1021,10 +1021,10 @@
       }
 
       async function cargarPestanaFundacion(v) {
-        if (!window.API_URL || !v || !v.uid) return;
+        if (!v || !v.uid) return;
         try {
           
-          async function fsOrGasDonaciones() {
+          async function cargarDonacionesRecibidas() {
   if (window.znrFirestore && window.znrFirestore.getDonacionesRecibidas) {
     const r = await window.znrFirestore.getDonacionesRecibidas(v.uid);
     if (r && r.ok) return r;
@@ -1034,14 +1034,14 @@
     .catch(() => null);
 }
 
-async function fsOrGasBeneficiarios() {
+async function cargarBeneficiariosAprobados() {
   if (window.znrFirestore && window.znrFirestore.getBeneficiariosAprobados) {
     const r = await window.znrFirestore.getBeneficiariosAprobados();
     if (r && r.ok) return r;
   }
   return null; // ya no hay fallback: no existe en Cloud Run
 }
-          const [donRes, benRes] = await Promise.all([fsOrGasDonaciones(), fsOrGasBeneficiarios()]);
+          const [donRes, benRes] = await Promise.all([cargarDonacionesRecibidas(), cargarBeneficiariosAprobados()]);
           
           if (!donRes || !donRes.ok || !donRes.esBeneficiario) return;
           if (!benRes || !benRes.ok) return;
@@ -1841,10 +1841,8 @@ Badge: p.badge || '',
       }
 
       // ── Caché de perfil por UID en localStorage ──
-      // Antes era sessionStorage + 5 min + revalidación en segundo plano
-      // (SWR), lo que seguía llamando a GAS en cada visita. Ahora es
-      // localStorage + 30 min sin revalidar: mientras el caché esté
-      // fresco, la página no toca el backend para nada.
+      // Sin revalidar en segundo plano: mientras el caché esté fresco
+      // (ver PROFILE_CACHE_TTL), la página no toca el backend para nada.
       const PROFILE_CACHE_PREFIX = 'zr_perfil_';
       const PROFILE_CACHE_TTL    = 5 * 60 * 1000; // 5 min — corto a propósito: es caché por navegador individual, no se entera cuando el vendedor edita su perfil, así que se mantiene bajo para no mostrar info vieja por mucho tiempo a otros visitantes.
 
@@ -1895,34 +1893,6 @@ Badge: p.badge || '',
           </div>`;
       }
 
-      // ── Fetch del perfil con reintento automático (backoff) ──
-      // Antes: un solo intento; si la red fallaba un instante (cambio de
-      // WiFi/datos, señal débil), el usuario veía "Failed to fetch" de
-      // inmediato sin que la app volviera a intentarlo.
-      // Ahora: hasta 3 intentos (600ms, 1200ms de espera entre ellos)
-      // antes de mostrar el error. La mayoría de los cortes de red breves
-      // se resuelven solos dentro de ese margen.
-       const PROFILE_FETCH_MAX_RETRIES = 2; // 3 intentos en total
-      const PROFILE_FETCH_BASE_DELAY  = 600; // ms
-      async function fetchProfileWithRetry(apiUrl, uid) {
-        const url = `${apiUrl}?action=obtenerPerfilVendedor&uid=${encodeURIComponent(uid)}`;
-        let lastErr;
-        for (let attempt = 0; attempt <= PROFILE_FETCH_MAX_RETRIES; attempt++) {
-          try {
-            const response = await fetch(url);
-            const data = await response.json();
-            if (!data.ok) throw new Error(data.error || 'Error al obtener perfil');
-            return data;
-          } catch (err) {
-            lastErr = err;
-            if (attempt < PROFILE_FETCH_MAX_RETRIES) {
-              await sleep(PROFILE_FETCH_BASE_DELAY * Math.pow(2, attempt));
-            }
-          }
-        }
-        throw lastErr;
-      }
-
       function showProfileError(container, uid, message) {
         if (!container) return;
         container.innerHTML = `
@@ -1954,17 +1924,10 @@ Badge: p.badge || '',
           hideLoader();
           return;
         }
-        const apiUrl = window.API_URL;
-        if (!apiUrl) {
-          if (typeof showTemporaryMessage === 'function') showTemporaryMessage('Error: API_URL no definida', 'error');
-          hideLoader();
-          return;
-        }
         const container = document.getElementById('profile-container');
 
         // Caché local corto (5 min): evita repetir la carga si vuelves a
-        // entrar al mismo perfil casi de inmediato. Complementa (no
-        // reemplaza) al caché de 30 min del lado de GAS para productos.
+        // entrar al mismo perfil casi de inmediato.
         const cached = getProfileCache(uid);
         if (cached) {
           renderProfile(cached);
@@ -1998,10 +1961,7 @@ Badge: p.badge || '',
             }
           }
 
-          // 2b. Si Firestore no está disponible o falló: GAS con reintento (igual que ya tenías)
-          if (!data) {
-            data = await fetchProfileWithRetry(apiUrl, uid);
-          }
+          if (!data) throw new Error('No se pudo cargar el perfil del vendedor');
 
           setProfileCache(uid, data);
           renderProfile(data);

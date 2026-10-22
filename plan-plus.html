@@ -17,7 +17,7 @@
         https://firebasestorage.googleapis.com
         https://*.firebasestorage.app
         https://storage.googleapis.com ;
- connect-src 'self' https://script.google.com https://script.googleusercontent.com https://vendedores-api-1038143238323.us-central1.run.app https://admin-api-1038143238323.us-central1.run.app https://catalogo-api-1038143238323.us-central1.run.app https://tienda-znr-api-1038143238323.us-central1.run.app ;
+ connect-src 'self' https://vendedores-api-1038143238323.us-central1.run.app https://admin-api-1038143238323.us-central1.run.app https://catalogo-api-1038143238323.us-central1.run.app https://tienda-znr-api-1038143238323.us-central1.run.app ;
  font-src 'self';
  frame-ancestors 'none';
  object-src 'none';
@@ -243,10 +243,7 @@
 
 <script>
 async function apiCall(data) {
-  const VENDEDORES_API_URL_PLUS = "https://vendedores-api-1038143238323.us-central1.run.app";
-  const ACCIONES_MIGRADAS_PLUS = new Set(['solicitarPlanPlus', 'getPlusSolicitudVendedor', 'crearPreferenciaPlanPlus']);
-  const API_BASE = ACCIONES_MIGRADAS_PLUS.has(data && data.action) ? VENDEDORES_API_URL_PLUS : window.API_URL;
-  if (!API_BASE) throw new Error('API_URL no está disponible');
+  const API_BASE = "https://vendedores-api-1038143238323.us-central1.run.app";
   const params = new URLSearchParams();
   Object.entries(data || {}).forEach(([k, v]) => {
     if (v !== undefined && v !== null) params.append(k, v);

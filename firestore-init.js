@@ -86,7 +86,7 @@ function _conIdentidadExclusiva(fn) {
 }
 
 // ── Reintentos ante fallos TRANSITORIOS de red ─────────────────────────
-// GAS ya no existe, así que un fallo de Firestore no tiene respaldo: si la
+// Un fallo de Firestore no tiene respaldo: si la
 // petición se corta (recarga de página, red que parpadea, "HTTP error has no
 // status") lo mejor es volver a intentar antes de rendirse. Solo se
 // reintentan errores de red/servidor pasajeros; permission-denied, índice
@@ -124,15 +124,15 @@ async function _fsConReintentos(fn) {
 // Para revisar desde la DevConsole: znrFirestore.retryStats()
 window.znrFirestore.retryStats = function () { return Object.assign({}, _fsStats); };
 
-// Cloud Function que reemplaza a GAS para custom tokens de Firebase Auth.
+// Cloud Function que emite los custom tokens de Firebase Auth.
 const AUTH_API_URL = "https://auth-api-1038143238323.us-central1.run.app"; // TODO: pegar la URL real tras el deploy
 
 /**
- * Pide un Firebase Custom Token a GAS e inicia sesión en Firebase Auth
+ * Pide un Firebase Custom Token a auth-api e inicia sesión en Firebase Auth
  * con él. Debe llamarse ANTES de leer colecciones protegidas por
  * auth.uid (notificaciones_centro, ventas_comunidad). Devuelve el uid
- * con el que quedó autenticado, o null si falló (en cuyo caso el
- * caller debe seguir usando GAS normalmente, sin Firestore).
+ * con el que quedó autenticado, o null si falló (en cuyo caso no hay
+ * lectura de Firestore protegida por auth.uid).
  *
  * ownerType: 'vendedor' | 'cliente'
  * ownerRef:  vendorToken (si es vendedor) o teléfono a 10 dígitos (si es cliente)
@@ -166,9 +166,8 @@ window.znrFirestore.signIn = async function (ownerType, ownerRef) {
 };
 
 /**
- * Devuelve { ok: true, beneficiarios: [...] } igual que el endpoint GAS
- * obtenerBeneficiariosAprobados, o { ok: false, error } si algo falla
- * (el caller debe hacer fallback a GAS en ese caso).
+ * Devuelve { ok: true, beneficiarios: [...] } con las fundaciones aprobadas,
+ * o { ok: false, error } si algo falla.
  */
 window.znrFirestore.getBeneficiariosAprobados = async function () {
   try {
@@ -183,12 +182,10 @@ window.znrFirestore.getBeneficiariosAprobados = async function () {
 };
 
 /**
- * Devuelve { ok: true, promedio, total, detalle } igual que el endpoint
- * GAS obtenerCalificacionesVendedor, o { ok: false, error } si falla
- * (el caller debe hacer fallback a GAS en ese caso). Si el vendedor
- * todavía no tiene calificaciones, el doc puede no existir todavía en
- * Firestore (nunca se escribió) — en ese caso también se cae a GAS,
- * que sabe devolver el resumen en cero de forma segura.
+ * Devuelve { ok: true, promedio, total, detalle } con las calificaciones
+ * del vendedor, o { ok: false, error } si falla. Si el vendedor todavía no
+ * tiene calificaciones, el doc puede no existir (nunca se escribió): en
+ * ese caso devuelve { ok: false, error: 'doc no encontrado' }.
  */
 window.znrFirestore.getCalificacionesVendedor = async function (vendedorUid) {
   try {
@@ -206,7 +203,7 @@ window.znrFirestore.getCalificacionesVendedor = async function (vendedorUid) {
  * Asegura que haya una sesión de Firebase Auth con el uid esperado
  * ("vendedor_<id>" o "cliente_<id>"). Si ya está autenticado como ese
  * uid, no hace ninguna llamada de red. Si no, pide un custom token a
- * GAS e inicia sesión. Una vez logueado, Firebase mantiene la sesión
+ * auth-api e inicia sesión. Una vez logueado, Firebase mantiene la sesión
  * sola entre recargas de página (no hay que repetir esto en cada
  * visita, solo cuando cambia de identidad o no hay sesión).
  *
@@ -298,12 +295,12 @@ window.znrFirestore.getParticipantesPedido = async function (pedidoId, ownerType
  * Devuelve { ok: true, notificaciones: [...] } igual que
  * misNotificacionesVendedor/misNotificacionesCliente (últimas 30, más
  * recientes primero), o { ok: false, error } si falla o si no hay
- * sesión de Firebase (el caller debe hacer fallback a GAS).
+ * sesión de Firebase.
  *
  * ownerType: 'vendedor' | 'cliente'
  * ownerId:   vendor.uid (vendedor) o teléfono (cliente)
  * ownerRef:  vendorToken (vendedor) o teléfono (cliente) — lo que
- *            necesita GAS para emitir el custom token
+ *            necesita auth-api para emitir el custom token
  */
 window.znrFirestore.getNotificacionesCentro = async function (ownerType, ownerId, ownerRef) {
   return _conIdentidadExclusiva(async () => {
@@ -329,7 +326,7 @@ window.znrFirestore.getNotificacionesCentro = async function (ownerType, ownerId
 /**
  * Devuelve { ok: true, notificaciones: [...] } igual que
  * listarNotificacionesVentaComunidad (un objeto por pedido agrupado),
- * o { ok: false, error } si falla (el caller debe hacer fallback a GAS).
+ * o { ok: false, error } si falla.
  */
 window.znrFirestore.getVentasComunidadVendedor = async function (vendorUid, vendorToken) {
   return _conIdentidadExclusiva(async () => {
@@ -349,8 +346,8 @@ window.znrFirestore.getVentasComunidadVendedor = async function (vendorUid, vend
 
 /**
  * Devuelve { ok: true, vendedor: {...} } igual que el campo "vendedor"
- * de obtenerPerfilVendedor (sin "productos" — eso se sigue pidiendo a
- * GAS por separado), o { ok: false, error } si falla o no existe.
+ * del perfil público del vendedor (sin "productos" — esos se piden por
+ * separado a catalogo-api), o { ok: false, error } si falla o no existe.
  */
 window.znrFirestore.getPerfilVendedor = async function (uid) {
   try {
@@ -367,7 +364,7 @@ window.znrFirestore.getPerfilVendedor = async function (uid) {
  * Devuelve { ok: true, products: [...] } con TODO el catálogo propio
  * de ZNR (colección completa, sin paginar del lado del servidor —
  * tu catálogo es chico, se filtra/pagina en el navegador con
- * filterCatalogLocal, igual que ya hace ensureFullCatalog con GAS).
+ * filterCatalogLocal, igual que ya hace ensureFullCatalog).
  */
 window.znrFirestore.getProductosZNR = async function () {
   try {
@@ -392,10 +389,9 @@ window.znrFirestore.getProductosZNR = async function () {
 };
 
 /**
- * Devuelve { ok: true, esBeneficiario, donaciones } igual que el
- * endpoint GAS obtenerDonacionesRecibidas, o { ok: false, error } si
- * falla o el vendedor no tiene doc en Firestore (el caller debe hacer
- * fallback a GAS en ese caso).
+ * Devuelve { ok: true, esBeneficiario, donaciones } con las donaciones
+ * recibidas, o { ok: false, error } si falla o el vendedor no tiene doc
+ * en Firestore (el caller puede consultar beneficiarios-api en ese caso).
  */
 window.znrFirestore.getDonacionesRecibidas = async function (vendorUid) {
   try {
@@ -411,8 +407,7 @@ window.znrFirestore.getDonacionesRecibidas = async function (vendorUid) {
 
 /**
  * 🔥 NUEVA FUNCIÓN: Devuelve { ok: true, lives: [...] } con todos los
- * lives activos (estado === 'en_vivo'). Esta función reemplaza la
- * llamada a GAS action=obtenerLivesActivos.
+ * lives activos (estado === 'en_vivo').
  */
 window.znrFirestore.getLivesActivos = async function () {
   try {

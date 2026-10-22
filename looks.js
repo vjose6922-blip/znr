@@ -5,7 +5,7 @@ const MAX_WEATHER_RETRIES = 5;
 const RETRY_DELAYS = [1000, 3000, 5000, 10000, 30000];
 const DEFAULT_COORDS = '27.4863,-99.5162';
 const WEATHER_CACHE_KEY = 'zr_weather_cache_v1';
-const WEATHER_CACHE_TTL_MS = 30 * 60 * 1000; // 30 min, como recomienda gas.txt
+const WEATHER_CACHE_TTL_MS = 30 * 60 * 1000; // 30 min
 let weatherRetryCount = 0;
 let weatherRetryTimer = null;
 let bgProductsRetryCount = 0;
@@ -1407,7 +1407,7 @@ if (window.znrFirestore && window.znrFirestore.getProductosZNR) {
   if (fs && fs.ok) data = fs;
 }
 if (!data) {
-  console.error('No se pudo cargar el catálogo desde Firestore (GAS fue dado de baja, ya no hay respaldo).');
+  console.error('No se pudo cargar el catálogo desde Firestore (no hay respaldo).');
   data = { ok: false, products: [] };
 }
 allProducts = Array.isArray(data?.products) ? data.products
@@ -1448,7 +1448,7 @@ if (window.znrFirestore && window.znrFirestore.getProductosZNR) {
   if (fs && fs.ok) data = fs;
 }
 if (!data) {
-  console.error('No se pudo refrescar el catálogo desde Firestore (GAS fue dado de baja, ya no hay respaldo).');
+  console.error('No se pudo refrescar el catálogo desde Firestore (no hay respaldo).');
   return;
 }
 const freshProducts = data.products || data || [];
