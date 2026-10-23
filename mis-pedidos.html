@@ -15,7 +15,7 @@
         https://firebasestorage.googleapis.com
         https://*.firebasestorage.app
         https://storage.googleapis.com ;
- connect-src 'self'
+ connect-src https://admin-api-1038143238323.us-central1.run.app 'self'
    https://auth-api-1038143238323.us-central1.run.app
    https://www.gstatic.com
    https://firestore.googleapis.com
@@ -30,6 +30,7 @@
  worker-src 'self' blob:;
 ">
 <script src="error-bootstrap.js"></script>
+<script src="error-monitor.js" defer></script>
 <title>Mis pedidos personalizados — Z&amp;R</title>
 <meta name="theme-color" content="#1e2128">
 <script>document.documentElement.dataset.theme = localStorage.getItem('theme') || 'light';</script>

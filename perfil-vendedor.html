@@ -974,11 +974,6 @@
         return String(str || '').replace(/\D/g, '');
       }
 
-      // Pausa auxiliar para el backoff entre reintentos
-      function sleep(ms) {
-        return new Promise(resolve => setTimeout(resolve, ms));
-      }
-
       const PRODUCTS_PAGE_SIZE = 12;
 
       async function cargarCalificacionVendedor(uid, nombre) {
