@@ -229,7 +229,7 @@
   opacity:0;
 }
 .nc-item.expanded .nc-msg-collapsed{
-  max-height:320px;
+  max-height:640px; /* cabe la tarjeta de pago con "Otras formas de pago" abierta */
   opacity:1;
 }
 .nc-item-msg{
@@ -418,6 +418,10 @@
   cursor:pointer;
 }
 .nc-pago-tarjeta-btn.sec{background:transparent;color:#5ec3f0;border:1px solid rgba(0,158,227,.4);}
+.nc-pago-otros{margin-top:10px;font-size:12px;color:#cbd5e1;}
+.nc-pago-otros summary{cursor:pointer;font-weight:700;color:#5ec3f0;}
+.nc-pago-sub{margin:10px 0 5px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:#94a3b8;}
+.nc-pago-link{display:block;text-align:center;margin-top:8px;color:#5ec3f0;font-weight:700;}
 
 /* ── Skeletons ── */
 .nc-skel-item{
@@ -611,15 +615,23 @@ const PICKUP_HORAS = ['9:00 AM','10:00 AM','11:00 AM','12:00 PM','1:00 PM','2:00
              </div>
            </div>`
         : '';
-      // Cobro en línea en Comunidad — solo con las pasarelas que ESE vendedor
-      // conectó (Stripe, Mercado Pago…; lo decide el backend, no el cliente).
-      // Es opcional: efectivo/transferencia sigue siendo lo de siempre.
-      const provPago = n.tipo === 'confirmacion_vendedor' && meta.requestId && meta.vendedor_uid && window.proveedoresPago
-        ? proveedoresPago(meta.proveedores, meta.permiteTarjeta === true) : [];
-      const pagoTarjetaHtml = provPago.length
+      // Formas de pago al confirmar el vendedor (todas opcionales; efectivo al entregar sigue siendo lo de siempre).
+      // En línea: solo las pasarelas que ESE vendedor conectó (lo decide el backend). La CLABE y el link del
+      // vendedor van plegados en "Otras formas de pago" para no saturar; si no hay pago en línea, se ven directo.
+      const esConfirmacion = n.tipo === 'confirmacion_vendedor' && meta.requestId && meta.vendedor_uid;
+      const provPago = esConfirmacion && window.proveedoresPago ? proveedoresPago(meta.proveedores, meta.permiteTarjeta === true) : [];
+      const clabePago = esConfirmacion ? String(meta.clabe || '').replace(/\D/g, '') : '';
+      const linkPago = esConfirmacion && /^https?:\/\//i.test(meta.linkPago || '') ? meta.linkPago : '';
+      const otrosPago = (clabePago ? `<p class="nc-pago-sub">Transferencia</p>
+             <div class="nc-pago-pendiente-clabe">
+               <span class="nc-pago-pendiente-clabe-texto">${clabePago}</span>
+               <button type="button" class="nc-pago-pendiente-clabe-btn" data-clabe="${clabePago}">${Icon('clipboard')} Copiar CLABE</button>
+             </div>` : '') + (linkPago ? `<a class="nc-pago-link" href="${esc(linkPago)}" target="_blank" rel="noopener noreferrer">Ir al link de pago del vendedor</a>` : '');
+      const pagoTarjetaHtml = provPago.length || otrosPago
         ? `<div class="nc-pago-tarjeta" onclick="event.stopPropagation()" data-request-id="${esc(meta.requestId)}" data-vendedor-uid="${esc(meta.vendedor_uid)}">
-             <p class="nc-pago-tarjeta-label">¿Prefieres pagar en línea ahora?</p>
+             <p class="nc-pago-tarjeta-label">${provPago.length ? '💳 Paga tu pedido en línea' : '💳 Datos para pagarle al vendedor'}</p>
              ${botonesPago(provPago, 'nc-pago-tarjeta-btn', 'nc-pago-tarjeta-btn sec')}
+             ${otrosPago && provPago.length ? `<details class="nc-pago-otros"><summary>Otras formas de pago</summary>${otrosPago}</details>` : otrosPago}
            </div>`
         : '';
       return `

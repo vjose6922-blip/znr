@@ -1,43 +1,53 @@
-# Pagos multi-proveedor — lo que falta en el backend
+# Pagos con Stripe y Mercado Pago — cómo activarlo
 
-El frontend ya no depende de Mercado Pago: pinta un botón por cada pasarela que el backend diga
-que está activa, en el orden recibido (el primero es el principal). Todo es **checkout alojado**
-(Stripe Checkout / MP): el cliente solo redirige a la `url`, nunca toca datos de tarjeta.
+El backend ya soporta las dos pasarelas y **ninguna es obligatoria**: cada una aparece solo si su llave
+está configurada. Sin `MP_ACCESS_TOKEN`, Mercado Pago desaparece de Plan Plus y de la tienda; sin
+`STRIPE_SECRET_KEY`, desaparece Stripe. Los vendedores eligen cuál conectar (o ambas).
 
-Ids de proveedor: `stripe`, `mp`. Si un endpoint no manda `proveedores`, el frontend cae al
-comportamiento viejo (booleano → solo `mp`), así que se puede desplegar en cualquier orden.
+Servicios modificados: `vendedores-api`, `ventas-api`, `live-api`, `tienda-znr-api`
+(los tres que cobran agregan la dependencia `stripe` en `package.json`).
 
-## Respuestas que deben incluir `proveedores` (y opcional `moneda`, default `MXN`)
+## 1. En el dashboard de Stripe
 
-| Acción | Campo |
+1. Crea la cuenta de Z&R y completa la verificación (México).
+2. **Settings → Payment methods**: activa tarjeta, Apple Pay, Google Pay, Link y OXXO.
+3. **Connect → Get started**: activa Connect (los vendedores usan cuentas *Standard*: la cuenta es
+   suya, el dinero y las comisiones de Stripe son suyos, igual que con Mercado Pago).
+4. **Developers → Webhooks**: crea 3 endpoints con los eventos `checkout.session.completed` y
+   `checkout.session.async_payment_succeeded`:
+
+| Endpoint | Tipo de eventos |
 |---|---|
-| `getPlusSolicitudVendedor` (vendedores-api) | `proveedores: ['stripe','mp']`, `moneda`. Si no hay `clabe`, se oculta la transferencia. |
-| `obtenerMetodosPagoEntrega` (live-api) | `metodos.proveedores` = pasarelas conectadas por ese vendedor; `moneda` |
-| Notificación `confirmacion_vendedor` | `meta.proveedores` = pasarelas conectadas por ese vendedor |
+| `https://vendedores-api-1038143238323.us-central1.run.app?action=stripeWebhook` | Tu cuenta |
+| `https://tienda-znr-api-1038143238323.us-central1.run.app?action=stripeWebhook` | Tu cuenta |
+| `https://ventas-api-1038143238323.us-central1.run.app?action=stripeWebhook` | **Cuentas conectadas** |
 
-## Acciones que reciben `proveedor`
+## 2. Variables de entorno (Secret Manager)
 
-- `crearPreferenciaPlanPlus` y `crearPreferenciaComunidad` reciben `proveedor` (`stripe` | `mp`;
-  si falta, `mp`). Responden `{ ok, url }`.
-  - Stripe: `checkout.sessions.create({ mode: 'payment', line_items, success_url, cancel_url,
-    metadata: { requestId | vendorUid } })`. Activar en el dashboard Apple Pay, Google Pay, Link y OXXO
-    (métodos de pago dinámicos: Stripe muestra los del país del comprador).
-  - Comunidad con Stripe Connect: añadir `payment_intent_data: { transfer_data: { destination: acctId } }`
-    (o crear la sesión con `stripeAccount: acctId` = direct charge, para que el dinero sea 100% del vendedor).
+| Servicio | `STRIPE_SECRET_KEY` | `STRIPE_WEBHOOK_SECRET` |
+|---|---|---|
+| vendedores-api | `sk_live_…` | el *signing secret* de su endpoint |
+| tienda-znr-api | `sk_live_…` | el de su endpoint |
+| ventas-api | `sk_live_…` | el del endpoint de cuentas conectadas |
 
-## Stripe Connect para vendedores (vendedores-api)
+Para probar primero usa las llaves `sk_test_…` y la tarjeta `4242 4242 4242 4242`.
 
-- `stripeConectarUrl` → crea (si no existe) una cuenta `type: 'express'`, guarda `acctId` en el vendedor y
-  devuelve `{ ok, url }` de `accountLinks.create({ type: 'account_onboarding',
-  return_url: '<sitio>/vendedor.html', refresh_url: '<sitio>/vendedor.html' })`. No hace falta callback.
-- `stripeEstadoConexion` → `{ ok, conectado: charges_enabled, pendiente: !!acctId && !charges_enabled }`.
-- `stripeDesconectar` → borra `acctId` del vendedor.
+## 3. Qué hace cada pieza
 
-## Webhook (nuevo endpoint `stripeWebhook`)
+- **Plan Plus**: botón de Stripe (principal) y de Mercado Pago. El aviso firmado de Stripe activa el plan
+  solo; con OXXO se activa cuando el vendedor paga en la tienda.
+- **Vendedores**: en su panel conectan Stripe (registro alojado por Stripe, regresa a `vendedor.html`).
+  `vendedores.stripe = { accountId, listo }`; `listo` se refresca cada vez que abren el panel.
+- **Ventas de Comunidad y lives**: el comprador ve un botón por cada pasarela que tenga conectada ese
+  vendedor. El cobro de Stripe se hace directo en la cuenta del vendedor. Solo hay una sesión de
+  pago abierta por pedido, y si llega un segundo pago se avisa como posible cobro duplicado, igual que con MP.
+- **Tienda Z&R**: el link de pago ahora es `tienda-znr-api?action=pagarLote&r=…&l=…`. No vence; al
+  abrirlo crea el cobro en ese momento (Stripe si está configurado, si no Mercado Pago) y redirige.
+  Si el lote ya está pagado, no vuelve a cobrar. Con OXXO el comprador recibe su ficha en notificaciones.
+- **Libro de pagos** (`pagos_mp`): ahora guarda `proveedor` y `orden` (hora del pago) para detectar
+  duplicados entre pasarelas.
 
-Verificar firma con `STRIPE_WEBHOOK_SECRET` y, en `checkout.session.completed` /
-`checkout.session.async_payment_succeeded` (OXXO), hacer lo mismo que hoy hace `mpWebhook`
-(activar Plan Plus / marcar pedido pagado). En `checkout.session.async_payment_*` de OXXO se puede
-reutilizar la notificación `pago_pendiente` con `meta.comprobanteUrl` = `hosted_voucher_url`.
+## Pendiente / a futuro
 
-Secretos: `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET` (en Secret Manager, nunca en el frontend).
+- Todo cobra en **MXN**. Para otros países basta con cambiar `currency` por la moneda del comprador.
+- `crearPreferenciaDonacion` sigue solo con Mercado Pago (hoy ninguna pantalla la usa).
