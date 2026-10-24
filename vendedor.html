@@ -652,6 +652,7 @@ h3 {
  <script src="bg-remove.js" defer></script>
  <script src="cover-portada.js" defer></script>
  <script src="znr-devconsole.js" defer></script>
+ <script src="pagos.js" defer></script>
  <script src="notification-center.js" defer></script>
  <script src="burbuja-mensajes.js" defer></script>
  <script src="error-monitor.js" defer></script>
@@ -995,9 +996,9 @@ document.addEventListener('DOMContentLoaded', () => {
           <p style="margin:0 0 12px;font-size:.73rem;color:#aaa;">Se la mostraremos al comprador cuando elija pagarte por transferencia.</p>
 
           <label style="font-size:.8rem;color:#555;display:block;margin-bottom:4px;">Link de pago <span style="color:#aaa;">(opcional)</span></label>
-          <input id="settings-link-pago" type="url" maxlength="300" placeholder="https://mpago.la/... o tu link de pago"
+          <input id="settings-link-pago" type="url" maxlength="300" placeholder="https://... tu link de pago"
             style="width:100%;box-sizing:border-box;padding:9px 12px;border-radius:10px;border:1px solid #ddd;font-size:.9rem;margin-bottom:4px;outline:none;">
-          <p style="margin:0 0 14px;font-size:.73rem;color:#aaa;">Mercado Pago, PayPal, etc. Se mostrará como botón de pago alternativo.</p>
+          <p style="margin:0 0 14px;font-size:.73rem;color:#aaa;">Stripe, PayPal, Mercado Pago, etc. Se mostrará como botón de pago alternativo.</p>
 
           <button onclick="guardarMetodosPago()" id="btn-guardar-metodos-pago"
             style="width:100%;padding:11px;border-radius:10px;border:none;background:#7c3aed;color:#fff;font-size:.9rem;font-weight:700;cursor:pointer;">
@@ -1006,17 +1007,9 @@ document.addEventListener('DOMContentLoaded', () => {
           <p id="settings-metodos-pago-msg" style="text-align:center;font-size:.8rem;margin:8px 0 0;min-height:18px;"></p>
 
           <div style="margin-top:18px;padding-top:16px;border-top:1px solid #eee;">
-            <label style="font-size:.8rem;color:#555;display:block;margin-bottom:8px;">💳 Cobrar con tarjeta en tus ventas de Comunidad</label>
-            <p style="font-size:.78rem;color:#888;margin:0 0 10px;">Conecta tu propia cuenta de Mercado Pago — el dinero cae directo a ti, Z&R no se queda con nada de esta venta.</p>
-            <div id="mp-conexion-estado" style="font-size:.85rem;color:#777;margin-bottom:10px;">Cargando...</div>
-            <button onclick="conectarMercadoPago()" id="btn-mp-conectar"
-              style="width:100%;padding:11px;border-radius:10px;border:1px solid #009EE3;background:#fff;color:#009EE3;font-size:.9rem;font-weight:700;cursor:pointer;display:none;">
-              Conectar mi cuenta de Mercado Pago
-            </button>
-            <button onclick="desconectarMercadoPago()" id="btn-mp-desconectar"
-              style="width:100%;padding:11px;border-radius:10px;border:1px solid #dc2626;background:#fff;color:#dc2626;font-size:.9rem;font-weight:700;cursor:pointer;display:none;">
-              Desconectar
-            </button>
+            <label style="font-size:.8rem;color:#555;display:block;margin-bottom:8px;">💳 Cobrar en línea en tus ventas de Comunidad</label>
+            <p style="font-size:.78rem;color:#888;margin:0 0 10px;">Conecta tu propia cuenta (una o varias) — el dinero cae directo a ti, Z&R no se queda con nada de esta venta. El comprador elige cómo pagar.</p>
+            <div id="pasarelas-cobro" style="font-size:.85rem;color:#777;">Cargando...</div>
             <p id="mp-conexion-msg" style="text-align:center;font-size:.8rem;margin:8px 0 0;min-height:18px;"></p>
           </div>
         </div>

@@ -42,6 +42,9 @@ const MAPA_ACCIONES_MIGRADAS = {
   mpConectarUrl: VENDEDORES_API_URL,
   mpEstadoConexion: VENDEDORES_API_URL,
   mpDesconectar: VENDEDORES_API_URL,
+  stripeConectarUrl: VENDEDORES_API_URL,
+  stripeEstadoConexion: VENDEDORES_API_URL,
+  stripeDesconectar: VENDEDORES_API_URL,
   crearPreferenciaComunidad: VENTAS_API_URL,
   cambiarPasswordVendedor: VENDEDORES_API_URL,
   actualizarMetodosPago: VENDEDORES_API_URL,
@@ -518,7 +521,7 @@ const entregasBtnBadge = document.getElementById('entregas-btn-plus-badge');
 if (entregasBtnBadge) entregasBtnBadge.style.display = esPlusPanelBtns ? 'none' : 'inline-block';
 renderChecklistVendedor();
 if (typeof cargarSeccionHuella === 'function') cargarSeccionHuella();
-if (typeof cargarEstadoMP === 'function') cargarEstadoMP();
+if (typeof cargarPasarelas === 'function') cargarPasarelas();
   
 const nameHeader = document.getElementById('vendor-name-header');
 if (nameHeader && vendorSession) {
@@ -2866,32 +2869,30 @@ window.eliminarDispositivoHuella = async function(credentialId) {
   } catch (_) {}
 };
 
-async function cargarEstadoMP() {
-  const estadoEl = document.getElementById('mp-conexion-estado');
-  const btnConectar = document.getElementById('btn-mp-conectar');
-  const btnDesconectar = document.getElementById('btn-mp-desconectar');
-  if (!estadoEl) return;
-  try {
-    const res = await apiCall({ action: 'mpEstadoConexion', vendorToken: vendorSession.token });
-    if (res.ok && res.conectado) {
-      estadoEl.textContent = '✅ Tu cuenta de Mercado Pago está conectada.';
-      btnConectar.style.display = 'none';
-      btnDesconectar.style.display = 'block';
-    } else {
-      estadoEl.textContent = 'Aún no has conectado ninguna cuenta.';
-      btnConectar.style.display = 'block';
-      btnDesconectar.style.display = 'none';
-    }
-  } catch (_) {
-    estadoEl.textContent = '';
-  }
+// Pasarelas para cobrar en línea en Comunidad: el vendedor conecta su propia cuenta y el dinero
+// le cae directo. Cada una usa las acciones `<id>EstadoConexion`, `<id>ConectarUrl` y `<id>Desconectar`.
+const PASARELAS = { stripe: 'Stripe · tarjeta, Apple Pay, Google Pay, OXXO, 40+ países', mp: 'Mercado Pago' };
+
+async function cargarPasarelas() {
+  const cont = document.getElementById('pasarelas-cobro');
+  if (!cont) return;
+  const ids = Object.keys(PASARELAS);
+  const estados = await Promise.all(ids.map(p => apiCall({ action: p + 'EstadoConexion', vendorToken: vendorSession.token }).catch(() => ({}))));
+  cont.innerHTML = ids.map((p, i) => {
+    const e = estados[i] || {}, on = e.ok && e.conectado;
+    const [txt, fn, color] = on ? ['Desconectar', 'desconectarPasarela', '#dc2626'] : [e.pendiente ? 'Terminar registro' : 'Conectar', 'conectarPasarela', '#7c3aed'];
+    return `<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;font-size:.85rem;">
+      <span style="flex:1;">${on ? '✅' : '○'} ${PASARELAS[p]}</span>
+      <button onclick="${fn}('${p}')" style="padding:7px 12px;border-radius:10px;border:1px solid ${color};background:#fff;color:${color};font-weight:700;cursor:pointer;">${txt}</button>
+    </div>`;
+  }).join('');
 }
 
-window.conectarMercadoPago = async function() {
+window.conectarPasarela = async function(p) {
   const msg = document.getElementById('mp-conexion-msg');
   msg.textContent = '';
   try {
-    const res = await apiCall({ action: 'mpConectarUrl', vendorToken: vendorSession.token });
+    const res = await apiCall({ action: p + 'ConectarUrl', vendorToken: vendorSession.token });
     if (!res.ok) throw new Error(res.error || 'No se pudo iniciar la conexión');
     window.location.href = res.url;
   } catch (err) {
@@ -2899,11 +2900,11 @@ window.conectarMercadoPago = async function() {
   }
 };
 
-window.desconectarMercadoPago = async function() {
-  if (!confirm('¿Desconectar tu cuenta de Mercado Pago? Dejarás de poder cobrar con tarjeta en tus ventas de Comunidad.')) return;
+window.desconectarPasarela = async function(p) {
+  if (!confirm(`¿Desconectar ${PASARELAS[p].split(' · ')[0]}? Tus compradores ya no podrán pagarte en línea con ella.`)) return;
   try {
-    await apiCall({ action: 'mpDesconectar', vendorToken: vendorSession.token });
-    await cargarEstadoMP();
+    await apiCall({ action: p + 'Desconectar', vendorToken: vendorSession.token });
+    await cargarPasarelas();
   } catch (_) {}
 };
 

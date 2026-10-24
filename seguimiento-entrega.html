@@ -28,6 +28,7 @@
 <link rel="stylesheet" href="styles.css">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css">
 <script src="icons.js" defer></script>
+<script src="pagos.js" defer></script>
 <style>
   body { margin: 0; }
   .track-wrap { max-width: 640px; margin: 0 auto; padding: 16px; padding-bottom: 40px; }
@@ -384,10 +385,15 @@ function pintarPanelPago(r) {
   pagoZone.innerHTML = '';
   const panel = elPago('div', 'pago-panel');
   panel.appendChild(elPago('div', 'pago-titulo', r.vendedorNombre ? `Pagar a ${r.vendedorNombre}` : 'Pagar mi pedido'));
-  panel.appendChild(elPago('div', 'pago-total', `Total: $${Number(r.total || 0).toLocaleString()} MXN`));
+  panel.appendChild(elPago('div', 'pago-total', `Total: $${Number(r.total || 0).toLocaleString()} ${r.moneda || 'MXN'}`));
   if (r.resumen) panel.appendChild(elPago('div', 'pago-resumen', r.resumen));
 
   const m = r.metodos || {};
+  const pagos = elPago('div'); pagos.style.display = 'contents'; // los botones heredan el gap del panel
+  pagos.innerHTML = botonesPago(proveedoresPago(m.proveedores, m.tarjeta), 'pago-btn', 'pago-btn sec');
+  pagos.querySelectorAll('[data-proveedor]').forEach(t => t.addEventListener('click', () =>
+    irAPagar(t, proveedor => postForm(VENTAS_API, { action: 'crearPreferenciaComunidad', proveedor, requestId: r.requestId, vendedor_uid: r.vendedorUid }))));
+  panel.appendChild(pagos);
   if (m.clabe) {
     panel.appendChild(elPago('div', 'pago-label', 'Transferencia (CLABE)'));
     panel.appendChild(elPago('div', 'pago-clabe', m.clabe));
@@ -404,20 +410,6 @@ function pintarPanelPago(r) {
     const a = elPago('a', 'pago-btn sec', 'Ir al link de pago del vendedor');
     a.href = m.linkPago; a.target = '_blank'; a.rel = 'noopener noreferrer';
     panel.appendChild(a);
-  }
-  if (m.tarjeta) {
-    const t = elPago('button', 'pago-btn', '💳 Pagar con tarjeta');
-    t.type = 'button';
-    t.addEventListener('click', async () => {
-      t.disabled = true; t.textContent = 'Generando link de pago…';
-      try {
-        const res = await postForm(VENTAS_API, { action: 'crearPreferenciaComunidad', requestId: r.requestId, vendedor_uid: r.vendedorUid });
-        if (res.ok && res.url) { window.location.href = res.url; return; }
-        alert(res.error || 'No se pudo generar el link de pago');
-      } catch (_) { alert('No se pudo generar el link de pago'); }
-      t.disabled = false; t.textContent = '💳 Pagar con tarjeta';
-    });
-    panel.appendChild(t);
   }
   panel.appendChild(elPago('p', 'pago-nota', 'Estos datos solo los ves tú, con tu sesión.'));
   const cerrar = elPago('button', 'pago-btn sec', 'Cerrar');
