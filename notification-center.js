@@ -395,17 +395,16 @@
   background:rgba(0,158,227,.08);
   border:1px solid rgba(0,158,227,.3);
 }
-.nc-pago-tarjeta-check{
-  display:flex;
-  align-items:center;
-  gap:8px;
+.nc-pago-tarjeta-label{
+  margin:0;
   font-size:12.5px;
   font-weight:700;
   color:#5ec3f0;
-  cursor:pointer;
 }
 .nc-pago-tarjeta-btn{
-  display:inline-flex;
+  display:flex;
+  width:100%;
+  justify-content:center;
   align-items:center;
   gap:5px;
   margin-top:8px;
@@ -418,6 +417,7 @@
   font-weight:700;
   cursor:pointer;
 }
+.nc-pago-tarjeta-btn.sec{background:transparent;color:#5ec3f0;border:1px solid rgba(0,158,227,.4);}
 
 /* ── Skeletons ── */
 .nc-skel-item{
@@ -611,18 +611,15 @@ const PICKUP_HORAS = ['9:00 AM','10:00 AM','11:00 AM','12:00 PM','1:00 PM','2:00
              </div>
            </div>`
         : '';
-      // Cobro con tarjeta en Comunidad — solo aparece si ESE vendedor ya
-      // conectó su propia cuenta de Mercado Pago (permiteTarjeta viene
-      // desde el backend, no se decide en el cliente). Por defecto
-      // efectivo/transferencia (como hoy); el comprador elige tarjeta si
-      // quiere.
-      const pagoTarjetaHtml = (n.tipo === 'confirmacion_vendedor' && meta.permiteTarjeta === true && meta.requestId && meta.vendedor_uid)
-        ? `<div class="nc-pago-tarjeta" onclick="event.stopPropagation()">
-             <label class="nc-pago-tarjeta-check">
-               <input type="checkbox" class="nc-pago-tarjeta-toggle">
-               💳 Prefiero pagar con tarjeta
-             </label>
-             <button type="button" class="nc-pago-tarjeta-btn" style="display:none;" data-request-id="${esc(meta.requestId)}" data-vendedor-uid="${esc(meta.vendedor_uid)}">${Icon('credit-card')} Ir a pagar con tarjeta</button>
+      // Cobro en línea en Comunidad — solo con las pasarelas que ESE vendedor
+      // conectó (Stripe, Mercado Pago…; lo decide el backend, no el cliente).
+      // Es opcional: efectivo/transferencia sigue siendo lo de siempre.
+      const provPago = n.tipo === 'confirmacion_vendedor' && meta.requestId && meta.vendedor_uid && window.proveedoresPago
+        ? proveedoresPago(meta.proveedores, meta.permiteTarjeta === true) : [];
+      const pagoTarjetaHtml = provPago.length
+        ? `<div class="nc-pago-tarjeta" onclick="event.stopPropagation()" data-request-id="${esc(meta.requestId)}" data-vendedor-uid="${esc(meta.vendedor_uid)}">
+             <p class="nc-pago-tarjeta-label">¿Prefieres pagar en línea ahora?</p>
+             ${botonesPago(provPago, 'nc-pago-tarjeta-btn', 'nc-pago-tarjeta-btn sec')}
            </div>`
         : '';
       return `
@@ -667,39 +664,15 @@ const PICKUP_HORAS = ['9:00 AM','10:00 AM','11:00 AM','12:00 PM','1:00 PM','2:00
       });
     });
 
-    listEl.querySelectorAll('.nc-pago-tarjeta-toggle').forEach(chk => {
-      chk.addEventListener('change', (e) => {
-        e.stopPropagation();
-        const btn = chk.closest('.nc-pago-tarjeta').querySelector('.nc-pago-tarjeta-btn');
-        btn.style.display = chk.checked ? 'inline-flex' : 'none';
-      });
-    });
-
     listEl.querySelectorAll('.nc-pago-tarjeta-btn').forEach(btn => {
-      btn.addEventListener('click', async (e) => {
+      btn.addEventListener('click', (e) => {
         e.stopPropagation();
-        const requestId = btn.dataset.requestId;
-        const vendedorUid = btn.dataset.vendedorUid;
-        const textoOriginal = btn.innerHTML;
-        btn.disabled = true; btn.textContent = 'Generando link de pago...';
-        try {
-          const VENTAS_API_URL_NC = 'https://ventas-api-1038143238323.us-central1.run.app';
-          const res = await fetch(VENTAS_API_URL_NC, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: new URLSearchParams({ action: 'crearPreferenciaComunidad', requestId, vendedor_uid: vendedorUid }).toString()
-          });
-          const data = await res.json();
-          if (data.ok && data.url) {
-            window.location.href = data.url;
-          } else {
-            btn.disabled = false; btn.innerHTML = textoOriginal;
-            alert(data.error || 'No se pudo generar el link de pago');
-          }
-        } catch (err) {
-          btn.disabled = false; btn.innerHTML = textoOriginal;
-          alert('No se pudo generar el link de pago');
-        }
+        const { requestId, vendedorUid } = btn.closest('.nc-pago-tarjeta').dataset;
+        irAPagar(btn, proveedor => fetch('https://ventas-api-1038143238323.us-central1.run.app', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: new URLSearchParams({ action: 'crearPreferenciaComunidad', proveedor, requestId, vendedor_uid: vendedorUid }).toString()
+        }).then(r => r.json()));
       });
     });
 

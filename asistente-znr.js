@@ -87,7 +87,7 @@
       { c:'plus', q:'¿La suscripción Plus se renueva automáticamente?', a:'Consulta las condiciones que se muestran al contratar tu plan para confirmar si existe renovación automática. No des por hecho que tu suscripción se renovará ni que se realizará un nuevo cobro sin verificar las condiciones del pago.' },
 
       // ─── Pagos, pedidos y entregas ─────────────────────────────
-      { c:'pagos', q:'¿Qué métodos de pago acepta ZNR?', a:'Los métodos de pago disponibles dependen del proceso de compra y de las opciones habilitadas por el vendedor. Cuando el pago se procesa mediante Mercado Pago, podrás elegir entre los métodos que estén disponibles para esa operación.' },
+      { c:'pagos', q:'¿Qué métodos de pago acepta ZNR?', a:'Los métodos de pago disponibles dependen del proceso de compra y de las opciones habilitadas por el vendedor. Cuando el vendedor tiene pago en línea, puedes pagar con tarjeta, Apple Pay, Google Pay u OXXO (vía Stripe) o con Mercado Pago; también suele aceptar efectivo o transferencia.' },
       { c:'pagos', q:'¿Los pagos se realizan directamente en ZNR o con el vendedor?', a:'Depende del tipo de compra. En las operaciones que utilizan el sistema de pagos de ZNR, el pago se procesa mediante el proveedor de pago correspondiente. En otros casos, las condiciones y el método de pago pueden ser acordados directamente con el vendedor. Revisa las instrucciones antes de pagar.' },
       { c:'pagos', q:'¿Es seguro pagar a través de ZNR?', a:'ZNR utiliza herramientas tecnológicas para facilitar las operaciones de compra y venta. El proveedor gestiona la transacción conforme a sus propios mecanismos de seguridad. Compra únicamente mediante los canales indicados y evita compartir contraseñas o códigos de seguridad.' },
       { c:'pagos', q:'¿Cómo puedo confirmar que mi pago fue recibido?', a:'Consulta el estado de la operación en la plataforma de pago y revisa las notificaciones o confirmaciones de tu pedido en ZNR. Si pagaste directamente al vendedor, solicita una confirmación por el medio acordado.' },
@@ -136,7 +136,7 @@
     vender: ['vender', 'venta', 'vendedor', 'tienda', 'publicar'],
     cuenta: ['cuenta', 'registro', 'registrar', 'registrarme', 'usuario', 'perfil'],
     envio: ['envio', 'entrega', 'paqueteria', 'domicilio', 'mandar', 'recoger'],
-    pago: ['pago', 'pagar', 'pague', 'tarjeta', 'mercadopago', 'efectivo', 'cobro'],
+    pago: ['pago', 'pagar', 'pague', 'tarjeta', 'mercadopago', 'stripe', 'paypal', 'oxxo', 'apple', 'efectivo', 'cobro'],
     precio: ['precio', 'costo', 'cuanto', 'cuesta', 'valor'],
     plus: ['plus', 'suscripcion', 'premium', 'plan', 'suscripción'],
     reembolso: ['reembolso', 'devolucion', 'devolución', 'regresar'],
