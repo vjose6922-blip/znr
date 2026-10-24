@@ -681,7 +681,6 @@ Imagen1:  String(item.Imagen1 || '').slice(0, 500),
 Talla:  String(item.Talla || '').slice(0, 50),
 _comunidad: item._comunidad || false,
 _vendedor:  String(item._vendedor  || '').slice(0, 100),
-_vendorTel: String(item._vendorTel || '').slice(0, 20),
 _vendorLogo: String(item._vendorLogo || '').slice(0, 500),
 _vendorPlan: String(item._vendorPlan || '').slice(0, 20),
 _vendorUid: String(item._vendorUid || '').slice(0, 100),
@@ -718,7 +717,7 @@ return;
 const id = product.ID;
 if (!id) { console.error("Producto sin ID:", product); return; }
 if (!localCart[id]) {
-localCart[id] = { id: id, name: product.Nombre || "Producto", price: Number(product.Precio || 0), quantity: 0, stock: Number(product.Stock || product.stock || 99), Imagen1: product.Imagen1 || "", Talla: product.Talla || "", _comunidad: product._comunidad || false, _vendedor: product._vendedor || "", _vendorTel: product._vendorTel || "", _vendorLogo: product._vendorLogo || "", _vendorPlan: product._vendorPlan || "", _vendorUid: product._vendorUid || "", _donacion: product._donacion || false, _beneficiario: product._beneficiario || null };
+localCart[id] = { id: id, name: product.Nombre || "Producto", price: Number(product.Precio || 0), quantity: 0, stock: Number(product.Stock || product.stock || 99), Imagen1: product.Imagen1 || "", Talla: product.Talla || "", _comunidad: product._comunidad || false, _vendedor: product._vendedor || "", _vendorLogo: product._vendorLogo || "", _vendorPlan: product._vendorPlan || "", _vendorUid: product._vendorUid || "", _donacion: product._donacion || false, _beneficiario: product._beneficiario || null };
 }
 const maxStock = Number(localCart[id].stock || 99);
 if (localCart[id].quantity >= maxStock) {
@@ -1146,7 +1145,6 @@ window.addToCart({
 ID: id, Nombre: nombre, Precio: precio, Imagen1: imagen, Talla: talla,
 _comunidad: true,
 _vendedor: p._vendedorNombre || p.vendedor_nombre || '',
-_vendorTel: p._vendedorTel || p.vendedor_tel || '',
 _vendorLogo: p._vendedorLogo || p.vendedor_logo || '',
 _vendorPlan: p._vendedorPlan || p.vendedor_plan || '',
 _vendorUid: p._vendedorUid || p.vendedor_uid || '',
@@ -2345,9 +2343,9 @@ $('#_ac-sw').onclick = () => { nuevo = !nuevo; $('#_ac-err').textContent = ''; p
 $('#_ac-olv').onclick = async () => {
 const t = $('#_ac-tel').value.replace(/\D/g, ''), err = $('#_ac-err');
 if (t.length !== 10) { err.style.color = '#ef4444'; return err.textContent = 'Escribe primero tu número de 10 dígitos.'; }
-await compradorApi({ action: 'solicitarResetComprador', telefono: t }).catch(() => {});
-err.style.color = '#16a34a';
-err.textContent = 'Listo. El administrador te contactará por WhatsApp a ese número con un código nuevo.';
+await (window.abrirResetComprador || new Promise(r => { const s = document.createElement('script'); s.src = 'reset-comprador.js'; s.onload = r; document.head.appendChild(s); }));
+const pw = await window.abrirResetComprador(t, compradorApi);
+if (pw) { $('#_ac-tel').value = t; $('#_ac-pw').value = pw; $('.confirm').click(); }
 };
 $('.cancel').onclick = () => cerrar(null);
 m.onkeydown = e => { if (e.key === 'Enter') $('.confirm').click(); };
@@ -2555,10 +2553,9 @@ items: znrItems.map(i => ({ name: i.name, quantity: i.quantity, price: i.price }
 });
 }
 try {
-await fetch(window.TIENDA_ZNR_API_URL, {
-method: "POST",
-body: JSON.stringify({ action: "saveClientPhone", requestId: requestId, phone: clientPhone })
-});
+const _tk = localStorage.getItem("comprador_token") || "";
+const _post = async b => { const r = await (await fetch(window.TIENDA_ZNR_API_URL, { method: "POST", body: JSON.stringify({ ...b, compradorToken: _tk }) })).json(); if (!r.ok) throw new Error(r.error || "Error"); };
+await _post({ action: "saveClientPhone", requestId, phone: clientPhone });
 const notificationItems = znrItems.map(item => ({
 productId: item.id,
 nombre:  item.name,
@@ -2567,10 +2564,7 @@ imagen:  item.Imagen1 || "",
 talla:  item.Talla  || "",
 precio:  item.price  || 0
 }));
-await fetch(window.TIENDA_ZNR_API_URL, {
-method: "POST",
-body: JSON.stringify({ action: "createNotification", items: notificationItems, requestId: requestId })
-});
+await _post({ action: "createNotification", items: notificationItems, requestId });
 znrItems.forEach(i => delete localCart[i.id]);
 saveCartToStorage();
 updateCartBadge();
@@ -2629,19 +2623,18 @@ if (typeof window.solicitarPermisoNotificacionesSiFalta === 'function') {
 }
 const byVendor = new Map();
 comunidadItems.forEach(item => {
-const tel  = item._vendorTel || "";
 const nombre = item._vendedor  || "Vendedor";
 const logo  = item._vendorLogo || "";
 const plan  = item._vendorPlan || "";
 const vendorUid = item._vendorUid || "";
-const key  = tel || nombre;
-if (!byVendor.has(key)) byVendor.set(key, { tel, nombre, logo, plan, vendorUid, items: [] });
+const key  = vendorUid || nombre;
+if (!byVendor.has(key)) byVendor.set(key, { nombre, logo, plan, vendorUid, items: [] });
 byVendor.get(key).items.push(item);
 });
 const vendors  = Array.from(byVendor.values());
 const firstVendor = vendors[0];
 const remaining  = vendors.length - 1;
-const { tel, nombre, logo, plan, vendorUid, items } = firstVendor;
+const { nombre, logo, plan, vendorUid, items } = firstVendor;
 const subtotal = items.reduce((s, i) => s + i.price * i.quantity, 0);
 
 // Dirección obligatoria: si el comprador no la tiene guardada todavía,
@@ -2735,17 +2728,15 @@ if (g.beneficiario.cuenta_bancaria) msg += ` Cuenta: ${g.beneficiario.cuenta_ban
 msg += "\n";
 }
 msg += "_Pedido realizado a través de Z&R Comunidad_";
-const destTel = tel ? `52${tel}` : "";
-const waUrl  = destTel ? `https://wa.me/${destTel}?text=${encodeURIComponent(msg)}` : null;
 const requestId = generateRequestId();
 const notifItems = items.map(i => ({
 productId: i.id, nombre: i.name, cantidad: i.quantity,
 talla: i.Talla || '', precio: i.price || 0, imagen: i.Imagen1 || ''
 }));
 const didOpen = await _showVendorCheckoutModal({
-nombre, logo, plan, subtotal, items, waUrl, remaining, donationList,
+nombre, logo, plan, subtotal, items, waMsg: msg, remaining, donationList,
 vendorUid, requestId, notifItems, clientPhone: localStorage.getItem("client_phone") || "",
-direccionEntrega, calificaEnvio, montoMinimo, vendorTel: tel,
+direccionEntrega, calificaEnvio, montoMinimo,
 clientAddressParaVendedor: direccionEntrega,
 clientScheduleParaVendedor: calificaEnvio ? clientSchedule : '',
 clientLatParaVendedor: direccionEntregaLat,
@@ -2766,7 +2757,7 @@ await _checkoutComunidad(nextItems);
 }
 }
 }
-function _showVendorCheckoutModal({ nombre, logo, plan, subtotal, items, waUrl, remaining, donationList = [], vendorUid, requestId, notifItems, clientPhone, direccionEntrega = '', calificaEnvio = false, montoMinimo = null, vendorTel = '', clientAddressParaVendedor = '', clientScheduleParaVendedor = '', clientLatParaVendedor = null, clientLngParaVendedor = null }) {
+function _showVendorCheckoutModal({ nombre, logo, plan, subtotal, items, waMsg, remaining, donationList = [], vendorUid, requestId, notifItems, clientPhone, direccionEntrega = '', calificaEnvio = false, montoMinimo = null, clientAddressParaVendedor = '', clientScheduleParaVendedor = '', clientLatParaVendedor = null, clientLngParaVendedor = null }) {
 if (!document.getElementById('zr-listo-btn-style')) {
 const zrListoSt = document.createElement('style');
 zrListoSt.id = 'zr-listo-btn-style';
@@ -2866,7 +2857,7 @@ ${donationHtml}
 ${remainingNote}
 <div id="vcm-status" style="display:none;padding:12px 14px;border-radius:14px;font-size:12.5px;text-align:center;line-height:1.5;margin-top:14px;"></div>
 <div style="display:flex;flex-direction:column;gap:10px;margin-top:20px">
-${vendorUid || waUrl
+${vendorUid
 ? `<button id="vcm-send-btn"
 style="display:flex;align-items:center;justify-content:center;gap:10px;
 padding:15px;border-radius:16px;border:none;
@@ -2915,6 +2906,14 @@ statusBox.style.background = c.bg;
 statusBox.style.color = c.fg;
 statusBox.textContent = text;
 };
+// El teléfono del vendedor ya no está en la página: se pide al servidor (requiere sesión y tiene tope diario).
+const abrirWa = async () => {
+const w = window.open('', '_blank'); // se abre en el toque; el enlace se completa cuando llega el número
+const r = await compradorApi({ action: 'obtenerContactoVendedor', vendedorUid: vendorUid, telefono: clientPhone, compradorToken: localStorage.getItem('comprador_token') || '' }).catch(() => ({}));
+if (r.ok && r.whatsapp && w) { w.location.href = `https://wa.me/52${r.whatsapp}?text=${encodeURIComponent(waMsg)}`; return; }
+if (w) w.close();
+showStatus(r.error || ' No se pudo abrir WhatsApp. Intenta de nuevo.', 'error');
+};
 const sendBtn = modal.querySelector('#vcm-send-btn');
 if (sendBtn) {
 sendBtn.addEventListener('click', async () => {
@@ -2933,14 +2932,14 @@ action: "crearNotificacionVentaComunidad",
 vendor_uid: vendorUid,
 requestId: requestId,
 clientPhone: clientPhone || "",
+compradorToken: localStorage.getItem("comprador_token") || "",
 clientAddress: clientAddressParaVendedor || "",
 clientSchedule: clientScheduleParaVendedor || "",
 clientLat: (clientLatParaVendedor !== null && clientLatParaVendedor !== undefined) ? clientLatParaVendedor : "",
 clientLng: (clientLngParaVendedor !== null && clientLngParaVendedor !== undefined) ? clientLngParaVendedor : "",
 calificaEnvio: !!calificaEnvio,
 items: notifItems,
-vendorNombre: nombre || "",
-waUrl: waUrl || ""
+vendorNombre: nombre || ""
 })
 });
 const data = await res.json();
@@ -2950,14 +2949,13 @@ ok = !!(data && data.ok);
 console.error("No se pudo notificar al vendedor:", err);
 }
 if (ok) {
-showStatus(` Notificamos a ${nombre}. Te avisaremos aquí mismo en cuanto confirme.` + (waUrl ? ' Si no responde pronto, revisa tu campanita de notificaciones: ahí vas a tener el botón para escribirle por WhatsApp.' : ''), 'success');
-if (waUrl) {
-const waBtn = document.createElement('a');
-waBtn.href = waUrl;
-waBtn.target = '_blank';
-waBtn.rel = 'noopener';
+showStatus(` Notificamos a ${nombre}. Te avisaremos aquí mismo en cuanto confirme.` + (vendorUid ? ' Si no responde pronto, revisa tu campanita de notificaciones: ahí vas a tener el botón para escribirle por WhatsApp.' : ''), 'success');
+if (vendorUid) {
+const waBtn = document.createElement('button');
+waBtn.type = 'button';
 waBtn.textContent = '💬 Escribirle por WhatsApp';
-waBtn.style.cssText = 'display:block;text-align:center;margin-top:10px;padding:12px;border-radius:14px;background:rgba(37,211,102,.12);color:#25D366;font-size:13px;font-weight:700;text-decoration:none;';
+waBtn.style.cssText = 'display:block;width:100%;text-align:center;margin-top:10px;padding:12px;border:0;border-radius:14px;background:rgba(37,211,102,.12);color:#25D366;font-size:13px;font-weight:700;cursor:pointer;';
+waBtn.addEventListener('click', abrirWa);
 statusBox.insertAdjacentElement('afterend', waBtn);
 }
 sendBtn.style.display = 'none';
@@ -2968,9 +2966,9 @@ listoBtn.textContent = 'Listo';
 listoBtn.className = 'zr-listo-btn';
 sendBtn.insertAdjacentElement('afterend', listoBtn);
 listoBtn.addEventListener('click', () => { modal.remove(); resolve(true); });
-} else if (waUrl) {
+} else if (vendorUid) {
 showStatus(' No pudimos notificar a este vendedor por la app, así que se abrirá WhatsApp para contactarlo directo.', 'info');
-window.open(waUrl, '_blank');
+abrirWa();
 sendBtn.style.display = 'none';
 const backBtnEl2 = modal.querySelector('#vcm-back-btn');
 if (backBtnEl2) backBtnEl2.style.display = 'none';
@@ -2983,7 +2981,7 @@ listoBtn2.addEventListener('click', () => { modal.remove(); resolve(true); });
 showStatus(' No pudimos notificar a este vendedor. Intenta de nuevo más tarde o búscalo en Comunidad.', 'error');
 sendBtn.disabled = false;
 sendBtn.style.opacity = '1';
-sendBtn.innerHTML = `${Icon('bell')} Enviar pedido a ${nombre}`;
+sendBtn.innerHTML = `${Icon('bell')} Enviar pedido a ${escapeHtml(nombre)}`;
 }
 });
 }

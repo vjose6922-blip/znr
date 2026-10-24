@@ -826,7 +826,6 @@
  data-img="${esc(p.imagen1 || '')}"
  data-talla="${esc(p.talla || '')}"
  data-vendedor="${esc(p.vendedor_nombre || '')}"
- data-vendortel="${esc(p.vendedor_tel || '')}"
  data-vendorlogo="${esc(p.vendedor_logo || '')}"
  data-vendorplan="${esc(p.vendedor_plan || '')}"
  data-vendoruid="${esc(p.vendedor_uid || '')}"
@@ -859,7 +858,6 @@
  _comunidad: true,
  _vendedorNombre: p.vendedor_nombre || '',
  _vendedorUid: p.vendedor_uid || '',
- _vendedorTel: p.vendedor_tel || '',
  _vendedorLogo: p.vendedor_logo || '',
  _vendedorPlan: p.vendedor_plan || '',
  _donado: p.donado === true || p.donado === 'TRUE' || p.donado === 'true',
@@ -889,7 +887,7 @@
  addToCart({
  ID: p.id, Nombre: p.nombre, Precio: Number(p.precio),
  Imagen1: p.imagen1, Talla: p.talla,
- _comunidad: true, _vendedor: p.vendedor_nombre, _vendorTel: p.vendedor_tel,
+ _comunidad: true, _vendedor: p.vendedor_nombre,
  _vendorLogo: p.vendedor_logo || '', _vendorPlan: p.vendedor_plan || '',
  _vendorUid: p.vendedor_uid || '',
  _donacion: esDon, _beneficiario: beneficiario

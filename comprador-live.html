@@ -338,7 +338,7 @@ const LIVE_API_URL_CLIVE = "https://live-api-1038143238323.us-central1.run.app";
 const AUTH_API_URL_CLIVE = "https://auth-api-1038143238323.us-central1.run.app";
 const VENDEDORES_API_URL_CLIVE = "https://vendedores-api-1038143238323.us-central1.run.app";
 const AUTH_ACTIONS_CLIVE = ['leerPerfilComprador', 'guardarPerfilComprador'];
-const VENDEDORES_ACTIONS_CLIVE = ['verificarSesionVendedor', 'registrarComprador', 'loginComprador', 'verificarSesionComprador', 'sesionCompradorDesdeVendedor', 'solicitarResetComprador'];
+const VENDEDORES_ACTIONS_CLIVE = ['verificarSesionVendedor', 'registrarComprador', 'loginComprador', 'verificarSesionComprador', 'sesionCompradorDesdeVendedor', 'solicitarResetComprador', 'resetPasswordCompradorConCodigo'];
 // Se llenan en init() con la sesión de vendedor ya verificada (si el teléfono del
 // comprador es el de su cuenta, se le abre sesión de comprador sin pedir contraseña).
 let vendorTokenCLive = '';
@@ -894,9 +894,9 @@ function askIdentity(onDone, motivo) {
   document.getElementById('idn-pw-olv').addEventListener('click', async () => {
     const t = telDigitos();
     if (t.length !== 10) { elErr.textContent = 'Escribe primero tu teléfono de 10 dígitos.'; return; }
-    await apiFetch({ action: 'solicitarResetComprador', telefono: t }, 'POST').catch(() => {});
-    elErr.style.color = '#4ade80';
-    elErr.textContent = 'Listo. El administrador te contactará por WhatsApp con un código nuevo.';
+    await (window.abrirResetComprador || new Promise(r => { const s = document.createElement('script'); s.src = 'reset-comprador.js'; s.onload = r; document.head.appendChild(s); }));
+    const pw = await window.abrirResetComprador(t, o => apiFetch(o, 'POST'));
+    if (pw) { elPw.value = pw; elErr.style.color = '#4ade80'; elErr.textContent = 'Listo. Toca continuar con tu nueva contraseña.'; }
   });
   elTel.addEventListener('input', () => { forzarPw = false; pintarPw(); });
   pintarPw();
@@ -1066,6 +1066,7 @@ async function guardarContacto(idn) {
     action: 'registrarContactoLive',
     liveId,
     viewerUid: authUid,
+    compradorToken: localStorage.getItem('comprador_token') || '',
     telefono: idn.telefono || '',
     nota: idn.nota || '',
     horario: idn.horario || ''
@@ -1080,6 +1081,7 @@ async function guardarContacto(idn) {
   for (let i = 0; i < pausas.length; i++) {
     if (pausas[i]) await new Promise(r => setTimeout(r, pausas[i]));
     try {
+      payload.idToken = await auth.currentUser.getIdToken(); // prueba de que este dispositivo es ese espectador
       const resp = await apiFetch(payload, 'POST');
       if (resp && resp.ok) {
         // Marca "este dispositivo ya dejó su contacto en ESTE live" (para no volver a preguntar al recargar)

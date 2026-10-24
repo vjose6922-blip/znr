@@ -836,7 +836,7 @@ function crearMiniCardComunidad(p, badgeHtml) {
       temporada: p.temporada || '', multicolor: p.multicolor === true || p.multicolor === 'true',
       Badge: p.badge || '', Imagen1: p.imagen1 || '', Imagen2: p.imagen2 || '', Imagen3: p.imagen3 || '',
       _comunidad: true, _vendedorNombre: p.vendedor_nombre || '', _vendedorUid: p.vendedor_uid || '',
-      _vendedorTel: p.vendedor_tel || '', _vendedorLogo: p.vendedor_logo || '', _vendedorPlan: p.vendedor_plan || '',
+      _vendedorLogo: p.vendedor_logo || '', _vendedorPlan: p.vendedor_plan || '',
       _donado: !!p.donado, _beneficiarioId: p.beneficiario_id || '',
       precio_original: p.precio_original || 0, _montoMinimoEnvio: p.vendedor_monto_minimo_envio || 0,
     });
@@ -1235,7 +1235,6 @@ function handleInitialHashComunidad(intentos = 0) {
     _comunidad: true,
     _vendedorNombre: product.vendedor_nombre || '',
     _vendedorUid: product.vendedor_uid || '',
-    _vendedorTel: product.vendedor_tel || '',
     _vendedorLogo: product.vendedor_logo || '',
     _vendedorPlan: product.vendedor_plan || '',
     _donado: product.donado === true || product.donado === 'TRUE' || product.donado === 'true',
@@ -1412,7 +1411,6 @@ const stockNum  = Number(stockVivo(product)) || 0;
 const hasStock  = esPersonal ? true : stockNum > 0;
 const esDonativo = product.donado === true || product.donado === 'TRUE' || product.donado === 'true';
 const vendorName = safeString(product.vendedor_nombre);
-const vendorTel  = safeString(product.vendedor_tel);
 const vendorLogo = safeString(product.vendedor_logo || '');
 const esVendorPlus = product.vendedor_plan === 'plus';
 const precioOriginal = Number(product.precio_original) || 0;
@@ -1465,7 +1463,6 @@ data-precio="${product.precio || 0}"
 data-img="${esc(safeString(product.imagen1 || ''))}"
 data-talla="${esc(safeString(product.talla || ''))}"
 data-vendedor="${esc(vendorName)}"
-data-vendortel="${esc(vendorTel)}"
 data-vendorlogo="${esc(vendorLogo)}"
 data-vendorplan="${esc(safeString(product.vendedor_plan || ''))}"
 data-vendoruid="${esc(safeString(product.vendedor_uid || ''))}"
@@ -1503,7 +1500,6 @@ Imagen3:  product.imagen3  || '',
 _comunidad:  true,
 _vendedorNombre: vendorName || '',
 _vendedorUid: product.vendedor_uid || '',
-_vendedorTel: vendorTel || '',
 _vendedorLogo: vendorLogo || '',
 _vendedorPlan: product.vendedor_plan || '',
 _donado: esDonativo,
@@ -1535,7 +1531,7 @@ window.addToCart({
 ID: addBtn.dataset.id, Nombre: addBtn.dataset.nombre,
 Precio: Number(addBtn.dataset.precio), Imagen1: addBtn.dataset.img,
 Talla: addBtn.dataset.talla, _comunidad: true,
-_vendedor: addBtn.dataset.vendedor, _vendorTel: addBtn.dataset.vendortel,
+_vendedor: addBtn.dataset.vendedor,
 _vendorLogo: addBtn.dataset.vendorlogo, _vendorPlan: addBtn.dataset.vendorplan,
 _vendorUid: addBtn.dataset.vendoruid,
 _donacion: esDon,
@@ -2185,10 +2181,10 @@ function mostrarModalCalificar(item, phone) {
   modal.innerHTML = `
     <div class="mc-panel">
       <button class="mc-close" aria-label="Cerrar">×</button>
-      <img class="mc-img" src="${item.imagen || ''}" alt=""
+      <img class="mc-img" src="${escapeHtml(item.imagen || '')}" alt=""
            onerror="this.style.display='none'">
       <h2>¿Cómo estuvo tu compra?</h2>
-      <p class="mc-sub">${(item.nombre || 'tu producto')}</p>
+      <p class="mc-sub">${escapeHtml(item.nombre || 'tu producto')}</p>
 
       <div class="mc-stars" id="calif-stars" role="radiogroup" aria-label="Calificación"></div>
       <div class="mc-label" id="calif-label"></div>
@@ -2267,6 +2263,7 @@ function mostrarModalCalificar(item, phone) {
           action: 'calificarProducto',
           productId: String(item.productId),
           clientPhone: phone,
+          compradorToken: localStorage.getItem('comprador_token') || '',
           calificacion: String(calificacionSeleccionada),
           comentario: comentario,
           requestId: item.requestId || ''

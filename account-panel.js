@@ -21,7 +21,7 @@ async function loadPedidosPage(reset = false) {
   try {
     const res = await fetch(window.TIENDA_ZNR_API_URL, {
       method: 'POST',
-      body: JSON.stringify({ action: 'listarPedidosCliente', phone, cursor: _pedidosCursor, limit: 20 })
+      body: JSON.stringify({ action: 'listarPedidosCliente', phone, cursor: _pedidosCursor, limit: 20, compradorToken: localStorage.getItem('comprador_token') || '' })
     });
     const data = await res.json();
     if (data && data.ok) {
@@ -138,7 +138,7 @@ async function clientCancelOrder(requestId) {
         try {
           const res = await fetch(window.TIENDA_ZNR_API_URL, {
   method: 'POST',
-  body: JSON.stringify({ action: 'clientCancelRequest', requestId, phone })
+  body: JSON.stringify({ action: 'clientCancelRequest', requestId, phone, compradorToken: localStorage.getItem('comprador_token') || '' })
 });
 
           const responseText = await res.text();

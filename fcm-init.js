@@ -38,6 +38,7 @@ async function registrarTokenFCM(ownerType, ownerId, token) {
         ownerId,
         token,
         compradorToken: ownerType === "cliente" ? localStorage.getItem("comprador_token") || "" : undefined,
+        sessionToken: ownerType === "vendedor" ? (() => { try { return JSON.parse(localStorage.getItem("vendor_session") || "{}").token || ""; } catch { return ""; } })() : undefined,
         userAgent: navigator.userAgent
       })
     });

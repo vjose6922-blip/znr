@@ -457,9 +457,9 @@ function pedirLoginComprador() {
     olv.addEventListener('click', async () => {
       const t = inTel.value.replace(/\D/g, '');
       if (t.length !== 10) { err.style.color = '#f87171'; err.textContent = 'Escribe primero tu número de 10 dígitos.'; return; }
-      await postForm(VENDEDORES_API, { action: 'solicitarResetComprador', telefono: t }).catch(() => {});
-      err.style.color = '#4ade80';
-      err.textContent = 'Listo. El administrador te contactará por WhatsApp con un código nuevo.';
+      await (window.abrirResetComprador || new Promise(r => { const s = document.createElement('script'); s.src = 'reset-comprador.js'; s.onload = r; document.head.appendChild(s); }));
+      const pw = await window.abrirResetComprador(t, o => postForm(VENDEDORES_API, o));
+      if (pw) { inTel.value = t; inPw.value = pw; ok.click(); }
     });
     ok.addEventListener('click', async () => {
       const t = inTel.value.replace(/\D/g, '');

@@ -921,6 +921,23 @@
         return params.get('vendedor') || params.get('uid');
       }
 
+      // El teléfono/WhatsApp del vendedor no está en el perfil público: se pide al servidor con sesión de comprador (y tiene tope diario).
+      document.addEventListener('click', async (e) => {
+        const btn = e.target.closest('#btn-ver-contacto');
+        if (!btn) return;
+        const tel = await window.asegurarComprador('Para ver el contacto del vendedor');
+        if (!tel) return;
+        btn.disabled = true;
+        const r = await fetch(window.VENDEDORES_API_URL, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'obtenerContactoVendedor', vendedorUid: getVendorUid(), telefono: tel, compradorToken: localStorage.getItem('comprador_token') || '' })
+        }).then(x => x.json()).catch(() => ({}));
+        if (!r.ok) { btn.disabled = false; showTemporaryMessage(r.error || 'No se pudo cargar el contacto. Intenta de nuevo.', 'error'); return; }
+        const hola = encodeURIComponent('Hola ' + (btn.dataset.nombre || '') + ', vi tu perfil en Z&R y me interesan tus productos.');
+        btn.outerHTML = `<a href="tel:+52${esc(r.telefono)}" class="profile-meta-item">Llamar · ${esc(r.telefono)}</a>` +
+          `<a href="https://wa.me/52${esc(r.whatsapp)}?text=${hola}" target="_blank" rel="noopener" class="profile-meta-item">Enviar mensaje</a>`;
+      });
+
       // Detecta si se llegó aquí escaneando el QR o tocando el NFC del
       // vendedor, para reproducir la animación de apertura de página.
       // Requiere que el link/QR/tag incluya ?src=qr o ?src=nfc.
@@ -1040,8 +1057,7 @@ async function cargarBeneficiariosAprobados() {
           
           if (!donRes || !donRes.ok || !donRes.esBeneficiario) return;
           if (!benRes || !benRes.ok) return;
-          const miTel = digitsOnly(v.telefono);
-          const ben = (benRes.beneficiarios || []).find(b => digitsOnly(b.telefono) === miTel && miTel);
+          const ben = (benRes.beneficiarios || []).find(b => b.vendor_uid && b.vendor_uid === (v.uid || getVendorUid()));
           if (!ben) return;
 
           const tabsList = document.getElementById('acc-tabs-list');
@@ -1135,12 +1151,6 @@ async function cargarBeneficiariosAprobados() {
   </a>
 `).join('');
 
-        // Contacto: WhatsApp del negocio si existe, si no, cae al teléfono de registro
-        const waNumber  = v.whatsapp || v.telefono || '';
-        const waDigits  = digitsOnly(waNumber);
-        const telDigits = digitsOnly(v.telefono);
-        const waLink  = waDigits  ? `https://wa.me/52${waDigits}?text=${encodeURIComponent('Hola ' + (v.nombre || '') + ', vi tu perfil en Z&R y me interesan tus productos.')}` : '';
-        const telLink = telDigits ? `tel:+52${telDigits}` : '';
 
         const isPlus = (v.plan || 'free') === 'plus';
         const planBadgeHtml = isPlus ? `<span class="profile-plan-badge">${Icon('check')}</span>` : '';
@@ -1172,8 +1182,7 @@ const infoBits = [
 
         // ── Sección "Contacto" (llamar / enviar mensaje) ──
         const contactoBits = [
-          telLink ? `<a href="${telLink}" class="profile-meta-item">Llamar · ${esc(v.telefono)}</a>` : '',
-          waLink ? `<a href="${waLink}" target="_blank" rel="noopener" class="profile-meta-item">Enviar mensaje</a>` : '',
+          `<button type="button" id="btn-ver-contacto" class="profile-meta-item" data-nombre="${esc(v.nombre || '')}">Ver contacto</button>`,
           v.horario ? `<span class="profile-meta-item is-static">${esc(v.horario)}</span>` : '',
           montoMinimoEnvio !== null ? `<span class="profile-meta-item is-static">${icoTruck} Envío a domicilio desde $${montoMinimoEnvio.toLocaleString()} MXN</span>` : ''
         ].filter(Boolean).join('');
@@ -1587,7 +1596,6 @@ const infoBits = [
                 Talla: talla,
                 _comunidad: true,
                 _vendedor: v.nombre || '',
-                _vendorTel: waNumber,
                 _vendorLogo: v.logo || '',
                 _vendorPlan: v.plan || '',
                 _vendorUid: getVendorUid() || '',
@@ -1646,7 +1654,6 @@ Badge: p.badge || '',
                 _comunidad: true,
                 _vendedorNombre: v.nombre || '',
                 _vendedorUid: getVendorUid() || '',
-                _vendedorTel: waNumber,
                 _vendedorLogo: v.logo || '',
                 _vendedorPlan: v.plan || '',
                 _donado: esDonado,
@@ -1808,7 +1815,6 @@ Badge: p.badge || '',
             _comunidad: true,
             _vendedorNombre: v.nombre || '',
             _vendedorUid: getVendorUid() || '',
-            _vendedorTel: waNumber,
             _vendedorLogo: v.logo || '',
             _vendedorPlan: v.plan || '',
             _donado: esDonado,

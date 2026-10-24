@@ -622,11 +622,11 @@ const PICKUP_HORAS = ['9:00 AM','10:00 AM','11:00 AM','12:00 PM','1:00 PM','2:00
                <input type="checkbox" class="nc-pago-tarjeta-toggle">
                💳 Prefiero pagar con tarjeta
              </label>
-             <button type="button" class="nc-pago-tarjeta-btn" style="display:none;" data-request-id="${meta.requestId}" data-vendedor-uid="${meta.vendedor_uid}">${Icon('credit-card')} Ir a pagar con tarjeta</button>
+             <button type="button" class="nc-pago-tarjeta-btn" style="display:none;" data-request-id="${esc(meta.requestId)}" data-vendedor-uid="${esc(meta.vendedor_uid)}">${Icon('credit-card')} Ir a pagar con tarjeta</button>
            </div>`
         : '';
       return `
-        <div class="nc-item ${n.leida ? '' : 'unread'}" data-id="${n.id}" data-url="${n.url || ''}">
+        <div class="nc-item ${n.leida ? '' : 'unread'}" data-id="${esc(n.id)}" data-url="${esc(n.url || '')}">
           <div class="nc-icon">${info.icono}</div>
           <div class="nc-body">
             <p class="nc-item-title">
