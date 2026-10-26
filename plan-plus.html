@@ -326,6 +326,7 @@ function conectarSuscripcion(area) {
     } catch (e) {
       btn.disabled = false; btn.innerHTML = txt;
       err.textContent = e.message + ' También puedes pagar solo este mes con los botones de abajo.';
+      if (window.ZRMonitor) ZRMonitor.report('ERROR', 'plan-plus.html', 'suscripcion', e.message);
     }
   });
   if (toggle) toggle.addEventListener('click', async () => {
