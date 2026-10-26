@@ -195,7 +195,7 @@ async function cacheFirst(request) {
 async function networkOnly(request) {
   try { return await fetch(request); }
   catch {
-    return new Response(JSON.stringify(null), {
+    return new Response(JSON.stringify({ ok: false, error: "Sin conexión" }), {
       status: 503, headers: { 'Content-Type': 'application/json' }
     });
   }

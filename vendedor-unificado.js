@@ -1816,7 +1816,7 @@ vendorSession = JSON.parse(stored);
 if (vendorSession.telefono) localStorage.setItem('client_phone', vendorSession.telefono);
 vincularComprador(false);
 showPanel();
-sincronizarPlanVendedor();
+sincronizarPlanVendedor(showPanel);
 apiFetch({ action: 'misProductosComunidad', vendorToken: vendorSession.token, limit: 1 }, 'GET').then(resp => {
   // Solo se cierra la sesión si el token de verdad es inválido; un error
   // temporal del servidor (500, arranque en frío, etc.) no debe sacar al vendedor.
@@ -3223,7 +3223,7 @@ function apiCall(data) {
 
 // El plan guardado en el celular se queda viejo si el admin lo cambia (quitar o dar Plus): al abrir el panel se
 // pregunta al servidor y, si cambió, se guarda y se vuelve a pintar el panel. También refresca la caché del día.
-async function sincronizarPlanVendedor() {
+async function sincronizarPlanVendedor(repintarPanel) {
   const res = await apiCall({ action: 'getPlusSolicitudVendedor', vendorToken: vendorSession.token }).catch(() => null);
   if (!res || !res.ok || !vendorSession) return;
   const sol = res.solicitud || null;
@@ -3232,7 +3232,7 @@ async function sincronizarPlanVendedor() {
   if (plan === vendorSession.plan) return;
   Object.assign(vendorSession, { plan, planVence: plan === 'plus' ? sol.vence : null, limiteProductos: plan === 'plus' ? 200 : 20 });
   try { localStorage.setItem('vendor_session', JSON.stringify(vendorSession)); } catch (_) {}
-  showPanel();
+  repintarPanel();
 }
 
 window.toggleSettingsSection = function(btn) {

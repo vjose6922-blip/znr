@@ -254,6 +254,7 @@
         return;
       }
 
+      if (el.rel === 'prefetch') return; // prefetch fallido (sin red/navegación): no rompe nada
       const url = el.src || el.href || '';
       window.__zrEarlyHandler('resource', {
         tag: (el.tagName || 'UNKNOWN').toLowerCase(),
