@@ -311,7 +311,9 @@ function conectarSuscripcion(area) {
         sc.src = 'https://js.stripe.com/v3/'; sc.onload = ok; sc.onerror = () => fail(new Error('No se pudo cargar el pago seguro de Stripe.'));
         document.head.appendChild(sc);
       });
-      const checkout = await Stripe(r.publishableKey).initEmbeddedCheckout({ fetchClientSecret: async () => r.clientSecret });
+      const st = Stripe(r.publishableKey), opciones = { fetchClientSecret: async () => r.clientSecret };
+      // Stripe renombró initEmbeddedCheckout → createEmbeddedCheckoutPage (API 2026-03-25); se usa la que exista.
+      const checkout = await (st.createEmbeddedCheckoutPage ? st.createEmbeddedCheckoutPage(opciones) : st.initEmbeddedCheckout(opciones));
       window._ppCheckoutMontado = true; // que un refresco de la página no lo borre a medio pago
       btn.remove();
       area.querySelectorAll('[data-proveedor], .pp-pago-unico, .pp-pay-card, .pp-cta.wa').forEach(e => { e.style.display = 'none'; }); // evita pagar dos veces
