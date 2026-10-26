@@ -317,6 +317,11 @@ function conectarSuscripcion(area) {
       window._ppCheckoutMontado = true; // que un refresco de la página no lo borre a medio pago
       btn.remove();
       area.querySelectorAll('[data-proveedor], .pp-pago-unico, .pp-pay-card, .pp-cta.wa').forEach(e => { e.style.display = 'none'; }); // evita pagar dos veces
+      // Para regresar sin suscribirse: se cierra el recuadro de Stripe y se vuelve a pintar la página como estaba.
+      const volver = document.createElement('button');
+      volver.className = 'pp-cta secondary'; volver.textContent = '← Ver otras formas de pago';
+      volver.addEventListener('click', () => { checkout.destroy(); window._ppCheckoutMontado = false; cargar(true); });
+      area.querySelector('#pp-checkout').before(volver);
       checkout.mount('#pp-checkout');
     } catch (e) {
       btn.disabled = false; btn.innerHTML = txt;
