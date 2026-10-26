@@ -383,7 +383,8 @@ function renderDynamicArea(sol) {
     const waTexto = encodeURIComponent(`Hola, ya realicé mi pago del Plan Plus. Mi tienda: ${nombreTienda}. Teléfono: ${telVendedor}.`);
     const waConfirmUrl = waNum ? `https://wa.me/${waNum}?text=${waTexto}` : '#';
 
-    const titulo = esRenovacion ? `${Icon('clock')} Tu Plan Plus vence pronto` : `${Icon('clock')} Solicitud enviada`;
+    // "approved" también es quien ya tuvo Plus (se le quitó o venció): no acaba de enviar ninguna solicitud.
+    const titulo = esRenovacion ? `${Icon('clock')} Tu Plan Plus vence pronto` : sol.estado === 'pending' ? `${Icon('clock')} Solicitud enviada` : `${Icon('star')} Activa tu Plan Plus`;
     const texto  = esRenovacion
       ? `Te quedan ${diasRestantes} día${diasRestantes === 1 ? '' : 's'}. Paga en línea para renovar al instante${sol.clabe ? ', o por transferencia y avísanos por WhatsApp' : ''}.`
       : `Paga en línea para activarte al instante${sol.clabe ? ', o por transferencia y avísanos por WhatsApp' : ''}.`;
