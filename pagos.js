@@ -19,6 +19,8 @@
       if (r.ok && r.url) { location.href = r.url; return; }
       error = r.error;
     } catch (_) { error = ''; }
+    // Lo que se muestra en pantalla también va al monitor de errores del panel.
+    if (window.ZRMonitor) ZRMonitor.report('ERROR', 'pagos.js', 'irAPagar ' + prov, error || 'Sin respuesta del servidor');
     const caja = btn.parentElement;
     // Un problema de sesión no es culpa de la pasarela: ahí no se cambia de opción.
     const otra = !/autoriz|sesi[oó]n/i.test(error || '') && [...caja.querySelectorAll('[data-proveedor]')].find(b => b !== btn && !b.disabled);
