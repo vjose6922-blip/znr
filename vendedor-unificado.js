@@ -1816,6 +1816,7 @@ vendorSession = JSON.parse(stored);
 if (vendorSession.telefono) localStorage.setItem('client_phone', vendorSession.telefono);
 vincularComprador(false);
 showPanel();
+sincronizarPlanVendedor();
 apiFetch({ action: 'misProductosComunidad', vendorToken: vendorSession.token, limit: 1 }, 'GET').then(resp => {
   // Solo se cierra la sesión si el token de verdad es inválido; un error
   // temporal del servidor (500, arranque en frío, etc.) no debe sacar al vendedor.
@@ -3155,7 +3156,7 @@ return;
 if (sol.estado === 'plus_activo') {
   if (vendorSession.plan !== 'plus') {
     vendorSession.plan = 'plus';
-    if (sol.vence) vendorSession.plan_vence = sol.vence;
+    if (sol.vence) vendorSession.planVence = sol.vence;
     vendorSession.limiteProductos = 200;
     try { localStorage.setItem('vendor_session', JSON.stringify(vendorSession)); } catch(e) {}
   }
@@ -3218,6 +3219,20 @@ if (btn) { btn.disabled = false; btn.innerHTML = Icon('star') + ' Solicitar plan
 // Wrapper unificado: apiCall es un alias de apiFetch (timeout 15s + manejo de token invalido).
 function apiCall(data) {
   return window.apiFetch(data, 'POST');
+}
+
+// El plan guardado en el celular se queda viejo si el admin lo cambia (quitar o dar Plus): al abrir el panel se
+// pregunta al servidor y, si cambió, se guarda y se vuelve a pintar el panel. También refresca la caché del día.
+async function sincronizarPlanVendedor() {
+  const res = await apiCall({ action: 'getPlusSolicitudVendedor', vendorToken: vendorSession.token }).catch(() => null);
+  if (!res || !res.ok || !vendorSession) return;
+  const sol = res.solicitud || null;
+  _setDailyCache('zr_vendor_plan_cache_' + vendorSession.uid, sol);
+  const plan = sol && sol.estado === 'plus_activo' ? 'plus' : 'free';
+  if (plan === vendorSession.plan) return;
+  Object.assign(vendorSession, { plan, planVence: plan === 'plus' ? sol.vence : null, limiteProductos: plan === 'plus' ? 200 : 20 });
+  try { localStorage.setItem('vendor_session', JSON.stringify(vendorSession)); } catch (_) {}
+  showPanel();
 }
 
 window.toggleSettingsSection = function(btn) {
