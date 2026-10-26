@@ -675,7 +675,7 @@ async function certificarVendedorEnLive(liveId) {
 const CATALOGO_API_URL_VLIVE = "https://catalogo-api-1038143238323.us-central1.run.app";
 const LIVE_API_URL_VLIVE = "https://live-api-1038143238323.us-central1.run.app"; // TODO: pegar la URL real tras el deploy
 async function apiFetch(data, method = 'POST') {
-  const API_BASE = (data && data.action === 'misProductosComunidad') ? CATALOGO_API_URL_VLIVE : LIVE_API_URL_VLIVE;
+  const API_BASE = { misProductosComunidad: CATALOGO_API_URL_VLIVE, getPlusSolicitudVendedor: window.VENDEDORES_API_URL }[data && data.action] || LIVE_API_URL_VLIVE;
   const params = new URLSearchParams();
   Object.entries(data || {}).forEach(([k, v]) => {
     if (v !== undefined && v !== null) params.append(k, v);
@@ -2175,6 +2175,15 @@ async function init() {
   try { vendorSession = JSON.parse(raw); } catch (e) { renderNoSession(); return; }
   if (!vendorSession || !vendorSession.token) { renderNoSession(); return; }
 
+  // El plan guardado puede estar viejo (el admin lo cambió): se confirma con el servidor; si no responde, se usa el guardado.
+  const r = await apiFetch({ action: 'getPlusSolicitudVendedor', vendorToken: vendorSession.token }).catch(() => null);
+  if (r && r.ok) {
+    const plan = r.solicitud && r.solicitud.estado === 'plus_activo' ? 'plus' : 'free';
+    if (plan !== vendorSession.plan) {
+      Object.assign(vendorSession, { plan, limiteProductos: plan === 'plus' ? 200 : 20 });
+      try { localStorage.setItem('vendor_session', JSON.stringify(vendorSession)); } catch (_) {}
+    }
+  }
   if (vendorSession.plan !== 'plus') { renderNoPlus(); return; }
 
   const revisarId = new URLSearchParams(location.search).get('revisar');
