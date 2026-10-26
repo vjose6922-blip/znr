@@ -7,8 +7,8 @@
 </script>
 <meta http-equiv="Content-Security-Policy" content="
  default-src 'self';
- script-src 'self' 'unsafe-inline' https://www.gstatic.com https://apis.google.com https://js.stripe.com https://checkout.stripe.com;
- frame-src https://js.stripe.com https://checkout.stripe.com https://hooks.stripe.com;
+ script-src 'self' 'unsafe-inline' https://www.gstatic.com https://apis.google.com https://js.stripe.com https://checkout.stripe.com https://sdk.mercadopago.com https://http2.mlstatic.com;
+ frame-src https://js.stripe.com https://checkout.stripe.com https://hooks.stripe.com https://*.mercadopago.com https://*.mercadolibre.com https://*.mlstatic.com;
  style-src 'self' 'unsafe-inline';
  img-src 'self' data: blob:
         https://lh3.googleusercontent.com
@@ -18,8 +18,8 @@
         https://firebasestorage.googleapis.com
         https://*.firebasestorage.app
         https://storage.googleapis.com
-        https://*.stripe.com ;
- connect-src 'self' https://vendedores-api-1038143238323.us-central1.run.app https://admin-api-1038143238323.us-central1.run.app https://catalogo-api-1038143238323.us-central1.run.app https://tienda-znr-api-1038143238323.us-central1.run.app https://*.stripe.com ;
+        https://*.stripe.com https://*.mlstatic.com https://*.mercadopago.com ;
+ connect-src 'self' https://vendedores-api-1038143238323.us-central1.run.app https://admin-api-1038143238323.us-central1.run.app https://catalogo-api-1038143238323.us-central1.run.app https://tienda-znr-api-1038143238323.us-central1.run.app  https://*.stripe.com https://*.mercadopago.com https://*.mercadolibre.com https://*.mlstatic.com ;
  font-src 'self';
  frame-ancestors 'none';
  object-src 'none';
@@ -277,61 +277,88 @@ function goBack() {
 }
 
 // Renovación automática (suscripción mensual con Stripe, pagada dentro de esta página).
+// Renovación automática (suscripción mensual con Stripe o Mercado Pago, pagada dentro de esta página).
 function htmlSuscripcion(sol) {
   if (sol.suscripcion) {
-    const cancela = sol.suscripcion.cancelaAlFinal;
+    const cancela = sol.suscripcion.cancelaAlFinal, mp = sol.suscripcion.proveedor === 'mp';
     return `<div class="pp-status-card"><p class="title">${Icon('refresh')} Renovación automática ${cancela ? 'cancelada' : 'activa'}</p>
-      <p>${cancela ? 'Tu Plan Plus sigue hasta que termine tu mes pagado y ya no se cobrará.' : 'Se cobra solo cada mes a tu tarjeta. Puedes cancelarla cuando quieras.'}</p>
-      <button class="pp-cta secondary" id="pp-btn-sus-toggle" data-reanudar="${cancela ? '1' : ''}">${cancela ? 'Reanudar renovación automática' : 'Cancelar renovación automática'}</button>
+      <p>${cancela ? 'Tu Plan Plus sigue hasta que termine tu mes pagado y ya no se cobrará.' : `Se cobra solo cada mes ${mp ? 'con Mercado Pago' : 'a tu tarjeta'}. Puedes cancelarla cuando quieras.`}</p>
+      <button class="pp-cta secondary" id="pp-btn-sus-toggle" data-reanudar="${cancela ? '1' : ''}" data-mp="${mp ? '1' : ''}">${cancela ? 'Reanudar renovación automática' : 'Cancelar renovación automática'}</button>
       <p id="pp-sus-error" style="color:#b91c1c;font-size:13px;font-weight:600;"></p></div>`;
   }
   if (activandoSuscripcion()) {
     return `<div class="pp-status-card"><p class="title">${Icon('clock')} Activando tu suscripción…</p><p>Tu pago se recibió; esto tarda unos segundos.</p></div>`;
   }
-  if (!sol.suscripcionDisponible) return '';
-  const conDias = sol.estado === 'plus_activo';
-  return `<button class="pp-cta" id="pp-btn-suscribir">${Icon('refresh')} Suscribirme: $${sol.importe || 149} al mes, se cobra solo</button>
-    <p style="font-size:12.5px;color:#888;margin:4px 0 10px;text-align:center;">${conDias ? 'No pierdes tus días: el primer cobro será cuando se terminen.' : 'Pagas aquí mismo con tarjeta, Apple Pay o Google Pay. Cancela cuando quieras.'}</p>
+  if (!sol.suscripcionDisponible && !sol.suscripcionMp) return '';
+  const conDias = sol.estado === 'plus_activo', precio = `$${sol.importe || 149} al mes`;
+  return `${sol.suscripcionDisponible ? `<button class="pp-cta" id="pp-btn-suscribir">${Icon('refresh')} Suscribirme: ${precio}, se cobra solo</button>` : ''}
+    ${sol.suscripcionMp ? `<button class="pp-cta secondary" id="pp-btn-suscribir-mp">${Icon('refresh')} Suscribirme con Mercado Pago: ${precio}</button>` : ''}
+    <p class="pp-sus-nota" style="font-size:12.5px;color:#888;margin:4px 0 10px;text-align:center;">${conDias ? 'No pierdes tus días: el primer cobro será cuando se terminen.' : 'Pagas aquí mismo con tu tarjeta. Cancela cuando quieras.'}</p>
     <p id="pp-sus-error" style="color:#b91c1c;font-size:13px;font-weight:600;"></p>
     <div id="pp-checkout"></div>`;
 }
-// Al volver del pago (?suscripcion=lista) y hasta que el aviso de Stripe la active.
+// Al volver del pago (?suscripcion=lista) y hasta que el aviso de la pasarela la active.
 let _ppSuscripcionActiva = false;
 const activandoSuscripcion = () => !_ppSuscripcionActiva && new URLSearchParams(location.search).has('suscripcion');
-function conectarSuscripcion(area) {
-  const btn = area.querySelector('#pp-btn-suscribir'), toggle = area.querySelector('#pp-btn-sus-toggle'), err = area.querySelector('#pp-sus-error');
-  if (btn) btn.addEventListener('click', async () => {
+const cargarScript = (src, nombre) => new Promise((ok, fail) => {
+  const sc = document.createElement('script');
+  sc.src = src; sc.onload = ok; sc.onerror = () => fail(new Error(`No se pudo cargar el pago seguro de ${nombre}.`));
+  document.head.appendChild(sc);
+});
+function conectarSuscripcion(area, sol) {
+  const toggle = area.querySelector('#pp-btn-sus-toggle'), err = area.querySelector('#pp-sus-error');
+  // Abre el recuadro de la pasarela: oculta los demás botones (para no pagar dos veces) y deja "Ver otras formas de pago".
+  const abrir = (btn, montar) => btn && btn.addEventListener('click', async () => {
     const txt = btn.innerHTML;
     btn.disabled = true; btn.textContent = 'Abriendo pago seguro…'; err.textContent = '';
     try {
-      const r = await apiCall({ action: 'crearSuscripcionPlanPlus', vendorToken: vendorSession.token });
-      if (!r.ok) throw new Error(r.error || 'No se pudo abrir el pago.');
-      if (!window.Stripe) await new Promise((ok, fail) => {
-        const sc = document.createElement('script');
-        sc.src = 'https://js.stripe.com/v3/'; sc.onload = ok; sc.onerror = () => fail(new Error('No se pudo cargar el pago seguro de Stripe.'));
-        document.head.appendChild(sc);
-      });
-      const st = Stripe(r.publishableKey), opciones = { fetchClientSecret: async () => r.clientSecret };
-      // Stripe renombró initEmbeddedCheckout → createEmbeddedCheckoutPage (API 2026-03-25); se usa la que exista.
-      const checkout = await (st.createEmbeddedCheckoutPage ? st.createEmbeddedCheckoutPage(opciones) : st.initEmbeddedCheckout(opciones));
+      const cerrar = await montar();
       window._ppCheckoutMontado = true; // que un refresco de la página no lo borre a medio pago
-      btn.remove();
-      area.querySelectorAll('[data-proveedor], .pp-pago-unico, .pp-pay-card, .pp-cta.wa').forEach(e => { e.style.display = 'none'; }); // evita pagar dos veces
-      // Para regresar sin suscribirse: se cierra el recuadro de Stripe y se vuelve a pintar la página como estaba.
+      area.querySelectorAll('#pp-btn-suscribir, #pp-btn-suscribir-mp, .pp-sus-nota, [data-proveedor], .pp-pago-unico, .pp-pay-card, .pp-cta.wa').forEach(e => { e.style.display = 'none'; });
       const volver = document.createElement('button');
       volver.className = 'pp-cta secondary'; volver.textContent = '← Ver otras formas de pago';
-      volver.addEventListener('click', () => { checkout.destroy(); window._ppCheckoutMontado = false; cargar(true); });
+      volver.addEventListener('click', () => { cerrar(); window._ppCheckoutMontado = false; cargar(true); });
       area.querySelector('#pp-checkout').before(volver);
-      checkout.mount('#pp-checkout');
     } catch (e) {
       btn.disabled = false; btn.innerHTML = txt;
       err.textContent = e.message + ' También puedes pagar solo este mes con los botones de abajo.';
       if (window.ZRMonitor) ZRMonitor.report('ERROR', 'plan-plus.html', 'suscripcion', e.message);
     }
   });
+  abrir(area.querySelector('#pp-btn-suscribir'), async () => {
+    const r = await apiCall({ action: 'crearSuscripcionPlanPlus', vendorToken: vendorSession.token });
+    if (!r.ok) throw new Error(r.error || 'No se pudo abrir el pago.');
+    if (!window.Stripe) await cargarScript('https://js.stripe.com/v3/', 'Stripe');
+    const st = Stripe(r.publishableKey), opciones = { fetchClientSecret: async () => r.clientSecret };
+    // Stripe renombró initEmbeddedCheckout → createEmbeddedCheckoutPage (API 2026-03-25); se usa la que exista.
+    const checkout = await (st.createEmbeddedCheckoutPage ? st.createEmbeddedCheckoutPage(opciones) : st.initEmbeddedCheckout(opciones));
+    checkout.mount('#pp-checkout');
+    return () => checkout.destroy();
+  });
+  // Mercado Pago: recuadro de tarjeta (Card Payment Brick); con el token se crea la suscripción en el servidor.
+  abrir(area.querySelector('#pp-btn-suscribir-mp'), async () => {
+    if (!window.MercadoPago) await cargarScript('https://sdk.mercadopago.com/js/v2', 'Mercado Pago');
+    const ctrl = await new MercadoPago(sol.suscripcionMp, { locale: 'es-MX' }).bricks().create('cardPayment', 'pp-checkout', {
+      initialization: { amount: sol.importe || 149 },
+      callbacks: {
+        onReady: () => {},
+        onError: (e) => { err.textContent = 'Mercado Pago: ' + ((e && e.message) || 'revisa los datos de tu tarjeta.'); },
+        onSubmit: (d) => apiCall({ action: 'crearSuscripcionMpPlanPlus', cardToken: d.token, email: d.payer && d.payer.email, vendorToken: vendorSession.token })
+          .then(r => {
+            if (!r.ok) throw new Error(r.error || 'No se pudo crear la suscripción.');
+            ctrl.unmount(); window._ppCheckoutMontado = false;
+            history.replaceState(null, '', '?suscripcion=lista'); cargar(true);
+          })
+          .catch(e => { err.textContent = e.message; if (window.ZRMonitor) ZRMonitor.report('ERROR', 'plan-plus.html', 'suscripcion mp', e.message); throw e; }),
+      },
+    });
+    return () => ctrl.unmount();
+  });
   if (toggle) toggle.addEventListener('click', async () => {
     const reanudar = !!toggle.dataset.reanudar;
-    if (!reanudar && !confirm('¿Cancelar la renovación automática? Tu Plan Plus sigue hasta que termine el mes ya pagado.')) return;
+    const aviso = toggle.dataset.mp ? '¿Cancelar la renovación automática de Mercado Pago? Ya no se cobrará y tu Plan Plus sigue hasta su fecha de vencimiento.'
+      : '¿Cancelar la renovación automática? Tu Plan Plus sigue hasta que termine el mes ya pagado.';
+    if (!reanudar && !confirm(aviso)) return;
     toggle.disabled = true; err.textContent = '';
     try {
       const r = await apiCall({ action: 'cancelarSuscripcionPlanPlus', reanudar, vendorToken: vendorSession.token });
@@ -373,7 +400,7 @@ function renderDynamicArea(sol) {
         </div>
         ${htmlSuscripcion(sol)}
       `;
-      conectarSuscripcion(area);
+      conectarSuscripcion(area, sol);
       return;
     }
   }
@@ -392,8 +419,10 @@ function renderDynamicArea(sol) {
     const waConfirmUrl = waNum ? `https://wa.me/${waNum}?text=${waTexto}` : '#';
 
     // "approved" también es quien ya tuvo Plus (se le quitó o venció): no acaba de enviar ninguna solicitud.
-    const titulo = esRenovacion ? `${Icon('clock')} Tu Plan Plus vence pronto` : sol.estado === 'pending' ? `${Icon('clock')} Solicitud enviada` : `${Icon('star')} Activa tu Plan Plus`;
-    const texto  = esRenovacion
+    const activando = !!sol.suscripcion && !esRenovacion; // ya se suscribió y falta el aviso del primer cobro
+    const titulo = activando ? `${Icon('clock')} Activando tu Plan Plus…` : esRenovacion ? `${Icon('clock')} Tu Plan Plus vence pronto` : sol.estado === 'pending' ? `${Icon('clock')} Solicitud enviada` : `${Icon('star')} Activa tu Plan Plus`;
+    const texto  = activando ? 'Tu suscripción quedó lista. En cuanto se procese el primer cobro se activa tu plan (unos segundos).'
+      : esRenovacion
       ? `Te quedan ${diasRestantes} día${diasRestantes === 1 ? '' : 's'}. Paga en línea para renovar al instante${sol.clabe ? ', o por transferencia y avísanos por WhatsApp' : ''}.`
       : `Paga en línea para activarte al instante${sol.clabe ? ', o por transferencia y avísanos por WhatsApp' : ''}.`;
 
@@ -428,7 +457,7 @@ function renderDynamicArea(sol) {
       });
     }
 
-    conectarSuscripcion(area);
+    conectarSuscripcion(area, sol);
     area.querySelectorAll('[data-proveedor]').forEach(btn => btn.addEventListener('click', () =>
       irAPagar(btn, proveedor => apiCall({ action: 'crearPreferenciaPlanPlus', proveedor, vendorToken: vendorSession.token }))));
     return;
@@ -489,7 +518,7 @@ async function cargar(forceRefresh) {
 // En cuanto sale de 'pending' (approved/denied/plus_activo) se apaga sola.
 function _ppManagePolling(sol) {
   // También al volver del pago de la suscripción (?suscripcion=lista) hasta que el aviso de Stripe la active.
-  const debeSeguirEsperando = !!(sol && sol.estado === 'pending') || activandoSuscripcion();
+  const debeSeguirEsperando = !!(sol && sol.estado === 'pending') || activandoSuscripcion() || !!(sol && sol.suscripcion && sol.estado !== 'plus_activo');
   if (debeSeguirEsperando && !_ppPollInterval) {
     _ppPollInterval = setInterval(() => cargar(true), sol && sol.estado === 'pending' ? 20000 : 5000);
   } else if (!debeSeguirEsperando && _ppPollInterval) {
