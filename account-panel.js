@@ -82,7 +82,12 @@ const st = statusMap[o.status] || { color:'#f59e0b', icon: Icon('clock'), label:
 let actionBtn = '';
 if (o.status === 'pendiente') {
   actionBtn = `<button class="up-order-cancel-btn" data-request-id="${_upEsc(o.requestId)}" style="margin-top:10px;width:100%;padding:8px;border:none;border-radius:10px;background:#fee2e2;color:#dc2626;font-size:13px;font-weight:600;cursor:pointer;">${Icon('x')} Cancelar pedido</button>`;
-} else if (o.status === 'confirmado') {
+} else if (o.devolucion) {
+  const dv = { solicitada: ['#92400e', 'Devolución solicitada · en revisión'], procesando: ['#92400e', 'Devolución en proceso'], reembolsada: ['#15803d', 'Devolución aprobada · reembolsado'], rechazada: ['#b91c1c', 'Devolución no aprobada' + (o.devolucion.razon ? ': ' + o.devolucion.razon : '')] }[o.devolucion.estado] || ['#555', o.devolucion.estado];
+  actionBtn = `<div style="margin-top:10px;padding:8px;border-radius:10px;background:#f3f4f6;color:${dv[0]};font-size:13px;font-weight:600;text-align:center;">${Icon('refresh')} ${_upEsc(dv[1])}</div>`;
+} else if (o.status === 'confirmado' && o.puedeDevolver) {
+  actionBtn = `<button class="up-order-return-btn" data-request-id="${_upEsc(o.requestId)}" style="margin-top:10px;width:100%;padding:8px;border:none;border-radius:10px;background:#fff3cd;color:#92400e;font-size:13px;font-weight:600;cursor:pointer;">${Icon('refresh')} Solicitar devolución</button>`;
+} else if (o.status === 'confirmado' && !o.pagado) {
   const adminPhone = window._waAdmin || (typeof WHATSAPP_NUMBER !== 'undefined' ? WHATSAPP_NUMBER : '');
   const itemsList  = (o.items||[]).map(i=>`• ${i.name} x${i.quantity}`).join('\n');
   const msg = encodeURIComponent(`Hola, quisiera solicitar la *cancelación* de mi pedido:\n\n*ID:* ${o.requestId||''}\n*Productos:*\n${itemsList}\n*Total:* $${(o.total||0).toLocaleString()}\n\nEste pedido ya fue confirmado. ¿Es posible cancelarlo?`);
@@ -203,6 +208,74 @@ function attachOrderCancelListeners() {
       const requestId = btn.getAttribute('data-request-id');
       if (requestId) clientCancelOrder(requestId);
     });
+  });
+  document.querySelectorAll('.up-order-return-btn').forEach(btn => {
+    btn.addEventListener('click', () => abrirDevolucion(btn.getAttribute('data-request-id')));
+  });
+}
+
+// Devolución de un pedido pagado (hasta 7 días después del pago): motivo, nota y foto opcional.
+// Los errores se muestran dentro de la misma ventana.
+function abrirDevolucion(requestId) {
+  const ov = document.createElement('div');
+  ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:100000;display:flex;align-items:center;justify-content:center;padding:16px;';
+  ov.innerHTML = `<div style="background:var(--up-bg,#fff);color:inherit;border-radius:16px;padding:18px;width:100%;max-width:380px;font-size:14px;">
+    <h3 style="margin:0 0 4px;font-size:17px;">Solicitar devolución</h3>
+    <p style="margin:0 0 12px;color:#888;font-size:12px;">Pedido ${_upEsc(requestId)}. Si la aprobamos, te reembolsamos tu pago.</p>
+    <label style="font-weight:600;">Motivo</label>
+    <select id="dv-motivo" style="width:100%;margin:4px 0 10px;padding:8px;border-radius:8px;">
+      <option value="">Elige un motivo…</option><option value="talla">No me quedó la talla</option>
+      <option value="defecto">Llegó con defecto</option><option value="diferente">No es lo que esperaba</option><option value="otro">Otro</option>
+    </select>
+    <label style="font-weight:600;">Cuéntanos más (opcional)</label>
+    <textarea id="dv-nota" maxlength="500" rows="3" style="width:100%;margin:4px 0 10px;padding:8px;border-radius:8px;box-sizing:border-box;"></textarea>
+    <label style="font-weight:600;">Foto del producto (opcional)</label>
+    <input id="dv-foto" type="file" accept="image/*" style="width:100%;margin:4px 0 10px;">
+    <p id="dv-error" style="color:#dc2626;font-size:13px;margin:0 0 8px;"></p>
+    <div style="display:flex;gap:8px;"><button id="dv-cancelar" style="flex:1;padding:10px;border:none;border-radius:10px;background:#e5e7eb;font-weight:600;cursor:pointer;">Cerrar</button>
+    <button id="dv-enviar" style="flex:1;padding:10px;border:none;border-radius:10px;background:#ff4f81;color:#fff;font-weight:600;cursor:pointer;">Enviar</button></div>
+  </div>`;
+  document.body.appendChild(ov);
+  const $ = id => ov.querySelector('#' + id), err = $('dv-error');
+  $('dv-cancelar').onclick = () => ov.remove();
+  $('dv-enviar').onclick = async () => {
+    err.textContent = '';
+    if (!$('dv-motivo').value) { err.textContent = 'Elige un motivo.'; return; }
+    $('dv-enviar').disabled = true; $('dv-enviar').textContent = 'Enviando…';
+    try {
+      const file = $('dv-foto').files[0];
+      const foto = file ? await _fotoDevolucion(file) : '';
+      const r = await (await fetch(window.TIENDA_ZNR_API_URL, { method: 'POST', body: JSON.stringify({
+        action: 'solicitarDevolucion', requestId, motivo: $('dv-motivo').value, nota: $('dv-nota').value, foto,
+        phone: localStorage.getItem('client_phone') || '', compradorToken: localStorage.getItem('comprador_token') || '' }) })).json();
+      if (!r.ok) throw new Error(r.error || 'No se pudo enviar la solicitud');
+      ov.remove();
+      const o = _pedidosCargados.find(x => x.requestId === requestId);
+      if (o) o.devolucion = { estado: 'solicitada' };
+      const list = document.getElementById('up-orders-list');
+      if (list) { list.innerHTML = renderOrders(); attachOrderCancelListeners(); attachLoadMoreListener(); }
+      showTemporaryMessage('Recibimos tu solicitud de devolución. Te avisaremos cuando la revisemos.', 'success');
+    } catch (e) {
+      err.textContent = e.message;
+      $('dv-enviar').disabled = false; $('dv-enviar').textContent = 'Enviar';
+    }
+  };
+}
+// Reduce la foto a JPEG de máx. 1280 px y ~450 KB.
+function _fotoDevolucion(file) {
+  return new Promise((ok, fail) => {
+    const img = new Image(), url = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      const k = Math.min(1, 1280 / Math.max(img.naturalWidth, img.naturalHeight)), c = document.createElement('canvas');
+      c.width = Math.round(img.naturalWidth * k); c.height = Math.round(img.naturalHeight * k);
+      c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+      let q = 0.8, out = c.toDataURL('image/jpeg', q);
+      while (out.length > 590000 && q > 0.35) { q -= 0.1; out = c.toDataURL('image/jpeg', q); }
+      out.length > 590000 ? fail(new Error('La foto es muy pesada, prueba con otra.')) : ok(out);
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); fail(new Error('No se pudo leer la foto.')); };
+    img.src = url;
   });
 }
 function attachLoadMoreListener() {
