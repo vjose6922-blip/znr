@@ -40,12 +40,12 @@
   const mensaje = document.getElementById('mensaje');
   const spinner = document.getElementById('spinner');
 
-  function terminar(ok, texto) {
+  function terminar(ok, texto, volver) {
     spinner.style.display = 'none';
     titulo.textContent = ok ? '¡Cuenta conectada!' : 'No se pudo conectar';
     titulo.className = ok ? '' : 'error';
     mensaje.textContent = texto;
-    setTimeout(() => { window.location.href = 'vendedor.html'; }, 2200);
+    setTimeout(() => { window.location.href = volver || 'vendedor.html'; }, 2200); // volver: CONTROL, si conectó un admin
   }
 
   if (!code || !state) {
@@ -61,7 +61,7 @@
     });
     const data = await res.json();
     if (data.ok) {
-      terminar(true, 'Ya puedes recibir pagos con tarjeta directo en tu cuenta.');
+      terminar(true, 'Ya puedes recibir pagos con tarjeta directo en tu cuenta.', data.volver);
     } else {
       terminar(false, data.error || 'Intenta de nuevo desde tu perfil.');
     }
