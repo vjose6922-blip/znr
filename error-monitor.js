@@ -187,7 +187,7 @@
   }
 
   function handleRejection(payload) {
-    if (!payload.message || payload.message === 'undefined') return;
+    if (!payload.message || payload.message === 'undefined' || payload.message.startsWith('Transition was aborted')) return; // ViewTransition abortada por el navegador: inofensiva
     report(
       'ERROR',
       'promise',
@@ -273,7 +273,7 @@
       if (isResourceError) {
         const el = e.target;
         // Sin error-bootstrap.js no hay guardia de reintentos: las imágenes no se reportan.
-        if (el.tagName === 'IMG') return;
+        if (el.tagName === 'IMG' || el.rel === 'prefetch') return;
         handleResourceError({ tag: (el.tagName || '?').toLowerCase(), url: el.src || el.href || '', message: `No se pudo cargar <${(el.tagName || '?').toLowerCase()}>: ${el.src || el.href || ''}` });
       } else {
         handleScriptError({ message: e.message, filename: e.filename, lineno: e.lineno, colno: e.colno, stack: e.error?.stack || '' });

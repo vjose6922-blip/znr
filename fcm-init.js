@@ -43,9 +43,9 @@ async function registrarTokenFCM(ownerType, ownerId, token) {
       })
     });
     const data = await res.json();
-    return !!data.ok;
+    return !!data?.ok;
   } catch (err) {
-    console.error("No se pudo guardar el token FCM:", err);
+    console[err?.message === "Failed to fetch" ? "warn" : "error"]("No se pudo guardar el token FCM:", err);
     return false;
   }
 }
@@ -74,7 +74,7 @@ async function eliminarTokenFCM(ownerType, ownerId) {
       body: JSON.stringify({ ownerType, ownerId, token })
     });
     const data = await res.json();
-    return !!data.ok;
+    return !!data?.ok;
   } catch (err) {
     console.error("No se pudo eliminar el token FCM:", err);
     return false;
