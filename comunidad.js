@@ -2688,6 +2688,7 @@ window.openBeneficiarioModal = async function(beneficiarioId) {
         </div>
       </div>`;
 
+    mostrarDonarEnLinea(beneficiarioId, body);
     const copyBtn = document.getElementById('btn-copy-cuenta');
     if (copyBtn) {
       copyBtn.addEventListener('click', async () => {
@@ -2706,6 +2707,35 @@ window.openBeneficiarioModal = async function(beneficiarioId) {
     if (body) body.innerHTML = '<p style="color:#ef4444;text-align:center;">Error de conexión.</p>';
   }
 };
+
+// Donar en línea al beneficiario: monto + las pasarelas que tenga conectadas (Stripe y/o Mercado Pago). El dinero
+// le cae directo en su cuenta; Z&R no cobra comisión. Si no tiene ninguna, solo queda la CLABE de arriba.
+async function mostrarDonarEnLinea(beneficiarioId, body) {
+  const prov = await fetch(VENTAS_API_URL_INSPECTOR + '?' + new URLSearchParams({ action: 'proveedoresDonacion', beneficiario_id: beneficiarioId }))
+    .then(r => r.json()).catch(() => null);
+  if (!prov || !prov.ok || !prov.proveedores.length || typeof botonesPago !== 'function') return;
+  const sec = document.createElement('div');
+  sec.style.cssText = 'margin-top:18px;';
+  const chip = 'flex:1;padding:9px 0;border-radius:10px;border:1.5px solid var(--color-border-subtle,#e5e5e5);background:var(--color-surface-2,#f7f7f7);color:var(--color-text-primary,#2a1a16);font-weight:700;cursor:pointer;';
+  sec.innerHTML = `<style>.don-btn{display:block;width:100%;margin-top:8px;padding:12px;border:none;border-radius:12px;background:var(--color-accent-solid,#ff3d7f);color:#fff;font-weight:700;font-size:.9rem;cursor:pointer}.don-btn.sec{background:#00b1ea}</style>
+    <p style="margin:0 0 8px;font-weight:700;font-size:.75rem;color:var(--color-text-soft);text-transform:uppercase;letter-spacing:.03em;">Donar en línea</p>
+    <div style="display:flex;gap:8px;">${[50, 100, 200].map(m => `<button type="button" data-monto="${m}" style="${chip}">$${m}</button>`).join('')}
+      <input id="don-monto" type="number" inputmode="numeric" min="${prov.min}" max="${prov.max}" placeholder="Otro" style="flex:1.3;min-width:0;padding:9px;border-radius:10px;border:1.5px solid var(--color-border-subtle);font-size:.9rem;"></div>
+    <div id="don-pago">${botonesPago(prov.proveedores, 'don-btn', 'don-btn sec')}</div>
+    <p style="margin:6px 0 0;font-size:.72rem;color:var(--color-text-soft);">Tu donación llega completa y directo a su cuenta.</p>`;
+  body.appendChild(sec);
+  const input = sec.querySelector('#don-monto');
+  sec.querySelectorAll('[data-monto]').forEach(c => c.addEventListener('click', () => {
+    input.value = c.dataset.monto;
+    sec.querySelectorAll('[data-monto]').forEach(o => { o.style.borderColor = o === c ? 'var(--color-accent-solid,#ff3d7f)' : ''; });
+  }));
+  sec.querySelectorAll('[data-proveedor]').forEach(btn => btn.addEventListener('click', () => {
+    const monto = Number(input.value);
+    if (!(monto >= prov.min && monto <= prov.max)) { input.focus(); input.style.borderColor = '#dc2626'; input.placeholder = `$${prov.min}–$${prov.max}`; return; }
+    irAPagar(btn, proveedor => fetch(VENTAS_API_URL_INSPECTOR, { method: 'POST',
+      body: new URLSearchParams({ action: 'crearPreferenciaDonacion', beneficiario_id: beneficiarioId, monto, proveedor }) }).then(r => r.json()));
+  }));
+}
 
 // ── Modal: Reportar beneficiario (info falsa, estafa, robo de identidad, etc.) ──
 function showReportBeneficiarioDialog(benId) {
