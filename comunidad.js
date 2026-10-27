@@ -2352,7 +2352,7 @@ window.openBeneficiarioRegister = function(modoEdicion, idBeneficiario, datosAct
 <label style="font-size:.78rem;font-weight:700;color:#888;display:block;margin-bottom:3px;">Ciudad *</label>
 <select id="ben-ciudad" style="width:100%;box-sizing:border-box;padding:10px 12px;border:1.5px solid #e0e0e0;border-radius:10px;margin-bottom:10px;font-size:.88rem;background:#fff;"></select>
 
-<label style="font-size:.78rem;font-weight:700;color:#888;display:block;margin-bottom:3px;">Dirección / referencia *</label>
+<label style="font-size:.78rem;font-weight:700;color:#888;display:block;margin-bottom:3px;">Dirección / referencia *<span style="font-weight:400;color:#c2410c;"> · se muestra públicamente, no pongas un domicilio particular</span></label>
 <input id="ben-ubicacion" type="text" value="${escv(d.ubicacion)}" placeholder="Ej. Calle X #123, Col. Centro" style="width:100%;box-sizing:border-box;padding:10px 12px;border:1.5px solid #e0e0e0;border-radius:10px;margin-bottom:10px;font-size:.88rem;">
       
       <label style="font-size:.78rem;font-weight:700;color:#888;display:block;margin-bottom:3px;">Facebook (URL o usuario)</label>

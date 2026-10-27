@@ -56,17 +56,20 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/12.15.0/fireba
 import { getDatabase, ref, onValue, update, set, onDisconnect } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-database.js";
 import { initializeAuth, getAuth, indexedDBLocalPersistence, browserLocalPersistence, browserSessionPersistence, signInAnonymously } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-auth.js";
 
+// App de Firebase propia ('live'), con su propia sesión SIEMPRE anónima: si usara la app por defecto
+// heredaría la sesión del resto del sitio (uid 'cliente_<teléfono>') y ese uid quedaría en nodos públicos
+// (presencia, chats). Además así abrir un live no cierra la sesión del comprador en las demás páginas.
 const fbApp = initializeApp({
   apiKey: "AIzaSyAaOe_lxLdQtTFCtw2BDR8KZRSafEMkkes", authDomain: "znr-live.firebaseapp.com",
   databaseURL: "https://znr-live-default-rtdb.firebaseio.com", projectId: "znr-live",
   storageBucket: "znr-live.firebasestorage.app", messagingSenderId: "1038143238323",
   appId: "1:1038143238323:web:5171b9dd8823628086c0c6"
-});
+}, 'live');
 const db = getDatabase(fbApp);
 let auth;
 try { auth = initializeAuth(fbApp, { persistence: [indexedDBLocalPersistence, browserLocalPersistence, browserSessionPersistence] }); }
 catch (e) { auth = getAuth(fbApp); }
-const authReady = new Promise((ok) => auth.onAuthStateChanged((u) => u && ok(u.uid)));
+const authReady = new Promise((ok) => auth.onAuthStateChanged((u) => u && u.isAnonymous && ok(u.uid)));
 signInAnonymously(auth).catch((e) => console.error('signInAnonymously falló:', e));
 
 const LIVE_API = "https://live-api-1038143238323.us-central1.run.app";

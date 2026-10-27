@@ -601,7 +601,10 @@ const firebaseConfig = {
   messagingSenderId: "1038143238323",
   appId: "1:1038143238323:web:5171b9dd8823628086c0c6"
 };
-const fbApp = initializeApp(firebaseConfig);
+// App de Firebase propia ('live'), con su propia sesión SIEMPRE anónima: si usara la app por defecto
+// heredaría la sesión del resto del sitio (uid 'cliente_<teléfono>') y ese uid quedaría en nodos públicos
+// (presencia, chats). Además así abrir un live no cierra la sesión del comprador en las demás páginas.
+const fbApp = initializeApp(firebaseConfig, 'live');
 const db = getDatabase(fbApp);
 
 // Solo usamos signInAnonymously aquí, nunca signInWithPopup/Redirect, así
@@ -622,7 +625,7 @@ let authReadyResolve;
 const authReady = new Promise((resolve) => { authReadyResolve = resolve; });
 signInAnonymously(auth).catch(err => console.error('signInAnonymously falló:', err));
 auth.onAuthStateChanged((user) => {
-  if (user) {
+  if (user && user.isAnonymous) {
     authUid = user.uid;
     authReadyResolve();
   }
