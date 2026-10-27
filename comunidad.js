@@ -952,6 +952,22 @@ function actualizarLoopBanner() {
   }, 0);
 }
 
+// ── Banners de temporada: los sube el Master en CONTROL (imagen sin texto + texto encima + fechas) ──
+let bannerTemporadas = [];
+async function cargarBannersTemporada() {
+  const todos = await fetch('https://znr-live-default-rtdb.firebaseio.com/banners_temporada.json').then(r => r.json()).catch(() => null);
+  const hoy = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD local
+  const vigentes = Object.values(todos || {}).filter(b => b.inicio <= hoy && hoy <= b.fin).sort((a, b) => a.fin.localeCompare(b.fin));
+  bannerTemporadas = [...new Set(vigentes.map(b => b.temporada).filter(Boolean))];
+  document.getElementById('com-banners').innerHTML = vigentes.map(b => `<div class="com-banner ${b.tema === 'claro' ? 'claro' : ''}" role="listitem" data-vista="temporada">
+    <img src="${escapeHtml(b.imagen)}" alt="" loading="lazy"><div class="com-banner-txt"><span class="com-banner-t">${escapeHtml(b.titulo)}</span>
+    ${b.subtitulo ? `<span class="com-banner-s">${escapeHtml(b.subtitulo)}</span>` : ''}${b.descripcion ? `<p class="com-banner-d">${escapeHtml(b.descripcion)}</p>` : ''}
+    ${b.boton ? `<span class="com-banner-go">${escapeHtml(b.boton)}</span>` : ''}</div></div>`).join('');
+  document.getElementById('com-hero-wrap').hidden = !vigentes.length;
+  actualizarLoopBanner();
+  if (carruselesPintados && bannerTemporadas.length) { vistaCache = null; renderTemporadaCarousel(communityRandomOrder); }
+}
+
 // ── Listas completas de cada grupo (los carruseles toman solo los primeros 10; "Ver más" muestra todos) ──
 function calcularOfertas(products) {
   return (products || [])
@@ -979,8 +995,8 @@ function calcularRecomendados(products, limite = Infinity) {
 // Artículos de la festividad/temporada que está ocurriendo hoy (calendario en temporadas.js);
 // primero los de la que termina antes.
 function calcularTemporadaActual(products) {
-  if (!window.ZNR_TEMPORADAS || !window.ZNR_TEMPORADAS.activas) return [];
-  const orden = new Map(window.ZNR_TEMPORADAS.activas().map((a, i) => [a.nombre, i]));
+  const nombres = bannerTemporadas.length ? bannerTemporadas : (window.ZNR_TEMPORADAS?.activas?.() || []).map(a => a.nombre);
+  const orden = new Map(nombres.map((n, i) => [n, i]));
   if (!orden.size) return [];
   return (products || [])
     .filter(p => p.temporada && orden.has(p.temporada) && Number(stockVivo(p) || 0) > 0)
@@ -995,18 +1011,11 @@ function actualizarLayoutDual() {
   row.classList.toggle('es-dual', r.style.display !== 'none' && t.style.display !== 'none');
 }
 
-function mostrarTile(id, visible) {
-  const el = document.getElementById(id);
-  if (el) el.style.display = visible ? '' : 'none';
-  actualizarLoopBanner();
-}
-
 function renderOfertasCarousel(products) {
   const wrap = document.getElementById('comunidad-ofertas-wrap');
   const track = document.getElementById('comunidad-ofertas-track');
   if (!wrap || !track) return;
   const ofertas = calcularOfertas(products).slice(0, 10);
-  mostrarTile('tile-ofertas', ofertas.length > 0);
   if (!ofertas.length) { wrap.style.display = 'none'; return; }
   wrap.style.display = '';
   track.innerHTML = '';
@@ -1027,7 +1036,6 @@ function renderRecomendadoParaTi(products) {
   const track = document.getElementById('comunidad-recomendado-track');
   if (!wrap || !track) return;
   const recomendados = calcularRecomendados(products, 10);
-  mostrarTile('tile-recomendado', recomendados.length > 0);
   if (!recomendados.length) { wrap.style.display = 'none'; actualizarLayoutDual(); return; }
   wrap.style.display = '';
   track.innerHTML = '';
@@ -1046,11 +1054,7 @@ function renderTemporadaCarousel(products) {
   if (!wrap || !track) return;
   const todos = calcularTemporadaActual(products);
   const lista = todos.slice(0, 10);
-  mostrarTile('tile-temporada', lista.length > 0);
   if (!lista.length) { wrap.style.display = 'none'; actualizarLayoutDual(); return; }
-  const nombres = [...new Set(todos.map(p => p.temporada))].slice(0, 2).join(' y ');
-  const desc = document.getElementById('tile-temporada-desc');
-  if (desc) desc.textContent = `${nombres}: artículos para esta fecha.`;
   wrap.style.display = '';
   track.innerHTML = '';
   const construir = () => lista.map(p => crearMiniCardComunidad(p, ''));
@@ -1124,8 +1128,6 @@ function abrirVistaComunidad(vista) {
 
 function initVistasComunidad() {
   document.addEventListener('click', (e) => {
-    const fwd = e.target.closest('[data-forward]'); // copia del tile de refugios (bucle del banner)
-    if (fwd) { e.preventDefault(); document.getElementById(fwd.dataset.forward)?.click(); return; }
     const b = e.target.closest('[data-vista]');
     if (!b) return;
     e.preventDefault();
@@ -1827,7 +1829,7 @@ await initInspectorMode();
 bindFilterChangeEvents();
 initFiltrosSheet();
 initVistasComunidad();
-actualizarLoopBanner();
+cargarBannersTemporada();
 initCartAndUI();
 loadCommunityProducts();
 checkLiveBanner();
@@ -1837,25 +1839,13 @@ initBeneficiariosToggle();
 
 // ── Grid de fundaciones/beneficiarios ──────────────────────────────────
 let beneficiariosCargados = false;
-function setVerRefugiosLabel(btn, titulo, desc, go) {
-  const t = btn.querySelector('.com-tile-t');
-  if (!t) { btn.textContent = titulo; return; }
-  t.textContent = titulo;
-  const d = btn.querySelector('.com-tile-d'); if (d) d.textContent = desc;
-  const g = btn.querySelector('.com-tile-go'); if (g) g.textContent = go;
-  // Las copias del banner (bucle) también cambian de texto.
-  document.querySelectorAll('.com-tiles [data-forward="' + btn.id + '"]').forEach(c => {
-    const ct = c.querySelector('.com-tile-t'); if (ct) ct.textContent = titulo;
-    const cd = c.querySelector('.com-tile-d'); if (cd) cd.textContent = desc;
-    const cg = c.querySelector('.com-tile-go'); if (cg) cg.textContent = go;
-  });
-}
 function initBeneficiariosToggle() {
   const btn = document.getElementById('btn-ver-fundaciones');
   if (!btn) return;
   btn.addEventListener('click', () => {
     const wrap = document.getElementById('comunidad-beneficiarios-wrap');
     const toolbarArea = document.querySelector('.comunidad-toolbar');
+    const arriba = [document.querySelector('.com-top-search'), document.getElementById('com-hero-wrap')];
     const chipsBar = document.getElementById('comunidad-filter-chips');
     const grid = document.getElementById('comunidad-grid');
     const pagination = document.getElementById('comunidad-pagination');
@@ -1869,9 +1859,10 @@ function initBeneficiariosToggle() {
       if (grid) grid.style.display = '';
       if (pagination) pagination.style.display = '';
       if (toolbarArea) toolbarArea.style.display = '';
+      arriba.forEach(el => el && (el.style.display = ''));
       if (ofertasWrap && ofertasWrap.dataset.hadContent) ofertasWrap.style.display = '';
       if (recomendadoWrap && recomendadoWrap.dataset.hadContent) recomendadoWrap.style.display = '';
-      setVerRefugiosLabel(btn, 'Ver refugios', 'Dona artículos a un refugio o fundación.', 'Entrar');
+      btn.querySelector('.nav-donar-t').textContent = 'Donar'; btn.classList.remove('active');
       const carrB = document.getElementById('comunidad-carruseles');
       if (carrB) carrB.style.display = vistaActiva ? 'none' : '';
       updateComunidadChips(currentFilters || {});
@@ -1882,9 +1873,11 @@ function initBeneficiariosToggle() {
       if (pagination) pagination.style.display = 'none';
       if (chipsBar) chipsBar.style.display = 'none';
       if (toolbarArea) toolbarArea.style.display = 'none';
+      arriba.forEach(el => el && (el.style.display = 'none'));
+      window.scrollTo({ top: 0, behavior: 'smooth' });
       if (ofertasWrap) { ofertasWrap.dataset.hadContent = ofertasWrap.style.display !== 'none' ? '1' : ''; ofertasWrap.style.display = 'none'; }
       if (recomendadoWrap) { recomendadoWrap.dataset.hadContent = recomendadoWrap.style.display !== 'none' ? '1' : ''; recomendadoWrap.style.display = 'none'; }
-      setVerRefugiosLabel(btn, 'Ver productos', 'Volver a los productos de la comunidad.', 'Volver');
+      btn.querySelector('.nav-donar-t').textContent = 'Productos'; btn.classList.add('active');
       const carrA = document.getElementById('comunidad-carruseles');
       if (carrA) carrA.style.display = 'none';
       if (!beneficiariosCargados) loadBeneficiariosGrid();
