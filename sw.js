@@ -5,15 +5,15 @@
 // de la caché (p.ej. cambiaste la lógica de cacheo en sí).
 const CACHE_NAME    = 'zr-cache';
 const DYNAMIC_CACHE = 'zr-dynamic';
-const OFFLINE_URL   = '/znr/offline.html';
+const OFFLINE_URL   = '/offline.html';
 
 // Solo lo esencial para abrir la app y el modo offline. Las demás páginas se
 // guardan en caché la primera vez que el usuario las visita (antes se bajaban
 // TODAS al instalar, ~1.6 MB aunque nunca se abrieran).
 const STATIC_ASSETS = [
-  '/znr/', '/znr/index.html', '/znr/offline.html', '/znr/styles.css',
-  '/znr/api-config.js', '/znr/common.js', '/znr/home.js', '/znr/icons.js',
-  '/znr/cache-manager.js', '/znr/manifest.json', '/znr/placeholder.svg',
+  '/', '/index.html', '/offline.html', '/styles.css',
+  '/api-config.js', '/common.js', '/home.js', '/icons.js',
+  '/cache-manager.js', '/manifest.json', '/placeholder.svg',
 ];
 
 const IMAGE_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.svg'];
@@ -42,12 +42,12 @@ self.addEventListener('install', event => {
       await Promise.allSettled(
         STATIC_ASSETS.map(async asset => {
           try {
-            const response = await fetch(asset, { cache: 'reload' });
+            const response = await fetch(asset);
             if (response.ok) await cache.put(asset, response);
           } catch {}
         })
       );
-      const offlineRes = await fetch(OFFLINE_URL, { cache: 'reload' }).catch(() => null);
+      const offlineRes = await fetch(OFFLINE_URL).catch(() => null);
       if (offlineRes?.ok) await cache.put(OFFLINE_URL, offlineRes);
       await self.skipWaiting();
     })()
@@ -95,7 +95,7 @@ function getCacheStrategy(request) {
   // La lista de ciudades pesa bastante y casi nunca cambia: se baja una vez y se actualiza en segundo plano
   // (al cambiarla, la versión nueva se ve en la siguiente visita). Sin esto se descargaría completa en cada página.
   if (url.pathname.endsWith('/ciudades.js')) return 'STALE_WHILE_REVALIDATE';
-  if (['document','script'].includes(request.destination)) return 'NETWORK_FIRST_FRESH';
+  if (['document','script'].includes(request.destination) && url.origin === self.location.origin) return 'NETWORK_FIRST_FRESH';
   if (request.destination === 'style') return 'STALE_WHILE_REVALIDATE';
   return 'CACHE_FIRST';
 }
@@ -152,7 +152,7 @@ async function cacheFirst(request) {
   // Para imágenes: servir el placeholder en vez de un 404, así el <img>
   // no queda roto ni dispara un error visible por una falla pasajera.
   if (isImage) {
-    const placeholder = await caches.match('/znr/placeholder.svg');
+    const placeholder = await caches.match('/placeholder.svg');
     if (placeholder) return placeholder;
   }
   return new Response('Offline', { status: 404 });
@@ -263,12 +263,12 @@ self.addEventListener('push', event => {
   const notif = payload.notification || {};
   const title = notif.title || 'Z&R';
   const body  = notif.body  || '¡Novedades en Z&R!';
-  const url   = (payload.data && payload.data.url) || payload.fcmOptions?.link || '/znr/';
+  const url   = (payload.data && payload.data.url) || payload.fcmOptions?.link || '/';
 
   event.waitUntil((async () => {
     await self.registration.showNotification(title, {
       body:    body,
-      icon:    '/znr/logo.svg',
+      icon:    '/logo.svg',
       vibrate: [200, 100, 200],
       data:    { url: url },
       actions: [{ action: 'open', title: 'Ver ahora' }, { action: 'close', title: 'Cerrar' }]
@@ -291,7 +291,7 @@ self.addEventListener('notificationclick', event => {
   // porque ahí event.action llega vacío). Más robusto: abrir siempre,
   // excepto cuando se toca explícitamente "Cerrar".
   if (event.action === 'close') return;
-  const url = event.notification.data?.url || '/znr/';
+  const url = event.notification.data?.url || '/';
   event.waitUntil(
     self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(clients => {
       for (const c of clients) {
