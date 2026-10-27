@@ -122,6 +122,7 @@
     crear();
     cfg = opciones || {};
     lista = historias;
+    window.znrAvisoDatosMoviles?.();
     idx = Math.min(Math.max(cfg.indice | 0, 0), lista.length - 1);
     abierto = true;
     el.hidden = false;
@@ -152,11 +153,13 @@
     const media = el.querySelector('#zhv-media');
     elapsed = 0; last = 0; pausado = false;
     if (h.tipo === 'video') {
-      media.innerHTML = '<video playsinline autoplay preload="auto"></video>';
+      const ahorro = window.znrAhorroDatos?.();
+      media.innerHTML = ahorro ? '<video playsinline preload="none"></video>' : '<video playsinline autoplay preload="auto"></video>';
       video = media.firstChild;
       video.src = h.url;
       video.addEventListener('ended', siguiente);
-      const pr = video.play();
+      if (ahorro) window.znrBotonPlayAhorro(media, video);
+      const pr = ahorro ? null : video.play();
       if (pr && pr.catch) pr.catch(() => { video.muted = true; const p2 = video.play(); if (p2 && p2.catch) p2.catch(() => {}); });
     } else {
       media.innerHTML = `<img src="${esc(h.url)}" alt="">`;
