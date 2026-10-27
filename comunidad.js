@@ -960,18 +960,19 @@ async function cargarBannersTemporada() {
   if (carruselesPintados && bannerTemporadas.length) { vistaCache = null; renderCarrusel('temporada', calcularTemporadaActual(communityRandomOrder)); }
   pintarBanners();
 }
-// Sin banner de temporada vigente: un banner por carrusel (con fotos de sus artículos), así arriba nunca queda vacío.
+// Banners automáticos: uno por carrusel (con fotos de sus artículos), así arriba nunca queda vacío.
 const BANNERS_AUTO = {
   ofertas: (l) => ({ titulo: 'Ofertas', subtitulo: 'destacadas', descripcion: `Hasta -${Math.max(...l.map(pctDescuento))}% en artículos de tu ciudad.`, boton: 'Ver ofertas', fondo: 'linear-gradient(135deg,#ff5f6d,#ffc371)' }),
   temporada: (l) => ({ titulo: 'Podría', subtitulo: 'interesarte', descripcion: `${[...new Set(l.map(p => p.temporada))].slice(0, 2).join(' y ')}: artículos para esta fecha.`, boton: 'Ver más', fondo: 'linear-gradient(135deg,#6a3093,#e0457b)' }),
   recomendado: () => ({ titulo: 'Recomendado', subtitulo: 'para ti', descripcion: 'Artículos según lo que más has visto.', boton: 'Ver más', fondo: 'linear-gradient(135deg,#f0566f,#f7a072)' })
 };
+// Orden: banners de temporada y después los automáticos. Si alguno está marcado "solo este" (campañas fuertes), solo esos.
 function pintarBanners() {
-  const html = bannersVigentes.length
-    ? bannersVigentes.map(b => window.znrBanner.html(b, 'role="listitem" data-vista="temporada"'))
-    : Object.keys(BANNERS_AUTO).filter(v => listasCarrusel[v]?.length).map(v => window.znrBanner.html(
+  const exclusivos = bannersVigentes.filter(b => b.exclusivo === 'si');
+  const html = (exclusivos.length ? exclusivos : bannersVigentes).map(b => window.znrBanner.html(b, 'role="listitem" data-vista="temporada"'))
+    .concat(exclusivos.length ? [] : Object.keys(BANNERS_AUTO).filter(v => listasCarrusel[v]?.length).map(v => window.znrBanner.html(
       { ...BANNERS_AUTO[v](listasCarrusel[v]), tema: 'claro', degradado: 'no', fotos: listasCarrusel[v].slice(0, 3).map(p => p.imagen1).filter(Boolean) },
-      `role="listitem" data-vista="${v}"`));
+      `role="listitem" data-vista="${v}"`)));
   document.getElementById('com-banners').innerHTML = html.join('');
   document.getElementById('com-hero-wrap').hidden = !html.length;
   actualizarLoopBanner();
