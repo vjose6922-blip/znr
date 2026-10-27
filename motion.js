@@ -1,4 +1,5 @@
-/* Z&R motion — JS mínimo y sin dependencias. Cargar SÍNCRONO en <head> (pesa ~3 KB).
+/* Z&R motion — JS mínimo y sin dependencias. Se carga con defer; la clase .m-on la pone
+   antes un <script> en línea del <head> para que no haya parpadeo.
    Activa por atributos: data-anim="up|fade" (aparición), "shine", "carousel". */
 (function () {
   'use strict';
