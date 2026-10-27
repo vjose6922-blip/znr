@@ -458,7 +458,6 @@
  <script src="znr-select.js" defer></script>
  <script src="ciudades.js" defer></script>
  <script src="common.js" defer></script>
- <script src="znr-devconsole.js" defer></script>
  <script src="pagos.js" defer></script>
  <script src="notification-center.js" defer></script>
  <script src="burbuja-mensajes.js" defer></script>
@@ -856,7 +855,6 @@ function populateTallaFilter(key, items) {
 //  CONSTRUIR CLASIFICACIÓN DE PRODUCTOS
 // ============================================================
 function buildSections(products) {
-  console.log(`📦 Productos recibidos: ${products.length}`);
   if (!products || products.length === 0) {
     CLASSIFIED = [];
     applyFiltersAndRender();
@@ -875,7 +873,6 @@ function buildSections(products) {
     })
     .filter(x => x !== null);
 
-  console.log(`✅ Clasificados: ${CLASSIFIED.length} productos`);
   applyFiltersAndRender();
 }
 
@@ -901,7 +898,6 @@ function init() {
       force: true,       // <--- Opcional: fuerza carga desde red
       onProducts: (products, fromCache) => {
         productosCargados = true;
-        console.log(`✅ Productos cargados: ${products.length}`);
         if (fromCache && typeof showTemporaryMessage === 'function') {
           showTemporaryMessage('Cargando desde caché...', 'info');
         }

@@ -102,7 +102,6 @@ console.warn('getImageUrl: No hay fileId');
 return null;
 }
 const url = `https://lh3.googleusercontent.com/d/${fileId}=w${size}`;
-console.log('URL generada:', url);
 return url;
 }
 function classifyTimeOfDay(hour) {
@@ -183,7 +182,6 @@ fileId = WEATHER_IMAGES[fallbackKey];
 }
 if (!fileId) {
 fileId = WEATHER_IMAGES['default'];
-console.log('Usando imagen por defecto');
 }
 return getImageUrl(fileId, 400);
 }
@@ -197,7 +195,6 @@ function updateLooksNavBackground(imageUrl) {
       looksNav.style.backgroundImage = `url('${imageUrl}')`;
       looksNav.classList.remove('default-bg');
       looksNav.classList.remove('fallback-bg');
-      console.log('Fondo actualizado con imagen');
     };
     img.onerror = () => {
       console.error('Error cargando imagen, usando color de fondo');
@@ -273,7 +270,6 @@ function _ubicacionClima() {
 async function fetchWeatherData(coords = DEFAULT_COORDS) {
 const cached = _getCachedWeather(coords);
 if (cached) {
-console.log('📦 Clima desde caché local (< 30 min)');
 return cached;
 }
 const controller = new AbortController();
@@ -326,7 +322,6 @@ isDefault: false
 };
 }
 async function initWeatherAndBackground() {
-console.log('Inicializando clima y fondo...');
 const widget = document.getElementById('weather-widget');
 if (widget) {
 widget.classList.add('loading');
@@ -362,7 +357,6 @@ if (allLooks.length > 0) {
 allLooks = sortLooksByWeather(allLooks);
 looks = [...allLooks];
 renderLooks();
-console.log(' Looks re-ordenados con clima estimado.');
 }
 }
 return;
@@ -384,9 +378,7 @@ _refrescoPorCiudad = false;
 allLooks = sortLooksByWeather(allLooks);
 looks = [...allLooks];
 renderLooks();
-console.log(' Looks re-ordenados con clima real tras reintento exitoso.');
 }
-console.log('Clima aplicado:', classified.timeOfDay, classified.condition, classified.temperature);
 }
 // ciudades.js avisa ('znr:ciudad') cuando el comprador confirma o cambia su ciudad (o elige "Usar mi ubicación"):
 // el clima, el fondo y el orden de los looks se actualizan sin recargar la página.
@@ -600,7 +592,6 @@ if (sessionCached) {
 const { looks: compressed, timestamp, productsHash } = JSON.parse(sessionCached);
 const currentHash = getProductsQuickHash();
 if (currentHash === productsHash && (Date.now() - timestamp) < 300000) {
-console.log("Looks desde sessionStorage (instantaneo)");
 return decompressLooksData(compressed);
 }
 }
@@ -609,7 +600,6 @@ if (localCached) {
 const { looks: compressed, timestamp, productsHash } = JSON.parse(localCached);
 const currentHash = getProductsQuickHash();
 if (currentHash === productsHash && (Date.now() - timestamp) < 600000) {
-console.log("Looks desde localStorage");
 const decompressed = decompressLooksData(compressed);
 sessionStorage.setItem(LOOKS_CACHE_KEY, JSON.stringify({
 looks: compressed,
@@ -636,7 +626,6 @@ timestamp: Date.now()
 };
 sessionStorage.setItem(LOOKS_CACHE_KEY, JSON.stringify(cacheData));
 localStorage.setItem(LOOKS_CACHE_KEY, JSON.stringify(cacheData));
-console.log(`Looks guardados en cache`);
 } catch(e) {
 console.warn("Error guardando cache de looks:", e);
 }
@@ -776,7 +765,6 @@ renderLooks();
 initLazyImagesAfterRender();
 preloadAdjacentPages();
 const endTime = performance.now();
-console.log(`Looks generados en ${(endTime - startTime).toFixed(0)}ms`);
 resolve();
 }
 }
@@ -815,7 +803,6 @@ document.head.appendChild(imgLink);
 });
 });
 preloadedNextPage = pageNumber;
-console.log(`Precargada pagina ${pageNumber} de looks`);
 });
 } else {
 setTimeout(() => {
@@ -1315,13 +1302,11 @@ let isBackgroundServicesStarted = false;
 let isLoadingProducts = false;
 async function loadProducts() {
 if (isLoadingProducts) {
-console.log("Carga de productos ya en progreso, omitiendo...");
 return;
 }
 isLoadingProducts = true;
 showSkeletonLooks();
 if (!navigator.onLine) {
-console.log('Offline - Cargando looks desde cache');
 if (window.ConnectionMonitor?.showOfflineBanner) {
 window.ConnectionMonitor.showOfflineBanner();
 }
@@ -1358,11 +1343,9 @@ hideSkeletonLooks();
 };
 const startBackgroundServices = () => {
 if (isBackgroundServicesStarted) {
-console.log("Servicios background ya iniciados previamente");
 return;
 }
 isBackgroundServicesStarted = true;
-console.log("Iniciando servicios en background...");
 if (navigator.onLine && !isGeneratingLooks && typeof loadFreshProductsInBackground === "function") {
 loadFreshProductsInBackground();
 }
@@ -1370,7 +1353,6 @@ loadFreshProductsInBackground();
 await initWeatherAndBackground();
 const cachedLooks = getCachedLooksOptimized();
 if (cachedLooks?.length > 0) {
-console.log("LOOKS DESDE CACHE - INSTANTANEO");
 allLooks = sortLooksByWeather(cachedLooks);
 looks = [...allLooks];
 currentLooksPage = 1;
@@ -1388,7 +1370,6 @@ return;
 }
 const cachedProducts = getCachedProductsUnified();
 if (cachedProducts.length > 0) {
-console.log("Productos desde cache, generando looks progresivamente...");
 allProducts = cachedProducts;
 buildLooksProductIndex(allProducts);
 ensureProductIndex(allProducts);
@@ -1400,7 +1381,6 @@ isLoadingProducts = false;
 return;
 }
 try {
-console.log("Cargando productos desde red...");
 let data = null;
 if (window.znrFirestore && window.znrFirestore.getProductosZNR) {
   const fs = await window.znrFirestore.getProductosZNR();
@@ -1459,15 +1439,12 @@ allProducts = freshProducts;
 setCachedProducts(allProducts);
 buildLooksProductIndex(allProducts);
 await generateLooksProgressive();
-console.log(' Productos actualizados en background.');
 } else {
-console.log(' Productos en background sin cambios.');
 }
 } catch (err) {
 console.warn(` Background productos falló: ${err.message}`);
 if (bgProductsRetryCount < MAX_BG_PRODUCTS_RETRIES) {
 const delay = BG_PRODUCTS_RETRY_DELAYS[bgProductsRetryCount] || 30000;
-console.log(` Reintentando productos en background en ${delay / 1000}s... (intento ${bgProductsRetryCount + 1}/${MAX_BG_PRODUCTS_RETRIES})`);
 if (bgProductsRetryTimer) clearTimeout(bgProductsRetryTimer);
 bgProductsRetryTimer = setTimeout(() => {
 bgProductsRetryCount++;
