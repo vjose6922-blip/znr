@@ -557,16 +557,19 @@ function optimizeDriveUrl(url, size = 400) {
   if (size && size < actualSize) {
     actualSize = Math.min(size, 800);
   }
+  // Con "Ahorro de datos" del navegador o datos móviles lentos, imágenes más chicas.
+  const conn = navigator.connection;
+  if (conn && (conn.saveData || /2g|3g/.test(conn.effectiveType))) actualSize = Math.round(actualSize * 0.6);
 
   const lh3Match = url.match(/lh3\.googleusercontent\.com\/d\/([-\w]{25,})/);
   if (lh3Match) {
-    return `https://lh3.googleusercontent.com/d/${lh3Match[1]}=w${actualSize}`;
+    return `https://lh3.googleusercontent.com/d/${lh3Match[1]}=w${actualSize}-rw`;
   }
 
   const match = url.match(/[-\w]{25,}/);
   if (match) {
     const id = match[0];
-    return `https://lh3.googleusercontent.com/d/${id}=w${actualSize}`;
+    return `https://lh3.googleusercontent.com/d/${id}=w${actualSize}-rw`;
   }
 
   return url;

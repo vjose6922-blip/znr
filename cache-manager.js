@@ -76,12 +76,9 @@ return null;
 }
 function preloadPage(pageUrl) {
 if (!pageUrl) return;
-if (navigator.connection && (navigator.connection.saveData ||
-navigator.connection.effectiveType === 'slow-2g' ||
-navigator.connection.effectiveType === '2g')) {
-console.log('📡 Conexión lenta, omitiendo prefetch');
-return;
-}
+// Precargar páginas que quizá nunca se abran gasta datos: solo en Wi‑Fi/rápida.
+const c = navigator.connection;
+if (!c || c.saveData || c.type === 'cellular' || c.effectiveType !== '4g') return;
 const link = document.createElement('link');
 link.rel = 'prefetch';
 link.href = pageUrl;
