@@ -190,7 +190,9 @@ async function cargar() {
 }
 
 cargar();
-setInterval(cargar, 20000);
+// Con la pestaña oculta no se consulta; al volver se actualiza al instante.
+setInterval(() => !document.hidden && cargar(), 20000);
+document.addEventListener('visibilitychange', () => !document.hidden && cargar());
 </script>
 <script>if('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js', { scope: '/' });</script>
 </body>

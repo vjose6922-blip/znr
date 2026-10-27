@@ -1360,6 +1360,7 @@ function setupChat() {
 // ── Polling ligero para detectar cambios de estado / producto actual ──
 function startPolling() {
   pollTimer = setInterval(async () => {
+    if (document.hidden) return; // pestaña oculta: no consulta
     try {
       const resp = await apiFetch({ action: 'obtenerSesionLivePorId', id: liveId });
       if (!resp.ok) return;

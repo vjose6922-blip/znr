@@ -755,8 +755,10 @@
       cargarFeed();
       cargarRankingDonadores();
       // Se siente "vivo": refresca sola cada minuto, sin que el usuario tenga que jalar/recargar.
-      setInterval(cargarFeed, 60000);
-      setInterval(cargarHistorias, 60000);
+      // Con la pestaña oculta no se consulta; al volver se actualiza al instante.
+      const refrescar = () => { if (!document.hidden) { cargarFeed(); cargarHistorias(); } };
+      setInterval(refrescar, 60000);
+      document.addEventListener('visibilitychange', refrescar);
     });
   </script>
 

@@ -1942,15 +1942,14 @@ Badge: p.badge || '',
           // 2a. Perfil: primero la copia pública en RTDB (sin lecturas de Firestore);
           // si no existe todavía o falla, cae a Firestore como antes.
           if (window.znrFirestore && window.znrFirestore.getPerfilVendedor) {
-            const perfilRt = await fetch(`https://znr-live-default-rtdb.firebaseio.com/perfiles/${encodeURIComponent(uid)}.json`)
-              .then(r => r.ok ? r.json() : null).catch(() => null);
+            // Perfil y productos (copias en RTDB) se piden al mismo tiempo: no dependen uno del otro.
+            const rtdb = n => fetch(`https://znr-live-default-rtdb.firebaseio.com/${n}/${encodeURIComponent(uid)}.json`).then(r => r.ok ? r.json() : null).catch(() => null);
+            const [perfilRt, rt] = await Promise.all([rtdb('perfiles'), rtdb('perfiles_productos')]);
             const perfilFs = perfilRt && perfilRt.uid ? { ok: true, vendedor: perfilRt } : await window.znrFirestore.getPerfilVendedor(uid);
             if (perfilFs && perfilFs.ok) {
               try {
                 // Productos: primero la copia en RTDB (la mantiene el trigger espejarProductosPerfil);
                 // solo se usa si está marcada como completa (_ok). Si no, catalogo-api como antes.
-                const rt = await fetch(`https://znr-live-default-rtdb.firebaseio.com/perfiles_productos/${encodeURIComponent(uid)}.json`)
-                  .then(r => r.ok ? r.json() : null).catch(() => null);
                 let productos = rt && rt._ok ? Object.values(rt).filter(x => x && typeof x === 'object') : null;
                 if (!productos) {
                   const prodRes = await fetch(`https://catalogo-api-1038143238323.us-central1.run.app?${new URLSearchParams({ action: 'productosPorVendedor', vendedor_uid: uid, limit: '200' })}`);
