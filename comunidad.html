@@ -111,16 +111,22 @@
  .community-hero .m-hero { margin: 0 0 4px; }
  .com-tiles { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; overscroll-behavior-x: contain; scrollbar-width: none; text-align: left; }
  .com-tiles::-webkit-scrollbar { display: none; }
- .com-tile {
- flex: 0 0 100%; box-sizing: border-box; scroll-snap-align: center; scroll-snap-stop: always;
- display: flex; flex-direction: column; gap: 6px; padding: 20px 20px 36px;
- background: none; color: var(--color-text-main); border: none; border-radius: 0;
- font-family: inherit; text-align: left; text-decoration: none; cursor: pointer;
- }
- .com-tile-t { font-size: 17px; font-weight: 700; color: var(--color-text-main); }
- .com-tile-d { font-size: 13.5px; line-height: 1.45; color: var(--color-text-muted); }
- .com-tile-go { margin-top: 4px; font-size: 13px; font-weight: 700; color: var(--color-accent-solid); }
- .com-tile-go::after { content: " \2192"; }
+ .com-banner { position: relative; flex: 0 0 100%; aspect-ratio: 12 / 5; min-height: 150px; scroll-snap-align: center; scroll-snap-stop: always; border-radius: 20px; overflow: hidden; cursor: pointer; color: #2a1520; }
+ .com-banner img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+ .com-banner::before { content: ""; position: absolute; inset: 0; z-index: 1; background: linear-gradient(90deg, rgba(255,255,255,.7), rgba(255,255,255,0) 65%); }
+ .com-banner.claro { color: #fff; }
+ .com-banner.claro::before { background: linear-gradient(90deg, rgba(0,0,0,.55), rgba(0,0,0,0) 65%); }
+ .com-banner-txt { position: relative; z-index: 2; display: flex; flex-direction: column; align-items: flex-start; justify-content: center; height: 100%; max-width: 58%; padding: 14px 18px; box-sizing: border-box; }
+ .com-banner-t { font-family: 'ZNR Serif', Georgia, serif; font-weight: 700; font-size: clamp(22px, 6.5vw, 40px); line-height: 1; }
+ .com-banner-s { font-family: 'ZNR Serif', Georgia, serif; font-style: italic; font-size: clamp(16px, 4.8vw, 28px); line-height: 1.1; color: var(--color-accent-solid); }
+ .com-banner-d { margin: 4px 0 0; font-size: clamp(11px, 2.9vw, 14px); line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+ .com-banner-go { margin-top: 8px; padding: 6px 14px; border-radius: 999px; background: var(--gradient-accent, var(--color-accent-solid)); color: #fff; font-size: 12px; font-weight: 700; white-space: nowrap; }
+ .com-top-search { position: relative; padding: 0 16px 12px; box-sizing: border-box; }
+ .com-top-search .com-search-ic { position: absolute; left: 30px; top: 12px; color: var(--color-text-muted); pointer-events: none; }
+ .com-top-search .comunidad-search-input { padding: 11px 14px 11px 40px; border-radius: 16px; background: var(--color-surface, #fff); box-shadow: 0 4px 14px rgba(0,0,0,.06); }
+ .com-top-search .comunidad-filtros-btn { width: 42px; height: 42px; padding: 0; justify-content: center; position: relative; }
+ .com-top-search .comunidad-filtros-btn > span:not(.comunidad-filtros-badge) { display: none; }
+ .com-top-search .comunidad-filtros-badge { position: absolute; top: -6px; right: -6px; }
 
  /* ── Carruseles: encabezado con "Ver más" + fila doble (Recomendado | Podría interesarte) ── */
  .carr-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 0 0 8px; padding: 0 16px; }
@@ -167,7 +173,6 @@
  }
 
  /* ── Botón "Filtros" + panel (reemplaza la fila de 4 selects) ── */
- .comunidad-toolbar-actions { display: flex; gap: 8px; width: 100%; }
  .comunidad-filtros-btn {
  display: inline-flex; align-items: center; gap: 8px;
  padding: 10px 16px; border-radius: 12px; cursor: pointer;
@@ -503,15 +508,21 @@
  </div>
  </header>
 
- <div class="community-hero">
-  <div class="m-hero" id="com-hero">
- <div class="com-tiles" role="list" aria-label="Qué encontrar en Comunidad">
- <button type="button" class="com-tile" id="tile-ofertas" data-vista="ofertas" style="display:none"><span class="com-tile-t">Ofertas destacadas</span><span class="com-tile-d">Los mayores descuentos de tu ciudad.</span><span class="com-tile-go">Ver más</span></button>
- <button type="button" class="com-tile" id="tile-recomendado" data-vista="recomendado" style="display:none"><span class="com-tile-t">Recomendado para ti</span><span class="com-tile-d">Artículos según lo que más has visto.</span><span class="com-tile-go">Ver más</span></button>
- <button type="button" class="com-tile" id="tile-temporada" data-vista="temporada" style="display:none"><span class="com-tile-t">Temporada</span><span class="com-tile-d" id="tile-temporada-desc">Artículos para esta fecha.</span><span class="com-tile-go">Ver más</span></button>
- <button type="button" class="com-tile" id="btn-ver-fundaciones"><span class="com-tile-t">Ver refugios</span><span class="com-tile-d">Dona artículos a un refugio o fundación.</span><span class="com-tile-go">Entrar</span></button>
- <a href="vendedor.html" class="com-tile"><span class="com-tile-t">Mi cuenta de vendedor</span><span class="com-tile-d">Administra tu tienda y tus productos.</span><span class="com-tile-go">Abrir</span></a>
+ <div class="comunidad-search-row com-top-search">
+ <svg class="com-search-ic" xmlns="http://www.w3.org/2000/svg" width="18" height="18" aria-hidden="true"><use href="#ic-search"/></svg>
+ <input type="text" id="comunidad-search" aria-label="Buscar en comunidad" class="comunidad-search-input" placeholder="Buscar productos, marcas o categorías" autocomplete="off">
+ <button type="button" id="busqueda-visual-btn" aria-label="Buscar por foto" title="Buscar por foto" class="comunidad-visual-search-btn"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" aria-hidden="true"><use href="#ic-camera"/></svg></button>
+ <input type="file" id="busqueda-visual-input" accept="image/*" style="display:none">
+ <button type="button" id="btn-abrir-filtros" class="comunidad-filtros-btn" aria-haspopup="dialog" aria-expanded="false">
+ <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/><circle cx="9" cy="6" r="2.2" fill="var(--color-surface-2,#fff)"/><circle cx="15" cy="12" r="2.2" fill="var(--color-surface-2,#fff)"/><circle cx="8" cy="18" r="2.2" fill="var(--color-surface-2,#fff)"/></svg>
+ <span>Filtros</span>
+ <span id="filtros-badge" class="comunidad-filtros-badge" style="display:none">0</span>
+ </button>
  </div>
+
+ <div class="community-hero" id="com-hero-wrap" hidden>
+  <div class="m-hero" id="com-hero">
+ <div class="com-tiles" id="com-banners" role="list" aria-label="Temporada"></div>
  <div class="m-hero-dots" id="com-dots" aria-hidden="true"></div>
  </div>
  </div>
@@ -539,19 +550,6 @@
 
  <div style="padding: 0;">
  <div class="comunidad-toolbar">
- <div class="comunidad-search-row">
- <input type="text" id="comunidad-search" aria-label="Buscar en comunidad" class="comunidad-search-input" placeholder=" Buscar productos..." autocomplete="off">
- <button type="button" id="busqueda-visual-btn" aria-label="Buscar por foto" title="Buscar por foto" class="comunidad-visual-search-btn"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" aria-hidden="true"><use href="#ic-camera"/></svg></button>
- <input type="file" id="busqueda-visual-input" accept="image/*" style="display:none">
- </div>
- <div class="comunidad-toolbar-actions">
- <button type="button" id="btn-abrir-filtros" class="comunidad-filtros-btn" aria-haspopup="dialog" aria-expanded="false">
- <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/><circle cx="9" cy="6" r="2.2" fill="var(--color-surface-2,#fff)"/><circle cx="15" cy="12" r="2.2" fill="var(--color-surface-2,#fff)"/><circle cx="8" cy="18" r="2.2" fill="var(--color-surface-2,#fff)"/></svg>
- <span>Filtros</span>
- <span id="filtros-badge" class="comunidad-filtros-badge" style="display:none">0</span>
- </button>
- </div>
-
  <div id="comunidad-filtros-sheet" class="filtros-sheet" role="dialog" aria-modal="true" aria-labelledby="filtros-titulo">
  <div class="filtros-backdrop" data-cerrar-filtros></div>
  <div class="filtros-panel">
@@ -681,6 +679,11 @@
  <span>Outfits</span>
  </button>
  
+ <button class="bottom-nav-item" id="btn-ver-fundaciones">
+ <span class="nav-icon"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" aria-hidden="true"><use href="#ic-hand-heart"/></svg></span>
+ <span class="nav-donar-t">Donar</span>
+ </button>
+
  <button class="bottom-nav-item" data-page="vendedor" id="nav-vendedor">
  <span class="nav-icon"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" aria-hidden="true"><use href="#ic-vendor"/></svg></span>
  <span>Vendedor</span>
