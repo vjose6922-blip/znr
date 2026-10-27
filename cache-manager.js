@@ -40,7 +40,6 @@ localStorage.removeItem(productsCacheKey());
 return null;
 }
 if (version !== '1.0') return null;
-console.log(`📦 Productos desde caché (${source})`);
 return data;
 } catch(e) {
 console.warn('Error leyendo caché de productos:', e);

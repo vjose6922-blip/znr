@@ -76,7 +76,6 @@ function getComunidadCache() {
       else localStorage.removeItem(COMUNIDAD_CACHE_KEY);
       return null;
     }
-    console.log(`Comunidad desde caché (${store})`);
     return data;
   } catch(e) { return null; }
 }
@@ -120,7 +119,7 @@ window.openImageModal = function(url, id, images, productData) { console.warn('o
 console.warn(' openImageModal no definida');
 }
 if (typeof window.showTemporaryMessage !== 'function') {
-window.showTemporaryMessage = function(msg, type) { console.log(msg); };
+window.showTemporaryMessage = function() {};
 console.warn(' showTemporaryMessage no definida');
 }
 const PAGE_SIZE = 15;             // productos por página
@@ -151,7 +150,6 @@ if (urlParams.get('inspector') !== '1') return;
 const tokenFromUrl = new URLSearchParams(location.hash.slice(1)).get('token') || urlParams.get('token') || '';
 const token = tokenFromUrl || sessionStorage.getItem('admin_token') || '';
 if (!token) {
-console.log(' Modo inspector: sin token de admin, acceso denegado');
 return;
 }
 if (tokenFromUrl) {
@@ -169,7 +167,6 @@ const res = await fetch(api, { method: "POST", headers: { "Content-Type": "appli
 const data = await res.json();
 if (data.ok === true) {
 inspectorMode = true;
-console.log(' Modo inspector activado');
 const banner = document.createElement('div');
 banner.id = 'inspector-banner';
 banner.style.cssText = `
@@ -2314,7 +2311,6 @@ initComunidad();
 // idBeneficiario: id del beneficiario existente (requerido si modoEdicion=true)
 // datosActuales: objeto con los valores actuales para prellenar el formulario
 window.openBeneficiarioRegister = function(modoEdicion, idBeneficiario, datosActuales) {
-  console.log('🔥 openBeneficiarioRegister ejecutada', modoEdicion ? '(edición)' : '(nuevo)');
 
   // Restaurar sesión desde localStorage si no existe
   if (!window.vendorSession) {
@@ -2322,7 +2318,6 @@ window.openBeneficiarioRegister = function(modoEdicion, idBeneficiario, datosAct
       const stored = localStorage.getItem('vendor_session');
       if (stored) {
         window.vendorSession = JSON.parse(stored);
-        console.log('✅ Sesión restaurada desde localStorage:', window.vendorSession.nombre);
       }
     } catch (e) {
       console.warn('No se pudo restaurar sesión:', e);

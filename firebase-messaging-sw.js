@@ -16,7 +16,6 @@ firebase.initializeApp({
 const messaging = firebase.messaging();
 
 messaging.onBackgroundMessage((payload) => {
-  console.log("🔔 Push recibido en segundo plano:", payload);
 
   const title = (payload.notification && payload.notification.title) || "Z&R";
   const body  = (payload.notification && payload.notification.body)  || "¡Novedades en Z&R!";

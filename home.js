@@ -264,7 +264,6 @@ async function generateHomeLooksFromWishlist() {
 const container = document.getElementById('home-looks-container');
 if (!container) return;
 if (typeof window.LOOKS_CONFIG === 'undefined' || typeof window.getProductsForSlot === 'undefined') {
-console.log('⏳ Esperando LOOKS_CONFIG / getProductsForSlot...');
 setTimeout(() => generateHomeLooksFromWishlist(), 500);
 return;
 }
@@ -548,7 +547,6 @@ showTemporaryMessage(` ${products.length} productos agregados al carrito`, 'succ
 }
 function reloadHomeLookSlot(lookId, slotType, event) {
 if (event) event.stopPropagation();
-console.log(` Recargando slot ${slotType} del look ${lookId}`);
 const lookIdx = homeLooks.findIndex(l => l.id === lookId);
 if (lookIdx === -1) return;
 const look = homeLooks[lookIdx];

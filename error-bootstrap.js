@@ -319,4 +319,13 @@
   };
 
   window.__zrBootstrapLoaded = true;
+
+  // La consola de depuración (50 KB) solo se descarga si está activada (?dc=1 / ?dc=0 para apagarla).
+  try {
+    if (/[?&]dc=[01]/.test(location.search) || localStorage.getItem('znrDC') === '1') {
+      const s = document.createElement('script');
+      s.src = 'znr-devconsole.js';
+      document.head.appendChild(s);
+    }
+  } catch (e) {}
 })();

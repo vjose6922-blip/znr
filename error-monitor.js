@@ -350,9 +350,6 @@
 
   // ─── Inicialización ──────────────────────────────────────────
 
-  console.log(`📊 ZRMonitor: ${_queue.length} errores en caché local.`);
-  console.log('💡 Para ver errores guardados, ejecuta: ZRMonitor.getErrors()');
-  console.log('💡 Para mostrar panel: showErrorLog()');
 
   window.addEventListener('load', () => setTimeout(flush, 3000));
 })();

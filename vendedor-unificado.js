@@ -1707,16 +1707,12 @@ const pendientes = [1, 2, 3].filter(n => selectedFiles[n] && !uploadedImages[n]?
 let subidas = 0;
 for (const n of [1, 2, 3]) {
 const file = selectedFiles[n];
-console.log(` Slot ${n}: archivo =`, file ? file.name : 'ninguno', '| uploadedImages previo =', uploadedImages[n]);
 if (file && !uploadedImages[n]?.startsWith('http')) {
 showLoader(`Subiendo imagen ${++subidas} de ${pendientes}...`);
 uploadedImages[n] = await uploadSingleImage(file);
-console.log(` Imagen ${n} subida: ${uploadedImages[n]}`);
 } else {
-console.log(`⏭ Slot ${n} no requiere subida`);
 }
 }
-console.log(" Estado final de uploadedImages:", uploadedImages);
 const productData = {
 Nombre: document.getElementById('pNombre')?.value.trim(),
 Precio: Number(document.getElementById('pPrecio')?.value),
@@ -1741,14 +1737,12 @@ if (window.__znrUltimoEmbedding && Array.isArray(window.__znrUltimoEmbedding)) {
   productData.Embedding = JSON.stringify(window.__znrUltimoEmbedding);
 }
 if (editId) productData.id = editId;
-console.log(" Enviando producto a la API:", productData);
 showLoader('Guardando...');
 const res = await apiFetch(
 editId
 ? { action: 'updateComunidad', ...productData }
 : { action: 'createComunidad', ...productData }
 );
-console.log(" Respuesta del servidor:", res);
 if (!res.ok) throw new Error(res.error || 'Error del servidor');
 // Comprobación: si el servidor no confirma la temporada, el backend desplegado no es la última versión.
 if (productData.Temporada && res.temporada !== productData.Temporada) {

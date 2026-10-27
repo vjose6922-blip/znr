@@ -119,7 +119,6 @@ async function solicitarPermisoNotificacionesSiFalta(ownerType, ownerId) {
 }
 // Notificaciones recibidas MIENTRAS la app está abierta en primer plano
 onMessage(messaging, (payload) => {
-  console.log("🔔 Push recibido en primer plano:", payload);
   const { title, body } = payload.notification || {};
   if (title && Notification.permission === "granted") {
     new Notification(title, { body, icon: "/logo.svg" });

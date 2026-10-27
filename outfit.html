@@ -195,7 +195,6 @@
  <script src="znr-select.js" defer></script>
  <script src="ciudades.js" defer></script>
  <script src="common.js" defer></script>
- <script src="znr-devconsole.js" defer></script>
  <script src="pagos.js" defer></script>
  <script src="notification-center.js" defer></script>
  <script src="burbuja-mensajes.js" defer></script>
@@ -208,7 +207,6 @@
 let cartInitialized = false;
 
 document.addEventListener("DOMContentLoaded", () => {
- console.log(" Inicializando página con modales personalizados...");
 
  window.changePhoneNumber = changePhoneNumber;
  window.updateSavedPhoneDisplay = updateSavedPhoneDisplay;
@@ -222,7 +220,6 @@ document.addEventListener("DOMContentLoaded", () => {
  const newBtn = floatingCartBtn.cloneNode(true);
  floatingCartBtn.parentNode.replaceChild(newBtn, floatingCartBtn);
  newBtn.addEventListener("click", () => {
- console.log(" Abriendo carrito");
  if (typeof window.openCartDrawer === "function") {
  window.openCartDrawer();
  }
@@ -234,7 +231,6 @@ document.addEventListener("DOMContentLoaded", () => {
  const newBtn = closeCartBtn.cloneNode(true);
  closeCartBtn.parentNode.replaceChild(newBtn, closeCartBtn);
  newBtn.addEventListener("click", () => {
- console.log(" Cerrando carrito");
  if (typeof window.closeCartDrawer === "function") {
  window.closeCartDrawer();
  }

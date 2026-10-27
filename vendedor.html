@@ -625,7 +625,6 @@ h3 {
     window.Module.print = function(text) {
       if (esRuidoWasm(text)) return;
       if (_printOriginal) return _printOriginal(text);
-      console.log(text);
     };
 
     window.Module.printErr = function(text) {
@@ -651,7 +650,6 @@ h3 {
  <script src="common.js" defer></script>
  <script src="bg-remove.js" defer></script>
  <script src="cover-portada.js" defer></script>
- <script src="znr-devconsole.js" defer></script>
  <script src="pagos.js" defer></script>
  <script src="notification-center.js" defer></script>
  <script src="burbuja-mensajes.js" defer></script>
