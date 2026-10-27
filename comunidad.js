@@ -122,7 +122,7 @@ if (typeof window.showTemporaryMessage !== 'function') {
 window.showTemporaryMessage = function() {};
 console.warn(' showTemporaryMessage no definida');
 }
-const PAGE_SIZE = 15;             // productos por página
+const PAGE_SIZE = 30;             // productos por página (con 3 carruseles intercalados en la 1ª)
 let allCommunityProducts = [];    // productos de
 let filteredProducts = [];        // alias de allComm000
 let currentPage = 1;              // página actual
@@ -575,7 +575,7 @@ async function loadComunidadPageAlgolia(page, filters, opts = {}) {
       filteredProducts     = [...allCommunityProducts];
       window.allCommunityProductsIndexed = allCommunityProducts;
 
-      if (page === 1) { setComunidadCache(allCommunityProducts); renderOfertasCarousel(communityRandomOrder); renderRecomendadoParaTi(communityRandomOrder); renderTemporadaCarousel(communityRandomOrder); carruselesPintados = true; }
+      if (page === 1) { setComunidadCache(allCommunityProducts); renderCarruseles(communityRandomOrder); }
 
     } else {
       // ── Con filtros/búsqueda/orden activos: paginado normal vía Algolia ──
@@ -768,8 +768,6 @@ function updateComunidadChips(filters) {
     calificacion: `${Icon('star')} Mejor calificado`,
     precio_asc:   `${Icon('dollar')} Menor a mayor precio`
   };
-  const carr = document.getElementById('comunidad-carruseles');
-  if (carr) carr.style.display = filters.vista ? 'none' : '';
   const chips = [];
   if (filters.vista)     chips.push({ label: `${VISTA_LABELS[filters.vista] || filters.vista}`, clear: () => { vistaActiva = ''; vistaCache = null; applyFilters(); } });
   if (filters.busqueda)  chips.push({ label: `${Icon('search')} "${filters.busqueda}"`, clear: () => { const el = document.getElementById('comunidad-search'); if (el) el.value = ''; applyFilters(); } });
@@ -953,16 +951,30 @@ function actualizarLoopBanner() {
 }
 
 // ── Banners de temporada: los sube el Master en CONTROL (imagen sin texto + texto encima + fechas) ──
-let bannerTemporadas = [];
+let bannerTemporadas = [], bannersVigentes = [];
 async function cargarBannersTemporada() {
   const todos = await fetch('https://znr-live-default-rtdb.firebaseio.com/banners_temporada.json').then(r => r.json()).catch(() => null);
   const hoy = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD local
-  const vigentes = Object.values(todos || {}).filter(b => b.inicio <= hoy && hoy <= b.fin).sort((a, b) => a.fin.localeCompare(b.fin));
-  bannerTemporadas = [...new Set(vigentes.map(b => b.temporada).filter(Boolean))];
-  document.getElementById('com-banners').innerHTML = vigentes.map(b => window.znrBanner.html(b, 'role="listitem" data-vista="temporada"')).join('');
-  document.getElementById('com-hero-wrap').hidden = !vigentes.length;
+  bannersVigentes = Object.values(todos || {}).filter(b => b.inicio <= hoy && hoy <= b.fin).sort((a, b) => a.fin.localeCompare(b.fin));
+  bannerTemporadas = [...new Set(bannersVigentes.map(b => b.temporada).filter(Boolean))];
+  if (carruselesPintados && bannerTemporadas.length) { vistaCache = null; renderCarrusel('temporada', calcularTemporadaActual(communityRandomOrder)); }
+  pintarBanners();
+}
+// Sin banner de temporada vigente: un banner por carrusel (con fotos de sus artículos), así arriba nunca queda vacío.
+const BANNERS_AUTO = {
+  ofertas: (l) => ({ titulo: 'Ofertas', subtitulo: 'destacadas', descripcion: `Hasta -${Math.max(...l.map(pctDescuento))}% en artículos de tu ciudad.`, boton: 'Ver ofertas', fondo: 'linear-gradient(135deg,#ff5f6d,#ffc371)' }),
+  temporada: (l) => ({ titulo: 'Podría', subtitulo: 'interesarte', descripcion: `${[...new Set(l.map(p => p.temporada))].slice(0, 2).join(' y ')}: artículos para esta fecha.`, boton: 'Ver más', fondo: 'linear-gradient(135deg,#6a3093,#e0457b)' }),
+  recomendado: () => ({ titulo: 'Recomendado', subtitulo: 'para ti', descripcion: 'Artículos según lo que más has visto.', boton: 'Ver más', fondo: 'linear-gradient(135deg,#f0566f,#f7a072)' })
+};
+function pintarBanners() {
+  const html = bannersVigentes.length
+    ? bannersVigentes.map(b => window.znrBanner.html(b, 'role="listitem" data-vista="temporada"'))
+    : Object.keys(BANNERS_AUTO).filter(v => listasCarrusel[v]?.length).map(v => window.znrBanner.html(
+      { ...BANNERS_AUTO[v](listasCarrusel[v]), tema: 'claro', degradado: 'no', fotos: listasCarrusel[v].slice(0, 3).map(p => p.imagen1).filter(Boolean) },
+      `role="listitem" data-vista="${v}"`));
+  document.getElementById('com-banners').innerHTML = html.join('');
+  document.getElementById('com-hero-wrap').hidden = !html.length;
   actualizarLoopBanner();
-  if (carruselesPintados && bannerTemporadas.length) { vistaCache = null; renderTemporadaCarousel(communityRandomOrder); }
 }
 
 // ── Listas completas de cada grupo (los carruseles toman solo los primeros 10; "Ver más" muestra todos) ──
@@ -1000,66 +1012,31 @@ function calcularTemporadaActual(products) {
     .sort((a, b) => orden.get(a.temporada) - orden.get(b.temporada));
 }
 
-function actualizarLayoutDual() {
-  const row = document.getElementById('comunidad-dual-row');
-  const r = document.getElementById('comunidad-recomendado-wrap');
-  const t = document.getElementById('comunidad-temporada-wrap');
-  if (!row || !r || !t) return;
-  row.classList.toggle('es-dual', r.style.display !== 'none' && t.style.display !== 'none');
-}
-
-function renderOfertasCarousel(products) {
-  const wrap = document.getElementById('comunidad-ofertas-wrap');
-  const track = document.getElementById('comunidad-ofertas-track');
+// ── Carruseles (10 artículos c/u). Viven en #comunidad-carruseles y renderProducts los intercala en la cuadrícula ──
+const listasCarrusel = {}; // vista -> lista completa (también la usan los banners automáticos)
+function renderCarrusel(vista, lista) {
+  const wrap = document.getElementById(`comunidad-${vista}-wrap`);
+  const track = document.getElementById(`comunidad-${vista}-track`);
   if (!wrap || !track) return;
-  const ofertas = calcularOfertas(products).slice(0, 10);
-  if (!ofertas.length) { wrap.style.display = 'none'; return; }
-  wrap.style.display = '';
+  listasCarrusel[vista] = lista;
+  const top = lista.slice(0, 10);
+  wrap.style.display = top.length ? '' : 'none';
+  if (!top.length) return;
   track.innerHTML = '';
-  const construir = () => ofertas.map(p => {
-    const pct = p.precio_original > 0 ? Math.round((1 - p.precio / p.precio_original) * 100) : 0;
-    const badge = `<span style="position:absolute;top:6px;left:6px;background:#ef4444;color:#fff;font-size:10px;font-weight:800;padding:2px 6px;border-radius:10px;">-${pct}%</span>`;
-    return crearMiniCardComunidad(p, badge);
-  });
+  const badge = p => vista === 'ofertas' ? `<span style="position:absolute;top:6px;left:6px;background:#ef4444;color:#fff;font-size:10px;font-weight:800;padding:2px 6px;border-radius:10px;">-${pctDescuento(p)}%</span>` : '';
+  const construir = () => top.map(p => crearMiniCardComunidad(p, badge(p)));
   construir().forEach(c => track.appendChild(c));
   initLazyImages();
   activarLoopCarrusel(track, construir);
   iniciarAutoScrollCarrusel(track);
 }
-
-// ── Recomendado para ti ──
-function renderRecomendadoParaTi(products) {
-  const wrap = document.getElementById('comunidad-recomendado-wrap');
-  const track = document.getElementById('comunidad-recomendado-track');
-  if (!wrap || !track) return;
-  const recomendados = calcularRecomendados(products, 10);
-  if (!recomendados.length) { wrap.style.display = 'none'; actualizarLayoutDual(); return; }
-  wrap.style.display = '';
-  track.innerHTML = '';
-  const construir = () => recomendados.map(p => crearMiniCardComunidad(p, ''));
-  construir().forEach(c => track.appendChild(c));
-  initLazyImages();
-  activarLoopCarrusel(track, construir);
-  iniciarAutoScrollCarrusel(track);
-  actualizarLayoutDual();
-}
-
-// ── Podría interesarte: 10 artículos de la festividad/temporada en curso ──
-function renderTemporadaCarousel(products) {
-  const wrap = document.getElementById('comunidad-temporada-wrap');
-  const track = document.getElementById('comunidad-temporada-track');
-  if (!wrap || !track) return;
-  const todos = calcularTemporadaActual(products);
-  const lista = todos.slice(0, 10);
-  if (!lista.length) { wrap.style.display = 'none'; actualizarLayoutDual(); return; }
-  wrap.style.display = '';
-  track.innerHTML = '';
-  const construir = () => lista.map(p => crearMiniCardComunidad(p, ''));
-  construir().forEach(c => track.appendChild(c));
-  initLazyImages();
-  activarLoopCarrusel(track, construir);
-  iniciarAutoScrollCarrusel(track);
-  actualizarLayoutDual();
+const pctDescuento = p => p.precio_original > 0 ? Math.round((1 - p.precio / p.precio_original) * 100) : 0;
+function renderCarruseles(products) {
+  renderCarrusel('ofertas', calcularOfertas(products));
+  renderCarrusel('temporada', calcularTemporadaActual(products));
+  renderCarrusel('recomendado', calcularRecomendados(products, 10));
+  carruselesPintados = true;
+  pintarBanners();
 }
 
 // ── "Ver más": reemplaza el listado por todo el grupo, como un filtro más (se combina con búsqueda/categoría/etc.) ──
@@ -1090,8 +1067,7 @@ async function cargarVistaComunidad(page, filters) {
     const base = await asegurarCatalogoBase();
     // Entrada directa por enlace (?vista=...): se dibujan también los carruseles/tiles del banner.
     if (!carruselesPintados) {
-      renderOfertasCarousel(base); renderRecomendadoParaTi(base); renderTemporadaCarousel(base);
-      carruselesPintados = true;
+      renderCarruseles(base);
     }
     if (!vistaCache || vistaCache.vista !== filters.vista) {
       vistaCache = { vista: filters.vista, lista: calcularVista(filters.vista, base) };
@@ -1143,6 +1119,8 @@ try {
     renderPagination();
     return;
   }
+  const espera = document.getElementById('comunidad-carruseles');
+  ['ofertas', 'temporada', 'recomendado'].forEach(v => { const w = document.getElementById(`comunidad-${v}-wrap`); if (w) espera.appendChild(w); });
   gridContainer.innerHTML = '';
   visibles.forEach(product => {
     const card = createCommunityCard(product);
@@ -1151,6 +1129,14 @@ try {
   const savedLayout = localStorage.getItem('products_layout') || 'grid';
   if (savedLayout === 'grid') gridContainer.classList.add('layout-grid');
   else gridContainer.classList.remove('layout-grid');
+  // Vista normal, página 1: Ofertas tras 6 artículos, Podría interesarte tras 12 y Recomendado tras 18; si hay menos, al final
+  // (redondeado a filas completas si la cuadrícula tiene más columnas, ej. 4 en escritorio).
+  if (currentPage === 1 && esVistaComunidadPorDefecto(currentFilters || {})) {
+    const cols = getComputedStyle(gridContainer).gridTemplateColumns.split(' ').length || 1;
+    [['ofertas', 6], ['temporada', 12], ['recomendado', 18]].forEach(([v, n], k) => { // k: carruseles ya insertados antes
+      gridContainer.insertBefore(document.getElementById(`comunidad-${v}-wrap`), gridContainer.children[Math.ceil(n / cols) * cols + k] || null);
+    });
+  }
   renderPagination();
   initLazyImages();
 } catch (err) {
@@ -1846,8 +1832,6 @@ function initBeneficiariosToggle() {
     const chipsBar = document.getElementById('comunidad-filter-chips');
     const grid = document.getElementById('comunidad-grid');
     const pagination = document.getElementById('comunidad-pagination');
-    const ofertasWrap = document.getElementById('comunidad-ofertas-wrap');
-    const recomendadoWrap = document.getElementById('comunidad-recomendado-wrap');
     if (!wrap) return;
     const showing = wrap.style.display !== 'none';
     if (showing) {
@@ -1857,11 +1841,7 @@ function initBeneficiariosToggle() {
       if (pagination) pagination.style.display = '';
       if (toolbarArea) toolbarArea.style.display = '';
       arriba.forEach(el => el && (el.style.display = ''));
-      if (ofertasWrap && ofertasWrap.dataset.hadContent) ofertasWrap.style.display = '';
-      if (recomendadoWrap && recomendadoWrap.dataset.hadContent) recomendadoWrap.style.display = '';
       btn.querySelector('.nav-donar-t').textContent = 'Donar'; btn.classList.remove('active');
-      const carrB = document.getElementById('comunidad-carruseles');
-      if (carrB) carrB.style.display = vistaActiva ? 'none' : '';
       updateComunidadChips(currentFilters || {});
     } else {
       // Mostrar fundaciones
@@ -1872,11 +1852,7 @@ function initBeneficiariosToggle() {
       if (toolbarArea) toolbarArea.style.display = 'none';
       arriba.forEach(el => el && (el.style.display = 'none'));
       window.scrollTo({ top: 0, behavior: 'smooth' });
-      if (ofertasWrap) { ofertasWrap.dataset.hadContent = ofertasWrap.style.display !== 'none' ? '1' : ''; ofertasWrap.style.display = 'none'; }
-      if (recomendadoWrap) { recomendadoWrap.dataset.hadContent = recomendadoWrap.style.display !== 'none' ? '1' : ''; recomendadoWrap.style.display = 'none'; }
       btn.querySelector('.nav-donar-t').textContent = 'Productos'; btn.classList.add('active');
-      const carrA = document.getElementById('comunidad-carruseles');
-      if (carrA) carrA.style.display = 'none';
       if (!beneficiariosCargados) loadBeneficiariosGrid();
     }
   });

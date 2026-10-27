@@ -1,5 +1,5 @@
 /* Banner de temporada: mismo archivo en znr (comunidad.html) y CONTROL (vista previa). Si cambias uno, copia el otro.
-   b = { imagen, titulo, subtitulo, descripcion, boton, tema: 'oscuro'|'claro', pos, botonPos, escala, degradado }
+   b = { imagen | fondo (CSS) + fotos (hasta 3 URLs, collage a la derecha), titulo, subtitulo, descripcion, boton, tema: 'oscuro'|'claro', pos, botonPos, escala, degradado }
    pos / botonPos: vertical (t|m|b) + horizontal (l|c|r), ej. 'ml' = centro-izquierda. botonPos 'txt' = debajo del texto.
    Los tamaños van en cqw (% del ancho del banner), así se ve igual en el celular y en la vista previa. */
 (function () {
@@ -16,7 +16,13 @@
 .com-banner-d { margin: 0; font-size: max(11px, calc(2.7cqw * var(--k))); line-height: 1.3; }
 .com-banner-go { padding: 1.4cqw 3.4cqw; border-radius: 999px; background: var(--gradient-accent, #f0566f); color: #fff; font-size: max(11px, calc(2.8cqw * var(--k))); font-weight: 700; white-space: nowrap; }
 .com-banner-txt .com-banner-go { margin-top: 1.4cqw; }
-.com-banner > .com-banner-go { position: absolute; z-index: 2; }`;
+.com-banner > .com-banner-go { position: absolute; z-index: 2; }
+.com-banner.auto .com-banner-s { color: #ffe9a8; }
+.com-banner.auto .com-banner-go { background: #fff; color: #2a1520; }
+.com-banner-fotos { position: absolute; right: 7cqw; top: 0; bottom: 0; display: flex; align-items: center; }
+.com-banner .com-banner-fotos img { position: static; width: 16cqw; height: 22cqw; margin-left: -4cqw; object-fit: cover; border-radius: 3cqw; border: .6cqw solid #fff; background: #fff; box-shadow: 0 2cqw 4cqw rgba(0,0,0,.25); transform: rotate(-7deg); }
+.com-banner .com-banner-fotos img:nth-child(2) { width: 19cqw; height: 27cqw; z-index: 1; transform: none; }
+.com-banner .com-banner-fotos img:nth-child(3) { transform: rotate(7deg); }`;
   const V = { t: 'flex-start', m: 'center', b: 'flex-end' }, H = { l: 'flex-start', c: 'center', r: 'flex-end' }, A = { l: 'left', c: 'center', r: 'right' };
   const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const okPos = (p) => /^[tmb][lcr]$/.test(p || '');
@@ -28,10 +34,12 @@
     const pos = okPos(b.pos) ? b.pos : 'ml', bp = okPos(b.botonPos) ? b.botonPos : 'txt';
     const boton = b.boton ? `<span class="com-banner-go"${bp === 'txt' ? '' : ` style="${posBoton(bp)}"`}>${esc(b.boton)}</span>` : '';
     const dir = { l: '90deg', c: '0deg', r: '270deg' }[pos[1]];
-    return `<div class="com-banner ${b.tema === 'claro' ? 'claro' : ''}" style="--k:${Number(b.escala) || 1}" ${extra}>
+    const fotos = (b.fotos || []).slice(0, 3);
+    return `<div class="com-banner ${b.tema === 'claro' ? 'claro' : ''} ${b.fondo ? 'auto' : ''}" style="--k:${Number(b.escala) || 1};${b.fondo ? `background:${esc(b.fondo)}` : ''}" ${extra}>
       ${b.imagen ? `<img src="${esc(b.imagen)}" alt="" loading="lazy">` : ''}
+      ${fotos.length ? `<div class="com-banner-fotos">${fotos.map((f) => `<img src="${esc(f)}" alt="" loading="lazy">`).join('')}</div>` : ''}
       <div class="com-banner-capa${b.degradado === 'no' ? '' : ' deg'}" style="--dir:${dir};justify-content:${V[pos[0]]};align-items:${H[pos[1]]};text-align:${A[pos[1]]}">
-        <div class="com-banner-txt"><span class="com-banner-t">${esc(b.titulo)}</span>
+        <div class="com-banner-txt"${fotos.length ? ' style="max-width:50%"' : ''}><span class="com-banner-t">${esc(b.titulo)}</span>
         ${b.subtitulo ? `<span class="com-banner-s">${esc(b.subtitulo)}</span>` : ''}${b.descripcion ? `<p class="com-banner-d">${esc(b.descripcion)}</p>` : ''}
         ${bp === 'txt' ? boton : ''}</div></div>${bp === 'txt' ? '' : boton}</div>`;
   }
