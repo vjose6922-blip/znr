@@ -959,10 +959,7 @@ async function cargarBannersTemporada() {
   const hoy = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD local
   const vigentes = Object.values(todos || {}).filter(b => b.inicio <= hoy && hoy <= b.fin).sort((a, b) => a.fin.localeCompare(b.fin));
   bannerTemporadas = [...new Set(vigentes.map(b => b.temporada).filter(Boolean))];
-  document.getElementById('com-banners').innerHTML = vigentes.map(b => `<div class="com-banner ${b.tema === 'claro' ? 'claro' : ''}" role="listitem" data-vista="temporada">
-    <img src="${escapeHtml(b.imagen)}" alt="" loading="lazy"><div class="com-banner-txt"><span class="com-banner-t">${escapeHtml(b.titulo)}</span>
-    ${b.subtitulo ? `<span class="com-banner-s">${escapeHtml(b.subtitulo)}</span>` : ''}${b.descripcion ? `<p class="com-banner-d">${escapeHtml(b.descripcion)}</p>` : ''}
-    ${b.boton ? `<span class="com-banner-go">${escapeHtml(b.boton)}</span>` : ''}</div></div>`).join('');
+  document.getElementById('com-banners').innerHTML = vigentes.map(b => window.znrBanner.html(b, 'role="listitem" data-vista="temporada"')).join('');
   document.getElementById('com-hero-wrap').hidden = !vigentes.length;
   actualizarLoopBanner();
   if (carruselesPintados && bannerTemporadas.length) { vistaCache = null; renderTemporadaCarousel(communityRandomOrder); }
