@@ -384,7 +384,7 @@
       const h = g.historias[g.historias.length - 1];
       if (!h) return '<span class="fa-story-media"></span>';
       return h.tipo === 'video'
-        ? `<span class="fa-story-media"><video src="${esc(h.url)}#t=0.1" muted playsinline preload="metadata" tabindex="-1" onerror="this.remove()"></video></span><span class="fa-story-play">${Icon('play', { size: 10 })}</span>`
+        ? `<span class="fa-story-media"><video src="${esc(h.url)}#t=0.1" muted playsinline preload="${window.znrAhorroDatos?.() ? 'none' : 'metadata'}" tabindex="-1" onerror="this.remove()"></video></span><span class="fa-story-play">${Icon('play', { size: 10 })}</span>`
         : `<span class="fa-story-media"><img src="${esc(h.url)}" alt="" loading="lazy" onerror="this.remove()"></span>`;
     }
 
@@ -480,6 +480,7 @@
     function abrirVisor(idxGrupo) {
       if (!gruposHistorias[idxGrupo]) return;
       crearVisor();
+      window.znrAvisoDatosMoviles?.();
       sv.abierto = true; sv.g = idxGrupo; sv.i = 0;
       document.getElementById('fa-sv').hidden = false;
       document.body.style.overflow = 'hidden';
@@ -531,12 +532,14 @@
       const media = document.getElementById('fa-sv-media');
       sv.elapsed = 0; sv.pausado = false; sv.last = 0; sv.dur = SEGUNDOS_IMAGEN * 1000;
       if (h.tipo === 'video') {
-        media.innerHTML = '<video playsinline autoplay preload="auto"></video>';
+        const ahorro = window.znrAhorroDatos?.();
+        media.innerHTML = ahorro ? '<video playsinline preload="none"></video>' : '<video playsinline autoplay preload="auto"></video>';
         const v = media.firstChild;
         sv.video = v;
         v.src = h.url;
         v.addEventListener('ended', siguienteHistoria);
-        v.play().catch(() => { v.muted = true; v.play().catch(() => {}); });
+        if (ahorro) window.znrBotonPlayAhorro(media, v);
+        else v.play().catch(() => { v.muted = true; v.play().catch(() => {}); });
       } else {
         media.innerHTML = `<img src="${esc(h.url)}" alt="">`;
       }

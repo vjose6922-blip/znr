@@ -532,6 +532,7 @@ function vigilarVideo() {
 }
 
 function iniciarReproductorWHEP(containerId, whepUrl) {
+  window.znrAvisoDatosMoviles?.();
   const container = document.getElementById(containerId);
   if (!container) return;
   detenerReproductor();

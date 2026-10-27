@@ -557,9 +557,9 @@ function optimizeDriveUrl(url, size = 400) {
   if (size && size < actualSize) {
     actualSize = Math.min(size, 800);
   }
-  // Con "Ahorro de datos" del navegador o datos móviles lentos, imágenes más chicas.
+  // Con Ahorro de datos (Preferencias o navegador) o red lenta, imágenes más chicas.
   const conn = navigator.connection;
-  if (conn && (conn.saveData || /2g|3g/.test(conn.effectiveType))) actualSize = Math.round(actualSize * 0.6);
+  if (window.znrAhorroDatos?.() || (conn && /2g|3g/.test(conn.effectiveType))) actualSize = Math.round(actualSize * 0.6);
 
   const lh3Match = url.match(/lh3\.googleusercontent\.com\/d\/([-\w]{25,})/);
   if (lh3Match) {

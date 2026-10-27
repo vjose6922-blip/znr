@@ -78,7 +78,7 @@ function preloadPage(pageUrl) {
 if (!pageUrl) return;
 // Precargar páginas que quizá nunca se abran gasta datos: solo en Wi‑Fi/rápida.
 const c = navigator.connection;
-if (!c || c.saveData || c.type === 'cellular' || c.effectiveType !== '4g') return;
+if (!c || window.znrAhorroDatos?.() || c.saveData || c.type === 'cellular' || c.effectiveType !== '4g') return;
 const link = document.createElement('link');
 link.rel = 'prefetch';
 link.href = pageUrl;

@@ -24,6 +24,32 @@
   };
   window.waListo = window.waActualizar();
 
+  // Ahorro de datos: lo activa el usuario en Preferencias o el "Ahorro de datos" del navegador.
+  window.znrAhorroDatos = () => localStorage.getItem('znr_ahorro_datos') === '1' || !!navigator.connection?.saveData;
+  // Aviso breve y no bloqueante (lives e historias). Solo se puede detectar en Android/Chrome;
+  // Safari no expone el tipo de conexión. Máx. una vez por minuto.
+  let ultimoAviso = 0;
+  window.znrAvisoDatosMoviles = () => {
+    if (navigator.connection?.type !== 'cellular' || Date.now() - ultimoAviso < 60000) return;
+    ultimoAviso = Date.now();
+    const t = document.createElement('div');
+    t.setAttribute('role', 'status');
+    t.textContent = window.znrAhorroDatos() ? 'Estás usando datos móviles · Ahorro de datos activo' : 'Estás usando datos móviles';
+    t.style.cssText = 'position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom));transform:translateX(-50%);z-index:2147483647;pointer-events:none;background:rgba(0,0,0,.82);color:#fff;padding:10px 16px;border-radius:999px;font:500 14px system-ui,sans-serif;white-space:nowrap;transition:opacity .4s';
+    document.body.appendChild(t);
+    setTimeout(() => { t.style.opacity = '0'; setTimeout(() => t.remove(), 400); }, 4000);
+  };
+
+  // Historias en ahorro: botón propio para reproducir (por encima de las zonas de "siguiente/anterior").
+  window.znrBotonPlayAhorro = (media, video) => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.textContent = '▶ Ver video';
+    b.style.cssText = 'position:absolute;z-index:4;padding:12px 20px;border:none;border-radius:999px;background:rgba(0,0,0,.7);color:#fff;font:600 15px system-ui,sans-serif;cursor:pointer';
+    b.onclick = e => { e.stopPropagation(); b.remove(); video.play().catch(() => { video.muted = true; video.play().catch(() => {}); }); };
+    media.appendChild(b);
+  };
+
   Object.defineProperties(window, {
     CATALOGO_API_URL:     { get: () => CATALOGO_API_URL,     configurable: false, enumerable: false },
     VENDEDORES_API_URL:   { get: () => VENDEDORES_API_URL,   configurable: false, enumerable: false },

@@ -332,6 +332,12 @@ panel.innerHTML = `
 <button class="up-layout-btn ${layout==='list'?'active':''}" data-layout="list"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" aria-hidden="true"><use href="#ic-list"/></svg> Lista</button>
 <button class="up-layout-btn ${layout==='grid'?'active':''}" data-layout="grid"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" aria-hidden="true"><use href="#ic-grid"/></svg> Cuadrícula</button>
 </div>
+<h3 class="up-section-title" style="margin-top:24px">Ahorro de datos</h3>
+<p class="up-section-hint">Imágenes más ligeras y los videos de historias no se descargan hasta que tocas reproducir.</p>
+<div class="up-theme-row">
+<button class="up-layout-btn up-ahorro-btn ${localStorage.getItem('znr_ahorro_datos')==='1'?'active':''}" data-ahorro="1">Activado</button>
+<button class="up-layout-btn up-ahorro-btn ${localStorage.getItem('znr_ahorro_datos')!=='1'?'active':''}" data-ahorro="0">Desactivado</button>
+</div>
 </section>
 <section class="up-tab-content" data-content="tallas">
 <p class="up-section-hint">Selecciona tu talla en cada sección para ver primero los productos que te quedan.</p>
@@ -517,7 +523,11 @@ btn.classList.add('active');
 applyTheme(btn.dataset.theme);
 });
 });
-panel.querySelectorAll('.up-layout-btn').forEach(btn=>{
+panel.querySelectorAll('.up-ahorro-btn').forEach(btn=>btn.addEventListener('click',()=>{
+localStorage.setItem('znr_ahorro_datos', btn.dataset.ahorro);
+panel.querySelectorAll('.up-ahorro-btn').forEach(b=>b.classList.toggle('active', b===btn));
+}));
+panel.querySelectorAll('.up-layout-btn:not(.up-ahorro-btn)').forEach(btn=>{
 btn.addEventListener('click',()=>{
 const layout = btn.dataset.layout;
 localStorage.setItem('products_layout', layout);
