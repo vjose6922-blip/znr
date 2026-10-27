@@ -520,7 +520,7 @@ function _ppManagePolling(sol) {
   // También al volver del pago de la suscripción (?suscripcion=lista) hasta que el aviso de Stripe la active.
   const debeSeguirEsperando = !!(sol && sol.estado === 'pending') || activandoSuscripcion() || !!(sol && sol.suscripcion && sol.estado !== 'plus_activo');
   if (debeSeguirEsperando && !_ppPollInterval) {
-    _ppPollInterval = setInterval(() => cargar(true), sol && sol.estado === 'pending' ? 20000 : 5000);
+    _ppPollInterval = setInterval(() => !document.hidden && cargar(true), sol && sol.estado === 'pending' ? 20000 : 5000);
   } else if (!debeSeguirEsperando && _ppPollInterval) {
     clearInterval(_ppPollInterval);
     _ppPollInterval = null;
