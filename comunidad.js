@@ -1014,9 +1014,12 @@ function calcularTemporadaActual(products) {
 
 // ── Carruseles (10 artículos c/u). Viven en #comunidad-carruseles y renderProducts los intercala en la cuadrícula ──
 const listasCarrusel = {}; // vista -> lista completa (también la usan los banners automáticos)
+// Referencia fija: cuando el carrusel está dentro de la cuadrícula, el esqueleto de carga (innerHTML) lo saca del documento.
+const wrapsCarrusel = {};
+const wrapCarrusel = v => (wrapsCarrusel[v] ||= document.getElementById(`comunidad-${v}-wrap`));
 function renderCarrusel(vista, lista) {
-  const wrap = document.getElementById(`comunidad-${vista}-wrap`);
-  const track = document.getElementById(`comunidad-${vista}-track`);
+  const wrap = wrapCarrusel(vista);
+  const track = wrap?.querySelector('.carr-track');
   if (!wrap || !track) return;
   listasCarrusel[vista] = lista;
   const top = lista.slice(0, 10);
@@ -1120,7 +1123,7 @@ try {
     return;
   }
   const espera = document.getElementById('comunidad-carruseles');
-  ['ofertas', 'temporada', 'recomendado'].forEach(v => { const w = document.getElementById(`comunidad-${v}-wrap`); if (w) espera.appendChild(w); });
+  ['ofertas', 'temporada', 'recomendado'].forEach(v => wrapCarrusel(v) && espera.appendChild(wrapCarrusel(v)));
   gridContainer.innerHTML = '';
   visibles.forEach(product => {
     const card = createCommunityCard(product);
@@ -1134,7 +1137,7 @@ try {
   if (currentPage === 1 && esVistaComunidadPorDefecto(currentFilters || {})) {
     const cols = getComputedStyle(gridContainer).gridTemplateColumns.split(' ').length || 1;
     [['ofertas', 6], ['temporada', 12], ['recomendado', 18]].forEach(([v, n], k) => { // k: carruseles ya insertados antes
-      gridContainer.insertBefore(document.getElementById(`comunidad-${v}-wrap`), gridContainer.children[Math.ceil(n / cols) * cols + k] || null);
+      if (wrapCarrusel(v)) gridContainer.insertBefore(wrapCarrusel(v), gridContainer.children[Math.ceil(n / cols) * cols + k] || null);
     });
   }
   renderPagination();
