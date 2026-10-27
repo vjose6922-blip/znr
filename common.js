@@ -3347,7 +3347,8 @@ if (window.CacheManager && window.CacheManager.initPreloading) {
 window.CacheManager.initPreloading();
 }
 });
-registerServiceWorker();
+// El SW se registra cuando la página ya cargó, para no competir con la primera carga.
+if (document.readyState === 'complete') registerServiceWorker(); else window.addEventListener('load', registerServiceWorker);
 deferTask(() => {
 startConnectionMonitor();
 });
