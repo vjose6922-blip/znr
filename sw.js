@@ -94,7 +94,7 @@ function getCacheStrategy(request) {
   if (request.destination === 'manifest' || url.pathname.endsWith('/manifest.json')) return 'NETWORK_FIRST_FRESH';
   // La lista de ciudades pesa bastante y casi nunca cambia: se baja una vez y se actualiza en segundo plano
   // (al cambiarla, la versión nueva se ve en la siguiente visita). Sin esto se descargaría completa en cada página.
-  if (url.pathname.endsWith('/ciudades.js')) return 'STALE_WHILE_REVALIDATE';
+  if (/\/ciudades(-extra)?\.js$/.test(url.pathname)) return 'STALE_WHILE_REVALIDATE';
   if (['document','script'].includes(request.destination) && url.origin === self.location.origin) return 'NETWORK_FIRST_FRESH';
   if (request.destination === 'style') return 'STALE_WHILE_REVALIDATE';
   return 'CACHE_FIRST';
