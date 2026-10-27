@@ -7,47 +7,13 @@ const CACHE_NAME    = 'zr-cache';
 const DYNAMIC_CACHE = 'zr-dynamic';
 const OFFLINE_URL   = '/znr/offline.html';
 
+// Solo lo esencial para abrir la app y el modo offline. Las demás páginas se
+// guardan en caché la primera vez que el usuario las visita (antes se bajaban
+// TODAS al instalar, ~1.6 MB aunque nunca se abrieran).
 const STATIC_ASSETS = [
-  '/znr/',
-  '/znr/index.html',
-  '/znr/catalogo.html',
-  '/znr/outfit.html',
-  '/znr/armar-outfit.html',
-  '/znr/comunidad.html',
-  '/znr/perfil-vendedor.html',
-  '/znr/vendedor.html',
-  '/znr/terminos.html',
-  '/znr/privacidad.html',
-  '/znr/mapa.html',
-  '/znr/lives.html',
-  '/znr/entregas-live.html',
-  '/znr/plan-plus.html',
-  '/znr/mp-callback.html',
-  '/znr/vendedor-live.html',
-  '/znr/seguimiento-entrega.html',
-  '/znr/feed-actividad.html',
-  '/znr/comprador-live.html',
-  '/znr/offline.html',
-  '/znr/styles.css',
-  '/znr/motion.css',
-  '/znr/motion.js',
-  '/znr/api-config.js',
-  '/znr/common.js',
-  '/znr/script.js',
-  '/znr/looks.js',
-  '/znr/home.js',
-  '/znr/comunidad.js',
-  '/znr/temporadas.js',
-  '/znr/vendedor-unificado.js',
-  '/znr/historias-vendedor.js',
-  '/znr/cache-manager.js',
-  '/znr/error-monitor.js',
-  '/znr/feedback.js',
-  '/znr/icons.js',
-  '/znr/pagos.js',
-  '/znr/znr-select.js',
-  '/znr/manifest.json',
-  '/znr/placeholder.svg',
+  '/znr/', '/znr/index.html', '/znr/offline.html', '/znr/styles.css',
+  '/znr/api-config.js', '/znr/common.js', '/znr/home.js', '/znr/icons.js',
+  '/znr/cache-manager.js', '/znr/manifest.json', '/znr/placeholder.svg',
 ];
 
 const IMAGE_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.svg'];
@@ -210,15 +176,22 @@ async function networkOnly(request) {
 async function networkFirstFresh(request) {
   const bustUrl = new URL(request.url);
   bustUrl.searchParams.set('_swfresh', Date.now().toString());
+  // Petición condicional: si ya tenemos copia, mandamos su ETag/Last-Modified
+  // y el servidor responde 304 (sin cuerpo) cuando no cambió. Así cada visita
+  // solo revisa que esté al día en vez de re-descargar todo el JS/HTML.
+  const cached = await caches.match(request);
+  const headers = {};
+  if (cached?.headers.get('ETag')) headers['If-None-Match'] = cached.headers.get('ETag');
+  if (cached?.headers.get('Last-Modified')) headers['If-Modified-Since'] = cached.headers.get('Last-Modified');
   try {
-    const net = await fetch(bustUrl.toString(), { cache: 'no-store' });
+    const net = await fetch(bustUrl.toString(), { cache: 'no-store', headers });
+    if (net.status === 304 && cached) return cached;
     if (net?.status === 200) {
       const cache = await caches.open(CACHE_NAME);
       cache.put(request, net.clone());
     }
     return net;
   } catch {
-    const cached = await caches.match(request);
     if (cached) return cached;
     if (request.mode === 'navigate') return caches.match(OFFLINE_URL);
     throw new Error('Offline');
