@@ -79,11 +79,53 @@
  .com-tiles::-webkit-scrollbar { display: none; }
  .bottom-nav-item { flex: 1 1 0; min-width: 0; padding: 8px 2px; }
  .bottom-nav-item span:not(.nav-icon) { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
- #ref-filtros { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 8px 16px; scroll-margin-top: 12px; }
- #ref-filtros .ref-buscar { grid-column: 1 / -1; position: relative; }
- #ref-filtros .ref-buscar svg { position: absolute; left: 14px; top: 12px; color: var(--color-text-muted); pointer-events: none; }
- #ref-filtros :is(input, select) { width: 100%; box-sizing: border-box; padding: 11px 14px; border-radius: 14px; border: 1.5px solid var(--color-border-subtle); background: var(--color-surface, #fff); color: var(--color-text-main); font: inherit; font-size: 14px; }
- #ref-filtros input { padding-left: 40px; }
+ /* Búsqueda + botón de filtros (abre la hoja, igual que en Comunidad) */
+ .ref-buscar { display: flex; gap: 8px; padding: 8px 16px; scroll-margin-top: 12px; position: relative; }
+ .ref-buscar > svg { position: absolute; left: 30px; top: 20px; color: var(--color-text-muted); pointer-events: none; }
+ .ref-buscar input, .filtros-field select { width: 100%; box-sizing: border-box; padding: 11px 14px 11px 40px; border-radius: 14px; border: 1.5px solid var(--color-border-subtle); background: var(--color-surface, #fff); color: var(--color-text-main); font: inherit; font-size: 14px; }
+ .filtros-field select { padding: 12px; font-size: 15px; background: var(--color-surface-2); }
+ .ref-buscar .comunidad-filtros-btn { width: 44px; flex: none; padding: 0; justify-content: center; position: relative; }
+ .ref-buscar .comunidad-filtros-badge { position: absolute; top: -6px; right: -6px; }
+ .comunidad-filtros-btn {
+ display: inline-flex; align-items: center; gap: 8px;
+ padding: 10px 16px; border-radius: 12px; cursor: pointer;
+ border: 1.5px solid var(--color-border-subtle);
+ background: var(--color-surface-2); color: var(--color-text-main);
+ font-size: 14px; font-weight: 600; font-family: inherit;
+ }
+ .comunidad-filtros-btn:active { transform: scale(.97); }
+ .comunidad-filtros-badge {
+ min-width: 20px; height: 20px; padding: 0 6px; border-radius: 10px;
+ background: var(--color-primary); color: #fff; font-size: 11px; font-weight: 700;
+ align-items: center; justify-content: center; line-height: 20px; text-align: center;
+ }
+ .filtros-sheet { position: fixed; inset: 0; z-index: 100001; display: none; }
+ .filtros-sheet.open { display: block; }
+ .filtros-backdrop { position: absolute; inset: 0; background: rgba(0,0,0,.45); animation: filtrosFade .2s ease; }
+ .filtros-panel {
+ position: absolute; left: 0; right: 0; bottom: 0; margin: 0 auto; max-width: 520px;
+ background: var(--color-surface, #fff); color: var(--color-text-main);
+ border-radius: 20px 20px 0 0; max-height: 85vh; display: flex; flex-direction: column;
+ box-shadow: 0 -10px 40px rgba(0,0,0,.25); animation: filtrosUp .25s ease;
+ padding-bottom: env(safe-area-inset-bottom, 0px);
+ }
+ .filtros-handle { width: 40px; height: 4px; border-radius: 2px; background: var(--color-border-subtle, #ccc); margin: 10px auto 0; }
+ .filtros-head { display: flex; align-items: center; justify-content: space-between; padding: 8px 20px 4px; }
+ .filtros-head h3 { margin: 0; font-size: 18px; }
+ .filtros-cerrar { border: none; background: var(--color-surface-2); color: var(--color-text-main); width: 34px; height: 34px; border-radius: 50%; font-size: 22px; line-height: 1; cursor: pointer; }
+ .filtros-body { padding: 8px 20px 12px; overflow-y: auto; display: flex; flex-direction: column; gap: 14px; }
+ .filtros-field { display: flex; flex-direction: column; gap: 6px; }
+ .filtros-field > span { font-size: 12px; font-weight: 600; color: var(--color-text-muted); }
+ .filtros-field .comunidad-cat-select { flex: none; width: 100%; font-size: 15px; padding: 12px; }
+ .filtros-foot { display: flex; gap: 10px; padding: 12px 20px 16px; border-top: 1px solid var(--color-border-subtle); }
+ .filtros-btn { flex: 1; padding: 13px; border-radius: 12px; font-size: 15px; font-weight: 700; font-family: inherit; cursor: pointer; border: 1.5px solid transparent; }
+ .filtros-btn-sec { background: transparent; border-color: var(--color-border-subtle); color: var(--color-text-main); flex: 0 0 34%; }
+ .filtros-btn-pri { background: var(--color-primary); color: #fff; }
+
+ @keyframes filtrosUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+ @keyframes filtrosFade { from { opacity: 0; } to { opacity: 1; } }
+ @media (min-width: 700px) { .filtros-panel { bottom: auto; top: 50%; transform: translateY(-50%); border-radius: 20px; animation: filtrosFade .2s ease; } }
+ @media (prefers-reduced-motion: reduce) { .filtros-panel, .filtros-backdrop { animation: none; } }
  .ref-barra { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 4px 16px 0; }
  .ref-barra h2 { margin: 0; font-size: 16px; } .ref-barra small { color: var(--color-text-muted); font-weight: 500; margin-left: 6px; }
  .ref-acciones { display: flex; gap: 8px; padding: 4px 16px 0; }
@@ -144,10 +186,26 @@
   <button type="button" id="btn-registrar"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" aria-hidden="true"><use href="#ic-plus"/></svg>Registrar refugio</button>
  </div>
 
- <div id="ref-filtros">
-  <label class="ref-buscar"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" aria-hidden="true"><use href="#ic-search"/></svg><input type="search" id="f-texto" placeholder="Buscar por nombre o propietario" aria-label="Buscar por nombre o propietario" autocomplete="off"></label>
-  <select id="f-pais" aria-label="País"><option value="">Todos los países</option></select>
-  <select id="f-ciudad" aria-label="Ciudad"><option value="">Todas las ciudades</option></select>
+ <div class="ref-buscar" id="ref-filtros">
+  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" aria-hidden="true"><use href="#ic-search"/></svg>
+  <input type="search" id="f-texto" placeholder="Buscar por refugio o propietario" aria-label="Buscar por refugio o propietario" autocomplete="off">
+  <button type="button" id="btn-filtros" class="comunidad-filtros-btn" aria-haspopup="dialog" aria-label="Filtros">
+   <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/><circle cx="9" cy="6" r="2.2" fill="var(--color-surface-2,#fff)"/><circle cx="15" cy="12" r="2.2" fill="var(--color-surface-2,#fff)"/><circle cx="8" cy="18" r="2.2" fill="var(--color-surface-2,#fff)"/></svg>
+   <span id="filtros-badge" class="comunidad-filtros-badge" style="display:none">0</span>
+  </button>
+ </div>
+
+ <div id="ref-filtros-sheet" class="filtros-sheet" role="dialog" aria-modal="true" aria-labelledby="filtros-titulo">
+  <div class="filtros-backdrop" data-cerrar-filtros></div>
+  <div class="filtros-panel">
+   <div class="filtros-handle" aria-hidden="true"></div>
+   <div class="filtros-head"><h3 id="filtros-titulo">Filtros</h3><button type="button" class="filtros-cerrar" data-cerrar-filtros aria-label="Cerrar filtros">&times;</button></div>
+   <div class="filtros-body">
+    <label class="filtros-field"><span>País</span><select id="f-pais"><option value="">Todos los países</option></select></label>
+    <label class="filtros-field"><span>Ciudad</span><select id="f-ciudad"><option value="">Todas las ciudades</option></select></label>
+   </div>
+   <div class="filtros-foot"><button type="button" id="filtros-limpiar" class="filtros-btn filtros-btn-sec">Limpiar</button><button type="button" class="filtros-btn filtros-btn-pri" data-cerrar-filtros>Ver resultados</button></div>
+  </div>
  </div>
 
  <div class="ref-barra"><h2>Refugios y fundaciones<small id="ref-total"></small></h2></div>

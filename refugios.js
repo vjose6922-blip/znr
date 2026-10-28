@@ -6,6 +6,7 @@
   const norm = (s) => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
   const foto = (b, size = 300) => (b.imagen1 ? (window.optimizeDriveUrl || ((u) => u))(b.imagen1, size) : '');
   let todos = [], miCiudad = '';
+  const nombreRefugio = (b) => b.organizacion || b.nombre; // organizacion = refugio, nombre = propietario
   const fuera = (b) => !!(b.ciudad && miCiudad && b.ciudad !== miCiudad); // solo se dona a refugios de tu ciudad
 
   // ── Filtros: país → ciudad (opciones según los refugios que existen) + texto (nombre o propietario) ──
@@ -22,17 +23,19 @@
   function tarjeta(b) {
     const f = foto(b), out = fuera(b);
     return `<div class="ref-card" data-ben-id="${esc(b.id)}">
-      <div class="ref-foto">${f ? `<img src="${esc(f)}" alt="${esc(b.nombre)}" loading="lazy">` : Icon('heart-fill', { size: 32 })}</div>
-      <div class="ref-info"><b>${esc(b.nombre)}</b>${b.organizacion ? `<span>${esc(b.organizacion)}</span>` : ''}
+      <div class="ref-foto">${f ? `<img src="${esc(f)}" alt="${esc(nombreRefugio(b))}" loading="lazy">` : Icon('heart-fill', { size: 32 })}</div>
+      <div class="ref-info"><b>${esc(nombreRefugio(b))}</b>${b.organizacion && b.nombre ? `<span>${esc(b.nombre)}</span>` : ''}
         ${b.ciudad || b.ubicacion ? `<small>${Icon('map-pin', { size: 12 })} ${esc(b.ciudad || b.ubicacion)}</small>` : ''}
         <button type="button" class="ref-btn${out ? ' fuera' : ''}" data-donar="${esc(b.id)}">${out ? `${Icon('map-pin', { size: 12 })} Fuera de tu ciudad` : `${Icon('heart-fill', { size: 12 })} Donar artículo`}</button></div></div>`;
   }
   function pintar() {
     const lista = filtrados().sort((a, b) => fuera(a) - fuera(b)); // primero los de tu ciudad
     $('ref-total').textContent = `${lista.length} ${lista.length === 1 ? 'refugio' : 'refugios'}`;
+    const activos = [$('f-pais').value, $('f-ciudad').value].filter(Boolean).length;
+    $('filtros-badge').textContent = activos; $('filtros-badge').style.display = activos ? 'inline-flex' : 'none';
     $('ref-grid').innerHTML = lista.length ? lista.map(tarjeta).join('') : '<p class="ref-vacio">No hay refugios con estos filtros.</p>';
   }
-  const donar = (b) => (fuera(b) ? window.openBeneficiarioModal?.(b.id) : window.openDonarARefugioModal?.({ id: b.id, nombre: b.nombre }));
+  const donar = (b) => (fuera(b) ? window.openBeneficiarioModal?.(b.id) : window.openDonarARefugioModal?.({ id: b.id, nombre: nombreRefugio(b) }));
 
   // ── Banners (mismo estilo que los automáticos de Comunidad) ──
   function pintarBanners(conDonados) {
@@ -65,7 +68,7 @@
       <h3>¿A quién dono?</h3><div class="ruleta-ventana"><div class="ruleta-item"></div></div><div class="ruleta-acciones"></div></div>`;
     document.body.appendChild(m);
     const item = m.querySelector('.ruleta-item'), acciones = m.querySelector('.ruleta-acciones');
-    const mostrar = (b) => { const f = foto(b, 200); item.innerHTML = `<div class="ruleta-foto">${f ? `<img src="${esc(f)}" alt="">` : Icon('heart-fill', { size: 40 })}</div><b>${esc(b.nombre)}</b><span>${esc(b.organizacion || b.ciudad || '')}</span>`; };
+    const mostrar = (b) => { const f = foto(b, 200); item.innerHTML = `<div class="ruleta-foto">${f ? `<img src="${esc(f)}" alt="">` : Icon('heart-fill', { size: 40 })}</div><b>${esc(nombreRefugio(b))}</b><span>${esc(b.organizacion ? b.nombre : b.ciudad || '')}</span>`; };
     const cerrar = () => m.remove();
     m.onclick = (e) => { if (e.target === m || e.target.closest('.ruleta-x')) cerrar(); };
     const girar = () => {
@@ -106,6 +109,10 @@
   $('f-ciudad').onchange = pintar;
   $('f-texto').oninput = pintar;
   $('btn-ruleta').onclick = ruleta;
+  const hoja = $('ref-filtros-sheet');
+  $('btn-filtros').onclick = () => hoja.classList.add('open');
+  hoja.addEventListener('click', (e) => e.target.closest('[data-cerrar-filtros]') && hoja.classList.remove('open'));
+  $('filtros-limpiar').onclick = () => { $('f-pais').value = ''; pintarCiudades(''); pintar(); };
   $('btn-registrar').onclick = () => window.openBeneficiarioRegister?.();
 
   async function iniciar() {
