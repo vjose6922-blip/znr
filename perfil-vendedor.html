@@ -8,8 +8,6 @@
  script-src 'self' 'unsafe-inline' https://www.gstatic.com https://apis.google.com;
  style-src 'self' 'unsafe-inline';
  img-src 'self' data: blob:
-        https://lh3.googleusercontent.com
-        https://drive.google.com
         https://placehold.co
         https://via.placeholder.com
         https://firebasestorage.googleapis.com
@@ -49,8 +47,6 @@
  <script src="error-bootstrap.js"></script>
 
   <title>Perfil de Vendedor - Z&R</title>
-  <link rel="preconnect" href="https://lh3.googleusercontent.com" crossorigin>
-  <link rel="dns-prefetch" href="https://lh3.googleusercontent.com">
   <script>document.documentElement.dataset.theme = localStorage.getItem('theme') || 'light';</script>
 <link rel="preload" href="styles.css" as="style">
   <link rel="stylesheet" href="styles.css" />
@@ -976,16 +972,6 @@
         return '$' + Number(value).toLocaleString('es-MX', { minimumFractionDigits: 0 });
       }
 
-      function optimizeDriveUrl(url, size) {
-        if (!url) return '';
-        const match = url.match(/[-\w]{25,}/);
-        if (match) {
-          const id = match[0];
-          const sz = size || 400;
-          return `https://drive.google.com/thumbnail?id=${id}&sz=w${sz}`;
-        }
-        return url;
-      }
 
       function digitsOnly(str) {
         return String(str || '').replace(/\D/g, '');
@@ -1066,7 +1052,7 @@ async function cargarBeneficiariosAprobados() {
 
           const imgs = [ben.imagen1, ben.imagen2, ben.imagen3].filter(Boolean);
           const bodyHtml = `
-            ${imgs.length ? `<div style="display:flex;gap:8px;overflow-x:auto;margin-bottom:10px;">${imgs.map(u => `<img src="${esc(optimizeDriveUrl(u, 200))}" style="height:90px;border-radius:10px;object-fit:cover;flex-shrink:0;">`).join('')}</div>` : ''}
+            ${imgs.length ? `<div style="display:flex;gap:8px;overflow-x:auto;margin-bottom:10px;">${imgs.map(u => `<img src="${esc(u)}" style="height:90px;border-radius:10px;object-fit:cover;flex-shrink:0;">`).join('')}</div>` : ''}
             ${ben.organizacion ? `<p style="margin:0 0 6px;font-weight:700;">${esc(ben.organizacion)}</p>` : ''}
             ${ben.ubicacion ? `<div class="acc-body-row">${Icon('map-pin')} ${esc(ben.ubicacion)}</div>` : ''}
             ${ben.historia ? `<p style="margin:8px 0;font-size:.85rem;line-height:1.6;">${esc(ben.historia)}</p>` : ''}
@@ -1127,7 +1113,7 @@ async function cargarBeneficiariosAprobados() {
 
         // Logo o iniciales
         const avatarHtml = v.logo
-          ? `<img src="${esc(optimizeDriveUrl(v.logo, 200))}" alt="${esc(v.nombre)}" loading="lazy">`
+          ? `<img src="${esc(v.logo)}" alt="${esc(v.nombre)}" loading="lazy">`
           : `<div class="initials">${esc(initials)}</div>`;
 
         // Fecha de registro
@@ -1314,8 +1300,8 @@ const infoBits = [
 }
 
         function buildProductCardHtml(p, idx) {
-          const img = p.imagen1 ? optimizeDriveUrl(p.imagen1, 400) : 'https://placehold.co/200x200/3b1f5f/white?text=Sin+Imagen';
-          const allImages = [p.imagen1, p.imagen2, p.imagen3].filter(Boolean).map(u => optimizeDriveUrl(u, 400));
+          const img = p.imagen1 || 'https://placehold.co/200x200/3b1f5f/white?text=Sin+Imagen';
+          const allImages = [p.imagen1, p.imagen2, p.imagen3].filter(Boolean);
           const stock = Number(p.stock || 0);
           const esPersonal = p.tipoVenta === 'personalizado';
           const diasElab = Number(p.tiempoElaboracionDias) || 0;
@@ -1633,8 +1619,8 @@ const infoBits = [
               const p = productos.find(pp => String(pp.id) === wrap.dataset.id);
               if (!p) return;
               const esDonado = p.donado === true || p.donado === 'TRUE' || p.donado === 'true';
-              const imgUrl = p.imagen1 ? optimizeDriveUrl(p.imagen1, 800) : 'https://placehold.co/600x600/3b1f5f/white?text=Sin+Imagen';
-              const allImages = [p.imagen1, p.imagen2, p.imagen3].filter(Boolean).map(u => optimizeDriveUrl(u, 800));
+              const imgUrl = p.imagen1 || 'https://placehold.co/600x600/3b1f5f/white?text=Sin+Imagen';
+              const allImages = [p.imagen1, p.imagen2, p.imagen3].filter(Boolean);
               const productData = {
                 ID: p.id,
                 Nombre: p.nombre || '',
@@ -1794,8 +1780,8 @@ Badge: p.badge || '',
           const p = productos.find(pp => String(pp.id) === String(id));
           if (!p || typeof window.openImageModal !== 'function') return;
           const esDonado = p.donado === true || p.donado === 'TRUE' || p.donado === 'true';
-          const imgUrl = p.imagen1 ? optimizeDriveUrl(p.imagen1, 800) : 'https://placehold.co/600x600/3b1f5f/white?text=Sin+Imagen';
-          const allImages = [p.imagen1, p.imagen2, p.imagen3].filter(Boolean).map(u => optimizeDriveUrl(u, 800));
+          const imgUrl = p.imagen1 || 'https://placehold.co/600x600/3b1f5f/white?text=Sin+Imagen';
+          const allImages = [p.imagen1, p.imagen2, p.imagen3].filter(Boolean);
           window.openImageModal(imgUrl, p.id, allImages, {
             ID: p.id,
             Nombre: p.nombre || '',

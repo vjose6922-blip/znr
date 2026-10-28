@@ -924,7 +924,7 @@ function createVendorProductCard(product) {
   track.className = "product-slider-track";
 
   const images = [imagen1, imagen2, imagen3]
-    .map(u => u ? (typeof optimizeDriveUrl === 'function' ? optimizeDriveUrl(u) : u) : null)
+    .map(u => u || null)
     .filter(Boolean);
   if (images.length === 0) {
     images.push("https://placehold.co/400x400/3b1f5f/white?text=Sin+Imagen");
@@ -1590,7 +1590,7 @@ async function uploadSingleImage(file) {
     });
     const result = await res.json();
     if (!result.ok) throw new Error(result.error || 'Error al subir imagen');
-    return result.url || `https://drive.google.com/file/d/${result.id}/view`;
+    return result.url;
 }
 
 function fileToBase64(file) {
@@ -3252,7 +3252,7 @@ window.openDonarProductosModal = async function(productoId) {
   const esc = s => String(s||'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   let imgUrl = null;
 if (prod.imagen1) {
-  imgUrl = typeof optimizeDriveUrl === 'function' ? optimizeDriveUrl(prod.imagen1, 56) : prod.imagen1;
+  imgUrl = prod.imagen1;
 }
 
   const old = document.getElementById('modal-donar-productos');
@@ -3435,7 +3435,7 @@ window.renderGestionarLista = function(lista, productos, page, totalPages, total
             ? '<p style="color:#aaa;text-align:center;padding:24px 0;">No tienes productos en Comunidad.<br><small>Publica uno primero desde el formulario.</small></p>'
             : productos.map(p => {
                 const donado = p.donado === true || p.donado === 'TRUE' || p.donado === 'true';
-                const imgUrl = p.imagen1 ? (typeof optimizeDriveUrl === 'function' ? optimizeDriveUrl(p.imagen1, 48) : p.imagen1) : '';
+                const imgUrl = p.imagen1 || '';
                 return `<div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid #f5f5f5;">
                   ${imgUrl ? `<img src="${esc(imgUrl)}" onerror="this.replaceWith(Object.assign(document.createElement('div'),{style:'width:44px;height:44px;background:#f5f5f8;border-radius:8px;flex-shrink:0;'}))" style="width:44px;height:44px;object-fit:cover;border-radius:8px;flex-shrink:0;">` : `<div style="width:44px;height:44px;background:#f5f5f8;border-radius:8px;flex-shrink:0;"></div>`}
                   <div style="flex:1;min-width:0;">

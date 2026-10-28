@@ -4,7 +4,7 @@
   const $ = (id) => document.getElementById(id);
   const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const norm = (s) => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
-  const foto = (b, size = 300) => (b.imagen1 ? (window.optimizeDriveUrl || ((u) => u))(b.imagen1, size) : '');
+  const foto = (b) => b.imagen1 || '';
   let todos = [], miCiudad = '';
   const nombreRefugio = (b) => b.organizacion || b.nombre; // organizacion = refugio, nombre = propietario
   const fuera = (b) => !!(b.ciudad && miCiudad && b.ciudad !== miCiudad); // solo se dona a refugios de tu ciudad

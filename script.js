@@ -600,7 +600,7 @@ const track = document.createElement("div");
 track.className = "product-slider-track";
 const images = [Imagen1, Imagen2, Imagen3]
 .filter(Boolean)
-.map(u => optimizeDriveUrl(u));
+.map(u => urlImagen(u));
 if (images.length === 0) {
 images.push("https://placehold.co/400x400/3b1f5f/white?text=Sin+Imagen");
 }
@@ -775,7 +775,7 @@ if (!product) {
 }
 initialHashHandled = true;
 const { ID, Imagen1, Imagen2, Imagen3 } = product;
-const images = [Imagen1, Imagen2, Imagen3].filter(Boolean).map(u => optimizeDriveUrl(u));
+const images = [Imagen1, Imagen2, Imagen3].filter(Boolean).map(u => urlImagen(u));
 const url = images[0] || "https://placehold.co/400x400/3b1f5f/white?text=Sin+Imagen";
 openImageModal(url, ID, images.length ? images : [url], product);
 }
