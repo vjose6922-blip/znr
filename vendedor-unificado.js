@@ -1,4 +1,28 @@
 (function() {
+// Reduce una foto a 800 px como máx. (WebP/JPEG). Aquí arriba para que la usen productos y la edición de fundación.
+async function compressImage(file) {
+return new Promise((resolve) => {
+const MAX = 800;
+const QUALITY = 0.82;
+const img = new Image();
+const url = URL.createObjectURL(file);
+img.onload = () => {
+URL.revokeObjectURL(url);
+let { width: w, height: h } = img;
+if (w > MAX || h > MAX) {
+if (w > h) { h = Math.round(h * MAX / w); w = MAX; }
+else        { w = Math.round(w * MAX / h); h = MAX; }
+}
+const canvas = document.createElement('canvas');
+canvas.width = w; canvas.height = h;
+canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+const mime = canvas.toDataURL('image/webp').startsWith('data:image/webp') ? 'image/webp' : 'image/jpeg';
+canvas.toBlob(blob => resolve(blob || file), mime, QUALITY);
+};
+img.onerror = () => resolve(file);
+img.src = url;
+});
+}
 'use strict';
 
 // ──────────────────────────────────────────────
@@ -1479,29 +1503,6 @@ window.__photoSheetPick = function(choice) {
 };
 };
 
-async function compressImage(file) {
-return new Promise((resolve) => {
-const MAX = 800;
-const QUALITY = 0.82;
-const img = new Image();
-const url = URL.createObjectURL(file);
-img.onload = () => {
-URL.revokeObjectURL(url);
-let { width: w, height: h } = img;
-if (w > MAX || h > MAX) {
-if (w > h) { h = Math.round(h * MAX / w); w = MAX; }
-else        { w = Math.round(w * MAX / h); h = MAX; }
-}
-const canvas = document.createElement('canvas');
-canvas.width = w; canvas.height = h;
-canvas.getContext('2d').drawImage(img, 0, 0, w, h);
-const mime = canvas.toDataURL('image/webp').startsWith('data:image/webp') ? 'image/webp' : 'image/jpeg';
-canvas.toBlob(blob => resolve(blob || file), mime, QUALITY);
-};
-img.onerror = () => resolve(file);
-img.src = url;
-});
-}
 
 window.handleFileSelect = async function(n, input) {
     const files = Array.from(input.files || []).slice(0, 4 - n);   // máx. hasta el slot 3
