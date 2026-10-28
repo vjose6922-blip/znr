@@ -320,8 +320,9 @@ if (tel.length !== 10) return showMsg('El WhatsApp debe tener 10 dígitos.', fal
 // ── Modal: Ver detalle de beneficiario ──────────────────────
 // Estilo del modal (acomodo tipo tarjeta, colores cálidos: crema, café, amarillo y degradado naranja-rosa).
 const BEN_CSS = `
-#modal-beneficiario-detalle .bm-caja { background:#fffaf2; color:#5b2e0e; border-radius:24px 24px 0 0; width:100%; max-width:560px; max-height:94vh; overflow-y:auto; padding:18px 18px 26px; box-sizing:border-box; }
-.bm-head { display:flex; align-items:center; gap:10px; margin-bottom:14px; }
+#modal-beneficiario-detalle .bm-caja { background:#fffaf2; color:#5b2e0e; width:100%; height:100%; overflow-y:auto; padding:calc(14px + env(safe-area-inset-top)) 18px calc(26px + env(safe-area-inset-bottom)); box-sizing:border-box; }
+#modal-beneficiario-detalle .bm-caja > * { max-width:560px; margin-left:auto; margin-right:auto; } /* pantalla completa; contenido centrado en escritorio */
+.bm-head { position:sticky; top:calc(-14px - env(safe-area-inset-top)); z-index:2; display:flex; align-items:center; gap:10px; margin-bottom:14px; padding:10px 0; background:#fffaf2; }
 .bm-head h2 { margin:0; flex:1; font-size:1.15rem; font-weight:800; }
 .bm-ico { width:40px; height:40px; border-radius:50%; background:#ffe1e6; color:#f0566f; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
 .bm-x { background:none; border:none; color:#b07a5a; cursor:pointer; padding:4px; }
@@ -363,7 +364,7 @@ window.openBeneficiarioModal = async function(beneficiarioId) {
   document.getElementById('modal-beneficiario-detalle')?.remove();
   const modal = document.createElement('div');
   modal.id = 'modal-beneficiario-detalle';
-  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.6);backdrop-filter:blur(4px);z-index:99999;display:flex;align-items:flex-end;justify-content:center;';
+  modal.style.cssText = 'position:fixed;inset:0;z-index:99999;display:flex;';
   modal.innerHTML = `<style>${BEN_CSS}</style><div class="bm-caja">
       <div class="bm-head"><span class="bm-ico">${Icon('heart-fill', { size: 20 })}</span><h2>Beneficiario</h2>
         <button id="btn-report-ben" class="bm-x" title="Reportar">${Icon('flag', { size: 18 })}</button>
