@@ -43,6 +43,7 @@
  child-src 'self' blob:;
 ">
  <script src="error-bootstrap.js"></script>
+ <script>if (new URLSearchParams(location.search).get('ver') === 'refugios') location.replace('refugios.html'); // enlaces viejos</script>
 
  <title>Z&R · Comunidad de vendedores</title>
  <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -576,12 +577,6 @@
 
  <div id="comunidad-pagination" class="comunidad-pagination admin-pagination"></div>
 
- <div id="comunidad-beneficiarios-wrap" style="display:none;">
- <h2 style="margin:0;padding:4px 16px 0;font-size:16px;">Refugios y fundaciones</h2>
- <div id="comunidad-beneficiarios-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;padding:12px 16px;">
- <div style="grid-column:1/-1; text-align:center; padding:40px;">Cargando fundaciones...</div>
- </div>
- </div>
  </div>
 
 <footer class="app-footer" style="margin-bottom: 70px;">
@@ -657,9 +652,9 @@
  <span>Outfits</span>
  </button>
  
- <button class="bottom-nav-item" id="btn-ver-fundaciones">
+ <button class="bottom-nav-item" id="nav-donar">
  <span class="nav-icon"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" aria-hidden="true"><use href="#ic-hand-heart"/></svg></span>
- <span class="nav-donar-t">Donar</span>
+ <span>Donar</span>
  </button>
 
  <button class="bottom-nav-item" data-page="vendedor" id="nav-vendedor">
@@ -763,6 +758,7 @@
  <script src="ciudades.js" defer></script>
  <script src="temporadas.js" defer></script>
  <script src="banner-temporada.js" defer></script>
+ <script src="beneficiarios.js" defer></script>
  <script src="comunidad.js" defer></script>
  <script type="module" src="ai-busqueda-visual.js"></script>
  <script>
@@ -779,6 +775,7 @@
  document.getElementById('nav-catalogo')?.addEventListener('click', () => { window.location.href = 'catalogo.html'; });
  document.getElementById('nav-outfit')?.addEventListener('click', () => { window.location.href = 'outfit.html'; });
  document.getElementById('nav-vendedor')?.addEventListener('click', () => { window.location.href = 'vendedor.html'; });
+ document.getElementById('nav-donar')?.addEventListener('click', () => { window.location.href = 'refugios.html'; });
  document.getElementById('nav-cart')?.addEventListener('click', (e) => {
  e.preventDefault();
  if (typeof openCartDrawer === 'function') openCartDrawer();

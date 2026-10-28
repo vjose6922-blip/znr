@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="Content-Security-Policy" content="
+ default-src 'self';
+ script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' https://www.gstatic.com https://apis.google.com https://cdn.jsdelivr.net https://*.googleapis.com;
+ style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://*.googleapis.com;
+ img-src 'self' data: blob:
+        https://lh3.googleusercontent.com
+        https://drive.google.com
+        https://placehold.co
+        https://via.placeholder.com
+        https://*.googleusercontent.com
+        https://firebasestorage.googleapis.com
+        https://*.firebasestorage.app
+        https://storage.googleapis.com ;
+ connect-src 'self' 
+   https://catalogo-api-1038143238323.us-central1.run.app 
+   https://wttr.in 
+   https://www.gstatic.com 
+   https://firebaseinstallations.googleapis.com 
+   https://fcmregistrations.googleapis.com 
+   https://registrar-token-fcm-1038143238323.us-central1.run.app 
+   https://ventas-api-1038143238323.us-central1.run.app https://pedidos-api-1038143238323.us-central1.run.app https://vendedores-api-1038143238323.us-central1.run.app https://auth-api-1038143238323.us-central1.run.app 
+   https://live-api-1038143238323.us-central1.run.app 
+   https://beneficiarios-api-1038143238323.us-central1.run.app 
+   https://firebase.googleapis.com 
+   https://firestore.googleapis.com 
+   https://identitytoolkit.googleapis.com 
+   https://securetoken.googleapis.com 
+   https://znr-live-default-rtdb.firebaseio.com 
+   https://nominatim.openstreetmap.org 
+   https://*.algolia.net 
+   https://*.algolianet.com 
+   https://cdn.jsdelivr.net
+   https://*.firebaseio.com https://admin-api-1038143238323.us-central1.run.app https://tienda-znr-api-1038143238323.us-central1.run.app ;
+ font-src 'self' https://www.gstatic.com https://cdn.jsdelivr.net;
+ frame-src 'none';
+ object-src 'none';
+ base-uri 'self';
+ worker-src 'self' blob:;
+ child-src 'self' blob:;
+">
+ <script src="error-bootstrap.js"></script>
+
+ <title>Z&R · Refugios y fundaciones</title>
+ <meta name="viewport" content="width=device-width, initial-scale=1">
+ <meta name="description" content="Descubre productos de vendedores locales en Z&R Comunidad">
+ <link rel="preconnect" href="https://lh3.googleusercontent.com" crossorigin>
+ <link rel="dns-prefetch" href="https://lh3.googleusercontent.com">
+ <script>document.documentElement.dataset.theme = localStorage.getItem('theme') || 'light';</script>
+<link rel="preload" href="styles.css" as="style">
+ <link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="motion.css">
+<script>if (!matchMedia('(prefers-reduced-motion: reduce)').matches && 'IntersectionObserver' in window) document.documentElement.classList.add('m-on');</script>
+<script src="motion.js" defer></script>
+ <link rel="manifest" href="manifest.json">
+ <meta name="theme-color" content="#1e2128">
+ 
+ <link rel="icon" type="image/png" sizes="32x32" href="icons/icon-32x32.png">
+ <link rel="icon" type="image/png" sizes="16x16" href="icons/icon-16x16.png">
+ <link rel="shortcut icon" href="icons/favicon.ico">
+ 
+ <link rel="apple-touch-icon" sizes="152x152" href="icons/icon-152x152.png">
+ <link rel="apple-touch-icon" sizes="120x120" href="icons/icon-120x120.png">
+ <meta name="apple-mobile-web-app-capable" content="yes">
+ <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+ <meta name="apple-mobile-web-app-title" content="Z&R">
+ 
+ <meta name="mobile-web-app-capable" content="yes">
+ 
+ <meta name="msapplication-TileImage" content="icons/icon-144x144.png">
+ <meta name="msapplication-TileColor" content="#1e2128">
+<style>
+ .community-hero { padding: 6px 16px 0; margin-bottom: 8px; }
+ .community-hero .m-hero { margin: 0 0 4px; }
+ .com-tiles { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; overscroll-behavior-x: contain; scrollbar-width: none; }
+ .com-tiles::-webkit-scrollbar { display: none; }
+ .bottom-nav-item { flex: 1 1 0; min-width: 0; padding: 8px 2px; }
+ .bottom-nav-item span:not(.nav-icon) { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+ /* Búsqueda + botón de filtros (abre la hoja, igual que en Comunidad) */
+ .ref-buscar { display: flex; gap: 8px; padding: 8px 16px; scroll-margin-top: 12px; position: relative; }
+ .ref-buscar > svg { position: absolute; left: 30px; top: 20px; color: var(--color-text-muted); pointer-events: none; }
+ .ref-buscar input, .filtros-field select { width: 100%; box-sizing: border-box; padding: 11px 14px 11px 40px; border-radius: 14px; border: 1.5px solid var(--color-border-subtle); background: var(--color-surface, #fff); color: var(--color-text-main); font: inherit; font-size: 14px; }
+ .filtros-field select { padding: 12px; font-size: 15px; background: var(--color-surface-2); }
+ .ref-buscar .comunidad-filtros-btn { width: 44px; flex: none; padding: 0; justify-content: center; position: relative; }
+ .ref-buscar .comunidad-filtros-badge { position: absolute; top: -6px; right: -6px; }
+ .comunidad-filtros-btn {
+ display: inline-flex; align-items: center; gap: 8px;
+ padding: 10px 16px; border-radius: 12px; cursor: pointer;
+ border: 1.5px solid var(--color-border-subtle);
+ background: var(--color-surface-2); color: var(--color-text-main);
+ font-size: 14px; font-weight: 600; font-family: inherit;
+ }
+ .comunidad-filtros-btn:active { transform: scale(.97); }
+ .comunidad-filtros-badge {
+ min-width: 20px; height: 20px; padding: 0 6px; border-radius: 10px;
+ background: var(--color-primary); color: #fff; font-size: 11px; font-weight: 700;
+ align-items: center; justify-content: center; line-height: 20px; text-align: center;
+ }
+ .filtros-sheet { position: fixed; inset: 0; z-index: 100001; display: none; }
+ .filtros-sheet.open { display: block; }
+ .filtros-backdrop { position: absolute; inset: 0; background: rgba(0,0,0,.45); animation: filtrosFade .2s ease; }
+ .filtros-panel {
+ position: absolute; left: 0; right: 0; bottom: 0; margin: 0 auto; max-width: 520px;
+ background: var(--color-surface, #fff); color: var(--color-text-main);
+ border-radius: 20px 20px 0 0; max-height: 85vh; display: flex; flex-direction: column;
+ box-shadow: 0 -10px 40px rgba(0,0,0,.25); animation: filtrosUp .25s ease;
+ padding-bottom: env(safe-area-inset-bottom, 0px);
+ }
+ .filtros-handle { width: 40px; height: 4px; border-radius: 2px; background: var(--color-border-subtle, #ccc); margin: 10px auto 0; }
+ .filtros-head { display: flex; align-items: center; justify-content: space-between; padding: 8px 20px 4px; }
+ .filtros-head h3 { margin: 0; font-size: 18px; }
+ .filtros-cerrar { border: none; background: var(--color-surface-2); color: var(--color-text-main); width: 34px; height: 34px; border-radius: 50%; font-size: 22px; line-height: 1; cursor: pointer; }
+ .filtros-body { padding: 8px 20px 12px; overflow-y: auto; display: flex; flex-direction: column; gap: 14px; }
+ .filtros-field { display: flex; flex-direction: column; gap: 6px; }
+ .filtros-field > span { font-size: 12px; font-weight: 600; color: var(--color-text-muted); }
+ .filtros-field .comunidad-cat-select { flex: none; width: 100%; font-size: 15px; padding: 12px; }
+ .filtros-foot { display: flex; gap: 10px; padding: 12px 20px 16px; border-top: 1px solid var(--color-border-subtle); }
+ .filtros-btn { flex: 1; padding: 13px; border-radius: 12px; font-size: 15px; font-weight: 700; font-family: inherit; cursor: pointer; border: 1.5px solid transparent; }
+ .filtros-btn-sec { background: transparent; border-color: var(--color-border-subtle); color: var(--color-text-main); flex: 0 0 34%; }
+ .filtros-btn-pri { background: var(--color-primary); color: #fff; }
+
+ @keyframes filtrosUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+ @keyframes filtrosFade { from { opacity: 0; } to { opacity: 1; } }
+ @media (min-width: 700px) { .filtros-panel { bottom: auto; top: 50%; transform: translateY(-50%); border-radius: 20px; animation: filtrosFade .2s ease; } }
+ @media (prefers-reduced-motion: reduce) { .filtros-panel, .filtros-backdrop { animation: none; } }
+ .ref-barra { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 4px 16px 0; }
+ .ref-barra h2 { margin: 0; font-size: 16px; } .ref-barra small { color: var(--color-text-muted); font-weight: 500; margin-left: 6px; }
+ .ref-acciones { display: flex; gap: 8px; padding: 4px 16px 0; }
+ .ref-acciones button { flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 11px; border-radius: 40px; font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; border: 1.5px solid var(--color-border-subtle); background: var(--color-surface-2); color: var(--color-text-main); }
+ .ref-acciones #btn-ruleta { border: none; color: #fff; background: linear-gradient(135deg, #0f9b8e, #3ab0e2); box-shadow: 0 8px 18px rgba(15,155,142,.3); }
+ #ref-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; padding: 12px 16px 90px; }
+ .ref-card { background: var(--color-surface, #fff); border-radius: 16px; overflow: hidden; cursor: pointer; border: 1px solid var(--color-border-subtle); display: flex; flex-direction: column; }
+ .ref-foto { aspect-ratio: 1; background: #26262f; display: flex; align-items: center; justify-content: center; color: #f0566f; }
+ .ref-foto img { width: 100%; height: 100%; object-fit: cover; }
+ .ref-info { padding: 10px; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+ .ref-info :is(b, span) { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+ .ref-info b { font-size: .9rem; color: var(--color-text-primary); } .ref-info span { font-size: .75rem; color: var(--color-text-muted); }
+ .ref-info small { font-size: .72rem; color: var(--color-text-muted); }
+ .ref-btn { width: 100%; margin-top: 8px; padding: 8px; border: none; border-radius: 20px; font: inherit; font-weight: 700; font-size: .75rem; cursor: pointer; color: #fff; background: linear-gradient(135deg, #f97316, #ef4444); }
+ .ref-btn.fuera { background: #f0f0f0; color: #888; }
+ .ref-vacio { grid-column: 1 / -1; text-align: center; padding: 40px; color: var(--color-text-muted); }
+ /* Ruleta */
+ .ruleta-modal { position: fixed; inset: 0; z-index: 99999; background: rgba(0,0,0,.6); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; padding: 16px; }
+ .ruleta-caja { position: relative; width: 100%; max-width: 340px; background: var(--color-surface, #fff); color: var(--color-text-main); border-radius: 24px; padding: 22px 18px 18px; text-align: center; }
+ .ruleta-caja h3 { margin: 0 0 14px; font-family: 'ZNR Serif', Georgia, serif; font-size: 22px; }
+ .ruleta-x { position: absolute; top: 10px; right: 12px; border: none; background: none; font-size: 24px; color: var(--color-text-muted); cursor: pointer; }
+ .ruleta-ventana { border-radius: 20px; padding: 16px; background: linear-gradient(135deg, rgba(15,155,142,.12), rgba(58,176,226,.12)); }
+ .ruleta-item { display: flex; flex-direction: column; align-items: center; gap: 4px; min-height: 190px; transition: transform .3s; }
+ .ruleta-item.gano { transform: scale(1.06); }
+ .ruleta-foto { width: 130px; height: 130px; border-radius: 50%; overflow: hidden; border: 4px solid #fff; box-shadow: 0 8px 20px rgba(0,0,0,.18); background: #26262f; display: flex; align-items: center; justify-content: center; color: #f0566f; }
+ .ruleta-foto img { width: 100%; height: 100%; object-fit: cover; }
+ .ruleta-item b { margin-top: 8px; font-size: 1rem; } .ruleta-item span { font-size: .8rem; color: var(--color-text-muted); }
+ .ruleta-acciones { display: grid; gap: 8px; margin-top: 14px; }
+ .ruleta-acciones:empty { display: none; }
+ .ruleta-acciones .ref-btn { margin: 0; padding: 12px; font-size: .85rem; }
+ .ruleta-sec { padding: 10px; border-radius: 20px; border: 1.5px solid var(--color-border-subtle); background: transparent; color: var(--color-text-main); font: inherit; font-weight: 600; cursor: pointer; }
+ </style>
+</head>
+<body class="theme-aeromexico">
+
+ <header class="app-header app-header--titled">
+ <div class="header-left">
+ <div class="logo-touch-area logo-wordmark" id="secret-logo" onclick="location.href='index.html'" style="cursor:pointer;">
+ <span class="logo-mark">Z<span class="znr-amp">&amp;</span>R</span>
+ </div>
+ <div class="header-text">
+ <h1 class="app-title">Refugios</h1>
+ <p class="app-subtitle">Dona con propósito</p>
+ </div>
+ </div>
+ <div class="header-right">
+ <button class="icon-button" id="notif-bell-btn" aria-label="Notificaciones" title="Notificaciones"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" aria-hidden="true"><use href="#ic-bell"/></svg></button>
+ <button class="icon-button" id="up-open-btn" aria-label="Preferencias"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" aria-hidden="true"><use href="#ic-settings"/></svg></button>
+ </div>
+ </header>
+
+ <div class="community-hero" id="com-hero-wrap" hidden>
+  <div class="m-hero"><div class="com-tiles" id="com-banners" role="list" aria-label="Refugios"></div><div class="m-hero-dots" id="com-dots" aria-hidden="true"></div></div>
+ </div>
+
+ <div class="ref-acciones">
+  <button type="button" id="btn-ruleta"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" aria-hidden="true"><use href="#ic-sparkles"/></svg>Elegir al azar</button>
+  <button type="button" id="btn-registrar"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" aria-hidden="true"><use href="#ic-plus"/></svg>Registrar refugio</button>
+ </div>
+
+ <div class="ref-buscar" id="ref-filtros">
+  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" aria-hidden="true"><use href="#ic-search"/></svg>
+  <input type="search" id="f-texto" placeholder="Buscar por refugio o propietario" aria-label="Buscar por refugio o propietario" autocomplete="off">
+  <button type="button" id="btn-filtros" class="comunidad-filtros-btn" aria-haspopup="dialog" aria-label="Filtros">
+   <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/><circle cx="9" cy="6" r="2.2" fill="var(--color-surface-2,#fff)"/><circle cx="15" cy="12" r="2.2" fill="var(--color-surface-2,#fff)"/><circle cx="8" cy="18" r="2.2" fill="var(--color-surface-2,#fff)"/></svg>
+   <span id="filtros-badge" class="comunidad-filtros-badge" style="display:none">0</span>
+  </button>
+ </div>
+
+ <div id="ref-filtros-sheet" class="filtros-sheet" role="dialog" aria-modal="true" aria-labelledby="filtros-titulo">
+  <div class="filtros-backdrop" data-cerrar-filtros></div>
+  <div class="filtros-panel">
+   <div class="filtros-handle" aria-hidden="true"></div>
+   <div class="filtros-head"><h3 id="filtros-titulo">Filtros</h3><button type="button" class="filtros-cerrar" data-cerrar-filtros aria-label="Cerrar filtros">&times;</button></div>
+   <div class="filtros-body">
+    <label class="filtros-field"><span>País</span><select id="f-pais"><option value="">Todos los países</option></select></label>
+    <label class="filtros-field"><span>Ciudad</span><select id="f-ciudad"><option value="">Todas las ciudades</option></select></label>
+   </div>
+   <div class="filtros-foot"><button type="button" id="filtros-limpiar" class="filtros-btn filtros-btn-sec">Limpiar</button><button type="button" class="filtros-btn filtros-btn-pri" data-cerrar-filtros>Ver resultados</button></div>
+  </div>
+ </div>
+
+ <div class="ref-barra"><h2>Refugios y fundaciones<small id="ref-total"></small></h2></div>
+ <div id="ref-grid"><p class="ref-vacio">Cargando refugios…</p></div>
+
+<footer class="app-footer" style="margin-bottom: 70px;">
+ <div class="footer-content">
+ <div class="footer-logo">
+ <span class="logo-mark">Z&R</span>
+ </div>
+ <div class="footer-social">
+ <a href="https://www.facebook.com/share/19AYtxxEWk/" target="_blank" class="social-link">Facebook</a>
+ </div>
+ <div class="footer-copyright">
+ <p>© 2026 Z&R - Todos los derechos reservados</p>
+ <a href="privacidad.html" style="color:var(--color-accent-solid); text-decoration:none;">Privacidad</a> ·
+ <a href="terminos.html" style="color:var(--color-accent-solid); text-decoration:none;">Términos</a>
+ </div>
+ </div>
+ </footer>
+
+ <aside class="cart-drawer" id="cart-drawer" aria-hidden="true">
+ <div class="cart-header"><h2>Tu carrito</h2><button class="icon-button" id="close-cart-btn" aria-label="Cerrar carrito"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" aria-hidden="true"><use href="#ic-x"/></svg></button></div>
+ <div class="cart-body" id="cart-items-container"></div>
+ <div class="cart-footer">
+ <div class="cart-summary-row"><span>Subtotal</span><span id="cart-subtotal">$0</span></div>
+ <div class="cart-summary-row total"><span>Total</span><span id="cart-total">$0</span></div>
+ 
+ <div id="saved-phone-container" style="display:none;">
+ <div class="cart-info-row">
+ <span> <span id="saved-phone-display"></span></span>
+ <button id="change-phone-btn" class="cart-link-btn"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 002.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 01-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 00-1.091-.852H4.5A2.25 2.25 0 002.25 4.5v2.25z"/></svg> Cambiar</button>
+ </div>
+ </div>
+ 
+ <div class="cart-delivery-block" id="cart-delivery-block">
+ <div class="cart-delivery-header">
+ <span class="cart-delivery-icon"></span>
+ <div class="cart-delivery-text">
+ <strong id="cart-delivery-title">Dirección de entrega</strong>
+ <span id="cart-delivery-subtitle" class="cart-delivery-sub">Opcional — para envío a domicilio</span>
+ </div>
+ <button id="cart-add-address-btn" class="cart-link-btn"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z"/></svg> Añadir</button>
+ </div>
+ <div id="saved-address-container" style="display:none;">
+ <div class="cart-address-display">
+ <span id="saved-address-display"></span>
+ <button id="change-address-btn" class="cart-link-btn"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" aria-hidden="true"><use href="#ic-edit"/></svg> Editar</button>
+ </div>
+ </div>
+ <div id="cart-shipping-status"></div>
+ </div>
+ <button id="request-purchase-btn" class="primary-button full-width" style="background: linear-gradient(135deg, #25D366, #128C7E); margin-top: 8px;"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.117.549 4.107 1.51 5.833L.057 23.57a.75.75 0 00.918.917l5.735-1.453A11.94 11.94 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.75a9.713 9.713 0 01-4.953-1.354l-.355-.21-3.676.932.948-3.557-.23-.368A9.714 9.714 0 012.25 12C2.25 6.615 6.615 2.25 12 2.25S21.75 6.615 21.75 12 17.385 21.75 12 21.75z"/></svg> Solicitar compra</button>
+ <button id="view-orders-btn" onclick="if(typeof openPanelOnTab==='function')openPanelOnTab('pedidos')" style="width:100%;margin-top:8px;padding:8px;border:none;background:transparent;color:var(--color-text-muted);font-size:12px;cursor:pointer;text-decoration:underline;"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" aria-hidden="true"><use href="#ic-clipboard"/></svg> Ver mis pedidos</button>
+ </div>
+ </aside>
+
+ 
+
+ <div class="overlay" id="overlay"></div>
+ <div class="image-modal" id="image-modal"></div>
+ <nav class="bottom-nav">
+
+ <button class="bottom-nav-item" data-page="inicio" id="nav-inicio">
+ <span class="nav-icon"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" aria-hidden="true"><use href="#ic-home"/></svg></span>
+ <span>Inicio</span>
+ </button>
+ 
+ <button class="bottom-nav-item" data-page="catalogo" id="nav-catalogo">
+ <span class="nav-icon"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" aria-hidden="true"><use href="#ic-catalog"/></svg></span>
+ <span>Catalogo</span>
+ </button>
+
+ <button class="bottom-nav-item" data-page="outfit" id="nav-outfit">
+ <span class="nav-icon"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" aria-hidden="true"><use href="#ic-outfit"/></svg></span>
+ <span>Outfits</span>
+ </button>
+ 
+ <button class="bottom-nav-item active" id="nav-donar" aria-current="page">
+ <span class="nav-icon"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" aria-hidden="true"><use href="#ic-hand-heart"/></svg></span>
+ <span>Donar</span>
+ </button>
+
+ <button class="bottom-nav-item" data-page="vendedor" id="nav-vendedor">
+ <span class="nav-icon"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" aria-hidden="true"><use href="#ic-vendor"/></svg></span>
+ <span>Vendedor</span>
+ </button>
+ 
+ <button class="bottom-nav-item" id="nav-cart">
+ <div class="badge-wrapper">
+ <span class="nav-icon"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" aria-hidden="true"><use href="#ic-cart"/></svg></span>
+ <span class="bottom-nav-badge" id="bottom-cart-count">0</span>
+ </div>
+ <span>Carrito</span>
+ </button>
+ </nav>
+
+ <script src="api-config.js" defer></script>
+ <script type="module" src="fcm-init.js"></script>
+ <script src="icons.js" defer></script>
+ <script src="common.js" defer></script>
+ <script type="module" src="firestore-init.js"></script>
+ <script src="pagos.js" defer></script>
+ <script src="notification-center.js" defer></script>
+ <script src="error-monitor.js" defer></script>
+ <script src="ciudades.js" defer></script>
+ <script src="banner-temporada.js" defer></script>
+ <script src="beneficiarios.js" defer></script>
+ <script src="refugios.js" defer></script>
+ <script>
+ if ('serviceWorker' in navigator) window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(() => {}));
+ const ir = { 'nav-inicio': 'index.html', 'nav-catalogo': 'catalogo.html', 'nav-outfit': 'outfit.html', 'nav-vendedor': 'vendedor.html' };
+ Object.entries(ir).forEach(([id, url]) => document.getElementById(id)?.addEventListener('click', () => { location.href = url; }));
+ document.getElementById('nav-cart')?.addEventListener('click', () => window.openCartDrawer?.());
+ window.addEventListener('cartUpdated', () => {
+ const count = Object.values(window.localCart || {}).reduce((s, i) => s + i.quantity, 0);
+ const badge = document.getElementById('bottom-cart-count');
+ if (badge) { badge.textContent = count; badge.style.display = count > 0 ? 'flex' : 'none'; }
+ });
+ </script>
+</body>
+</html>

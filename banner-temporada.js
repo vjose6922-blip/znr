@@ -46,6 +46,26 @@
   // ¿El texto se sale del banner? (para avisar en la vista previa)
   const desborda = (el) => { const c = el.querySelector('.com-banner-capa'); return !!c && c.scrollHeight > c.clientHeight + 1; };
 
+  // Carrusel de banners: una tarjeta a la vez, swipe nativo, puntos y avance cada 6 s (se pausa al tocar o fuera de pantalla).
+  // Llamarlo de nuevo cada vez que cambian las tarjetas: recalcula los puntos; listeners y temporizador solo una vez.
+  function rotar(t, dots) {
+    if (!t) return;
+    const n = t.children.length, indice = () => Math.round(t.scrollLeft / (t.clientWidth || 1)) || 0;
+    const marcar = () => dots && dots.querySelectorAll('i').forEach((d, k) => d.classList.toggle('on', k === indice()));
+    if (dots) dots.innerHTML = n > 1 ? '<i></i>'.repeat(n) : '';
+    marcar();
+    if (t._rotando) return;
+    t._rotando = true;
+    let raf, quieto = 0, enPantalla = true;
+    t.addEventListener('scroll', () => { cancelAnimationFrame(raf); raf = requestAnimationFrame(marcar); }, { passive: true });
+    ['pointerdown', 'wheel'].forEach((ev) => t.addEventListener(ev, () => { quieto = Date.now() + 8000; }, { passive: true }));
+    if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    if ('IntersectionObserver' in window) new IntersectionObserver((e) => { enPantalla = e[0].isIntersecting; }).observe(t);
+    setInterval(() => {
+      if (enPantalla && !document.hidden && Date.now() >= quieto && t.children.length > 1) t.scrollTo({ left: ((indice() + 1) % t.children.length) * t.clientWidth, behavior: 'smooth' });
+    }, 6000);
+  }
+
   document.head.appendChild(Object.assign(document.createElement('style'), { textContent: css }));
-  window.znrBanner = { html, desborda };
+  window.znrBanner = { html, desborda, rotar };
 })();
