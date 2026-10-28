@@ -65,32 +65,6 @@
  <meta name="msapplication-TileImage" content="icons/icon-144x144.png">
  <meta name="msapplication-TileColor" content="#1e2128">
  <style>
- .hero-section {
- background: linear-gradient(135deg, #1a0f2e 0%, #3b1f5f 50%, var(--color-accent-solid) 100%);
- border-radius: 0;
- padding: 8px;
- text-align: center;
- color: white;
- margin-bottom: 28px;
- }
-
- [data-theme="light"] .hero-section {
- background: linear-gradient(135deg, #ff9f6e 0%, #ff7a4f 50%, var(--color-accent-solid) 100%);
- }
-
- .hero-title {
- font-size: 2.5rem;
- font-weight: 800;
- margin-bottom: 12px;
- }
-
- .hero-buttons {
- display: flex;
- gap: 16px;
- justify-content: center;
- flex-wrap: wrap;
- }
-
  .hero-btn {
  padding: 10px 14px;
  border-radius: 50px;
@@ -105,17 +79,6 @@
  }
 
  .hero-btn-primary:hover {
- transform: translateY(-3px);
- box-shadow: 0 10px 25px rgba(0,0,0,0.2);
- }
-
- .hero-btn-secondary {
- background: white;
- color: var(--color-accent-solid);
- backdrop-filter: blur(10px);
- }
-
- .hero-btn-secondary:hover {
  transform: translateY(-3px);
  box-shadow: 0 10px 25px rgba(0,0,0,0.2);
  }
@@ -354,7 +317,6 @@
  }
 
  @media (max-width: 768px) {
- .hero-title { font-size: 1.8rem; }
  .categories-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; }
  .products-scroll { grid-template-columns: repeat(2, 1fr); gap: 12px; }
  }
@@ -439,31 +401,32 @@
 /* Encabezado del home: el logo (wordmark serif) vive en styles.css (.logo-wordmark) y es el mismo en todas las páginas */
 .home-page .app-header .app-title { white-space: normal; line-height: 1.05; text-wrap: balance; }
 
-/* Hero */
-.home-page .hero-section { background: transparent; color: var(--ink-title); text-align: left; padding: 6px 16px 0; margin-bottom: 20px; }
-.home-page .hero-buttons { margin-top: 10px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
-.home-page .hero-buttons .hero-btn { display: flex; align-items: center; justify-content: center; gap: 6px; padding: 14px 6px; border-radius: 18px; font-size: 0.8rem; line-height: 1.15; text-align: center; background: var(--ghost-bg); color: var(--ghost-text); border: 1px solid var(--ghost-border); box-shadow: var(--ghost-shadow); }
-.home-page .hero-buttons .hero-btn svg { display: block; flex-shrink: 0; margin: 0; color: var(--color-accent-solid); }
-.home-page .hero-buttons .hero-btn-primary { background: var(--gradient-accent); color: #fff; border-color: transparent; box-shadow: 0 10px 22px rgba(var(--color-accent-rgb), 0.32); }
-.home-page .hero-buttons .hero-btn-primary svg { color: #fff; }
-.home-page .m-hero { margin: 16px 0 4px; border-radius: 22px; }
-@media (min-width: 420px) { .home-page .hero-buttons .hero-btn { font-size: 0.9rem; } }
+/* Banners de inicio (mismo sistema que Comunidad: banner-temporada.js) */
+#ini-hero { padding: 6px 16px 0; margin-bottom: 18px; }
+#ini-hero .m-hero { margin: 0 0 4px; }
+#ini-banners { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; overscroll-behavior-x: contain; scrollbar-width: none; }
+#ini-banners::-webkit-scrollbar { display: none; }
 
 /* Tarjeta "Vendedor destacado" (se llena sola con un vendedor verificado) */
 @keyframes fs-in { from { opacity: 0; transform: translateY(8px); } }
 .featured-seller { display: none; }
-.featured-seller.is-on { display: flex; align-items: center; gap: 14px; margin: 6px 16px 22px; padding: 16px; border-radius: 24px; background: var(--color-surface); border: 1px solid var(--card-border); box-shadow: var(--shadow-soft); animation: fs-in var(--m-base) var(--m-ease) backwards; }
-.fs-avatar { position: relative; width: 76px; height: 76px; flex-shrink: 0; border-radius: 50%; overflow: hidden; display: grid; place-items: center; background: var(--tile-chip); color: var(--color-accent-solid); font: 700 26px/1 var(--font-display); }
+.featured-seller.is-on { display: block; position: relative; margin: 6px 16px 22px; border-radius: 24px; overflow: hidden; background: var(--color-surface); border: 1px solid var(--card-border); box-shadow: var(--shadow-soft); animation: fs-in var(--m-base) var(--m-ease) backwards; }
+.fs-track { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; overscroll-behavior-x: contain; scrollbar-width: none; }
+.fs-track::-webkit-scrollbar { display: none; }
+.fs-card { flex: 0 0 100%; box-sizing: border-box; padding: 16px 16px 8px; scroll-snap-align: center; scroll-snap-stop: always; }
+.fs-top { display: flex; align-items: center; gap: 12px; }
+.fs-avatar { position: relative; width: 64px; height: 64px; flex-shrink: 0; border-radius: 50%; overflow: hidden; display: grid; place-items: center; background: var(--tile-chip); color: var(--color-accent-solid); font: 700 22px/1 var(--font-display); }
 .fs-avatar img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
 .fs-body { flex: 1; min-width: 0; }
-.fs-kicker { margin: 0; font-family: var(--font-display); font-size: 1.1rem; font-weight: 700; color: var(--ink-title); }
-.fs-name { display: flex; align-items: center; gap: 5px; margin: 1px 0 3px; font-size: 1rem; font-weight: 700; color: var(--color-accent-solid); }
+.fs-kicker { margin: 0; font-size: .72rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--color-text-muted); }
+.fs-name { display: flex; align-items: center; gap: 5px; margin: 1px 0 2px; font-family: var(--font-display); font-size: 1.15rem; font-weight: 700; color: var(--color-accent-solid); }
 .fs-name span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .fs-name svg { flex-shrink: 0; }
-.fs-desc { margin: 0 0 10px; font-size: 0.82rem; line-height: 1.35; color: var(--color-text-muted); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-.fs-btn { display: inline-flex; align-items: center; gap: 6px; padding: 9px 16px; border-radius: 999px; background: var(--gradient-accent); color: #fff; font-size: 0.88rem; font-weight: 600; text-decoration: none; box-shadow: 0 8px 18px rgba(var(--color-accent-rgb), 0.28); }
-.fs-heart { width: 64px; height: 64px; flex-shrink: 0; display: grid; place-items: center; border-radius: 20px; background: var(--seller-heart-bg); border: var(--seller-heart-border); color: var(--seller-heart-color); }
-@media (max-width: 380px) { .fs-heart { display: none; } .fs-avatar { width: 64px; height: 64px; } }
+.fs-desc { margin: 0; font-size: .82rem; line-height: 1.35; color: var(--color-text-muted); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.fs-prods { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin: 12px 0; }
+.fs-prods img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 12px; background: var(--color-surface-2); }
+.fs-btn { display: flex; align-items: center; justify-content: center; gap: 6px; padding: 11px; border-radius: 999px; background: var(--gradient-accent); color: #fff; font-size: .9rem; font-weight: 700; text-decoration: none; box-shadow: 0 8px 18px rgba(var(--color-accent-rgb), .28); }
+.featured-seller .m-hero-dots { position: static; padding: 6px 0 12px; }
 
 /* Encabezados de sección con "Ver todas ›" */
 .home-page .section-head { display: flex; align-items: center; justify-content: space-between; max-width: 1400px; margin: 0 auto 12px; padding: 0 16px; }
@@ -517,7 +480,7 @@
 .home-page .recent-products { padding: 0; max-width: none; text-align: left; }
 
 /* Otras secciones: mismos botones en degradado y tarjetas redondeadas */
-.home-page section:not(.hero-section) .hero-btn-primary { background: var(--gradient-accent); color: #fff; }
+.home-page section .hero-btn-primary { background: var(--gradient-accent); color: #fff; }
 .home-page :is(.home-feature, .home-sell) { border-radius: 22px; }
  </style>
 </head>
@@ -546,21 +509,8 @@
  </div>
  </header>
 
- <section class="hero-section">
- <div class="hero-buttons" data-anim="up">
- <a href="catalogo.html" class="hero-btn hero-btn-primary" data-anim="shine"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" aria-hidden="true"><use href="#ic-grid"/></svg>Ver Catálogo</a>
- <a href="outfit.html" class="hero-btn hero-btn-secondary"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" aria-hidden="true"><use href="#ic-outfit"/></svg>Crear Outfit</a>
- <a href="comunidad.html" class="hero-btn hero-btn-secondary"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" aria-hidden="true"><use href="#ic-community"/></svg>Ir a Comunidad</a>
- </div>
- <div class="m-hero" id="m-hero" data-anim="carousel" role="region" aria-roledescription="carrusel" aria-label="Qué ofrece Z&amp;R">
- <div class="m-hero-track">
-  <a class="m-hero-slide" href="vendedor.html"><span class="m-hero-t">Vende en Z&amp;R</span><span class="m-hero-d">Crea tu perfil de vendedor y muestra tus productos a compradores de tu ciudad.</span><span class="m-hero-go">Abrir mi tienda</span></a>
-  <a class="m-hero-slide" href="lives.html"><span class="m-hero-t">Transmite en vivo</span><span class="m-hero-d">Presenta tus prendas en un live y vende en tiempo real.</span><span class="m-hero-go">Empezar a vender</span></a>
-  <a class="m-hero-slide" href="vendedor.html"><span class="m-hero-t">Organiza tus entregas</span><span class="m-hero-d">Coordina cada entrega de forma más eficiente, todo desde tu cuenta.</span><span class="m-hero-go">Empezar a vender</span></a>
-  <a class="m-hero-slide" href="refugios.html"><span class="m-hero-t">Dona con propósito</span><span class="m-hero-d">Dona artículos a un refugio o fundación y el dinero llega directo al beneficiario.</span><span class="m-hero-go">Ver Comunidad</span></a>
- </div>
- <div class="m-hero-dots" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
- </div>
+ <section id="ini-hero" hidden>
+ <div class="m-hero"><div id="ini-banners" role="list" aria-label="Novedades de Z&amp;R"></div><div class="m-hero-dots" id="ini-dots" aria-hidden="true"></div></div>
  </section>
  <div id="home-live-slot"></div>
 
@@ -774,6 +724,7 @@
 })();
 </script>
 <script src="temporadas.js" defer></script>
+<script src="banner-temporada.js" defer></script>
 <script src="home.js" defer></script>
 
 <script>
@@ -901,47 +852,88 @@
  return card;
  }
 
- // Vendedor destacado: un vendedor verificado (Plan Plus) de la ciudad del comprador.
- // Cambia en cada carga de página; cada vendedor cuenta una sola vez (sin importar cuántos productos tenga).
+ // Vendedores destacados: hasta 5 verificados (Plan Plus) de la ciudad, elegidos y ordenados al azar en cada visita,
+ // en carrusel (avanza solo); cada tarjeta muestra hasta 4 fotos de sus productos.
  function pintarVendedorDestacado(lista) {
  const box = document.getElementById('featured-seller');
  if (!box) return;
- const esc = typeof escapeHtml === 'function' ? escapeHtml : s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
- const optUrl = urlImagen;
+ const esc = escapeHtml;
  const porVendedor = new Map();
  (lista || []).forEach(p => {
- if (p.vendedor_plan === 'plus' && p.vendedor_uid && p.vendedor_nombre && !porVendedor.has(p.vendedor_uid)) porVendedor.set(p.vendedor_uid, p);
+ if (p.vendedor_plan === 'plus' && p.vendedor_uid && p.vendedor_nombre) (porVendedor.get(p.vendedor_uid) || porVendedor.set(p.vendedor_uid, []).get(p.vendedor_uid)).push(p);
  });
- if (!porVendedor.size) { box.classList.remove('is-on'); box.innerHTML = ''; return; }
- const uids = Array.from(porVendedor.keys());
- const uid = uids[Math.floor(Math.random() * uids.length)];
- const p = porVendedor.get(uid);
- const nombre = String(p.vendedor_nombre);
+ const elegidos = [...porVendedor].sort(() => Math.random() - 0.5).slice(0, 5);
+ if (!elegidos.length) { box.classList.remove('is-on'); box.innerHTML = ''; return; }
+ const check = '<svg width="16" height="16" viewBox="0 0 24 24" role="img" aria-label="Verificado"><circle cx="12" cy="12" r="11" fill="currentColor"/><path d="M7 12.5l3.2 3.2L17 9" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+ box.innerHTML = '<div class="fs-track">' + elegidos.map(([uid, prods]) => {
+ const p = prods[0], nombre = String(p.vendedor_nombre), url = 'perfil-vendedor.html?vendedor=' + encodeURIComponent(uid);
  const iniciales = nombre.trim().split(/\s+/).map(w => w[0]).slice(0, 2).join('').toUpperCase();
- const logo = p.vendedor_logo ? optUrl(p.vendedor_logo, 200) : '';
- box.dataset.uid = uid;
- box.innerHTML = `
- <span class="fs-avatar">${esc(iniciales)}${logo ? `<img src="${esc(logo)}" alt="" loading="lazy">` : ''}</span>
- <div class="fs-body">
- <p class="fs-kicker">Vendedor destacado</p>
- <div class="fs-name"><span>${esc(nombre)}</span><svg width="16" height="16" viewBox="0 0 24 24" role="img" aria-label="Verificado"><circle cx="12" cy="12" r="11" fill="currentColor"/><path d="M7 12.5l3.2 3.2L17 9" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
- <p class="fs-desc">Vendedor verificado de tu ciudad.</p>
- <a class="fs-btn" href="perfil-vendedor.html?vendedor=${encodeURIComponent(uid)}">Ver tienda <span aria-hidden="true">&rsaquo;</span></a>
- </div>
- <span class="fs-heart" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" width="30" height="30"><use href="#ic-heart-fill"/></svg></span>`;
- box.querySelector('.fs-avatar img')?.addEventListener('error', e => e.target.remove());
+ const fotos = prods.map(x => x.imagen1).filter(Boolean).slice(0, 4);
+ return `<article class="fs-card" data-uid="${esc(uid)}">
+ <div class="fs-top"><span class="fs-avatar">${esc(iniciales)}${p.vendedor_logo ? `<img src="${esc(p.vendedor_logo)}" alt="" loading="lazy">` : ''}</span>
+ <div class="fs-body"><p class="fs-kicker">Vendedor destacado</p><div class="fs-name"><span>${esc(nombre)}</span>${check}</div><p class="fs-desc">Vendedor verificado de tu ciudad.</p></div></div>
+ ${fotos.length ? `<a class="fs-prods" href="${url}" aria-label="Productos de ${esc(nombre)}">${fotos.map(f => `<img src="${esc(f)}" alt="" loading="lazy">`).join('')}</a>` : ''}
+ <a class="fs-btn" href="${url}">Ver tienda <span aria-hidden="true">&rsaquo;</span></a></article>`;
+ }).join('') + '</div><div class="m-hero-dots" aria-hidden="true"></div>';
+ box.querySelectorAll('.fs-avatar img').forEach(img => img.addEventListener('error', () => img.remove()));
  box.classList.add('is-on');
- // La descripción real del vendedor llega después (Firestore carga en diferido)
+ window.znrBanner?.rotar(box.querySelector('.fs-track'), box.querySelector('.m-hero-dots'));
+ // La descripción real de cada vendedor llega después (Firestore carga en diferido)
  (async () => {
- try {
- for (let i = 0; i < 10 && !(window.znrFirestore && window.znrFirestore.getPerfilVendedor); i++) await new Promise(r => setTimeout(r, 300));
- if (!(window.znrFirestore && window.znrFirestore.getPerfilVendedor)) return;
- const r = await window.znrFirestore.getPerfilVendedor(uid);
+ for (let i = 0; i < 10 && !window.znrFirestore?.getPerfilVendedor; i++) await new Promise(r => setTimeout(r, 300));
+ if (!window.znrFirestore?.getPerfilVendedor) return;
+ elegidos.forEach(([uid]) => window.znrFirestore.getPerfilVendedor(uid).then(r => {
  const d = r && r.ok && r.vendedor ? String(r.vendedor.descripcion || '').trim() : '';
- if (d && box.dataset.uid === uid) box.querySelector('.fs-desc').textContent = d;
- } catch (e) {}
+ const el = d && box.querySelector(`.fs-card[data-uid="${CSS.escape(uid)}"] .fs-desc`);
+ if (el) el.textContent = d;
+ }).catch(() => {}));
  })();
  }
+
+ // ── Banners de inicio: los de temporada de CONTROL ("Dónde mostrar": Inicio o ambos) y después automáticos con
+ // fotos reales. Cada fuente llega por su lado y vuelve a pintar; "Vende en Z&R" está desde el inicio para que nunca quede vacío.
+ const bannersIni = { temporada: [], vivo: null, znr: null, dona: null, vende: [] };
+ function pintarBannersInicio() {
+ const cont = document.getElementById('ini-banners');
+ if (!cont || !window.znrBanner) return;
+ const exclusivos = bannersIni.temporada.filter(b => b.exclusivo === 'si');
+ const auto = (href, b, fotos) => window.znrBanner.html({ ...b, tema: 'claro', degradado: 'no', fotos: (fotos || []).filter(Boolean).slice(0, 3) }, `role="listitem" data-href="${href}"`);
+ const html = (exclusivos.length ? exclusivos : bannersIni.temporada).map(b => window.znrBanner.html(b, 'role="listitem" data-href="comunidad.html?vista=temporada"'));
+ const { vivo, znr, dona, vende } = bannersIni;
+ if (!exclusivos.length) {
+ if (vivo) html.push(auto('lives.html', { titulo: 'Compra', subtitulo: 'en vivo', boton: 'Ver lives', fondo: 'linear-gradient(135deg,#e53935,#ff7a59)',
+ descripcion: `${vivo.n} ${vivo.n === 1 ? 'vendedor transmite' : 'vendedores transmiten'} ahora en tu ciudad.` }, vivo.fotos));
+ if (znr) html.push(auto('catalogo.html', { titulo: 'Novedades', subtitulo: 'Z&R', boton: 'Ver catálogo', fondo: 'linear-gradient(135deg,#3b1f5f,#c2477d)',
+ descripcion: 'Lo nuevo del catálogo de Z&R para ti.' }, znr));
+ if (dona) html.push(auto('refugios.html', { titulo: 'Dona con', subtitulo: 'propósito', boton: 'Ver refugios', fondo: 'linear-gradient(135deg,#f97316,#ef4444)',
+ descripcion: dona.n ? `${dona.n} ${dona.n === 1 ? 'refugio de tu ciudad recibe' : 'refugios de tu ciudad reciben'} lo que dones.` : 'Lo que dones llega directo al beneficiario.' }, dona.fotos));
+ html.push(auto('vendedor.html', { titulo: 'Vende en', subtitulo: 'Z&R', boton: 'Abrir mi tienda', fondo: 'linear-gradient(135deg,#f0566f,#f7a072)',
+ descripcion: 'Abre tu tienda gratis y organiza tus entregas desde tu cuenta.' }, vende));
+ }
+ cont.innerHTML = html.join('');
+ cont.scrollLeft = 0;
+ document.getElementById('ini-hero').hidden = false;
+ window.znrBanner.rotar(cont, document.getElementById('ini-dots'));
+ }
+ document.addEventListener('click', e => { const h = e.target.closest('#ini-banners [data-href]')?.dataset.href; if (h) location.href = h; });
+ const azar = (a) => a.sort(() => Math.random() - 0.5);
+ window.addEventListener('znr:lives', e => { bannersIni.vivo = { n: e.detail.length, fotos: e.detail.map(l => l.miniatura_url) }; pintarBannersInicio(); });
+ window.addEventListener('znr:productos', () => { const f = azar((window.allProducts || []).filter(p => Number(p.Stock) > 0).map(p => p.Imagen1).filter(Boolean)); if (f.length) { bannersIni.znr = f; pintarBannersInicio(); } });
+ document.addEventListener('DOMContentLoaded', async () => {
+ pintarBannersInicio();
+ const hoy = new Date().toLocaleDateString('en-CA');
+ const todos = await fetch('https://znr-live-default-rtdb.firebaseio.com/banners_temporada.json').then(r => r.json()).catch(() => null);
+ bannersIni.temporada = Object.values(todos || {}).filter(b => b.inicio <= hoy && hoy <= b.fin && (b.donde === 'inicio' || b.donde === 'ambos')).sort((a, b) => a.fin.localeCompare(b.fin));
+ pintarBannersInicio();
+ for (let i = 0; i < 20 && !window.znrFirestore?.getBeneficiariosAprobados; i++) await new Promise(r => setTimeout(r, 300));
+ const r = await window.znrFirestore?.getBeneficiariosAprobados?.().catch(() => null);
+ const bens = (r && r.ok ? r.beneficiarios : []).filter(b => !b.suspendido);
+ if (bens.length) {
+ const ciudad = localStorage.getItem('buyer_ciudad');
+ bannersIni.dona = { n: bens.filter(b => b.ciudad === ciudad).length, fotos: azar(bens.map(b => b.imagen1)) };
+ pintarBannersInicio();
+ }
+ });
 
  let homeComunidadLista = [];
 
@@ -986,6 +978,7 @@
  window.allCommunityProductsIndexed = soloComunidad;
  homeComunidadLista = soloComunidad;
  pintarVendedorDestacado(soloComunidad);
+ bannersIni.vende = azar(soloComunidad.map(p => p.imagen1).filter(Boolean)); pintarBannersInicio();
  if (!pintarHomeComunidad()) return;
 
  const savedLayout = localStorage.getItem('products_layout') || 'grid';
