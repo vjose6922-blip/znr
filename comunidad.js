@@ -960,6 +960,10 @@ async function cargarBannersTemporada() {
   if (carruselesPintados && bannerTemporadas.length) { vistaCache = null; renderCarrusel('temporada', calcularTemporadaActual(communityRandomOrder)); }
   pintarBanners();
 }
+// Vista de refugios: banners con fotos de las fundaciones y de artículos donados (se arman en loadBeneficiariosGrid).
+let modoRefugios = false, bannersRefugio = [];
+const bannerRefugio = (accion, b, fotos) => window.znrBanner.html({ ...b, tema: 'claro', degradado: 'no', fotos: fotos.filter(Boolean).slice(0, 3) }, `role="listitem" data-ben-accion="${accion}"`);
+
 // Banners automáticos: uno por carrusel (con fotos de sus artículos), así arriba nunca queda vacío.
 const BANNERS_AUTO = {
   ofertas: (l) => ({ titulo: 'Ofertas', subtitulo: 'destacadas', descripcion: `Hasta -${Math.max(...l.map(pctDescuento))}% en artículos de tu ciudad.`, boton: 'Ver ofertas', fondo: 'linear-gradient(135deg,#ff5f6d,#ffc371)' }),
@@ -969,11 +973,13 @@ const BANNERS_AUTO = {
 // Orden: banners de temporada y después los automáticos. Si alguno está marcado "solo este" (campañas fuertes), solo esos.
 function pintarBanners() {
   const exclusivos = bannersVigentes.filter(b => b.exclusivo === 'si');
-  const html = (exclusivos.length ? exclusivos : bannersVigentes).map(b => window.znrBanner.html(b, 'role="listitem" data-vista="temporada"'))
+  const html = modoRefugios ? bannersRefugio : (exclusivos.length ? exclusivos : bannersVigentes).map(b => window.znrBanner.html(b, 'role="listitem" data-vista="temporada"'))
     .concat(exclusivos.length ? [] : Object.keys(BANNERS_AUTO).filter(v => listasCarrusel[v]?.length).map(v => window.znrBanner.html(
       { ...BANNERS_AUTO[v](listasCarrusel[v]), tema: 'claro', degradado: 'no', fotos: listasCarrusel[v].slice(0, 3).map(p => p.imagen1).filter(Boolean) },
       `role="listitem" data-vista="${v}"`)));
-  document.getElementById('com-banners').innerHTML = html.join('');
+  const cont = document.getElementById('com-banners');
+  cont.innerHTML = html.join('');
+  cont.scrollLeft = 0;
   document.getElementById('com-hero-wrap').hidden = !html.length;
   actualizarLoopBanner();
 }
@@ -1105,6 +1111,9 @@ function abrirVistaComunidad(vista) {
 
 function initVistasComunidad() {
   document.addEventListener('click', (e) => {
+    const acc = e.target.closest('[data-ben-accion]')?.dataset.benAccion;
+    if (acc === 'registrar') return window.openBeneficiarioRegister?.();
+    if (acc === 'donar') return document.getElementById('comunidad-beneficiarios-grid')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     const b = e.target.closest('[data-vista]');
     if (!b) return;
     e.preventDefault();
@@ -1832,7 +1841,8 @@ function initBeneficiariosToggle() {
   btn.addEventListener('click', () => {
     const wrap = document.getElementById('comunidad-beneficiarios-wrap');
     const toolbarArea = document.querySelector('.comunidad-toolbar');
-    const arriba = [document.querySelector('.com-top-search'), document.getElementById('com-hero-wrap')];
+    const arriba = [document.querySelector('.com-top-search')];
+    const navIcono = (ic, t) => { btn.querySelector('use').setAttribute('href', '#ic-' + ic); btn.querySelector('.nav-donar-t').textContent = t; };
     const chipsBar = document.getElementById('comunidad-filter-chips');
     const grid = document.getElementById('comunidad-grid');
     const pagination = document.getElementById('comunidad-pagination');
@@ -1845,7 +1855,8 @@ function initBeneficiariosToggle() {
       if (pagination) pagination.style.display = '';
       if (toolbarArea) toolbarArea.style.display = '';
       arriba.forEach(el => el && (el.style.display = ''));
-      btn.querySelector('.nav-donar-t').textContent = 'Donar'; btn.classList.remove('active');
+      navIcono('hand-heart', 'Donar'); btn.classList.remove('active');
+      modoRefugios = false; pintarBanners();
       updateComunidadChips(currentFilters || {});
     } else {
       // Mostrar fundaciones
@@ -1856,7 +1867,8 @@ function initBeneficiariosToggle() {
       if (toolbarArea) toolbarArea.style.display = 'none';
       arriba.forEach(el => el && (el.style.display = 'none'));
       window.scrollTo({ top: 0, behavior: 'smooth' });
-      btn.querySelector('.nav-donar-t').textContent = 'Productos'; btn.classList.add('active');
+      navIcono('community', 'Comunidad'); btn.classList.add('active');
+      modoRefugios = true; pintarBanners();
       if (!beneficiariosCargados) loadBeneficiariosGrid();
     }
   });
@@ -1890,6 +1902,17 @@ if (window.znrFirestore && window.znrFirestore.getBeneficiariosAprobados) {
     }
     const esc = s => String(s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
     const miCiudad = await obtenerCiudadComprador();
+    const deMiCiudad = beneficiarios.filter(b => !b.ciudad || !miCiudad || b.ciudad === miCiudad);
+    const n = deMiCiudad.length;
+    bannersRefugio = [
+      bannerRefugio('donar', { titulo: 'Dona con', subtitulo: 'propósito', boton: 'Donar artículo', fondo: 'linear-gradient(135deg,#f97316,#ef4444)',
+        descripcion: n ? `${n} ${n === 1 ? 'refugio o fundación de tu ciudad recibe' : 'refugios y fundaciones de tu ciudad reciben'} lo que dones.` : 'Lo que dones llega directo al beneficiario.' },
+        [...deMiCiudad, ...beneficiarios].map(b => b.imagen1 && optimizeDriveUrl(b.imagen1, 300))),
+      bannerRefugio('registrar', { titulo: '¿Tienes un', subtitulo: 'refugio?', boton: 'Regístralo', fondo: 'linear-gradient(135deg,#6a3093,#e0457b)',
+        descripcion: 'Regístralo y recibe donaciones de tu comunidad.' },
+        (communityRandomOrder || []).filter(p => p.donado === true || p.donado === 'true' || p.donado === 'TRUE').map(p => p.imagen1))
+    ];
+    if (modoRefugios) pintarBanners();
     grid.innerHTML = beneficiarios.map(b => {
       const img = b.imagen1 ? optimizeDriveUrl(b.imagen1, 300) : '';
       const fueraDeCiudad = !!(b.ciudad && miCiudad && b.ciudad !== miCiudad);
