@@ -566,7 +566,9 @@ function optimizeDriveUrl(url, size = 400) {
     return `https://lh3.googleusercontent.com/d/${lh3Match[1]}=w${actualSize}-rw`;
   }
 
-  const match = url.match(/[-\w]{25,}/);
+  // Solo enlaces de Google Drive: en otras URLs (p. ej. Firebase Storage) un tramo largo es un token, no un id de Drive,
+  // y convertirlo daba un enlace roto (las fotos de refugios no se veían).
+  const match = /drive\.google\.com|docs\.google\.com/.test(url) && url.match(/[-\w]{25,}/);
   if (match) {
     const id = match[0];
     return `https://lh3.googleusercontent.com/d/${id}=w${actualSize}-rw`;
