@@ -77,9 +77,6 @@
   --tile-warm: rgba(255,61,127,0.10);
   --tile-rose: rgba(255,61,127,0.10);
   --tile-chip: rgba(255,61,127,0.14);
-  --seller-heart-bg: rgba(255,61,127,0.08);
-  --seller-heart-border: 1px solid rgba(255,61,127,0.35);
-  --seller-heart-color: #ff3d7f;
   --hdr-solid-blur: blur(18px);
 }
 
@@ -147,9 +144,6 @@
   --tile-warm: #fff4ee;
   --tile-rose: #fff0f3;
   --tile-chip: #fff3ec;
-  --seller-heart-bg: linear-gradient(145deg, #ffffff, #ffe9ec);
-  --seller-heart-border: 1px solid transparent;
-  --seller-heart-color: #ffb3c0;
 }
 
 html, body {

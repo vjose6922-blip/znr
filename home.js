@@ -47,6 +47,7 @@ async function loadProducts() {
 showSkeletonFeatured();
 window.loadProductsUnified({
 onProducts(products) {
+window.dispatchEvent(new Event('znr:productos')); // banner "Novedades Z&R" (index.html)
 renderCategories();
 renderFeaturedProducts();
 renderRecentProducts();
@@ -826,6 +827,7 @@ const ciudad = await obtenerCiudadComprador();
 lives = lives.filter(l => l.ciudad === ciudad);
 if (!lives.length) return;
 const nombres = lives.slice(0, 2).map(l => l.vendedor_nombre || 'Vendedor').join(', ');
+window.dispatchEvent(new CustomEvent('znr:lives', { detail: lives })); // banner "Compra en vivo" (index.html)
 slot.innerHTML = `<a class="m-live" href="lives.html"><i></i><span>En vivo ahora: ${escapeHtml(nombres)}${lives.length > 2 ? ` y ${lives.length - 2} más` : ''}</span><b>Ver</b></a>`;
 }
 document.addEventListener('DOMContentLoaded', async () => {

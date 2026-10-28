@@ -913,7 +913,7 @@ let bannerTemporadas = [], bannersVigentes = [];
 async function cargarBannersTemporada() {
   const todos = await fetch('https://znr-live-default-rtdb.firebaseio.com/banners_temporada.json').then(r => r.json()).catch(() => null);
   const hoy = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD local
-  bannersVigentes = Object.values(todos || {}).filter(b => b.inicio <= hoy && hoy <= b.fin).sort((a, b) => a.fin.localeCompare(b.fin));
+  bannersVigentes = Object.values(todos || {}).filter(b => b.inicio <= hoy && hoy <= b.fin && b.donde !== 'inicio') // sin "donde" (banners viejos) = Comunidad.sort((a, b) => a.fin.localeCompare(b.fin));
   bannerTemporadas = [...new Set(bannersVigentes.map(b => b.temporada).filter(Boolean))];
   if (carruselesPintados && bannerTemporadas.length) { vistaCache = null; renderCarrusel('temporada', calcularTemporadaActual(communityRandomOrder)); }
   pintarBanners();
