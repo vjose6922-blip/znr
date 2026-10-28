@@ -7,8 +7,6 @@
  script-src 'self' 'unsafe-inline' https://www.gstatic.com https://apis.google.com;
  style-src 'self' 'unsafe-inline';
  img-src 'self' data: blob:
-        https://lh3.googleusercontent.com
-        https://drive.google.com
         https://placehold.co
         https://via.placeholder.com
         https://firebasestorage.googleapis.com
@@ -27,8 +25,6 @@
 
  <title>Z&R - Armar Outfit</title>
  <meta name="viewport" content="width=device-width, initial-scale=1" />
- <link rel="preconnect" href="https://lh3.googleusercontent.com" crossorigin>
- <link rel="dns-prefetch" href="https://lh3.googleusercontent.com">
  <script>document.documentElement.dataset.theme = localStorage.getItem('theme') || 'light';</script>
 <link rel="preload" href="styles.css" as="style">
  <link rel="stylesheet" href="styles.css" />
@@ -627,10 +623,7 @@ function saveFilters() {
 //  RENDERIZADO DE SECCIONES
 // ============================================================
 function cardThumb(p) {
-  const url = (typeof optimizeDriveUrl === 'function')
-    ? optimizeDriveUrl(p.Imagen1 || '', 200)
-    : (p.Imagen1 || '');
-  return url || 'https://placehold.co/200x200/3b1f5f/white?text=Sin+Imagen';
+  return p.Imagen1 || 'https://placehold.co/200x200/3b1f5f/white?text=Sin+Imagen';
 }
 
 function renderEmpty(key, filtersActive) {

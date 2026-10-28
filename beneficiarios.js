@@ -496,7 +496,7 @@ window.openDonarARefugioModal = async function(beneficiario) {
     return;
   }
   const esc = window.escapeHtml || (s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])));
-  const optUrl = window.optimizeDriveUrl || (u => u);
+  const optUrl = urlImagen;
 
   const old = document.getElementById('modal-donar-refugio');
   if (old) old.remove();

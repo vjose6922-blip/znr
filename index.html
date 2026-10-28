@@ -8,7 +8,6 @@
  style-src 'self' 'unsafe-inline';
  img-src 'self' data: blob:
         https://lh3.googleusercontent.com
-        https://drive.google.com
         https://placehold.co
         https://via.placeholder.com
         https://firebasestorage.googleapis.com
@@ -784,7 +783,7 @@
 
  function buildComunidadCard(p) {
  const esc  = typeof escapeHtml === 'function' ? escapeHtml : s =>String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
- const optUrl = typeof optimizeDriveUrl === 'function' ? optimizeDriveUrl : u => u;
+ const optUrl = urlImagen;
  const img  = optUrl(p.imagen1 || '', 400) || 'https://placehold.co/300x300/3b1f5f/white?text=Z%26R';
  const allImages = [p.imagen1, p.imagen2, p.imagen3].filter(Boolean).map(u => optUrl(u, 800));
  const price = Number(p.precio || 0).toLocaleString('es-MX', { style:'currency', currency:'MXN', maximumFractionDigits:0 });
@@ -908,7 +907,7 @@
  const box = document.getElementById('featured-seller');
  if (!box) return;
  const esc = typeof escapeHtml === 'function' ? escapeHtml : s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
- const optUrl = typeof optimizeDriveUrl === 'function' ? optimizeDriveUrl : u => u;
+ const optUrl = urlImagen;
  const porVendedor = new Map();
  (lista || []).forEach(p => {
  if (p.vendedor_plan === 'plus' && p.vendedor_uid && p.vendedor_nombre && !porVendedor.has(p.vendedor_uid)) porVendedor.set(p.vendedor_uid, p);

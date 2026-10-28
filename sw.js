@@ -33,7 +33,7 @@ const API_DOMAINS      = [
   'beneficiarios-api-1038143238323.us-central1.run.app',
   'tienda-znr-api-1038143238323.us-central1.run.app',
 ];
-const IMAGE_CDN_HOSTS  = ['lh3.googleusercontent.com', 'googleusercontent.com'];
+const IMAGE_CDN_HOSTS  = ['firebasestorage.googleapis.com', 'lh3.googleusercontent.com']; // lh3: fondos del clima (looks.js)
 
 self.addEventListener('install', event => {
   event.waitUntil(

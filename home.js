@@ -89,7 +89,7 @@ return `
 // Foto de la categoría: un producto con stock del catálogo para ese género (si ya cargó)
 function categoryImage(filter) {
 const p = (window.allProducts || []).find(x => GENDER_BY_CATEGORY[x.Categoria] === filter && Number(x.Stock) > 0 && x.Imagen1);
-return p ? optimizeDriveUrl(p.Imagen1, 200) : '';
+return p ? urlImagen(p.Imagen1) : '';
 }
 function renderFeaturedProducts() {
 const container = document.getElementById('featured-products');
@@ -114,7 +114,7 @@ if (layout === 'grid') container.classList.add('layout-grid');
 else container.classList.remove('layout-grid');
 }
 function createMiniProductCard(product) {
-const imgUrl = optimizeDriveUrl(product.Imagen1 || product.Imagen2 || '', 300);
+const imgUrl = urlImagen(product.Imagen1 || product.Imagen2 || '');
 const badgeHtml = product.Badge
 ? `<span class="product-badge" style="position:absolute;top:8px;left:8px;font-size:10px;padding:3px 8px;">${escapeHtml(product.Badge)}</span>`
 : '';
@@ -586,8 +586,8 @@ if (card) {
 const slotImageDiv = card.querySelector(`.look-slot-image[data-slot="${slotType}"]`);
 if (slotImageDiv) {
 const img = slotImageDiv.querySelector('.look-slot-img');
-const newImgUrl = optimizeDriveUrl(newProduct.image, 200);
-const newModalUrl = optimizeDriveUrl(newProduct.image, 800);
+const newImgUrl = urlImagen(newProduct.image);
+const newModalUrl = urlImagen(newProduct.image);
 if (img) {
 const tempImg = new Image();
 tempImg.onload = () => {
@@ -658,8 +658,8 @@ function createHomeLookCard(look) {
     productCount++;
     totalPrice += product.price;
 
-    const optimizedImg = optimizeDriveUrl(product.image, 200);
-    const optimizedModalImg = optimizeDriveUrl(product.image, 800);
+    const optimizedImg = urlImagen(product.image);
+    const optimizedModalImg = urlImagen(product.image);
 
     imagesHtml += `
       <div class="look-slot-image" data-slot="${escapeHtml(slotKey)}"

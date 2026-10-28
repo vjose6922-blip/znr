@@ -835,8 +835,8 @@ const product = look.products[slotKey];
 if (!product) continue;
 productCount++;
 totalPrice += product.price;
-const optimizedImg = optimizeDriveUrl(product.image, 200);
-const optimizedModalImg = optimizeDriveUrl(product.image, 800);
+const optimizedImg = urlImagen(product.image);
+const optimizedModalImg = urlImagen(product.image);
 const slotName = slotNames[slotKey] || slotKey;
 imagesHtml += `
 <div class="look-slot-image" data-slot="${escapeHtml(slotKey)}"
@@ -984,7 +984,7 @@ function showSharedOutfitModal(products, missing) {
   const total = products.reduce((s, p) => s + Number(p.Precio || 0), 0);
   const itemsHtml = products.map(p => `
     <div class="shared-outfit-item">
-      <img src="${escapeHtml(optimizeDriveUrl(p.Imagen1, 400))}" alt="${escapeHtml(p.Nombre)}" onerror="window.znrLoadImgWithRetry(this)">
+      <img src="${escapeHtml(urlImagen(p.Imagen1))}" alt="${escapeHtml(p.Nombre)}" onerror="window.znrLoadImgWithRetry(this)">
       <div class="shared-outfit-info">
         <div class="shared-outfit-name">${escapeHtml(p.Nombre)}</div>
         <div class="shared-outfit-price">${formatCurrency(p.Precio)}</div>
@@ -1153,12 +1153,12 @@ return;
 const slotImageContainer = targetCard.querySelector(`.look-slot-image[data-slot="${changedSlotType}"]`);
 if (slotImageContainer) {
 const slotImg = slotImageContainer.querySelector('.look-slot-img');
-const newImageUrl = optimizeDriveUrl(newProduct.image, 150);
+const newImageUrl = urlImagen(newProduct.image);
 if (slotImg) {
 slotImg.style.opacity = '0.5';
 loadImageWithRetry(slotImg, newImageUrl);
 }
-slotImageContainer.dataset.modalUrl = optimizeDriveUrl(newProduct.image, 800);
+slotImageContainer.dataset.modalUrl = urlImagen(newProduct.image);
 slotImageContainer.dataset.productId = newProduct.id;
 }
 const productItems = targetCard.querySelectorAll('.look-product-item');
@@ -1185,7 +1185,7 @@ if (totalPriceEl) {
 oldTotalPrice = parseFloat(totalPriceEl.textContent.replace(/[^0-9.-]/g, '')) || 0;
 }
 const productImg = targetProductItem.querySelector('.look-product-img');
-const newImageUrl = optimizeDriveUrl(newProduct.image, 150);
+const newImageUrl = urlImagen(newProduct.image);
 if (productImg) {
 productImg.style.opacity = '0.5';
 loadImageWithRetry(productImg, newImageUrl);

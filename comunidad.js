@@ -85,10 +85,6 @@ function invalidateComunidadCache() {
   localStorage.removeItem(COMUNIDAD_CACHE_KEY);
 }
 'use strict';
-if (typeof window.optimizeDriveUrl !== 'function') {
-window.optimizeDriveUrl = function(url, size) { return url; };
-console.warn(' optimizeDriveUrl no definida, usando identidad');
-}
 if (typeof window.formatCurrency !== 'function') {
 window.formatCurrency = function(value) { return '$' + Number(value).toLocaleString(); };
 console.warn(' formatCurrency no definida, usando función simple');
@@ -1155,13 +1151,8 @@ function handleInitialHashComunidad(intentos = 0) {
     return;
   }
   initialHashHandledComunidad = true;
-  const driveThumb = (url, size) => {
-    if (!url) return '';
-    const m = String(url).match(/[-\w]{25,}/);
-    return m ? `https://drive.google.com/thumbnail?id=${m[0]}&sz=w${size || 400}` : url;
-  };
-  const imgUrl = product.imagen1 ? driveThumb(product.imagen1, 400) : 'https://placehold.co/400x400/3b1f5f/white?text=Sin+Imagen';
-  const allImages = [product.imagen1, product.imagen2, product.imagen3].filter(Boolean).map(u => driveThumb(u, 800));
+  const imgUrl = product.imagen1 || 'https://placehold.co/400x400/3b1f5f/white?text=Sin+Imagen';
+  const allImages = [product.imagen1, product.imagen2, product.imagen3].filter(Boolean);
   const productData = {
     ID: product.id,
     Nombre: product.nombre || '',
@@ -1338,20 +1329,14 @@ return false;
 function createCommunityCard(product) {
 try {
 const esc  = window.escapeHtml || (s =>String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])));
-const optUrl  = window.optimizeDriveUrl || (u => u);
+const optUrl  = urlImagen;
 const fmtCurr = window.formatCurrency  || (v => '$' + Number(v).toLocaleString('es-MX'));
 const card = document.createElement('div');
 card.className = 'product-card';
 card.id = `producto-${product.id}`;
 card.setAttribute('data-id', product.id);
-const driveThumb = (url, size) => {
-  if (!url) return '';
-  const m = String(url).match(/[-\w]{25,}/);
-  if (!m) return url;
-  return `https://drive.google.com/thumbnail?id=${m[0]}&sz=w${size || 400}`;
-};
-const imgUrl  = product.imagen1 ? driveThumb(product.imagen1, 400) : 'https://placehold.co/400x400/3b1f5f/white?text=Sin+Imagen';
-const allImages = [product.imagen1, product.imagen2, product.imagen3].filter(Boolean).map(u => driveThumb(u, 800));
+const imgUrl  = product.imagen1 || 'https://placehold.co/400x400/3b1f5f/white?text=Sin+Imagen';
+const allImages = [product.imagen1, product.imagen2, product.imagen3].filter(Boolean);
 const esPersonal = product.tipoVenta === 'personalizado';
 const diasElab = Number(product.tiempoElaboracionDias) || 0;
 const stockNum  = Number(stockVivo(product)) || 0;
