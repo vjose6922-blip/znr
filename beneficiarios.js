@@ -332,7 +332,7 @@ const BEN_CSS = `
 .bm-fotos img:only-child { flex-basis:100%; width:100%; aspect-ratio:16/10; }
 .bm-nombre { margin:16px 0 2px; font-size:1.45rem; font-weight:800; line-height:1.15; }
 .bm-org { margin:0; color:#8a6248; font-size:.95rem; }
-.bm-lugar { display:inline-flex; align-items:center; gap:6px; margin:12px 0 14px; padding:7px 14px; border:1px solid #ecd9c4; border-radius:20px; background:#fff; font-size:.85rem; }
+.bm-lugar { display:inline-flex; align-items:center; gap:6px; margin:12px 0 14px; padding:7px 14px; border:1px solid #ecd9c4; border-radius:20px; background:#fff; font-size:.85rem; color:inherit; text-decoration:none; } /* abre Google Maps (en el celular, la app) */
 .bm-lugar svg { color:#f0566f; }
 .bm-fb { display:flex; align-items:center; justify-content:center; gap:8px; padding:13px; margin:0 0 14px; border-radius:14px; background:linear-gradient(90deg,#3b6fe0,#8a5cf0); color:#fff; font-weight:700; text-decoration:none; box-shadow:0 6px 16px rgba(59,111,224,.25); }
 .bm-sobre { background:#fdf2cf; border:1px solid #f4dfa0; border-radius:16px; padding:14px 16px; margin-bottom:14px; }
@@ -387,7 +387,7 @@ window.openBeneficiarioModal = async function(beneficiarioId) {
       ${imgs.length ? `<div class="bm-fotos">${imgs.map((u, i) => `<img src="${u}" alt="Foto ${i + 1}" data-i="${i}" loading="lazy">`).join('')}</div>` : ''}
       <h3 class="bm-nombre">${esc2(b.nombre)}</h3>
       ${b.organizacion ? `<p class="bm-org">${esc2(b.organizacion)}</p>` : ''}
-      ${b.ciudad || b.ubicacion ? `<span class="bm-lugar">${Icon('map-pin', { size: 15 })} ${esc2(b.ciudad || b.ubicacion)}</span>` : ''}
+      ${b.ciudad || b.ubicacion ? `<a class="bm-lugar" href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent([b.ubicacion, b.ciudad].filter(Boolean).join(', '))}" target="_blank" rel="noopener" title="Abrir en Maps">${Icon('map-pin', { size: 15 })} ${esc2(b.ciudad || b.ubicacion)} ${Icon('arrow-right', { size: 13 })}</a>` : ''}
       ${fb ? `<a class="bm-fb" href="${esc2(fbUrl)}" target="_blank" rel="noopener">${Icon('facebook', { size: 20 })} Ver perfil en Facebook</a>` : ''}
       ${b.historia ? `<div class="bm-sobre"><b>${Icon('heart-fill', { size: 16 })} Sobre este refugio</b><p>${esc2(b.historia)}</p></div>` : ''}
       ${b.cuenta_bancaria ? `<div class="bm-cuenta"><small>${Icon('credit-card', { size: 18 })} CUENTA / CLABE</small>
