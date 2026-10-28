@@ -318,24 +318,58 @@ if (tel.length !== 10) return showMsg('El WhatsApp debe tener 10 dígitos.', fal
 };
 
 // ── Modal: Ver detalle de beneficiario ──────────────────────
+// Estilo del modal (acomodo tipo tarjeta, colores cálidos: crema, café, amarillo y degradado naranja-rosa).
+const BEN_CSS = `
+#modal-beneficiario-detalle .bm-caja { background:#fffaf2; color:#5b2e0e; width:100%; height:100%; overflow-y:auto; padding:calc(14px + env(safe-area-inset-top)) 18px calc(26px + env(safe-area-inset-bottom)); box-sizing:border-box; }
+#modal-beneficiario-detalle .bm-caja > * { max-width:560px; margin-left:auto; margin-right:auto; } /* pantalla completa; contenido centrado en escritorio */
+.bm-head { position:sticky; top:calc(-14px - env(safe-area-inset-top)); z-index:2; display:flex; align-items:center; gap:10px; margin-bottom:14px; padding:10px 0; background:#fffaf2; }
+.bm-head h2 { margin:0; flex:1; font-size:1.15rem; font-weight:800; }
+.bm-ico { width:40px; height:40px; border-radius:50%; background:#ffe1e6; color:#f0566f; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+.bm-x { background:none; border:none; color:#b07a5a; cursor:pointer; padding:4px; }
+.bm-fotos { display:flex; gap:10px; overflow-x:auto; scroll-snap-type:x mandatory; scrollbar-width:none; }
+.bm-fotos::-webkit-scrollbar { display:none; }
+.bm-fotos img { flex:0 0 31%; width:31%; min-width:0; height:auto; aspect-ratio:1; object-fit:cover; border-radius:16px; scroll-snap-align:start; cursor:zoom-in; box-shadow:0 4px 12px rgba(91,46,14,.15); }
+.bm-fotos img:only-child { flex-basis:100%; width:100%; aspect-ratio:16/10; }
+.bm-nombre { margin:16px 0 2px; font-size:1.45rem; font-weight:800; line-height:1.15; }
+.bm-org { margin:0; color:#8a6248; font-size:.95rem; }
+.bm-lugar { display:inline-flex; align-items:center; gap:6px; margin:12px 0 14px; padding:7px 14px; border:1px solid #ecd9c4; border-radius:20px; background:#fff; font-size:.85rem; }
+.bm-lugar svg { color:#f0566f; }
+.bm-fb { display:flex; align-items:center; justify-content:center; gap:8px; padding:13px; margin:0 0 14px; border-radius:14px; background:linear-gradient(90deg,#3b6fe0,#8a5cf0); color:#fff; font-weight:700; text-decoration:none; box-shadow:0 6px 16px rgba(59,111,224,.25); }
+.bm-sobre { background:#fdf2cf; border:1px solid #f4dfa0; border-radius:16px; padding:14px 16px; margin-bottom:14px; }
+.bm-sobre b { display:flex; align-items:center; gap:8px; color:#d2691e; font-size:.85rem; letter-spacing:.03em; text-transform:uppercase; padding-bottom:8px; margin-bottom:8px; border-bottom:1px solid #f1d98f; }
+.bm-sobre p { margin:0; font-size:.88rem; line-height:1.6; white-space:pre-wrap; }
+.bm-cuenta { border-radius:18px; padding:16px 18px; color:#fff; background:linear-gradient(135deg,#f7953f,#ef6079); box-shadow:0 8px 20px rgba(239,96,121,.3); }
+.bm-cuenta small { display:flex; align-items:center; gap:8px; font-weight:800; letter-spacing:.05em; font-size:.8rem; }
+.bm-num { margin:12px 0; padding-bottom:12px; border-bottom:1px dashed rgba(255,255,255,.5); font-size:1.25rem; font-weight:800; letter-spacing:.06em; word-break:break-all; }
+.bm-tit { display:flex; align-items:flex-end; justify-content:space-between; gap:10px; }
+.bm-tit span { font-size:.7rem; opacity:.85; } .bm-tit strong { display:block; font-size:.92rem; }
+.bm-copiar { display:inline-flex; align-items:center; gap:6px; padding:9px 14px; border:1.5px dashed rgba(255,255,255,.8); border-radius:12px; background:rgba(255,255,255,.15); color:#fff; font-weight:800; font-size:.8rem; cursor:pointer; flex-shrink:0; }
+.bm-gracias { display:flex; align-items:center; justify-content:center; gap:6px; margin-top:16px; font-size:.82rem; color:#8a6248; }
+.bm-gracias svg { color:#f0566f; }
+.bm-zoom { position:fixed; inset:0; z-index:100000; background:rgba(0,0,0,.92); display:flex; overflow-x:auto; scroll-snap-type:x mandatory; }
+.bm-zoom img { flex:0 0 100%; width:100%; height:100%; object-fit:contain; scroll-snap-align:center; }
+.bm-zoom button { position:fixed; top:14px; right:14px; width:40px; height:40px; border-radius:50%; border:none; background:rgba(255,255,255,.18); color:#fff; font-size:24px; cursor:pointer; }`;
+
+// Foto en grande (las demás se deslizan); tocar el fondo o la X la cierra.
+function verFotoGrande(imgs, i) {
+  const z = Object.assign(document.createElement('div'), { className: 'bm-zoom' });
+  z.innerHTML = imgs.map(u => `<img src="${u}" alt="">`).join('') + '<button type="button" aria-label="Cerrar">×</button>';
+  z.onclick = (e) => { if (e.target === z || e.target.tagName === 'BUTTON') z.remove(); };
+  document.body.appendChild(z);
+  z.scrollLeft = i * z.clientWidth;
+}
+
 window.openBeneficiarioModal = async function(beneficiarioId) {
   if (!beneficiarioId) return;
-  const old = document.getElementById('modal-beneficiario-detalle');
-  if (old) old.remove();
+  document.getElementById('modal-beneficiario-detalle')?.remove();
   const modal = document.createElement('div');
   modal.id = 'modal-beneficiario-detalle';
-  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.65);backdrop-filter:blur(4px);z-index:99999;display:flex;align-items:flex-end;justify-content:center;';
-  modal.innerHTML = `
-    <div style="background:var(--color-surface,#fff);border-radius:20px 20px 0 0;width:100%;max-height:96vh;overflow-y:auto;padding:24px 20px 32px;">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
-        <h2 style="margin:0;font-size:1rem;font-weight:800;">${Icon('heart-fill')} Beneficiario</h2>
-        <div style="display:flex;align-items:center;gap:12px;">
-          <button id="btn-report-ben" title="Reportar" style="background:none;border:none;cursor:pointer;color:var(--color-text-soft);">${Icon('flag',{size:16})}</button>
-          <button id="btn-close-ben-det" style="background:none;border:none;font-size:22px;cursor:pointer;">×</button>
-        </div>
-      </div>
-      <div id="ben-det-body"><p style="color:#aaa;text-align:center;padding:24px 0;">Cargando…</p></div>
-    </div>`;
+  modal.style.cssText = 'position:fixed;inset:0;z-index:99999;display:flex;';
+  modal.innerHTML = `<style>${BEN_CSS}</style><div class="bm-caja">
+      <div class="bm-head"><span class="bm-ico">${Icon('heart-fill', { size: 20 })}</span><h2>Beneficiario</h2>
+        <button id="btn-report-ben" class="bm-x" title="Reportar">${Icon('flag', { size: 18 })}</button>
+        <button id="btn-close-ben-det" class="bm-x" aria-label="Cerrar">${Icon('x', { size: 24 })}</button></div>
+      <div id="ben-det-body"><p style="color:#b07a5a;text-align:center;padding:24px 0;">Cargando…</p></div></div>`;
   document.body.appendChild(modal);
   document.getElementById('btn-close-ben-det').onclick = () => modal.remove();
   document.getElementById('btn-report-ben').onclick = () => showReportBeneficiarioDialog(beneficiarioId);
@@ -347,56 +381,28 @@ window.openBeneficiarioModal = async function(beneficiarioId) {
     if (!data.ok || !data.beneficiario) { body.innerHTML = '<p style="color:#ef4444;text-align:center;">No se pudo cargar.</p>'; return; }
     const b = data.beneficiario;
     const esc2 = s => String(s||'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-    const imgs = [b.imagen1, b.imagen2, b.imagen3].filter(Boolean);
-    const inicial = esc2(b.nombre).charAt(0).toUpperCase() || '?';
+    const imgs = [b.imagen1, b.imagen2, b.imagen3].filter(Boolean).map(esc2);
+    const fb = String(b.facebook || '').trim(), fbUrl = /^https?:\/\//i.test(fb) ? fb : 'https://www.facebook.com/' + fb.replace(/^@/, '');
     body.innerHTML = `
-      ${imgs.length ? `<div style="display:flex;gap:8px;overflow-x:auto;margin-bottom:16px;">${imgs.map(u=>`<img src="${esc2(u)}" style="height:140px;border-radius:14px;object-fit:cover;flex-shrink:0;border:1px solid var(--color-border-subtle);">`).join('')}</div>` : ''}
-      <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
-        <div style="width:48px;height:48px;border-radius:50%;background:var(--color-accent-soft);color:var(--color-accent-solid);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:1.1rem;flex-shrink:0;">${inicial}</div>
-        <div style="min-width:0;">
-          <h3 style="margin:0;font-size:1.05rem;color:var(--color-text-primary);">${esc2(b.nombre)}</h3>
-          ${b.organizacion ? `<p style="margin:2px 0 0;font-size:.8rem;color:var(--color-text-soft);">${esc2(b.organizacion)}</p>` : ''}
-        </div>
-      </div>
-      <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px;">
-        <span style="display:inline-flex;align-items:center;gap:5px;background:var(--color-surface-2);color:var(--color-text-muted);border-radius:20px;padding:5px 12px;font-size:.78rem;">${Icon('map-pin',{size:13})} ${esc2(b.ubicacion)}</span>
-        ${b.facebook ? `<a href="${esc2(b.facebook)}" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:5px;background:var(--color-info-bg);color:var(--color-info);border-radius:20px;padding:5px 12px;font-size:.78rem;text-decoration:none;font-weight:600;">Facebook ${Icon('arrow-right',{size:12})}</a>` : ''}
-      </div>
-      <div style="background:var(--color-warning-bg);border-radius:12px;padding:14px;margin-bottom:14px;">
-        <p style="margin:0 0 6px;font-weight:700;font-size:.75rem;color:var(--color-warning);text-transform:uppercase;letter-spacing:.03em;">Sobre este refugio</p>
-        <p style="margin:0;font-size:.85rem;line-height:1.6;color:var(--color-text-primary);">${esc2(b.historia)}</p>
-      </div>
-      <p style="margin:0 0 6px;font-weight:700;font-size:.75rem;color:var(--color-text-soft);text-transform:uppercase;letter-spacing:.03em;">Datos de pago directo</p>
-      <div style="position:relative;border-radius:16px;padding:18px;background:linear-gradient(135deg,var(--color-primary),var(--color-accent-solid));box-shadow:0 6px 16px rgba(0,0,0,.18);color:#fff;overflow:hidden;">
-        <div style="position:absolute;top:-30px;right:-30px;width:110px;height:110px;border-radius:50%;background:rgba(255,255,255,.12);"></div>
-        <div style="display:flex;justify-content:space-between;align-items:flex-start;position:relative;">
-          <span style="font-size:.7rem;opacity:.8;letter-spacing:.05em;">CUENTA / CLABE</span>
-          <button id="btn-copy-cuenta" style="border:none;background:rgba(255,255,255,.22);color:#fff;border-radius:8px;padding:5px 10px;font-size:.7rem;font-weight:700;cursor:pointer;backdrop-filter:blur(2px);">Copiar</button>
-        </div>
-        <p style="margin:22px 0 18px;font-size:1.05rem;font-family:monospace;letter-spacing:.12em;word-break:break-all;position:relative;">${esc2(b.cuenta_bancaria).replace(/(.{4})/g,'$1 ').trim()}</p>
-        <div style="display:flex;justify-content:space-between;align-items:flex-end;position:relative;">
-          <div>
-            <span style="display:block;font-size:.6rem;opacity:.75;">TITULAR</span>
-            <span style="font-size:.82rem;font-weight:700;">${esc2(b.nombre)}</span>
-          </div>
-          ${Icon('heart-fill',{size:20})}
-        </div>
-      </div>`;
-
-    mostrarDonarEnLinea(beneficiarioId, body);
-    const copyBtn = document.getElementById('btn-copy-cuenta');
-    if (copyBtn) {
-      copyBtn.addEventListener('click', async () => {
-        try {
-          await navigator.clipboard.writeText(b.cuenta_bancaria || '');
-          copyBtn.textContent = '¡Copiado!';
-          setTimeout(() => { copyBtn.textContent = 'Copiar'; }, 1500);
-        } catch (e) {
-          copyBtn.textContent = 'Error';
-          setTimeout(() => { copyBtn.textContent = 'Copiar'; }, 1500);
-        }
-      });
-    }
+      ${imgs.length ? `<div class="bm-fotos">${imgs.map((u, i) => `<img src="${u}" alt="Foto ${i + 1}" data-i="${i}" loading="lazy">`).join('')}</div>` : ''}
+      <h3 class="bm-nombre">${esc2(b.nombre)}</h3>
+      ${b.organizacion ? `<p class="bm-org">${esc2(b.organizacion)}</p>` : ''}
+      ${b.ciudad || b.ubicacion ? `<span class="bm-lugar">${Icon('map-pin', { size: 15 })} ${esc2(b.ciudad || b.ubicacion)}</span>` : ''}
+      ${fb ? `<a class="bm-fb" href="${esc2(fbUrl)}" target="_blank" rel="noopener">${Icon('facebook', { size: 20 })} Ver perfil en Facebook</a>` : ''}
+      ${b.historia ? `<div class="bm-sobre"><b>${Icon('heart-fill', { size: 16 })} Sobre este refugio</b><p>${esc2(b.historia)}</p></div>` : ''}
+      ${b.cuenta_bancaria ? `<div class="bm-cuenta"><small>${Icon('credit-card', { size: 18 })} CUENTA / CLABE</small>
+        <div class="bm-num">${esc2(b.cuenta_bancaria).replace(/(.{4})/g, '$1 ').trim()}</div>
+        <div class="bm-tit"><div><span>Titular</span><strong>${esc2(b.nombre)}</strong></div>
+          <button id="btn-copy-cuenta" class="bm-copiar">${Icon('clipboard', { size: 16 })} <span>COPIAR</span></button></div></div>` : ''}
+      <div id="ben-don-linea"></div>
+      <p class="bm-gracias">${Icon('heart-fill', { size: 15 })} Gracias por ayudar a cambiar vidas.</p>`;
+    body.querySelector('.bm-fotos')?.addEventListener('click', e => e.target.dataset.i && verFotoGrande(imgs, +e.target.dataset.i));
+    mostrarDonarEnLinea(beneficiarioId, document.getElementById('ben-don-linea'));
+    document.getElementById('btn-copy-cuenta')?.addEventListener('click', async (e) => {
+      const t = e.currentTarget.querySelector('span');
+      t.textContent = await navigator.clipboard.writeText(b.cuenta_bancaria || '').then(() => '¡COPIADO!', () => 'ERROR');
+      setTimeout(() => { t.textContent = 'COPIAR'; }, 1500);
+    });
   } catch(err) {
     const body = document.getElementById('ben-det-body');
     if (body) body.innerHTML = '<p style="color:#ef4444;text-align:center;">Error de conexión.</p>';
