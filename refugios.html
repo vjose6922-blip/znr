@@ -285,9 +285,9 @@
  <span>Outfits</span>
  </button>
  
- <button class="bottom-nav-item active" id="nav-donar" aria-current="page">
- <span class="nav-icon"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" aria-hidden="true"><use href="#ic-hand-heart"/></svg></span>
- <span>Donar</span>
+ <button class="bottom-nav-item" id="nav-comunidad">
+ <span class="nav-icon"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" aria-hidden="true"><use href="#ic-community"/></svg></span>
+ <span>Comunidad</span>
  </button>
 
  <button class="bottom-nav-item" data-page="vendedor" id="nav-vendedor">
@@ -307,6 +307,7 @@
  <script src="api-config.js" defer></script>
  <script type="module" src="fcm-init.js"></script>
  <script src="icons.js" defer></script>
+ <script src="znr-select.js" defer></script>
  <script src="common.js" defer></script>
  <script type="module" src="firestore-init.js"></script>
  <script src="pagos.js" defer></script>
@@ -318,7 +319,7 @@
  <script src="refugios.js" defer></script>
  <script>
  if ('serviceWorker' in navigator) window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(() => {}));
- const ir = { 'nav-inicio': 'index.html', 'nav-catalogo': 'catalogo.html', 'nav-outfit': 'outfit.html', 'nav-vendedor': 'vendedor.html' };
+ const ir = { 'nav-inicio': 'index.html', 'nav-catalogo': 'catalogo.html', 'nav-outfit': 'outfit.html', 'nav-vendedor': 'vendedor.html', 'nav-comunidad': 'comunidad.html' };
  Object.entries(ir).forEach(([id, url]) => document.getElementById(id)?.addEventListener('click', () => { location.href = url; }));
  document.getElementById('nav-cart')?.addEventListener('click', () => window.openCartDrawer?.());
  window.addEventListener('cartUpdated', () => {
