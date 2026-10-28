@@ -398,7 +398,7 @@ window.znrFirestore.getDonacionesRecibidas = async function (vendorUid) {
     const snap = await _fsConReintentos(() => getDoc(doc(db, 'donaciones_recibidas', vendorUid)));
     if (!snap.exists()) return { ok: false, error: 'doc no encontrado' };
     const data = snap.data();
-    return { ok: true, esBeneficiario: !!data.esBeneficiario, donaciones: data.donaciones || [] };
+    return { ok: true, esBeneficiario: !!data.esBeneficiario, beneficiario_id: data.beneficiario_id || '', donaciones: data.donaciones || [] };
   } catch (err) {
     console.warn('Firestore donaciones_recibidas falló:', err);
     return { ok: false, error: String(err) };

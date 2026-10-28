@@ -95,6 +95,7 @@ const MAPA_ACCIONES_MIGRADAS = {
   solicitarEdicionBeneficiario: BENEFICIARIOS_API_URL,
   solicitarEliminacionBeneficiario: BENEFICIARIOS_API_URL,
   obtenerDonacionesRecibidas: BENEFICIARIOS_API_URL,
+  obtenerBeneficiario: BENEFICIARIOS_API_URL,
   obtenerEstadisticasVendedor: "https://ventas-api-1038143238323.us-central1.run.app",
   obtenerUltimoInformeSemanal: VENTAS_API_URL,
   obtenerMisEntregasLive: LIVE_API_URL,
@@ -3672,13 +3673,13 @@ window.openEntregasLiveModal = async function() {
   }
 };
 
-async function buscarMiPerfilBeneficiario() {
+// Detalle de mi fundación por su id (viene en donaciones_recibidas). Antes se buscaba por teléfono en la copia pública,
+// que no guarda el teléfono (privacidad), así que nunca se encontraba. El teléfono es el usuario del vendedor.
+async function buscarMiPerfilBeneficiario(benId) {
   try {
-    let data = window.znrFirestore ? await window.znrFirestore.getBeneficiariosAprobados() : { ok:false };
-    if (!data.ok) return null;
-    const miTel = String(vendorSession.telefono || '').replace(/\D/g, '');
-    if (!miTel) return null;
-    return (data.beneficiarios || []).find(b => String(b.telefono || '').replace(/\D/g, '') === miTel) || null;
+    if (!benId) return null;
+    const data = await apiFetch({ action: 'obtenerBeneficiario', id: benId }, 'GET');
+    return data && data.ok ? { ...data.beneficiario, id: benId, telefono: vendorSession.telefono || '' } : null;
   } catch (e) { return null; }
 }
 
@@ -3699,7 +3700,7 @@ async function loadBeneficiarioDonaciones() {
     const dons = data.donaciones || [];
     area.style.display = 'block';
 
-    const miBen = await buscarMiPerfilBeneficiario();
+    const miBen = await buscarMiPerfilBeneficiario(data.beneficiario_id);
     const perfilHtml = miBen ? `
       <div style="margin-top:12px;padding:12px;background:#fff7ed;border:1px solid #fed7aa;border-radius:12px;">
         <p style="margin:0 0 6px;font-size:.78rem;font-weight:800;color:#c2410c;">${Icon('heart-fill')} Tu perfil de fundación</p>
