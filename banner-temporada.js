@@ -13,6 +13,7 @@
 .com-banner-txt { display: flex; flex-direction: column; align-items: inherit; max-width: 62%; gap: .6cqw; }
 .com-banner-t { font-family: 'ZNR Serif', Georgia, serif; font-weight: 700; font-size: calc(7cqw * var(--k)); line-height: 1; }
 .com-banner-s { font-family: 'ZNR Serif', Georgia, serif; font-style: italic; font-size: calc(4.6cqw * var(--k)); line-height: 1.05; color: var(--color-accent-solid, #f0566f); }
+.com-banner-amp { font-family: Georgia, 'Times New Roman', serif; font-style: normal; }
 .com-banner-d { margin: 0; font-size: max(11px, calc(2.7cqw * var(--k))); line-height: 1.3; }
 .com-banner-go { padding: 1.4cqw 3.4cqw; border-radius: 999px; background: var(--gradient-accent, #f0566f); color: #fff; font-size: max(11px, calc(2.8cqw * var(--k))); font-weight: 700; white-space: nowrap; }
 .com-banner-txt .com-banner-go { margin-top: 1.4cqw; }
@@ -25,6 +26,8 @@
 .com-banner .com-banner-fotos img:nth-child(3) { transform: rotate(7deg); }`;
   const V = { t: 'flex-start', m: 'center', b: 'flex-end' }, H = { l: 'flex-start', c: 'center', r: 'flex-end' }, A = { l: 'left', c: 'center', r: 'right' };
   const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  // La "&" de Playfair es muy ornamental: en títulos va en Georgia (como .znr-amp en el resto del sitio).
+  const escT = (s) => esc(s).replace(/&amp;/g, '<span class="com-banner-amp">&amp;</span>');
   const okPos = (p) => /^[tmb][lcr]$/.test(p || '');
   // Botón suelto: esquina/borde del banner que indique botonPos.
   const posBoton = (p) => ({ t: 'top:4cqw;', m: 'top:50%;', b: 'bottom:4cqw;' }[p[0]] + { l: 'left:5cqw;', c: 'left:50%;', r: 'right:5cqw;' }[p[1]]
@@ -39,8 +42,8 @@
       ${b.imagen ? `<img src="${esc(b.imagen)}" alt="" loading="lazy">` : ''}
       ${fotos.length ? `<div class="com-banner-fotos">${fotos.map((f) => `<img src="${esc(f)}" alt="" loading="lazy">`).join('')}</div>` : ''}
       <div class="com-banner-capa${b.degradado === 'no' ? '' : ' deg'}" style="--dir:${dir};justify-content:${V[pos[0]]};align-items:${H[pos[1]]};text-align:${A[pos[1]]}">
-        <div class="com-banner-txt"${fotos.length ? ' style="max-width:50%"' : ''}><span class="com-banner-t">${esc(b.titulo)}</span>
-        ${b.subtitulo ? `<span class="com-banner-s">${esc(b.subtitulo)}</span>` : ''}${b.descripcion ? `<p class="com-banner-d">${esc(b.descripcion)}</p>` : ''}
+        <div class="com-banner-txt"${fotos.length ? ' style="max-width:50%"' : ''}><span class="com-banner-t">${escT(b.titulo)}</span>
+        ${b.subtitulo ? `<span class="com-banner-s">${escT(b.subtitulo)}</span>` : ''}${b.descripcion ? `<p class="com-banner-d">${esc(b.descripcion)}</p>` : ''}
         ${bp === 'txt' ? boton : ''}</div></div>${bp === 'txt' ? '' : boton}</div>`;
   }
   // ¿El texto se sale del banner? (para avisar en la vista previa)

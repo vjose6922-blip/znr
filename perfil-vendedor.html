@@ -798,9 +798,18 @@
 
 
 <nav class="bottom-nav">
+  <button class="bottom-nav-item" data-page="inicio" id="nav-inicio">
+    <span class="nav-icon"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" aria-hidden="true"><use href="#ic-home"/></svg></span>
+    <span>Inicio</span>
+  </button>
    <button class="bottom-nav-item active" data-page="comunidad" id="nav-comunidad">
     <span class="nav-icon"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" aria-hidden="true"><use href="#ic-community"/></svg></span>
     <span>Comunidad</span>
+  </button>
+
+  <button class="bottom-nav-item" id="nav-actividad">
+    <span class="nav-icon"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" aria-hidden="true"><use href="#ic-fire"/></svg></span>
+    <span>Actividad</span>
   </button>
 
   <button class="bottom-nav-item" data-page="vendedor" id="nav-vendedor">
@@ -1989,6 +1998,8 @@ Badge: p.badge || '',
 
   // NAVEGACIÓN INFERIOR (global)
     document.addEventListener('DOMContentLoaded', function() {
+      document.getElementById('nav-inicio')?.addEventListener('click', () => { window.location.href = 'index.html'; });
+      document.getElementById('nav-actividad')?.addEventListener('click', () => { window.location.href = 'feed-actividad.html'; });
       document.getElementById('nav-comunidad')?.addEventListener('click', () => {
         window.location.href = 'comunidad.html';
       });
