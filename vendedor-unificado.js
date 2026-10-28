@@ -3839,16 +3839,17 @@ const ubicacion = document.getElementById('ef-ubicacion').value.trim();
     const btn = this;
     btn.disabled = true; btn.textContent = 'Enviando…';
     try {
-      async function uploadImg(file) {
+      async function uploadImg(original) {
+        const file = await compressImage(original); // fotos del celular de varios MB: se reducen como las de los productos
         const reader = new FileReader();
         const base64 = await new Promise((res, rej) => {
           reader.onload = () => res(reader.result.split(',')[1]);
-          reader.onerror = rej;
+          reader.onerror = () => rej(new Error('No se pudo leer la foto. Prueba con otra o guárdala en el teléfono primero.'));
           reader.readAsDataURL(file);
         });
         const r = await fetch(CATALOGO_API_URL, {
           method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-          body: new URLSearchParams({ action:'uploadImageVendedor', data: base64, mimeType: file.type, fileName: file.name, vendorToken: vendorSession.token }).toString()
+          body: new URLSearchParams({ action:'uploadImageVendedor', data: base64, mimeType: file.type || original.type, fileName: original.name, vendorToken: vendorSession.token }).toString()
         });
         const j = await r.json();
         if (!j.ok) throw new Error(j.error || 'Error al subir imagen');
@@ -3888,7 +3889,7 @@ const ubicacion = document.getElementById('ef-ubicacion').value.trim();
         btn.disabled = false; btn.textContent = 'Enviar cambios';
       }
     } catch (err) {
-      showMsg('Error de conexión: ' + err.message, false);
+      showMsg(err && err.message ? err.message : 'Error de conexión. Revisa tu internet e inténtalo de nuevo.', false);
       btn.disabled = false; btn.textContent = 'Enviar cambios';
     }
   });
