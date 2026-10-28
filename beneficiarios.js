@@ -4,6 +4,11 @@
 const run = (n) => `https://${n}-api-1038143238323.us-central1.run.app`;
 const CATALOGO_API_URL_INSPECTOR = run('catalogo');
 const VENTAS_API_URL_INSPECTOR = run('ventas');
+// Sesión de vendedor guardada (en refugios.html nadie la carga antes, así que se recupera aquí).
+const sesionVendedor = () => {
+  if (!window.vendorSession) { try { window.vendorSession = JSON.parse(localStorage.getItem('vendor_session') || 'null'); } catch (e) {} }
+  return window.vendorSession;
+};
 const _resolverApiUrlInspector = (action) => action === 'misProductosComunidad' ? CATALOGO_API_URL_INSPECTOR : run('beneficiarios');
 
 // ── Modal: Registro de beneficiario (y también edición, ver 2do/3er parámetro) ─
@@ -12,17 +17,7 @@ const _resolverApiUrlInspector = (action) => action === 'misProductosComunidad' 
 // datosActuales: objeto con los valores actuales para prellenar el formulario
 window.openBeneficiarioRegister = function(modoEdicion, idBeneficiario, datosActuales) {
 
-  // Restaurar sesión desde localStorage si no existe
-  if (!window.vendorSession) {
-    try {
-      const stored = localStorage.getItem('vendor_session');
-      if (stored) {
-        window.vendorSession = JSON.parse(stored);
-      }
-    } catch (e) {
-      console.warn('No se pudo restaurar sesión:', e);
-    }
-  }
+  sesionVendedor();
 
   const old = document.getElementById('modal-beneficiario-register');
   if (old) old.remove();
@@ -186,15 +181,7 @@ if (!historia)         return showMsg('Cuéntanos tu propósito.', false);
 if (!cuenta)           return showMsg('La cuenta bancaria es requerida.', false);
 if (tel.length !== 10) return showMsg('El WhatsApp debe tener 10 dígitos.', false);
 
-    // Restaurar sesión por si no se hizo antes
-    if (!window.vendorSession) {
-      try {
-        const stored = localStorage.getItem('vendor_session');
-        if (stored) window.vendorSession = JSON.parse(stored);
-      } catch (e) {}
-    }
-
-    const vendor = window.vendorSession;
+    const vendor = sesionVendedor();
     if (!vendor || !vendor.token) {
       showMsg('Debes iniciar sesión como vendedor para registrarte como beneficiario. Ve a "Mi cuenta de vendedor".', false);
       // Opcional: agregar un enlace para ir a vendedor.html
@@ -497,7 +484,7 @@ function showReportBeneficiarioDialog(benId) {
 // se elige a quién donar (la card en la que se dio clic) y luego cuál de
 // los productos propios donarle.
 window.openDonarARefugioModal = async function(beneficiario) {
-  if (!window.vendorSession || !window.vendorSession.token) {
+  if (!sesionVendedor()?.token) {
     window.showTemporaryMessage && window.showTemporaryMessage('Inicia sesión como vendedor para donar un producto', 'error');
     return;
   }
