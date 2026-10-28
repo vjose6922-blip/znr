@@ -33,12 +33,17 @@
     $('ref-total').textContent = `${lista.length} ${lista.length === 1 ? 'refugio' : 'refugios'}`;
     const activos = [$('f-pais').value, $('f-ciudad').value].filter(Boolean).length;
     $('filtros-badge').textContent = activos; $('filtros-badge').style.display = activos ? 'inline-flex' : 'none';
+    // Chips de filtros activos (igual que en Comunidad): tocarlos quita ese filtro
+    const chips = [['texto', $('f-texto').value.trim() && `${Icon('search')} "${esc($('f-texto').value.trim())}"`], ['pais', esc($('f-pais').value)], ['ciudad', esc($('f-ciudad').value)]].filter(([, t]) => t);
+    $('ref-chips').innerHTML = chips.map(([k, t]) => `<button type="button" class="filter-chip" data-chip="${k}">${t} <span class="chip-x"></span></button>`).join('')
+      + (chips.length > 1 ? `<button type="button" class="filter-chip filter-chip-clear" data-chip="todo">${Icon('trash', { size: 14 })} Limpiar todo</button>` : '');
+    $('ref-chips').style.display = chips.length ? '' : 'none';
     $('ref-grid').innerHTML = lista.length ? lista.map(tarjeta).join('') : '<p class="ref-vacio">No hay refugios con estos filtros.</p>';
   }
   const donar = (b) => (fuera(b) ? window.openBeneficiarioModal?.(b.id) : window.openDonarARefugioModal?.({ id: b.id, nombre: nombreRefugio(b) }));
 
   // ── Banners (mismo estilo que los automáticos de Comunidad) ──
-  function pintarBanners(conDonados) {
+  function pintarBanners() {
     const deMiCiudad = todos.filter((b) => !fuera(b)), n = deMiCiudad.length;
     const banner = (accion, b, fotos) => window.znrBanner.html({ ...b, tema: 'claro', degradado: 'no', fotos: fotos.filter(Boolean).slice(0, 3) }, `role="listitem" data-accion="${accion}"`);
     const cont = $('com-banners');
@@ -49,16 +54,13 @@
       banner('ruleta', { titulo: '¿A quién', subtitulo: 'dono?', boton: 'Girar la ruleta', fondo: 'linear-gradient(135deg,#0f9b8e,#3ab0e2)',
         descripcion: 'Si no sabes a quién ayudar, deja que la suerte elija por ti.' }, [...deMiCiudad].sort(() => Math.random() - 0.5).map((b) => foto(b))),
       banner('registrar', { titulo: '¿Tienes un', subtitulo: 'refugio?', boton: 'Regístralo', fondo: 'linear-gradient(135deg,#6a3093,#e0457b)',
-        descripcion: 'Regístralo y recibe donaciones de tu comunidad.' }, conDonados || [])
+        descripcion: todos.length > 1 ? `Únete a los ${todos.length} refugios que ya reciben donaciones.` : 'Regístralo y recibe donaciones de tu comunidad.' },
+      [...todos].reverse().map((b) => foto(b)))
     ].join('');
     cont.scrollLeft = 0;
     $('com-hero-wrap').hidden = false;
     window.znrBanner.rotar(cont, $('com-dots'));
   }
-  // Fotos de artículos donados para el banner de registro (del snapshot del catálogo de tu ciudad; si falla, sin collage).
-  const fotosDonados = () => fetch(window.urlSnapshotCatalogo ? window.urlSnapshotCatalogo(miCiudad) : 'https://znr-live-default-rtdb.firebaseio.com/catalogo/snapshot.json')
-    .then((r) => r.json()).then((d) => (d?.products || []).filter((p) => p.donado === true || p.donado === 'true' || p.donado === 'TRUE').map((p) => p.imagen1)).catch(() => []);
-
   // ── Ruleta: recorre fotos/nombres cada vez más lento y se detiene en un refugio al azar ──
   function ruleta() {
     const base = filtrados(), pool = base.filter((b) => !fuera(b)).length ? base.filter((b) => !fuera(b)) : base;
@@ -113,6 +115,13 @@
   $('btn-filtros').onclick = () => hoja.classList.add('open');
   hoja.addEventListener('click', (e) => e.target.closest('[data-cerrar-filtros]') && hoja.classList.remove('open'));
   $('filtros-limpiar').onclick = () => { $('f-pais').value = ''; pintarCiudades(''); pintar(); };
+  $('ref-chips').onclick = (e) => {
+    const k = e.target.closest('[data-chip]')?.dataset.chip;
+    if (k === 'texto' || k === 'todo') $('f-texto').value = '';
+    if (k === 'pais' || k === 'todo') { $('f-pais').value = ''; pintarCiudades(k === 'todo' ? '' : $('f-ciudad').value); }
+    if (k === 'ciudad' || k === 'todo') $('f-ciudad').value = '';
+    if (k) pintar();
+  };
   $('btn-registrar').onclick = () => window.openBeneficiarioRegister?.();
 
   async function iniciar() {
@@ -130,7 +139,6 @@
       pintarCiudades(todos.some((b) => b.ciudad === miCiudad) ? miCiudad : '');
       pintar();
       pintarBanners();
-      fotosDonados().then((f) => f.length && pintarBanners(f));
     } catch (err) {
       console.error('Error cargando refugios:', err);
       $('ref-grid').innerHTML = `<p class="ref-vacio">Error al cargar los refugios.<br><button type="button" class="ref-btn" onclick="location.reload()">${Icon('refresh')} Reintentar</button></p>`;
