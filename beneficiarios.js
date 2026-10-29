@@ -489,116 +489,54 @@ window.openDonarARefugioModal = async function(beneficiario) {
     return;
   }
   const esc = window.escapeHtml || (s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])));
-  const optUrl = urlImagen;
-
-  const old = document.getElementById('modal-donar-refugio');
-  if (old) old.remove();
-
-  const modal = document.createElement('div');
-  modal.id = 'modal-donar-refugio';
-  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.65);backdrop-filter:blur(4px);z-index:99999;display:flex;align-items:flex-end;justify-content:center;';
-  modal.innerHTML = `
-    <div style="background:#fff;border-radius:20px 20px 0 0;width:100%;max-width:480px;max-height:90vh;overflow-y:auto;padding:0 0 36px;">
-      <div style="position:sticky;top:0;background:#fff;z-index:1;padding:16px 20px 12px;border-bottom:1px solid #f0f0f0;display:flex;align-items:center;justify-content:space-between;">
-        <h2 style="margin:0;font-size:1rem;font-weight:800;color:#111;">${Icon('heart-fill')} Donar a ${esc(beneficiario.nombre || 'refugio')}</h2>
-        <button id="btn-close-donar-refugio" style="background:none;border:none;font-size:22px;cursor:pointer;color:#888;line-height:1;">×</button>
-      </div>
-      <div id="donar-refugio-body" style="padding:16px 20px 0;text-align:center;color:#aaa;">Cargando tus productos…</div>
-    </div>`;
-  document.body.appendChild(modal);
-  document.getElementById('btn-close-donar-refugio').onclick = () => modal.remove();
-  modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
-
-  const body = document.getElementById('donar-refugio-body');
+  const { body, cta, showMsg, marcar } = window.modalDonar({ id: 'modal-donar-refugio', titulo: `Donar a ${esc(beneficiario.nombre || 'refugio')}` });
+  const api = (action, extra) => fetch(_resolverApiUrlInspector(action), { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({ action, producto_id: extra.pid, vendor_token: window.vendorSession.token, ...extra.p }).toString() }).then(r => r.json());
+  let elegido = null;
 
   const cargarProductos = async () => {
-    body.style.textAlign = 'center';
-    body.style.color = '#aaa';
-    body.innerHTML = 'Cargando tus productos…';
+    body.innerHTML = '<p style="text-align:center;color:#aaa;">Cargando tus productos…</p>';
+    cta.disabled = true; cta.textContent = 'Elige un artículo'; elegido = null;
     try {
-      const url = _resolverApiUrlInspector('misProductosComunidad') + '?' + new URLSearchParams({
-        action: 'misProductosComunidad', vendorToken: window.vendorSession.token, limit: '200', page: '1'
-      });
-      const res = await fetch(url);
-      const data = await res.json();
+      const data = await fetch(_resolverApiUrlInspector('misProductosComunidad') + '?' + new URLSearchParams({
+        action: 'misProductosComunidad', vendorToken: window.vendorSession.token, limit: '200', page: '1' })).then(r => r.json());
       if (!data.ok) throw new Error(data.error || 'Error al cargar tus productos');
       renderListaProductos(data.products || []);
-    } catch (e) {
-      body.innerHTML = `<p style="color:#ef4444;">Error al cargar: ${esc(e.message || e)}</p>`;
-    }
+    } catch (e) { body.innerHTML = `<p style="color:#ef4444;">Error al cargar: ${esc(e.message || e)}</p>`; }
   };
 
   const renderListaProductos = (productos) => {
-    body.style.textAlign = '';
-    body.style.color = '';
-    const esDeEsteRefugio = p => (p.donado === true || p.donado === 'TRUE' || p.donado === 'true') && String(p.beneficiario_id || '') === String(beneficiario.id);
-    const estaDonado = p => p.donado === true || p.donado === 'TRUE' || p.donado === 'true';
-    const yaDonados = productos.filter(esDeEsteRefugio);
-    const disponibles = productos.filter(p => !estaDonado(p));
+    const donado = p => [true, 'TRUE', 'true'].includes(p.donado);
+    const yaDonados = productos.filter(p => donado(p) && String(p.beneficiario_id || '') === String(beneficiario.id));
+    const disponibles = productos.filter(p => !donado(p));
+    const card = (p, quitar) => window.cardDonar({ id: esc(p.id), img: p.imagen1 && esc(urlImagen(p.imagen1)), titulo: esc(p.nombre || ''), precio: p.precio,
+      corazon: !quitar, etiqueta: !quitar && window.stockDonar(p), extra: quitar ? `<button class="dr-quitar" data-pid="${esc(p.id)}" style="padding:6px 12px;border:none;border-radius:20px;background:#fee2e2;color:#b91c1c;font-weight:700;cursor:pointer;">Quitar</button>` : '' });
+    body.innerHTML = (yaDonados.length ? `<p class="dr-tit" style="color:#166534;">Ya donados a este refugio</p>${yaDonados.map(p => card(p, true)).join('')}` : '')
+      + '<p class="dr-tit">Elige qué quieres donar</p>'
+      + (disponibles.length ? disponibles.map(p => card(p, false)).join('')
+        : '<p style="color:#aaa;text-align:center;padding:16px 0;">No tienes productos disponibles para donar.<br><small>Un producto ya donado a otro refugio no puede reasignarse sin quitarlo primero.</small></p>');
 
-    const filaProducto = (p, esQuitar) => {
-      const imgUrl = p.imagen1 ? optUrl(p.imagen1, 48) : '';
-      return `<div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid #f5f5f5;">
-        ${imgUrl ? `<img src="${esc(imgUrl)}" style="width:44px;height:44px;object-fit:cover;border-radius:8px;flex-shrink:0;">` : `<div style="width:44px;height:44px;background:#f5f5f8;border-radius:8px;flex-shrink:0;"></div>`}
-        <div style="flex:1;min-width:0;">
-          <div style="font-size:.83rem;font-weight:700;color:#111;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(p.nombre || '')}</div>
-          <div style="font-size:.72rem;color:#888;">$${Number(p.precio || 0).toLocaleString()} · Stock: ${p.stock || 0}</div>
-        </div>
-        ${esQuitar
-          ? `<button class="btn-quitar-donacion-refugio" data-pid="${esc(p.id)}" style="flex-shrink:0;padding:7px 12px;border:none;border-radius:20px;background:#fee2e2;color:#b91c1c;font-weight:700;font-size:.75rem;cursor:pointer;">Quitar</button>`
-          : `<button class="btn-asignar-donacion-refugio" data-pid="${esc(p.id)}" style="flex-shrink:0;width:36px;height:36px;border-radius:50%;border:none;background:#f5f5f8;color:#f97316;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;">${Icon('heart-fill')}</button>`}
-      </div>`;
+    body.onclick = async (e) => {
+      const q = e.target.closest('.dr-quitar');
+      if (q) {
+        q.disabled = true; q.textContent = 'Quitando…';
+        const data = await api('desasignarDonacion', { pid: q.dataset.pid }).catch(() => ({ error: 'Error de conexión' }));
+        if (data.ok) { showMsg('Donación removida', true); cargarProductos(); } else { showMsg(data.error || 'Error', false); q.disabled = false; q.textContent = 'Quitar'; }
+        return;
+      }
+      const c = e.target.closest('.dr-card');
+      elegido = c && disponibles.find(p => String(p.id) === c.dataset.id);
+      if (!elegido) return;
+      marcar(c);
+      cta.disabled = false; cta.textContent = `Donar ${elegido.nombre || ''} · $${Number(elegido.precio || 0).toLocaleString('es-MX')}`;
     };
+  };
 
-    body.innerHTML = `
-      ${yaDonados.length ? `
-      <p style="font-size:.78rem;font-weight:700;color:#166534;margin:0 0 6px;">Ya donados a este refugio</p>
-      <div style="margin-bottom:16px;">${yaDonados.map(p => filaProducto(p, true)).join('')}</div>` : ''}
-      <p style="font-size:.78rem;font-weight:700;color:#555;margin:0 0 6px;">Elige un producto para donar</p>
-      <div id="donar-refugio-msg" style="display:none;padding:10px;border-radius:10px;margin-bottom:10px;font-size:.82rem;"></div>
-      ${disponibles.length === 0
-        ? '<p style="color:#aaa;text-align:center;padding:16px 0;">No tienes productos disponibles para donar.<br><small>Un producto ya donado a otro refugio no puede reasignarse sin quitarlo primero.</small></p>'
-        : `<div>${disponibles.map(p => filaProducto(p, false)).join('')}</div>`}
-    `;
-
-    const showMsg = (txt, ok) => {
-      const el = document.getElementById('donar-refugio-msg');
-      if (!el) return;
-      el.textContent = txt;
-      el.style.display = 'block';
-      el.style.background = ok ? '#dcfce7' : '#fee2e2';
-      el.style.color = ok ? '#166534' : '#991b1b';
-    };
-
-    body.querySelectorAll('.btn-asignar-donacion-refugio').forEach(btn => {
-      btn.addEventListener('click', async () => {
-        btn.disabled = true;
-        try {
-          const params = new URLSearchParams({ action: 'asignarDonacion', producto_id: btn.dataset.pid, beneficiario_id: beneficiario.id, vendor_token: window.vendorSession.token });
-          const res = await fetch(_resolverApiUrlInspector('asignarDonacion'), {
-            method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: params.toString()
-          });
-          const data = await res.json();
-          if (data.ok) { showMsg('Donación asignada correctamente', true); cargarProductos(); }
-          else { showMsg(data.error || 'Error', false); btn.disabled = false; }
-        } catch (e) { showMsg('Error de conexión', false); btn.disabled = false; }
-      });
-    });
-
-    body.querySelectorAll('.btn-quitar-donacion-refugio').forEach(btn => {
-      btn.addEventListener('click', async () => {
-        btn.disabled = true; btn.textContent = 'Quitando…';
-        try {
-          const params = new URLSearchParams({ action: 'desasignarDonacion', producto_id: btn.dataset.pid, vendor_token: window.vendorSession.token });
-          const res = await fetch(_resolverApiUrlInspector('desasignarDonacion'), {
-            method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: params.toString()
-          });
-          const data = await res.json();
-          if (data.ok) { showMsg('Donación removida', true); cargarProductos(); }
-          else { showMsg(data.error || 'Error', false); btn.disabled = false; btn.textContent = 'Quitar'; }
-        } catch (e) { showMsg('Error de conexión', false); btn.disabled = false; btn.textContent = 'Quitar'; }
-      });
-    });
+  cta.onclick = async () => {
+    if (!elegido) return;
+    cta.disabled = true; cta.textContent = 'Donando…';
+    const data = await api('asignarDonacion', { pid: elegido.id, p: { beneficiario_id: beneficiario.id } }).catch(() => ({ error: 'Error de conexión' }));
+    if (data.ok) { showMsg('Donación asignada correctamente', true); cargarProductos(); } else { showMsg(data.error || 'Error', false); cta.disabled = false; cta.textContent = 'Reintentar'; }
   };
 
   cargarProductos();

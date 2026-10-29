@@ -540,6 +540,44 @@ document.head.appendChild(_miniSliderSt);
 const sinImagen = (w) => `https://placehold.co/${w}x${w}/3b1f5f/white?text=Z%26R`;
 function urlImagen(url) { return url && /^(https?:|data:image)/.test(url) ? url : sinImagen(400); }
 
+// Modal de donaciones en pantalla completa (refugios, comunidad y panel del vendedor): título, tarjetas y botón fijo abajo.
+const DR_CSS = `.dr-modal{--c:var(--color-accent-solid,#ff3d7f);position:fixed;inset:0;z-index:99999;background:#fff;color:#111;display:flex;flex-direction:column}
+.dr-scroll{flex:1;overflow-y:auto;padding:16px 16px 12px;max-width:560px;width:100%;margin:0 auto;box-sizing:border-box}
+.dr-x{position:absolute;top:12px;right:12px;width:36px;height:36px;border-radius:50%;border:none;background:#f3f3f5;font-size:22px;cursor:pointer;color:#555}
+.dr-scroll h2{margin:6px 44px 6px 0;font-size:1.35rem;font-weight:800;line-height:1.15}.dr-scroll h2 svg{color:var(--c)}
+.dr-sub{margin:0 0 14px;padding-left:10px;border-left:3px solid var(--c);color:#666;font-size:.88rem}
+.dr-tit{margin:14px 0 8px;font-weight:700;font-size:.98rem}
+.dr-card{position:relative;display:flex;align-items:center;gap:12px;padding:10px;margin-bottom:10px;border:1.5px solid transparent;border-radius:14px;box-shadow:0 2px 10px rgba(0,0,0,.08);cursor:pointer}
+.dr-card.sel{border-color:var(--c)}.dr-card img{width:80px;height:80px;object-fit:contain;border-radius:10px;flex-shrink:0;background:#f7f7f8}
+.dr-card b{display:block;font-size:1rem;padding-right:30px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.dr-card small{display:block;color:#888;font-size:.8rem}
+.dr-precio{color:var(--c);font-weight:800;font-size:1.3rem;margin:1px 0 5px}
+.dr-stock{display:inline-flex;align-items:center;gap:6px;padding:4px 9px;border-radius:8px;background:#fff1e6;color:#ea580c;font-size:.75rem}.dr-stock:before{content:'';width:7px;height:7px;border-radius:50%;background:#f97316}
+.dr-heart{position:absolute;top:10px;right:12px;color:#999}.dr-heart svg+svg,.sel .dr-heart svg:first-child{display:none}.sel .dr-heart svg+svg{display:inline}
+.dr-msg{display:none;padding:10px;border-radius:10px;margin-bottom:10px;font-size:.85rem}
+.dr-pie{padding:10px 16px calc(10px + env(safe-area-inset-bottom));max-width:560px;width:100%;margin:0 auto;box-sizing:border-box}
+.dr-cta{width:100%;padding:15px;border:none;border-radius:14px;background:var(--c);color:#fff;font-weight:700;font-size:1.05rem;cursor:pointer}.dr-cta:disabled{opacity:.5}.dr-cta.quitar{background:#fee2e2;color:#b91c1c}`;
+// titulo ya escapado. Devuelve las piezas del modal; tocar una tarjeta la marca (borde y corazón).
+window.modalDonar = ({ id, titulo, sub = 'Tu donación salva vidas', cta = 'Elige un artículo' }) => {
+  document.getElementById(id)?.remove();
+  const modal = Object.assign(document.createElement('div'), { id, className: 'dr-modal' });
+  modal.innerHTML = `<style>${DR_CSS}</style><button class="dr-x" aria-label="Cerrar">×</button>
+    <div class="dr-scroll"><h2>${Icon('heart-fill', { size: 22 })} ${titulo}</h2><p class="dr-sub">${sub}</p><div class="dr-msg"></div><div class="dr-body"></div></div>
+    <div class="dr-pie"><button class="dr-cta" disabled>${cta}</button></div>`;
+  document.body.appendChild(modal);
+  modal.querySelector('.dr-x').onclick = () => modal.remove();
+  const msg = modal.querySelector('.dr-msg'), body = modal.querySelector('.dr-body');
+  const marcar = (c) => body.querySelectorAll('.dr-card').forEach(x => x.classList.toggle('sel', x === c));
+  const showMsg = (txt, ok) => { msg.textContent = txt; Object.assign(msg.style, { display: 'block', background: ok ? '#dcfce7' : '#fee2e2', color: ok ? '#166534' : '#991b1b' }); };
+  return { modal, body, cta: modal.querySelector('.dr-cta'), showMsg, marcar };
+};
+// Tarjeta de producto o beneficiario (valores ya escapados). corazon=false para tarjetas sin selección.
+window.cardDonar = ({ id, img, titulo, precio, sub, etiqueta, extra = '', sel, corazon = true }) => `<div class="dr-card${sel ? ' sel' : ''}" data-id="${id}">
+  <img src="${img || sinImagen(160)}" alt="" loading="lazy" onerror="this.src='${sinImagen(160)}'">
+  <div style="flex:1;min-width:0;"><b>${titulo}</b>${precio != null ? `<div class="dr-precio">$${Number(precio || 0).toLocaleString('es-MX')}</div>` : ''}${sub ? `<small>${sub}</small>` : ''}
+    ${etiqueta ? `<span class="dr-stock">${etiqueta}</span>` : ''}${extra}</div>
+  ${corazon ? `<span class="dr-heart">${Icon('heart', { size: 26 })}${Icon('heart-fill', { size: 26 })}</span>` : ''}</div>`;
+window.stockDonar = p => p.tipoVenta === 'personalizado' ? 'Bajo pedido' : `${+p.stock <= 5 ? 'Solo ' : ''}${+p.stock || 0} disponible${+p.stock === 1 ? '' : 's'}`;
+
 function generateRequestId() {
 return 'REQ_' + Date.now() + '_' + Math.random().toString(36).substr(2, 8);
 }
