@@ -564,10 +564,15 @@ function iniciarReproductorWHEP(containerId, whepUrl) {
   }
   vigilarVideo();
   conectarWHEP();
+  vigilarInactividad();
 }
 
 function detenerReproductor() {
   whepActivo = false;
+  pausado = false;
+  clearTimeout(ocultoTimer);
+  clearTimeout(inactivoTimer);
+  document.getElementById('sigues-ahi')?.remove();
   whepConectando = false;
   clearTimeout(whepReintentoTimer);
   clearInterval(whepWatchdog);
@@ -577,6 +582,44 @@ function detenerReproductor() {
 }
 
 window.addEventListener('pagehide', detenerReproductor);
+
+// Cloudflare cobra cada minuto entregado aunque nadie esté viendo, así que el video se corta
+// si la pestaña lleva 2 min oculta o si en 20 min no se toca la pantalla y nadie responde
+// "¿Sigues ahí?" en 1 min. Se reconecta solo al volver o al tocar.
+let ocultoTimer = null, inactivoTimer = null, pausado = false;
+function pausarVideo() {
+  if (!whepActivo) return;
+  pausado = true; whepActivo = false;
+  clearTimeout(whepReintentoTimer);
+  cerrarWHEP();
+}
+function reanudarVideo() {
+  document.getElementById('sigues-ahi')?.remove();
+  vigilarInactividad();
+  if (!pausado) return;
+  pausado = false; whepActivo = true; whepReintento = 0;
+  estadoVideo('Reconectando video…');
+  conectarWHEP();
+}
+function vigilarInactividad() {
+  clearTimeout(inactivoTimer);
+  if (!whepActivo && !pausado) return;
+  inactivoTimer = setTimeout(() => {
+    if (!whepActivo || document.getElementById('sigues-ahi')) return;
+    const ov = Object.assign(document.createElement('div'), { id: 'sigues-ahi' });
+    ov.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;padding:16px;';
+    ov.innerHTML = '<div style="background:#fff;color:#111;border-radius:16px;padding:22px;max-width:320px;text-align:center;"><h3 style="margin:0 0 8px;">¿Sigues ahí?</h3><p style="margin:0 0 16px;color:#555;font-size:.9rem;">Toca para seguir viendo el live.</p><button type="button" style="width:100%;padding:12px;border:none;border-radius:12px;background:var(--color-accent-solid,#ff3d7f);color:#fff;font-weight:700;font-size:1rem;">Sigo aquí</button></div>';
+    ov.onclick = reanudarVideo;
+    document.body.appendChild(ov);
+    inactivoTimer = setTimeout(() => { pausarVideo(); ov.querySelector('p').textContent = 'Pausamos el video. Toca para volver al live.'; }, 60000);
+  }, 20 * 60000);
+}
+['pointerdown', 'keydown'].forEach((ev) => document.addEventListener(ev, () => { if (!document.getElementById('sigues-ahi')) vigilarInactividad(); }, { passive: true }));
+document.addEventListener('visibilitychange', () => {
+  clearTimeout(ocultoTimer);
+  if (document.hidden) { if (whepActivo) ocultoTimer = setTimeout(pausarVideo, 120000); }
+  else if (pausado) reanudarVideo();
+});
 
 function detenerStickyVideo() {
   if (stickyObserver) { stickyObserver.disconnect(); stickyObserver = null; }

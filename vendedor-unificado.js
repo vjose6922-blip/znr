@@ -811,7 +811,8 @@ function renderVendorPlanPanel() {
   const el = document.getElementById('vendor-plan-panel');
   if (!el || !vendorSession) return;
   const esPlus   = vendorSession.plan === 'plus';
-  const limite   = vendorSession.limiteProductos || (esPlus ? 200 : 20);
+  const esPro    = esPlus && vendorSession.planNivel === 'pro';
+  const limite   = vendorSession.limiteProductos || (esPlus ? (esPro ? 1000 : 400) : 20);
   const actuales = vendorSession.productosActuales || 0;
   const pct = Math.min(100, Math.round((actuales / limite) * 100));
   const diasRestantes = vendorSession.planVence
@@ -819,7 +820,7 @@ function renderVendorPlanPanel() {
     : null;
 
   const planBadge = esPlus
-    ? `<span style="background:linear-gradient(135deg,#7c3aed,#a855f7);color:#fff;font-size:11px;font-weight:700;padding:3px 10px;border-radius:999px;">PLUS</span>`
+    ? `<span style="background:linear-gradient(135deg,#7c3aed,#a855f7);color:#fff;font-size:11px;font-weight:700;padding:3px 10px;border-radius:999px;">${esPro ? 'PRO' : 'PLUS'}</span>`
     : `<span style="background:#eee;color:#666;font-size:11px;font-weight:700;padding:3px 10px;border-radius:999px;">FREE</span>`;
 
   const solidarioChip = window._insigniaSolidaria
@@ -830,7 +831,7 @@ function renderVendorPlanPanel() {
   if (esPlus && diasRestantes != null && diasRestantes <= 7) {
     renovacionHTML = `
       <div style="margin-top:8px;background:#fff8e1;color:#92702a;font-size:12px;border-radius:10px;padding:8px 12px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
-        <span>Tu plan Plus vence en ${diasRestantes} día${diasRestantes === 1 ? '' : 's'}. Renueva para no perder tu visibilidad.</span>
+        <span>Tu plan ${esPro ? 'Pro' : 'Plus'} vence en ${diasRestantes} día${diasRestantes === 1 ? '' : 's'}. Renueva para no perder tu visibilidad.</span>
         <button onclick="location.href='plan-plus.html'" style="padding:6px 14px;border:none;border-radius:20px;background:linear-gradient(135deg,#7c3aed,#a855f7);color:#fff;font-weight:700;font-size:12px;cursor:pointer;">
           Renovar
         </button>
@@ -1674,8 +1675,8 @@ if (window.hasPendingImageUploads && window.hasPendingImageUploads()) {
 const editId = document.getElementById('edit-product-id')?.value;
 if (!editId && (vendorSession.productosActuales || 0) >= (vendorSession.limiteProductos || 20)) {
 const mensaje = vendorSession.plan === 'plus'
-? `Llegaste al límite de ${vendorSession.limiteProductos} productos de tu plan Plus.`
-: `Llegaste al límite de ${vendorSession.limiteProductos} productos del plan gratuito. Pide el plan Plus para subir hasta 200.`;
+? `Llegaste al límite de ${vendorSession.limiteProductos} productos de tu plan.${vendorSession.planNivel === 'pro' ? '' : ' Cámbiate a Pro para subir hasta 1,000.'}`
+: `Llegaste al límite de ${vendorSession.limiteProductos} productos del plan gratuito. Pide el plan Plus para subir hasta 400.`;
 showTemporaryMessage(' ' + mensaje, 'error');
 return;
 }
@@ -2109,7 +2110,7 @@ if (planInfoEl) {
   if (esPlus) {
     const vence = vendorSession.planVence ? new Date(vendorSession.planVence).toLocaleDateString('es-MX', {day:'2-digit',month:'long',year:'numeric'}) : '—';
     planInfoEl.innerHTML = '<div style="background:#f5f3ff;border-radius:10px;padding:12px 14px;">' +
-      '<p style="margin:0;font-weight:700;color:#7c3aed;">' + Icon('star') + ' Plan Plus activo</p>' +
+      '<p style="margin:0;font-weight:700;color:#7c3aed;">' + Icon('star') + ' Plan ' + (vendorSession.planNivel === 'pro' ? 'Pro' : 'Plus') + ' activo</p>' +
       '<p style="margin:4px 0 0;color:#6b7280;font-size:.82rem;">Vence el ' + vence + '</p>' +
       '<div id="settings-plus-notif" style="margin-top:10px;"></div></div>';
   } else {
@@ -3225,8 +3226,9 @@ async function sincronizarPlanVendedor(repintarPanel) {
   const sol = res.solicitud || null;
   _setDailyCache('zr_vendor_plan_cache_' + vendorSession.uid, sol);
   const plan = sol && sol.estado === 'plus_activo' ? 'plus' : 'free';
-  if (plan === vendorSession.plan) return;
-  Object.assign(vendorSession, { plan, planVence: plan === 'plus' ? sol.vence : null, limiteProductos: plan === 'plus' ? 200 : 20 });
+  const planNivel = plan === 'plus' ? (sol.nivel || 'plus') : null;
+  if (plan === vendorSession.plan && planNivel === (vendorSession.planNivel || null)) return;
+  Object.assign(vendorSession, { plan, planNivel, planVence: plan === 'plus' ? sol.vence : null, limiteProductos: plan === 'plus' ? (planNivel === 'pro' ? 1000 : 400) : 20 });
   try { localStorage.setItem('vendor_session', JSON.stringify(vendorSession)); } catch (_) {}
   repintarPanel();
 }
