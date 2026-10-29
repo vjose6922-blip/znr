@@ -27,7 +27,7 @@
 <script src="error-monitor.js"></script>
 
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Plan Plus — Z&R</title>
+<title>Planes Plus y Pro — Z&R</title>
 <link rel="manifest" href="/manifest.json">
 <meta name="theme-color" content="#1e2128">
 <link rel="preload" href="styles.css" as="style">
@@ -92,7 +92,7 @@
     overflow: hidden;
   }
   .pp-table-header, .pp-row {
-    display: grid; grid-template-columns: 1.5fr .7fr .7fr;
+    display: grid; grid-template-columns: 1.4fr .6fr .6fr .6fr;
     padding: 13px 14px; align-items: center;
     border-bottom: 1px solid var(--color-border-subtle);
   }
@@ -109,6 +109,10 @@
   .pp-val.plus { color: var(--color-accent); }
 
   .pp-price-box { text-align: center; margin: 18px 16px 0; }
+  .pp-opciones { display: flex; gap: 8px; margin: 14px 16px 0; }
+  .pp-opc { flex: 1; padding: 10px 6px; border-radius: 12px; border: 1.5px solid var(--color-border-subtle); background: var(--color-surface-2); color: var(--color-text-primary); font-weight: 700; font-size: 14px; cursor: pointer; }
+  .pp-opc.on { border-color: var(--color-accent); color: var(--color-accent); }
+  .pp-opc small { display: block; font-size: 11px; font-weight: 500; color: var(--color-text-soft); margin-top: 2px; }
   .pp-price-box .price { font-size: 32px; font-weight: 800; color: var(--color-text-primary); }
   .pp-price-box .price span { font-size: 14px; color: var(--color-text-soft); font-weight: 500; }
   .pp-price-box .sub { font-size: 12px; color: var(--color-text-soft); margin-top: 2px; }
@@ -166,7 +170,7 @@
     <button class="pp-back" id="btn-volver" aria-label="Volver">
       <!-- ícono se inserta con JS (Icon lib) -->
     </button>
-    <h1>Plan Plus</h1>
+    <h1>Planes Plus y Pro</h1>
   </div>
 
   <div id="pp-loading" class="pp-loading">Cargando…</div>
@@ -179,9 +183,9 @@
       <div class="pp-numbers">
         <span class="from">20</span>
         <span class="arrow">→</span>
-        <span class="to">200</span>
+        <span class="to">400</span>
       </div>
-      <div class="pp-numbers-label">artículos activos (10x más inventario)</div>
+      <div class="pp-numbers-label">artículos activos (hasta 1,000 con Pro)</div>
     </div>
 
     <div class="pp-section-title">Beneficios</div>
@@ -190,47 +194,63 @@
         <div></div>
         <div class="col-plan">Free</div>
         <div class="col-plan plus">Plus</div>
+        <div class="col-plan plus">Pro</div>
       </div>
       <div class="pp-row">
         <div class="feature">Artículos activos</div>
         <div class="pp-val free">20</div>
-        <div class="pp-val plus">200</div>
+        <div class="pp-val plus">400</div>
+        <div class="pp-val plus">1,000</div>
       </div>
       <div class="pp-row">
         <div class="feature">Foto y logo de tienda<span class="sub">Personaliza tu perfil</span></div>
         <div class="pp-check-free">—</div>
+        <div class="pp-check-plus">✓</div>
         <div class="pp-check-plus">✓</div>
       </div>
       <div class="pp-row">
         <div class="feature">Insignia de verificado<span class="sub">Más confianza al comprador</span></div>
         <div class="pp-check-free">—</div>
         <div class="pp-check-plus">✓</div>
+        <div class="pp-check-plus">✓</div>
       </div>
       <div class="pp-row">
         <div class="feature">Prioridad en búsquedas<span class="sub">Apareces primero en el catálogo</span></div>
         <div class="pp-check-free">—</div>
         <div class="pp-check-plus">✓</div>
+        <div class="pp-check-plus">✓</div>
       </div>
       <div class="pp-row">
-        <div class="feature">Ventas en vivo<span class="sub">Enlaza con tu live de Facebook</span></div>
+        <div class="feature">Ventas en vivo<span class="sub">Transmite en vivo desde Z&R</span></div>
         <div class="pp-check-free">—</div>
+        <div class="pp-check-plus">✓</div>
         <div class="pp-check-plus">✓</div>
       </div>
       <div class="pp-row">
         <div class="feature">Organización de entregas<span class="sub">Gestiona tus pedidos vendidos</span></div>
         <div class="pp-check-free">—</div>
         <div class="pp-check-plus">✓</div>
+        <div class="pp-check-plus">✓</div>
       </div>
       <div class="pp-row">
         <div class="feature">Aprobación instantánea<span class="sub">De tus productos publicados</span></div>
         <div class="pp-check-free">—</div>
         <div class="pp-check-plus">✓</div>
+        <div class="pp-check-plus">✓</div>
       </div>
     </div>
 
+    <div class="pp-opciones">
+      <button type="button" class="pp-opc on" data-nivel="plus">Plus<small>400 artículos</small></button>
+      <button type="button" class="pp-opc" data-nivel="pro">Pro<small>1,000 artículos</small></button>
+    </div>
+    <div class="pp-opciones">
+      <button type="button" class="pp-opc on" data-periodo="mes">Mensual</button>
+      <button type="button" class="pp-opc" data-periodo="anio">Anual<small>2 meses gratis</small></button>
+    </div>
     <div class="pp-price-box">
       <div class="price" id="pp-price">$149<span> MXN / mes</span></div>
-      <div class="sub">Cancela cuando quieras</div>
+      <div class="sub" id="pp-price-sub">Cancela cuando quieras</div>
     </div>
 
     <div id="pp-dynamic-area"></div>
@@ -266,6 +286,25 @@ function esc(s) {
 
 let vendorSession = null;
 
+// Plan y periodo elegidos. Pro = Plus con más artículos; el anual es pago único de 365 días al precio de 10 meses.
+const PRECIOS = { plus: { mes: 149, anio: 1490 }, pro: { mes: 299, anio: 2990 } };
+const elegido = { nivel: 'plus', periodo: 'mes' };
+let _ppSol;
+const precios = () => (_ppSol && _ppSol.precios) || PRECIOS;
+const precioElegido = () => precios()[elegido.nivel][elegido.periodo];
+const nombrePlan = (n = elegido.nivel) => (n === 'pro' ? 'Pro' : 'Plus');
+function pintarPrecio() {
+  const anual = elegido.periodo === 'anio', p = precioElegido();
+  document.getElementById('pp-price').innerHTML = `$${p.toLocaleString('es-MX')}<span> MXN / ${anual ? 'año' : 'mes'}</span>`;
+  document.getElementById('pp-price-sub').textContent = anual ? `Equivale a $${Math.round(p / 12)} al mes · un solo pago por 12 meses` : 'Cancela cuando quieras';
+  document.querySelectorAll('[data-nivel]').forEach(b => b.classList.toggle('on', b.dataset.nivel === elegido.nivel));
+  document.querySelectorAll('[data-periodo]').forEach(b => b.classList.toggle('on', b.dataset.periodo === elegido.periodo));
+}
+// Pago único (30 días o 1 año) del plan elegido.
+const botonesPagoUnico = (sol) => botonesPago(proveedoresPago(sol.proveedores, true), 'pp-cta', 'pp-cta secondary');
+const conectarPagoUnico = (area) => area.querySelectorAll('[data-proveedor]').forEach(btn => btn.addEventListener('click', () =>
+  irAPagar(btn, proveedor => apiCall({ action: 'crearPreferenciaPlanPlus', proveedor, nivel: elegido.nivel, periodo: elegido.periodo, vendorToken: vendorSession.token }))));
+
 function goBack() {
   if (document.referrer && document.referrer.includes(location.origin)) {
     history.back();
@@ -280,18 +319,18 @@ function htmlSuscripcion(sol) {
   if (sol.suscripcion) {
     const cancela = sol.suscripcion.cancelaAlFinal, mp = sol.suscripcion.proveedor === 'mp';
     return `<div class="pp-status-card"><p class="title">${Icon('refresh')} Renovación automática ${cancela ? 'cancelada' : 'activa'}</p>
-      <p>${cancela ? 'Tu Plan Plus sigue hasta que termine tu mes pagado y ya no se cobrará.' : `Se cobra solo cada mes ${mp ? 'con Mercado Pago' : 'a tu tarjeta'}. Puedes cancelarla cuando quieras.`}</p>
+      <p>${cancela ? `Tu Plan ${nombrePlan(sol.suscripcion.nivel)} sigue hasta que termine tu mes pagado y ya no se cobrará.` : `Se cobra solo cada mes ${mp ? 'con Mercado Pago' : 'a tu tarjeta'}. Puedes cancelarla cuando quieras.`}</p>
       <button class="pp-cta secondary" id="pp-btn-sus-toggle" data-reanudar="${cancela ? '1' : ''}" data-mp="${mp ? '1' : ''}">${cancela ? 'Reanudar renovación automática' : 'Cancelar renovación automática'}</button>
       <p id="pp-sus-error" style="color:#b91c1c;font-size:13px;font-weight:600;"></p></div>`;
   }
   if (activandoSuscripcion()) {
     return `<div class="pp-status-card"><p class="title">${Icon('clock')} Activando tu suscripción…</p><p>Tu pago se recibió; esto tarda unos segundos.</p></div>`;
   }
-  if (!sol.suscripcionDisponible && !sol.suscripcionMp) return '';
-  const conDias = sol.estado === 'plus_activo', precio = `$${sol.importe || 149} al mes`;
-  return `${sol.suscripcionDisponible ? `<button class="pp-cta" id="pp-btn-suscribir">${Icon('refresh')} Suscribirme: ${precio}, se cobra solo</button>` : ''}
+  if ((!sol.suscripcionDisponible && !sol.suscripcionMp) || elegido.periodo === 'anio') return ''; // el anual es solo pago único
+  const activo = sol.estado === 'plus_activo', precio = `$${precios()[elegido.nivel].mes} al mes`;
+  return `${sol.suscripcionDisponible ? `<button class="pp-cta" id="pp-btn-suscribir">${Icon('refresh')} Suscribirme a ${nombrePlan()}: ${precio}, se cobra solo</button>` : ''}
     ${sol.suscripcionMp ? `<button class="pp-cta secondary" id="pp-btn-suscribir-mp">${Icon('refresh')} Suscribirme con Mercado Pago: ${precio}</button>` : ''}
-    <p class="pp-sus-nota" style="font-size:12.5px;color:#888;margin:4px 0 10px;text-align:center;">${conDias ? 'No pierdes tus días: el primer cobro será cuando se terminen.' : 'Pagas aquí mismo con tu tarjeta. Cancela cuando quieras.'}</p>
+    <p class="pp-sus-nota" style="font-size:12.5px;color:#888;margin:4px 0 10px;text-align:center;">${!activo ? 'Pagas aquí mismo con tu tarjeta. Cancela cuando quieras.' : sol.nivel === elegido.nivel ? 'No pierdes tus días: el primer cobro será cuando se terminen.' : 'Los días que te quedan se convierten por valor y se suman.'}</p>
     <p id="pp-sus-error" style="color:#b91c1c;font-size:13px;font-weight:600;"></p>
     <div id="pp-checkout"></div>`;
 }
@@ -324,7 +363,7 @@ function conectarSuscripcion(area, sol) {
     }
   });
   abrir(area.querySelector('#pp-btn-suscribir'), async () => {
-    const r = await apiCall({ action: 'crearSuscripcionPlanPlus', vendorToken: vendorSession.token });
+    const r = await apiCall({ action: 'crearSuscripcionPlanPlus', nivel: elegido.nivel, vendorToken: vendorSession.token });
     if (!r.ok) throw new Error(r.error || 'No se pudo abrir el pago.');
     if (!window.Stripe) await cargarScript('https://js.stripe.com/v3/', 'Stripe');
     const st = Stripe(r.publishableKey), opciones = { fetchClientSecret: async () => r.clientSecret };
@@ -337,11 +376,11 @@ function conectarSuscripcion(area, sol) {
   abrir(area.querySelector('#pp-btn-suscribir-mp'), async () => {
     if (!window.MercadoPago) await cargarScript('https://sdk.mercadopago.com/js/v2', 'Mercado Pago');
     const ctrl = await new MercadoPago(sol.suscripcionMp, { locale: 'es-MX' }).bricks().create('cardPayment', 'pp-checkout', {
-      initialization: { amount: sol.importe || 149 },
+      initialization: { amount: precios()[elegido.nivel].mes },
       callbacks: {
         onReady: () => {},
         onError: (e) => { err.textContent = 'Mercado Pago: ' + ((e && e.message) || 'revisa los datos de tu tarjeta.'); },
-        onSubmit: (d) => apiCall({ action: 'crearSuscripcionMpPlanPlus', cardToken: d.token, email: d.payer && d.payer.email, vendorToken: vendorSession.token })
+        onSubmit: (d) => apiCall({ action: 'crearSuscripcionMpPlanPlus', nivel: elegido.nivel, cardToken: d.token, email: d.payer && d.payer.email, vendorToken: vendorSession.token })
           .then(r => {
             if (!r.ok) throw new Error(r.error || 'No se pudo crear la suscripción.');
             ctrl.unmount(); window._ppCheckoutMontado = false;
@@ -354,8 +393,8 @@ function conectarSuscripcion(area, sol) {
   });
   if (toggle) toggle.addEventListener('click', async () => {
     const reanudar = !!toggle.dataset.reanudar;
-    const aviso = toggle.dataset.mp ? '¿Cancelar la renovación automática de Mercado Pago? Ya no se cobrará y tu Plan Plus sigue hasta su fecha de vencimiento.'
-      : '¿Cancelar la renovación automática? Tu Plan Plus sigue hasta que termine el mes ya pagado.';
+    const aviso = toggle.dataset.mp ? '¿Cancelar la renovación automática de Mercado Pago? Ya no se cobrará y tu plan sigue hasta su fecha de vencimiento.'
+      : '¿Cancelar la renovación automática? Tu plan sigue hasta que termine el mes ya pagado.';
     if (!reanudar && !confirm(aviso)) return;
     toggle.disabled = true; err.textContent = '';
     try {
@@ -391,14 +430,18 @@ function renderDynamicArea(sol) {
     porVencer = diasRestantes !== null && diasRestantes <= 7;
 
     if (!porVencer) {
+      // Con el plan activo también puede cambiarse a Pro (o a Plus) o pagar por adelantado (ej. el año).
       area.innerHTML = `
         <div class="pp-status-card">
-          <p class="title">${Icon('check')} Ya eres Plan Plus</p>
+          <p class="title">${Icon('check')} Ya eres Plan ${nombrePlan(sol.nivel)}</p>
           <p>${diasRestantes !== null ? `Tu plan sigue activo por ${diasRestantes} día${diasRestantes === 1 ? '' : 's'} más.` : 'Tu plan está activo.'}</p>
         </div>
         ${htmlSuscripcion(sol)}
+        ${sol.suscripcion ? (elegido.nivel !== sol.nivel ? `<p class="pp-pago-unico" style="font-size:12.5px;color:#888;text-align:center;margin:14px 0 6px;">Para cambiarte a ${nombrePlan()}, cancela primero tu renovación automática: tus días se convierten por valor al pagar.</p>` : '') : `<p class="pp-pago-unico" style="font-size:12.5px;color:#888;text-align:center;margin:14px 0 6px;">${elegido.nivel !== sol.nivel
+          ? `Cámbiate a ${nombrePlan()}: los días que te quedan se convierten por valor y se suman.` : `Paga ${elegido.periodo === 'anio' ? 'el año' : 'otro mes'} por adelantado: se suma a tus días.`}</p>${botonesPagoUnico(sol)}`}
       `;
       conectarSuscripcion(area, sol);
+      conectarPagoUnico(area);
       return;
     }
   }
@@ -406,19 +449,17 @@ function renderDynamicArea(sol) {
   // Pago pendiente (primera vez) o renovación (por vencer en 7 días o menos)
   if (sol.estado === 'pending' || sol.estado === 'approved' || porVencer) {
     const esRenovacion = porVencer;
-    const importe = sol.importe || 149;
-    const dias = sol.dias || 30;
+    const importe = precioElegido().toLocaleString('es-MX');
+    const dias = elegido.periodo === 'anio' ? 365 : 30;
     const moneda = sol.moneda || 'MXN';
-    document.getElementById('pp-price').innerHTML = `$${importe}<span> ${moneda} / mes</span>`;
+    const pagoBtns = botonesPagoUnico(sol);
 
-    const pagoBtns = botonesPago(proveedoresPago(sol.proveedores, true), 'pp-cta', 'pp-cta secondary');
-
-    const waTexto = encodeURIComponent(`Hola, ya realicé mi pago del Plan Plus. Mi tienda: ${nombreTienda}. Teléfono: ${telVendedor}.`);
+    const waTexto = encodeURIComponent(`Hola, ya realicé mi pago del Plan ${nombrePlan()} ${elegido.periodo === 'anio' ? 'anual' : 'mensual'} ($${importe}). Mi tienda: ${nombreTienda}. Teléfono: ${telVendedor}.`);
     const waConfirmUrl = waNum ? `https://wa.me/${waNum}?text=${waTexto}` : '#';
 
     // "approved" también es quien ya tuvo Plus (se le quitó o venció): no acaba de enviar ninguna solicitud.
     const activando = !!sol.suscripcion && !esRenovacion; // ya se suscribió y falta el aviso del primer cobro
-    const titulo = activando ? `${Icon('clock')} Activando tu Plan Plus…` : esRenovacion ? `${Icon('clock')} Tu Plan Plus vence pronto` : sol.estado === 'pending' ? `${Icon('clock')} Solicitud enviada` : `${Icon('star')} Activa tu Plan Plus`;
+    const titulo = activando ? `${Icon('clock')} Activando tu Plan ${nombrePlan()}…` : esRenovacion ? `${Icon('clock')} Tu Plan ${nombrePlan(sol.nivel)} vence pronto` : sol.estado === 'pending' ? `${Icon('clock')} Solicitud enviada` : `${Icon('star')} Activa tu Plan ${nombrePlan()}`;
     const texto  = activando ? 'Tu suscripción quedó lista. En cuanto se procese el primer cobro se activa tu plan (unos segundos).'
       : esRenovacion
       ? `Te quedan ${diasRestantes} día${diasRestantes === 1 ? '' : 's'}. Paga en línea para renovar al instante${sol.clabe ? ', o por transferencia y avísanos por WhatsApp' : ''}.`
@@ -430,7 +471,7 @@ function renderDynamicArea(sol) {
         <p>${texto}</p>
       </div>
       ${htmlSuscripcion(sol)}
-      ${!sol.suscripcion && sol.suscripcionDisponible && !activandoSuscripcion() ? '<p class="pp-pago-unico" style="font-size:12.5px;color:#888;text-align:center;margin:14px 0 6px;">O paga solo este mes (30 días):</p>' : ''}
+      ${!sol.suscripcion && sol.suscripcionDisponible && !activandoSuscripcion() && elegido.periodo === 'mes' ? '<p class="pp-pago-unico" style="font-size:12.5px;color:#888;text-align:center;margin:14px 0 6px;">O paga solo este mes (30 días):</p>' : ''}
       ${sol.suscripcion || activandoSuscripcion() ? '' : pagoBtns}
       ${sol.clabe ? `<div class="pp-pay-card">
         <div class="bank-name">Transferencia bancaria</div>
@@ -456,8 +497,7 @@ function renderDynamicArea(sol) {
     }
 
     conectarSuscripcion(area, sol);
-    area.querySelectorAll('[data-proveedor]').forEach(btn => btn.addEventListener('click', () =>
-      irAPagar(btn, proveedor => apiCall({ action: 'crearPreferenciaPlanPlus', proveedor, vendorToken: vendorSession.token }))));
+    conectarPagoUnico(area);
     return;
   }
 
@@ -501,6 +541,9 @@ async function cargar(forceRefresh) {
     const sol = res.solicitud || null;
     if (sol && sol.suscripcion) { _ppSuscripcionActiva = true; if (location.search) history.replaceState(null, '', location.pathname); }
     await window.waListo;
+    if (_ppSol === undefined && sol && sol.nivel) elegido.nivel = sol.nivel; // al entrar, preseleccionado su plan actual
+    _ppSol = sol;
+    pintarPrecio();
     renderDynamicArea(sol);
     document.getElementById('pp-loading').style.display = 'none';
     document.getElementById('pp-content').style.display = 'block';
@@ -532,6 +575,12 @@ document.addEventListener('visibilitychange', () => {
 });
 
 document.addEventListener('DOMContentLoaded', () => {
+  document.querySelectorAll('[data-nivel], [data-periodo]').forEach(b => b.addEventListener('click', () => {
+    if (window._ppCheckoutMontado) return; // a medio pago no se cambia
+    Object.assign(elegido, b.dataset.nivel ? { nivel: b.dataset.nivel } : { periodo: b.dataset.periodo });
+    pintarPrecio();
+    if (_ppSol !== undefined) renderDynamicArea(_ppSol);
+  }));
   document.getElementById('btn-volver').innerHTML = Icon('arrow-left');
   document.getElementById('btn-volver').addEventListener('click', goBack);
 
