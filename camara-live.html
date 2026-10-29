@@ -102,14 +102,20 @@ async function pedirCamaraLibre() {
 window.LP = {
   sesion: () => ({ id: liveId, orientacion: ses && ses.orientacion, fecha_inicio: ses && ses.fecha_inicio }),
   credenciales: async () => { await pedirCamaraLibre(); return { whipUrl: ses.whipUrl, segundos: ses.segmentoSegundos }; },
-  urlSubida: async (seq, tipo) => {
-    const r = await api({ action: 'obtenerUrlSubidaSegmento', camaraKey: ses.camaraKey, liveId, seq, contentType: tipo });
+  urlSubida: async (seq, tipo, haceMs) => {
+    const r = await api({ action: 'obtenerUrlSubidaSegmento', camaraKey: ses.camaraKey, liveId, seq, contentType: tipo, haceMs });
     return r.ok ? r.uploadUrl : null;
   }
 };
 
+// Ventanas de video que piden los reportes (hora del servidor -> hora de este teléfono).
+let desfase = 0;
+onValue(ref(db, '.info/serverTimeOffset'), (s) => { desfase = s.val() || 0; });
+let respaldoUnsub = null; // se escucha ya unido como cámara (las reglas exigen camaraOficial)
+const escucharRespaldo = () => { respaldoUnsub?.(); respaldoUnsub = onValue(ref(db, `live_respaldo/${liveId}`), (s) => ventanasRespaldo(Object.values(s.val() || {}).map((v) => [v.desde - desfase, v.hasta - desfase])), () => {}); };
+
 async function apagar(texto) {
-  await detenerTransmision();
+  await detenerTransmision(() => msg('Terminando procesos… no cierres esta página.'));
   if (detenerVU) { detenerVU(); detenerVU = null; }
   botones(false);
   msg(texto);
@@ -150,6 +156,7 @@ $('btn-go').onclick = async () => {
     await iniciarMedios();
     ligarPreview();
     iniciarRespaldo();
+    escucharRespaldo();
     detenerVU = medidorAudio(localStream, $('vu-bar'));
     update(ctrl, { cam: 'on', ts: Date.now() });
     onDisconnect(ref(db, `live_control/${liveId}/cam`)).set('off'); // si se cierra la página, el principal lo sabe
