@@ -131,9 +131,9 @@ const fbApp = initializeApp({
   appId: "1:1038143238323:web:5171b9dd8823628086c0c6"
 }, 'live');
 const db = getDatabase(fbApp);
-// Las reglas de RTDB piden auth != null para leer presencia (igual que comprador-live.html).
+// Solo el número que publica el vendedor (live_espectadores), no la lista completa de presencia.
 const authReady = signInAnonymously(getAuth(fbApp)).catch(() => {});
-const contar = (id) => authReady.then(() => get(ref(db, `presencia/${id}`))).then(s => Object.keys(s.val() || {}).length).catch(() => 0);
+const contar = (id) => authReady.then(() => get(ref(db, `live_espectadores/${id}`))).then(s => s.val() || 0).catch(() => 0);
 
 const API_BASE = "https://live-api-1038143238323.us-central1.run.app";
 const wrap = document.getElementById('lives-wrap');
