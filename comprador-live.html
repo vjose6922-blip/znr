@@ -568,6 +568,8 @@ function iniciarReproductorWHEP(containerId, whepUrl) {
 
 function detenerReproductor() {
   whepActivo = false;
+  pausadoOculto = false;
+  clearTimeout(ocultoTimer);
   whepConectando = false;
   clearTimeout(whepReintentoTimer);
   clearInterval(whepWatchdog);
@@ -577,6 +579,20 @@ function detenerReproductor() {
 }
 
 window.addEventListener('pagehide', detenerReproductor);
+
+// Pestaña oculta más de 2 min: se corta el video (Cloudflare cobra cada minuto entregado,
+// aunque nadie lo esté viendo) y se reconecta solo al volver.
+let ocultoTimer = null, pausadoOculto = false;
+document.addEventListener('visibilitychange', () => {
+  clearTimeout(ocultoTimer);
+  if (document.hidden) {
+    if (whepActivo) ocultoTimer = setTimeout(() => { pausadoOculto = true; whepActivo = false; clearTimeout(whepReintentoTimer); cerrarWHEP(); }, 120000);
+  } else if (pausadoOculto) {
+    pausadoOculto = false; whepActivo = true; whepReintento = 0;
+    estadoVideo('Reconectando video…');
+    conectarWHEP();
+  }
+});
 
 function detenerStickyVideo() {
   if (stickyObserver) { stickyObserver.disconnect(); stickyObserver = null; }
