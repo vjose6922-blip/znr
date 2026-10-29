@@ -1250,6 +1250,7 @@ function renderScheduled() {
 
   document.getElementById('btn-iniciar').addEventListener('click', async () => {
     const btn = document.getElementById('btn-iniciar');
+    if (btn.disabled || !(await avisoAntesDeIniciar())) return;
     const textoOriginal = btn.innerHTML;
     btn.disabled = true;
     btn.textContent = 'Conectando cámara…';

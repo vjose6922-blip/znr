@@ -193,6 +193,16 @@ async function reconectar() {
 }
 window.addEventListener('online', () => despertarReintento?.());
 
+// Antes de iniciar: avisa si va con datos móviles o con poca batería sin cargar (un live de
+// 2 h gasta ~1.6 GB y mucha batería). Solo Android/Chrome da estos datos; en iPhone no avisa.
+async function avisoAntesDeIniciar() {
+  const avisos = [];
+  if (navigator.connection?.type === 'cellular') avisos.push('Estás con datos móviles: un live de 2 h gasta cerca de 1.6 GB. Mejor conéctate a WiFi.');
+  const bat = await navigator.getBattery?.().catch(() => null);
+  if (bat && !bat.charging && bat.level < 0.5) avisos.push(`Tu batería está al ${Math.round(bat.level * 100)}% y sin cargar: conecta el cargador, transmitir gasta mucha batería.`);
+  return !avisos.length || confirm(avisos.join('\n\n') + '\n\n¿Iniciar de todos modos?');
+}
+
 async function pedirWakeLock() {
   try {
     if ('wakeLock' in navigator) wakeLock = await navigator.wakeLock.request('screen');
@@ -321,7 +331,7 @@ window.addEventListener('beforeunload', (e) => {
 });
 
 // ── Respaldo de video para reportes ──
-// Copia de baja calidad (~500 kbps) grabada en el celular, partida en
+// Copia de baja calidad (~300 kbps) grabada en el celular, partida en
 // segmentos de 30 s que se suben a un bucket privado con URLs firmadas.
 // Cada segmento es un archivo independiente (se reinicia el MediaRecorder
 // en cada corte), así el backend puede sacar la ventana de unos minutos
@@ -399,7 +409,7 @@ function iniciarCicloSegmento() {
   const seq = siguienteSeq();
   let rec;
   try {
-    rec = new MediaRecorder(localStream, { mimeType: mimeRespaldo, videoBitsPerSecond: 500000, audioBitsPerSecond: 32000 });
+    rec = new MediaRecorder(localStream, { mimeType: mimeRespaldo, videoBitsPerSecond: 300000, audioBitsPerSecond: 32000 });
   } catch (e) {
     console.error('Respaldo: no se pudo crear el MediaRecorder', e);
     respaldoActivo = false;
