@@ -481,7 +481,7 @@ async function exigirLogin() {
   if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
   const ok = await pedirLoginComprador();
   esperandoLogin = false;
-  if (ok) { cargar(); pollTimer = setInterval(() => !document.hidden && cargar(), 5000); return; }
+  if (ok) { cargar(); pollTimer = setInterval(() => !document.hidden && cargar(), 15000); return; }
   wrap.innerHTML = '<div class="track-error">Para ver el seguimiento de tu pedido necesitas iniciar sesión.<br><br><button type="button" class="btn-pagar" id="btn-login-seg">Iniciar sesión</button></div>';
   document.getElementById('btn-login-seg').addEventListener('click', () => location.reload());
 }
@@ -514,7 +514,7 @@ if (!liveId || !compradorKey) {
   renderError('Este link no es válido.');
 } else {
   cargar();
-  pollTimer = setInterval(() => !document.hidden && cargar(), 5000);
+  pollTimer = setInterval(() => !document.hidden && cargar(), 15000);
 }
 </script>
 <script>if('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js', { scope: '/' });</script>
