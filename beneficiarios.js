@@ -491,114 +491,87 @@ window.openDonarARefugioModal = async function(beneficiario) {
   const esc = window.escapeHtml || (s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])));
   const optUrl = urlImagen;
 
-  const old = document.getElementById('modal-donar-refugio');
-  if (old) old.remove();
-
+  document.getElementById('modal-donar-refugio')?.remove();
   const modal = document.createElement('div');
   modal.id = 'modal-donar-refugio';
-  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.65);backdrop-filter:blur(4px);z-index:99999;display:flex;align-items:flex-end;justify-content:center;';
-  modal.innerHTML = `
-    <div style="background:#fff;border-radius:20px 20px 0 0;width:100%;max-width:480px;max-height:90vh;overflow-y:auto;padding:0 0 36px;">
-      <div style="position:sticky;top:0;background:#fff;z-index:1;padding:16px 20px 12px;border-bottom:1px solid #f0f0f0;display:flex;align-items:center;justify-content:space-between;">
-        <h2 style="margin:0;font-size:1rem;font-weight:800;color:#111;">${Icon('heart-fill')} Donar a ${esc(beneficiario.nombre || 'refugio')}</h2>
-        <button id="btn-close-donar-refugio" style="background:none;border:none;font-size:22px;cursor:pointer;color:#888;line-height:1;">×</button>
-      </div>
-      <div id="donar-refugio-body" style="padding:16px 20px 0;text-align:center;color:#aaa;">Cargando tus productos…</div>
-    </div>`;
+  modal.innerHTML = `<style>
+#modal-donar-refugio{--c:var(--color-accent-solid,#ff3d7f);position:fixed;inset:0;z-index:99999;background:#fff;color:#111;display:flex;flex-direction:column}
+.dr-scroll{flex:1;overflow-y:auto;padding:20px 20px 16px;max-width:560px;width:100%;margin:0 auto;box-sizing:border-box}
+.dr-x{position:absolute;top:14px;right:14px;width:38px;height:38px;border-radius:50%;border:none;background:#f3f3f5;font-size:22px;cursor:pointer;color:#555}
+.dr-scroll h2{margin:8px 44px 6px 0;font-size:1.6rem;font-weight:800;line-height:1.15}.dr-scroll h2 svg{color:var(--c)}
+.dr-sub{margin:0 0 22px;padding-left:10px;border-left:3px solid var(--c);color:#666;font-size:.95rem}
+.dr-tit{margin:18px 0 10px;font-weight:700;font-size:1.05rem}
+.dr-card{position:relative;display:flex;align-items:center;gap:16px;padding:14px;margin-bottom:12px;border:1.5px solid transparent;border-radius:16px;box-shadow:0 2px 12px rgba(0,0,0,.08);cursor:pointer}
+.dr-card.sel{border-color:var(--c)}.dr-card img,.dr-card .dr-ph{width:110px;height:110px;object-fit:contain;border-radius:10px;flex-shrink:0;background:#f7f7f8}
+.dr-card b{display:block;font-size:1.1rem;padding-right:34px}.dr-precio{color:var(--c);font-weight:800;font-size:1.6rem;margin:2px 0 8px}
+.dr-stock{display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border-radius:8px;background:#fff1e6;color:#ea580c;font-size:.8rem}.dr-stock:before{content:'';width:8px;height:8px;border-radius:50%;background:#f97316}
+.dr-heart{position:absolute;top:14px;right:16px;color:#999}.dr-card.sel .dr-heart{color:var(--c)}
+.dr-quitar{margin-left:auto;padding:7px 12px;border:none;border-radius:20px;background:#fee2e2;color:#b91c1c;font-weight:700;cursor:pointer}
+.dr-msg{display:none;padding:10px;border-radius:10px;margin-bottom:10px;font-size:.85rem}
+.dr-pie{padding:12px 20px calc(12px + env(safe-area-inset-bottom));max-width:560px;width:100%;margin:0 auto;box-sizing:border-box}
+.dr-cta{width:100%;padding:17px;border:none;border-radius:14px;background:var(--c);color:#fff;font-weight:700;font-size:1.15rem;cursor:pointer}.dr-cta:disabled{opacity:.5}
+</style><button class="dr-x" aria-label="Cerrar">×</button>
+    <div class="dr-scroll"><h2>${Icon('heart-fill', { size: 26 })} Donar a ${esc(beneficiario.nombre || 'refugio')}</h2>
+      <p class="dr-sub">Tu donación salva vidas</p><div class="dr-msg"></div><div id="donar-refugio-body"></div></div>
+    <div class="dr-pie"><button class="dr-cta" disabled>Elige un artículo</button></div>`;
   document.body.appendChild(modal);
-  document.getElementById('btn-close-donar-refugio').onclick = () => modal.remove();
-  modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
-
-  const body = document.getElementById('donar-refugio-body');
+  modal.querySelector('.dr-x').onclick = () => modal.remove();
+  const body = modal.querySelector('#donar-refugio-body'), cta = modal.querySelector('.dr-cta'), msg = modal.querySelector('.dr-msg');
+  const showMsg = (txt, ok) => { msg.textContent = txt; Object.assign(msg.style, { display: 'block', background: ok ? '#dcfce7' : '#fee2e2', color: ok ? '#166534' : '#991b1b' }); };
+  const api = (action, extra) => fetch(_resolverApiUrlInspector(action), { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({ action, producto_id: extra.pid, vendor_token: window.vendorSession.token, ...extra.p }).toString() }).then(r => r.json());
+  let elegido = null;
 
   const cargarProductos = async () => {
-    body.style.textAlign = 'center';
-    body.style.color = '#aaa';
-    body.innerHTML = 'Cargando tus productos…';
+    body.innerHTML = '<p style="text-align:center;color:#aaa;">Cargando tus productos…</p>';
+    cta.disabled = true; cta.textContent = 'Elige un artículo'; elegido = null;
     try {
-      const url = _resolverApiUrlInspector('misProductosComunidad') + '?' + new URLSearchParams({
-        action: 'misProductosComunidad', vendorToken: window.vendorSession.token, limit: '200', page: '1'
-      });
-      const res = await fetch(url);
-      const data = await res.json();
+      const data = await fetch(_resolverApiUrlInspector('misProductosComunidad') + '?' + new URLSearchParams({
+        action: 'misProductosComunidad', vendorToken: window.vendorSession.token, limit: '200', page: '1' })).then(r => r.json());
       if (!data.ok) throw new Error(data.error || 'Error al cargar tus productos');
       renderListaProductos(data.products || []);
-    } catch (e) {
-      body.innerHTML = `<p style="color:#ef4444;">Error al cargar: ${esc(e.message || e)}</p>`;
-    }
+    } catch (e) { body.innerHTML = `<p style="color:#ef4444;">Error al cargar: ${esc(e.message || e)}</p>`; }
   };
 
   const renderListaProductos = (productos) => {
-    body.style.textAlign = '';
-    body.style.color = '';
-    const esDeEsteRefugio = p => (p.donado === true || p.donado === 'TRUE' || p.donado === 'true') && String(p.beneficiario_id || '') === String(beneficiario.id);
-    const estaDonado = p => p.donado === true || p.donado === 'TRUE' || p.donado === 'true';
-    const yaDonados = productos.filter(esDeEsteRefugio);
-    const disponibles = productos.filter(p => !estaDonado(p));
+    const donado = p => [true, 'TRUE', 'true'].includes(p.donado);
+    const yaDonados = productos.filter(p => donado(p) && String(p.beneficiario_id || '') === String(beneficiario.id));
+    const disponibles = productos.filter(p => !donado(p));
+    const precio = p => '$' + Number(p.precio || 0).toLocaleString('es-MX');
+    const card = (p, quitar) => `<div class="dr-card" data-pid="${esc(p.id)}">
+      ${p.imagen1 ? `<img src="${esc(optUrl(p.imagen1, 220))}" alt="" loading="lazy">` : '<div class="dr-ph"></div>'}
+      <div style="flex:1;min-width:0;"><b>${esc(p.nombre || '')}</b><div class="dr-precio">${precio(p)}</div>
+        ${quitar ? `<button class="dr-quitar" data-pid="${esc(p.id)}">Quitar</button>` : `<span class="dr-stock">${+p.stock <= 5 ? 'Solo ' : ''}${+p.stock || 0} disponibles</span>`}</div>
+      ${quitar ? '' : `<span class="dr-heart">${Icon('heart', { size: 30 })}</span>`}</div>`;
+    body.innerHTML = (yaDonados.length ? `<p class="dr-tit" style="color:#166534;">Ya donados a este refugio</p>${yaDonados.map(p => card(p, true)).join('')}` : '')
+      + '<p class="dr-tit">Elige qué quieres donar</p>'
+      + (disponibles.length ? disponibles.map(p => card(p, false)).join('')
+        : '<p style="color:#aaa;text-align:center;padding:16px 0;">No tienes productos disponibles para donar.<br><small>Un producto ya donado a otro refugio no puede reasignarse sin quitarlo primero.</small></p>');
 
-    const filaProducto = (p, esQuitar) => {
-      const imgUrl = p.imagen1 ? optUrl(p.imagen1, 48) : '';
-      return `<div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid #f5f5f5;">
-        ${imgUrl ? `<img src="${esc(imgUrl)}" style="width:44px;height:44px;object-fit:cover;border-radius:8px;flex-shrink:0;">` : `<div style="width:44px;height:44px;background:#f5f5f8;border-radius:8px;flex-shrink:0;"></div>`}
-        <div style="flex:1;min-width:0;">
-          <div style="font-size:.83rem;font-weight:700;color:#111;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(p.nombre || '')}</div>
-          <div style="font-size:.72rem;color:#888;">$${Number(p.precio || 0).toLocaleString()} · Stock: ${p.stock || 0}</div>
-        </div>
-        ${esQuitar
-          ? `<button class="btn-quitar-donacion-refugio" data-pid="${esc(p.id)}" style="flex-shrink:0;padding:7px 12px;border:none;border-radius:20px;background:#fee2e2;color:#b91c1c;font-weight:700;font-size:.75rem;cursor:pointer;">Quitar</button>`
-          : `<button class="btn-asignar-donacion-refugio" data-pid="${esc(p.id)}" style="flex-shrink:0;width:36px;height:36px;border-radius:50%;border:none;background:#f5f5f8;color:#f97316;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;">${Icon('heart-fill')}</button>`}
-      </div>`;
-    };
-
-    body.innerHTML = `
-      ${yaDonados.length ? `
-      <p style="font-size:.78rem;font-weight:700;color:#166534;margin:0 0 6px;">Ya donados a este refugio</p>
-      <div style="margin-bottom:16px;">${yaDonados.map(p => filaProducto(p, true)).join('')}</div>` : ''}
-      <p style="font-size:.78rem;font-weight:700;color:#555;margin:0 0 6px;">Elige un producto para donar</p>
-      <div id="donar-refugio-msg" style="display:none;padding:10px;border-radius:10px;margin-bottom:10px;font-size:.82rem;"></div>
-      ${disponibles.length === 0
-        ? '<p style="color:#aaa;text-align:center;padding:16px 0;">No tienes productos disponibles para donar.<br><small>Un producto ya donado a otro refugio no puede reasignarse sin quitarlo primero.</small></p>'
-        : `<div>${disponibles.map(p => filaProducto(p, false)).join('')}</div>`}
-    `;
-
-    const showMsg = (txt, ok) => {
-      const el = document.getElementById('donar-refugio-msg');
-      if (!el) return;
-      el.textContent = txt;
-      el.style.display = 'block';
-      el.style.background = ok ? '#dcfce7' : '#fee2e2';
-      el.style.color = ok ? '#166534' : '#991b1b';
-    };
-
-    body.querySelectorAll('.btn-asignar-donacion-refugio').forEach(btn => {
-      btn.addEventListener('click', async () => {
-        btn.disabled = true;
-        try {
-          const params = new URLSearchParams({ action: 'asignarDonacion', producto_id: btn.dataset.pid, beneficiario_id: beneficiario.id, vendor_token: window.vendorSession.token });
-          const res = await fetch(_resolverApiUrlInspector('asignarDonacion'), {
-            method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: params.toString()
-          });
-          const data = await res.json();
-          if (data.ok) { showMsg('Donación asignada correctamente', true); cargarProductos(); }
-          else { showMsg(data.error || 'Error', false); btn.disabled = false; }
-        } catch (e) { showMsg('Error de conexión', false); btn.disabled = false; }
+    body.onclick = async (e) => {
+      const q = e.target.closest('.dr-quitar');
+      if (q) {
+        q.disabled = true; q.textContent = 'Quitando…';
+        const data = await api('desasignarDonacion', { pid: q.dataset.pid }).catch(() => ({ error: 'Error de conexión' }));
+        if (data.ok) { showMsg('Donación removida', true); cargarProductos(); } else { showMsg(data.error || 'Error', false); q.disabled = false; q.textContent = 'Quitar'; }
+        return;
+      }
+      const c = e.target.closest('.dr-card');
+      if (!c || c.querySelector('.dr-quitar')) return;
+      body.querySelectorAll('.dr-card').forEach(x => {
+        x.classList.toggle('sel', x === c);
+        const h = x.querySelector('.dr-heart'); if (h) h.innerHTML = Icon(x === c ? 'heart-fill' : 'heart', { size: 30 });
       });
-    });
+      elegido = disponibles.find(p => String(p.id) === c.dataset.pid);
+      cta.disabled = false; cta.textContent = `Donar ${elegido.nombre || ''} · ${precio(elegido)}`;
+    };
+  };
 
-    body.querySelectorAll('.btn-quitar-donacion-refugio').forEach(btn => {
-      btn.addEventListener('click', async () => {
-        btn.disabled = true; btn.textContent = 'Quitando…';
-        try {
-          const params = new URLSearchParams({ action: 'desasignarDonacion', producto_id: btn.dataset.pid, vendor_token: window.vendorSession.token });
-          const res = await fetch(_resolverApiUrlInspector('desasignarDonacion'), {
-            method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: params.toString()
-          });
-          const data = await res.json();
-          if (data.ok) { showMsg('Donación removida', true); cargarProductos(); }
-          else { showMsg(data.error || 'Error', false); btn.disabled = false; btn.textContent = 'Quitar'; }
-        } catch (e) { showMsg('Error de conexión', false); btn.disabled = false; btn.textContent = 'Quitar'; }
-      });
-    });
+  cta.onclick = async () => {
+    if (!elegido) return;
+    cta.disabled = true; cta.textContent = 'Donando…';
+    const data = await api('asignarDonacion', { pid: elegido.id, p: { beneficiario_id: beneficiario.id } }).catch(() => ({ error: 'Error de conexión' }));
+    if (data.ok) { showMsg('Donación asignada correctamente', true); cargarProductos(); } else { showMsg(data.error || 'Error', false); cta.disabled = false; cta.textContent = 'Reintentar'; }
   };
 
   cargarProductos();
