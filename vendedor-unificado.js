@@ -3267,7 +3267,7 @@ window.openDonarProductosModal = async function(productoId) {
   }
   const lista = body.querySelector('#donar-bens');
   const benData = window.znrFirestore ? await window.znrFirestore.getBeneficiariosAprobados() : { ok: false };
-  const bens = benData.beneficiarios || [];
+  const bens = (benData.beneficiarios || []).filter(b => b.vendor_uid !== vendorSession.uid); // no a tu propia fundación
   lista.innerHTML = !benData.ok ? '<p style="color:#ef4444;text-align:center;">No se pudieron cargar los beneficiarios.</p>'
     : bens.length ? bens.map(b => window.cardDonar({ id: esc(b.id), img: b.imagen1 && esc(urlImagen(b.imagen1)), titulo: esc(b.nombre), sub: esc([b.organizacion, b.ciudad].filter(Boolean).join(' · ')) })).join('')
     : '<p style="color:#aaa;text-align:center;">No hay beneficiarios aprobados aún</p>';
