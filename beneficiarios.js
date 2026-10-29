@@ -489,35 +489,7 @@ window.openDonarARefugioModal = async function(beneficiario) {
     return;
   }
   const esc = window.escapeHtml || (s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])));
-  const optUrl = urlImagen;
-
-  document.getElementById('modal-donar-refugio')?.remove();
-  const modal = document.createElement('div');
-  modal.id = 'modal-donar-refugio';
-  modal.innerHTML = `<style>
-#modal-donar-refugio{--c:var(--color-accent-solid,#ff3d7f);position:fixed;inset:0;z-index:99999;background:#fff;color:#111;display:flex;flex-direction:column}
-.dr-scroll{flex:1;overflow-y:auto;padding:20px 20px 16px;max-width:560px;width:100%;margin:0 auto;box-sizing:border-box}
-.dr-x{position:absolute;top:14px;right:14px;width:38px;height:38px;border-radius:50%;border:none;background:#f3f3f5;font-size:22px;cursor:pointer;color:#555}
-.dr-scroll h2{margin:8px 44px 6px 0;font-size:1.6rem;font-weight:800;line-height:1.15}.dr-scroll h2 svg{color:var(--c)}
-.dr-sub{margin:0 0 22px;padding-left:10px;border-left:3px solid var(--c);color:#666;font-size:.95rem}
-.dr-tit{margin:18px 0 10px;font-weight:700;font-size:1.05rem}
-.dr-card{position:relative;display:flex;align-items:center;gap:16px;padding:14px;margin-bottom:12px;border:1.5px solid transparent;border-radius:16px;box-shadow:0 2px 12px rgba(0,0,0,.08);cursor:pointer}
-.dr-card.sel{border-color:var(--c)}.dr-card img,.dr-card .dr-ph{width:110px;height:110px;object-fit:contain;border-radius:10px;flex-shrink:0;background:#f7f7f8}
-.dr-card b{display:block;font-size:1.1rem;padding-right:34px}.dr-precio{color:var(--c);font-weight:800;font-size:1.6rem;margin:2px 0 8px}
-.dr-stock{display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border-radius:8px;background:#fff1e6;color:#ea580c;font-size:.8rem}.dr-stock:before{content:'';width:8px;height:8px;border-radius:50%;background:#f97316}
-.dr-heart{position:absolute;top:14px;right:16px;color:#999}.dr-card.sel .dr-heart{color:var(--c)}
-.dr-quitar{margin-left:auto;padding:7px 12px;border:none;border-radius:20px;background:#fee2e2;color:#b91c1c;font-weight:700;cursor:pointer}
-.dr-msg{display:none;padding:10px;border-radius:10px;margin-bottom:10px;font-size:.85rem}
-.dr-pie{padding:12px 20px calc(12px + env(safe-area-inset-bottom));max-width:560px;width:100%;margin:0 auto;box-sizing:border-box}
-.dr-cta{width:100%;padding:17px;border:none;border-radius:14px;background:var(--c);color:#fff;font-weight:700;font-size:1.15rem;cursor:pointer}.dr-cta:disabled{opacity:.5}
-</style><button class="dr-x" aria-label="Cerrar">×</button>
-    <div class="dr-scroll"><h2>${Icon('heart-fill', { size: 26 })} Donar a ${esc(beneficiario.nombre || 'refugio')}</h2>
-      <p class="dr-sub">Tu donación salva vidas</p><div class="dr-msg"></div><div id="donar-refugio-body"></div></div>
-    <div class="dr-pie"><button class="dr-cta" disabled>Elige un artículo</button></div>`;
-  document.body.appendChild(modal);
-  modal.querySelector('.dr-x').onclick = () => modal.remove();
-  const body = modal.querySelector('#donar-refugio-body'), cta = modal.querySelector('.dr-cta'), msg = modal.querySelector('.dr-msg');
-  const showMsg = (txt, ok) => { msg.textContent = txt; Object.assign(msg.style, { display: 'block', background: ok ? '#dcfce7' : '#fee2e2', color: ok ? '#166534' : '#991b1b' }); };
+  const { body, cta, showMsg, marcar } = window.modalDonar({ id: 'modal-donar-refugio', titulo: `Donar a ${esc(beneficiario.nombre || 'refugio')}` });
   const api = (action, extra) => fetch(_resolverApiUrlInspector(action), { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body: new URLSearchParams({ action, producto_id: extra.pid, vendor_token: window.vendorSession.token, ...extra.p }).toString() }).then(r => r.json());
   let elegido = null;
@@ -537,12 +509,8 @@ window.openDonarARefugioModal = async function(beneficiario) {
     const donado = p => [true, 'TRUE', 'true'].includes(p.donado);
     const yaDonados = productos.filter(p => donado(p) && String(p.beneficiario_id || '') === String(beneficiario.id));
     const disponibles = productos.filter(p => !donado(p));
-    const precio = p => '$' + Number(p.precio || 0).toLocaleString('es-MX');
-    const card = (p, quitar) => `<div class="dr-card" data-pid="${esc(p.id)}">
-      ${p.imagen1 ? `<img src="${esc(optUrl(p.imagen1, 220))}" alt="" loading="lazy">` : '<div class="dr-ph"></div>'}
-      <div style="flex:1;min-width:0;"><b>${esc(p.nombre || '')}</b><div class="dr-precio">${precio(p)}</div>
-        ${quitar ? `<button class="dr-quitar" data-pid="${esc(p.id)}">Quitar</button>` : `<span class="dr-stock">${+p.stock <= 5 ? 'Solo ' : ''}${+p.stock || 0} disponibles</span>`}</div>
-      ${quitar ? '' : `<span class="dr-heart">${Icon('heart', { size: 30 })}</span>`}</div>`;
+    const card = (p, quitar) => window.cardDonar({ id: esc(p.id), img: p.imagen1 && esc(urlImagen(p.imagen1)), titulo: esc(p.nombre || ''), precio: p.precio,
+      corazon: !quitar, etiqueta: !quitar && window.stockDonar(p), extra: quitar ? `<button class="dr-quitar" data-pid="${esc(p.id)}" style="padding:6px 12px;border:none;border-radius:20px;background:#fee2e2;color:#b91c1c;font-weight:700;cursor:pointer;">Quitar</button>` : '' });
     body.innerHTML = (yaDonados.length ? `<p class="dr-tit" style="color:#166534;">Ya donados a este refugio</p>${yaDonados.map(p => card(p, true)).join('')}` : '')
       + '<p class="dr-tit">Elige qué quieres donar</p>'
       + (disponibles.length ? disponibles.map(p => card(p, false)).join('')
@@ -557,13 +525,10 @@ window.openDonarARefugioModal = async function(beneficiario) {
         return;
       }
       const c = e.target.closest('.dr-card');
-      if (!c || c.querySelector('.dr-quitar')) return;
-      body.querySelectorAll('.dr-card').forEach(x => {
-        x.classList.toggle('sel', x === c);
-        const h = x.querySelector('.dr-heart'); if (h) h.innerHTML = Icon(x === c ? 'heart-fill' : 'heart', { size: 30 });
-      });
-      elegido = disponibles.find(p => String(p.id) === c.dataset.pid);
-      cta.disabled = false; cta.textContent = `Donar ${elegido.nombre || ''} · ${precio(elegido)}`;
+      elegido = c && disponibles.find(p => String(p.id) === c.dataset.id);
+      if (!elegido) return;
+      marcar(c);
+      cta.disabled = false; cta.textContent = `Donar ${elegido.nombre || ''} · $${Number(elegido.precio || 0).toLocaleString('es-MX')}`;
     };
   };
 

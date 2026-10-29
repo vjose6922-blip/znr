@@ -3247,122 +3247,37 @@ window.toggleSettingsSection = function(btn) {
 window.openDonarProductosModal = async function(productoId) {
   const prod = window._vendorProducts && window._vendorProducts.find(p => String(p.id) === String(productoId));
   if (!prod) { showTemporaryMessage('Recarga tus productos primero', 'error'); return; }
-
-  const donado = prod.donado === true || prod.donado === 'TRUE' || prod.donado === 'true';
+  const donado = [true, 'TRUE', 'true'].includes(prod.donado);
   const esc = s => String(s||'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-  let imgUrl = null;
-if (prod.imagen1) {
-  imgUrl = prod.imagen1;
-}
-
-  const old = document.getElementById('modal-donar-productos');
-  if (old) old.remove();
-
-  const modal = document.createElement('div');
-  modal.id = 'modal-donar-productos';
-  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.65);backdrop-filter:blur(4px);z-index:99999;display:flex;align-items:flex-end;justify-content:center;';
-  modal.innerHTML = `
-    <div style="background:#fff;color:#111;border-radius:20px 20px 0 0;width:100%;max-width:480px;padding:0 0 36px;">
-      <div style="padding:16px 20px 12px;border-bottom:1px solid #f0f0f0;display:flex;align-items:center;justify-content:space-between;">
-        <h2 style="margin:0;font-size:1rem;font-weight:800;">${Icon('heart-fill')} Donar producto</h2>
-        <button id="btn-close-donar" style="background:none;border:none;font-size:22px;cursor:pointer;color:#888;line-height:1;">×</button>
-      </div>
-      <div style="padding:16px 20px 0;">
-
-        <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:#fafafa;border-radius:12px;border:1.5px solid #f97316;margin-bottom:16px;">
-          ${imgUrl ? `<img src="${esc(imgUrl)}" onerror="this.replaceWith(Object.assign(document.createElement('div'),{style:'width:48px;height:48px;background:#f5f5f8;border-radius:8px;flex-shrink:0;'}))" style="width:48px;height:48px;object-fit:cover;border-radius:8px;flex-shrink:0;">` : `<div style="width:48px;height:48px;background:#f5f5f8;border-radius:8px;flex-shrink:0;"></div>`}
-          <div style="flex:1;min-width:0;">
-            <div style="font-size:.88rem;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(prod.nombre||'')}</div>
-            <div style="font-size:.75rem;color:#888;">$${Number(prod.precio||0).toLocaleString()} · ${prod.tipoVenta === 'personalizado' ? 'Bajo pedido' : 'Stock: ' + (prod.stock||0)}</div>
-            ${donado ? '<div style="font-size:.72rem;color:#f97316;margin-top:1px;">' + Icon('heart-fill') + ' Donando actualmente</div>' : ''}
-          </div>
-        </div>
-
-        <div id="donar-msg" style="display:none;padding:10px;border-radius:10px;margin-bottom:12px;font-size:.82rem;"></div>
-
-        ${donado ? `
-        <p style="font-size:.8rem;color:#555;margin:0 0 16px;line-height:1.5;">Este producto ya está asignado a un beneficiario. ¿Deseas quitar la donación?</p>
-        <button id="btn-donar-quitar" style="width:100%;padding:13px;border:none;border-radius:12px;background:#fee2e2;color:#b91c1c;font-weight:700;font-size:.9rem;cursor:pointer;">
-          Quitar donación
-        </button>` : `
-        <p style="font-size:.8rem;color:#888;margin:0 0 12px;line-height:1.5;">El comprador le pagará directamente al beneficiario.</p>
-        <label style="font-size:.78rem;font-weight:700;color:#555;display:block;margin-bottom:6px;">Beneficiario destino</label>
-        <select id="donar-ben-select" style="width:100%;box-sizing:border-box;padding:10px 12px;border:1.5px solid #ddd;border-radius:10px;font-size:.88rem;background:#fff;margin-bottom:16px;outline:none;">
-          <option value="">Cargando beneficiarios…</option>
-        </select>
-        <button id="btn-donar-asignar" style="width:100%;padding:13px;border:none;border-radius:12px;background:linear-gradient(135deg,#f97316,#ef4444);color:#fff;font-weight:800;font-size:.9rem;cursor:pointer;">
-          ${Icon('heart-fill')} Asignar donación
-        </button>`}
-
-      </div>
-    </div>`;
-  document.body.appendChild(modal);
-
-  document.getElementById('btn-close-donar').onclick = () => modal.remove();
-  modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
-
-  const showMsg = (txt, ok) => {
-    const el = document.getElementById('donar-msg');
-    el.innerHTML = (ok ? Icon('check') : Icon('error')) + ' <span></span>'; el.querySelector('span').textContent = txt; el.style.display = 'block';
-    el.style.background = ok ? '#dcfce7' : '#fee2e2';
-    el.style.color = ok ? '#166534' : '#991b1b';
+  const { modal, body, cta, showMsg, marcar } = window.modalDonar({ id: 'modal-donar-productos', titulo: `Donar ${esc(prod.nombre || 'producto')}`,
+    sub: 'El comprador le pagará directamente al beneficiario.', cta: donado ? 'Quitar donación' : 'Elige un beneficiario' });
+  const enviar = async (payload, txtOk, txtBtn) => {
+    cta.disabled = true; cta.textContent = 'Guardando…';
+    const data = await apiFetch({ ...payload, producto_id: String(productoId), vendor_token: vendorSession.token }).catch(e => ({ error: 'Error de conexión ' + (e.message || '') }));
+    if (data.ok) { showMsg(txtOk, true); window.invalidateVendorProductsCache(); loadMyProducts(true); setTimeout(() => modal.remove(), 1400); }
+    else { showMsg(data.error || 'Error', false); cta.disabled = false; cta.textContent = txtBtn; }
   };
-
+  body.innerHTML = window.cardDonar({ id: esc(prod.id), img: prod.imagen1 && esc(urlImagen(prod.imagen1)), titulo: esc(prod.nombre), precio: prod.precio, etiqueta: window.stockDonar(prod), corazon: false })
+    + (donado ? '<p style="font-size:.85rem;color:#555;line-height:1.5;">Este producto ya está asignado a un beneficiario. ¿Deseas quitar la donación?</p>'
+      : '<p class="dr-tit">Elige a quién donar</p><div id="donar-bens"><p style="color:#aaa;text-align:center;">Cargando beneficiarios…</p></div>');
   if (donado) {
-    document.getElementById('btn-donar-quitar')?.addEventListener('click', async () => {
-      const btn = document.getElementById('btn-donar-quitar');
-      btn.disabled = true; btn.textContent = 'Quitando…';
-      try {
-        const data = await apiFetch({ action:'desasignarDonacion', producto_id: String(productoId), vendor_token: vendorSession.token });
-        if (data.ok) { showMsg('Donación removida', true); window.invalidateVendorProductsCache(); loadMyProducts(true); setTimeout(() => modal.remove(), 1400); }
-        else { showMsg((data.error||'Error'), false); btn.disabled = false; btn.textContent = 'Quitar donación'; }
-      } catch(e) { showMsg('Error de conexión', false); btn.disabled = false; btn.textContent = 'Quitar donación'; }
-    });
-  } else {
-    const selEl = document.getElementById('donar-ben-select');
-   const cargarBeneficiarios = async () => {
-  selEl.innerHTML = '<option value="">Cargando beneficiarios…</option>';
-  try {
-let benData = window.znrFirestore ? await window.znrFirestore.getBeneficiariosAprobados() : { ok:false };
-
-    if (!benData.ok) {
-      selEl.innerHTML = '<option value="">' + Icon('error') + ' No se pudo cargar — toca para reintentar</option>';
-      return;
-    }
-
-    const beneficiarios = benData.beneficiarios || [];
-
-    if (beneficiarios.length === 0) {
-      selEl.innerHTML = '<option value="">No hay beneficiarios aprobados aún</option>';
-    } else {
-      selEl.innerHTML =
-        '<option value="">— Seleccionar beneficiario —</option>' +
-        beneficiarios.map(b =>
-          `<option value="${esc(b.id)}">${esc(b.nombre)}${b.organizacion ? ' — ' + esc(b.organizacion) : ''}</option>`
-        ).join('');
-    }
-  } catch (e) {
-    selEl.innerHTML = '<option value="">' + Icon('error') + ' Error de conexión — toca para reintentar</option>';
+    cta.disabled = false; cta.classList.add('quitar');
+    cta.onclick = () => enviar({ action: 'desasignarDonacion' }, 'Donación removida', 'Quitar donación');
+    return;
   }
-};
-    await cargarBeneficiarios();
-
-    document.getElementById('btn-donar-asignar')?.addEventListener('click', async () => {
-      const benId = document.getElementById('donar-ben-select').value;
-      if (!benId) return showMsg('Selecciona un beneficiario.', false);
-      const btn = document.getElementById('btn-donar-asignar');
-      btn.disabled = true; btn.textContent = 'Guardando…';
-      try {
-        const payload = { action:'asignarDonacion', producto_id: String(productoId), beneficiario_id: benId, vendor_token: vendorSession.token };
-        const data = await apiFetch(payload);
-        if (data.ok) { showMsg('Donación asignada correctamente', true); window.invalidateVendorProductsCache(); loadMyProducts(true); setTimeout(() => modal.remove(), 1400); }
-        else { showMsg((data.error||'Error'), false); btn.disabled = false; btn.innerHTML = Icon('heart-fill') + ' Asignar donación'; }
-      } catch(e) {
-        showMsg('Error de conexión: ' + (e.message||''), false);
-        btn.disabled = false; btn.innerHTML = Icon('heart-fill') + ' Asignar donación';
-      }
-    });
-  }
+  const lista = body.querySelector('#donar-bens');
+  const benData = window.znrFirestore ? await window.znrFirestore.getBeneficiariosAprobados() : { ok: false };
+  const bens = benData.beneficiarios || [];
+  lista.innerHTML = !benData.ok ? '<p style="color:#ef4444;text-align:center;">No se pudieron cargar los beneficiarios.</p>'
+    : bens.length ? bens.map(b => window.cardDonar({ id: esc(b.id), img: b.imagen1 && esc(urlImagen(b.imagen1)), titulo: esc(b.nombre), sub: esc([b.organizacion, b.ciudad].filter(Boolean).join(' · ')) })).join('')
+    : '<p style="color:#aaa;text-align:center;">No hay beneficiarios aprobados aún</p>';
+  let benId = null;
+  lista.onclick = (e) => {
+    const c = e.target.closest('.dr-card'); if (!c) return;
+    marcar(c); benId = c.dataset.id;
+    cta.disabled = false; cta.textContent = `Donar a ${bens.find(b => String(b.id) === benId)?.nombre || 'beneficiario'}`;
+  };
+  cta.onclick = () => benId && enviar({ action: 'asignarDonacion', beneficiario_id: benId }, 'Donación asignada correctamente', 'Reintentar');
 };
 
 window.openGestionarDonacionesModal = async function(page = 1) {
@@ -3370,29 +3285,10 @@ window.openGestionarDonacionesModal = async function(page = 1) {
   if (!uid) return;
   const limit = 20;
   const status = window.currentStatusFilter || 'todos';
-
-  let modal = document.getElementById('modal-gestionar-donaciones');
-  if (!modal) {
-    modal = document.createElement('div');
-    modal.id = 'modal-gestionar-donaciones';
-    modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.65);backdrop-filter:blur(4px);z-index:99999;display:flex;align-items:flex-end;justify-content:center;';
-    modal.innerHTML = `
-      <div style="background:#fff;color:#111;border-radius:20px 20px 0 0;width:100%;max-height:96vh;overflow-y:auto;padding:0 0 32px;">
-        <div style="position:sticky;top:0;background:#fff;z-index:1;padding:16px 20px 12px;border-bottom:1px solid #f0f0f0;display:flex;align-items:center;justify-content:space-between;">
-          <h2 style="margin:0;font-size:1rem;font-weight:800;">${Icon('heart-fill')} Gestionar donaciones</h2>
-          <button id="btn-close-gestionar" style="background:none;border:none;font-size:22px;cursor:pointer;color:#888;line-height:1;">×</button>
-        </div>
-        <div id="insignia-donador-banner" style="padding:14px 20px 0;"></div>
-        <div id="gestionar-lista" style="padding:32px 20px;text-align:center;color:#aaa;">Actualizando productos…</div>
-      </div>`;
-    document.body.appendChild(modal);
-    document.getElementById('btn-close-gestionar').onclick = () => modal.remove();
-    modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
-    checkInsigniaDonadorBanner('insignia-donador-banner');
-  }
-
+  const { body } = window.modalDonar({ id: 'modal-gestionar-donaciones', titulo: 'Gestionar donaciones' });
+  body.innerHTML = '<div id="insignia-donador-banner"></div><div id="gestionar-lista" style="text-align:center;color:#aaa;">Actualizando productos…</div>';
+  checkInsigniaDonadorBanner('insignia-donador-banner');
   const lista = document.getElementById('gestionar-lista');
-  if (!lista) return;
 
   const cached = window.getVendorPageCache(uid, page, status);
   if (cached) {
@@ -3406,86 +3302,41 @@ window.openGestionarDonacionesModal = async function(page = 1) {
       .catch(() => {});
     return;
   }
-
-  lista.style.padding = '32px 20px';
-  lista.style.textAlign = 'center';
-  lista.innerHTML = 'Actualizando productos…';
   try {
     const payload = await window.fetchAndCacheVendorPage(uid, page, limit, status);
     window.renderGestionarLista(lista, payload.data, page, payload.totalPages, payload.total, status);
   } catch (e) {
-    lista.style.padding = '24px 20px';
-    lista.innerHTML = `<p style="color:#ef4444;text-align:center;">Error al cargar: ${String(e && e.message || e || '')}</p>`;
+    lista.innerHTML = `<p style="color:#ef4444;">Error al cargar: ${String(e && e.message || e || '')}</p>`;
   }
 };
 
+// Tocar un producto lo marca; el botón de abajo abre el modal para asignar (o quitar) su donación.
 window.renderGestionarLista = function(lista, productos, page, totalPages, total, status) {
   const esc = s => String(s||'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-
   window._vendorProducts = productos;
   window._gestionarDonacionesPage = page;
   if (typeof window.updateDonacionesBadge === 'function') window.updateDonacionesBadge();
-
-  lista.style.padding = '14px 20px 0';
-  lista.style.textAlign = '';
-  lista.innerHTML = `
-        <p style="font-size:.78rem;color:#888;margin:0 0 12px;line-height:1.5;">Toca ${Icon('heart-fill')} en cualquier producto para asignar o quitar una donación.</p>
-        <div>
-          ${productos.length === 0
-            ? '<p style="color:#aaa;text-align:center;padding:24px 0;">No tienes productos en Comunidad.<br><small>Publica uno primero desde el formulario.</small></p>'
-            : productos.map(p => {
-                const donado = p.donado === true || p.donado === 'TRUE' || p.donado === 'true';
-                const imgUrl = p.imagen1 || '';
-                return `<div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid #f5f5f5;">
-                  ${imgUrl ? `<img src="${esc(imgUrl)}" onerror="this.replaceWith(Object.assign(document.createElement('div'),{style:'width:44px;height:44px;background:#f5f5f8;border-radius:8px;flex-shrink:0;'}))" style="width:44px;height:44px;object-fit:cover;border-radius:8px;flex-shrink:0;">` : `<div style="width:44px;height:44px;background:#f5f5f8;border-radius:8px;flex-shrink:0;"></div>`}
-                  <div style="flex:1;min-width:0;">
-                    <div style="font-size:.83rem;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(p.nombre||'')}</div>
-                    <div style="font-size:.72rem;color:#888;">$${Number(p.precio||0).toLocaleString()} · ${p.tipoVenta === 'personalizado' ? 'Bajo pedido' : 'Stock: ' + (p.stock||0)}</div>
-                    ${donado ? '<div style="font-size:.7rem;color:#f97316;margin-top:1px;">' + Icon('heart-fill') + ' Donando</div>' : '<div style="font-size:.7rem;color:#bbb;margin-top:1px;">Sin asignar</div>'}
-                  </div>
-                  <button onclick="document.getElementById('modal-gestionar-donaciones').remove();openDonarProductosModal('${esc(p.id)}')"
-                    style="flex-shrink:0;width:36px;height:36px;border-radius:50%;border:none;
-                    background:${donado ? 'linear-gradient(135deg,#f97316,#ef4444)' : '#f5f5f8'};
-                    color:${donado ? '#fff' : '#aaa'};font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;">
-                    ${Icon('heart-fill')}
-                  </button>
-                </div>`;
-              }).join('')
-          }
-        </div>`;
-
-  const oldPag = document.getElementById('gestionar-pagination');
-  if (oldPag) oldPag.remove();
-  if (totalPages && totalPages > 1) {
-    const pagDiv = document.createElement('div');
-    pagDiv.id = 'gestionar-pagination';
-    pagDiv.style.cssText = 'display:flex;justify-content:center;align-items:center;gap:12px;margin-top:16px;padding:8px 0 4px;';
-
-    if (page > 1) {
-      const prevBtn = document.createElement('button');
-      prevBtn.textContent = '‹';
-      prevBtn.className = 'btn-secondary';
-      prevBtn.style.padding = '8px 16px';
-      prevBtn.onclick = () => openGestionarDonacionesModal(page - 1);
-      pagDiv.appendChild(prevBtn);
-    }
-
-    const pageInfo = document.createElement('span');
-    pageInfo.textContent = `Página ${page} de ${totalPages}`;
-    pageInfo.style.cssText = 'font-size:14px;color:#555;';
-    pagDiv.appendChild(pageInfo);
-
-    if (page < totalPages) {
-      const nextBtn = document.createElement('button');
-      nextBtn.textContent = '›';
-      nextBtn.className = 'btn-secondary';
-      nextBtn.style.padding = '8px 16px';
-      nextBtn.onclick = () => openGestionarDonacionesModal(page + 1);
-      pagDiv.appendChild(nextBtn);
-    }
-
-    lista.appendChild(pagDiv);
-  }
+  const donado = p => [true, 'TRUE', 'true'].includes(p.donado);
+  const pag = (n, t) => `<button class="btn-secondary" data-pag="${n}" style="padding:8px 16px;">${t}</button>`;
+  lista.style.cssText = '';
+  lista.innerHTML = '<p class="dr-tit">Elige qué quieres donar</p>' + (productos.length === 0
+    ? '<p style="color:#aaa;text-align:center;padding:24px 0;">No tienes productos en Comunidad.<br><small>Publica uno primero desde el formulario.</small></p>'
+    : productos.map(p => window.cardDonar({ id: esc(p.id), img: p.imagen1 && esc(urlImagen(p.imagen1)), titulo: esc(p.nombre), precio: p.precio,
+        etiqueta: donado(p) ? 'Donando' : window.stockDonar(p) })).join(''))
+    + (totalPages > 1 ? `<div style="display:flex;justify-content:center;align-items:center;gap:12px;margin:12px 0 4px;">${page > 1 ? pag(page - 1, '‹') : ''}
+      <span style="font-size:14px;color:#555;">Página ${page} de ${totalPages}</span>${page < totalPages ? pag(page + 1, '›') : ''}</div>` : '');
+  const modal = lista.closest('.dr-modal'), cta = modal.querySelector('.dr-cta');
+  let elegido = null;
+  lista.onclick = (e) => {
+    const n = e.target.closest('[data-pag]')?.dataset.pag;
+    if (n) return openGestionarDonacionesModal(+n);
+    const c = e.target.closest('.dr-card'); if (!c) return;
+    lista.querySelectorAll('.dr-card').forEach(x => x.classList.toggle('sel', x === c));
+    elegido = productos.find(p => String(p.id) === c.dataset.id);
+    cta.disabled = false;
+    cta.textContent = donado(elegido) ? `Quitar donación de ${elegido.nombre || ''}` : `Donar ${elegido.nombre || ''} · $${Number(elegido.precio || 0).toLocaleString('es-MX')}`;
+  };
+  cta.onclick = () => { if (elegido) { modal.remove(); openDonarProductosModal(elegido.id); } };
 }
 
 window.openEntregasLiveModal = async function() {
