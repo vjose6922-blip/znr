@@ -171,25 +171,27 @@ function vigilarPC(pc) {
 }
 
 // Si se cae el WiFi o los datos, vuelve a publicar a la MISMA url de
-// Cloudflare. La cámara y el respaldo siguen corriendo mientras tanto.
+// Cloudflare, sin rendirse mientras el live siga (pausas de hasta 10 s, o
+// en cuanto el teléfono recupere la red). La cámara y el respaldo siguen corriendo.
+let despertarReintento = null;
 async function reconectar() {
   if (reconectando || !transmitiendo) return;
   reconectando = true;
-  avisoVideo('Reconectando el video…');
-  for (let i = 0; i < 6 && transmitiendo; i++) {
+  for (let i = 0; transmitiendo; i++) {
+    avisoVideo(i ? `Sin conexión: los compradores no te ven. Reintentando… (${i})` : 'Reconectando el video…');
     try {
       await conectarWHIP();
       avisoVideo(null);
-      reconectando = false;
-      return;
+      break;
     } catch (e) {
       console.error('reconectar: intento ' + (i + 1) + ' falló', e);
-      await new Promise((r) => setTimeout(r, 2000 * (i + 1)));
+      await new Promise((r) => { despertarReintento = r; setTimeout(r, Math.min(2000 * (i + 1), 10000)); });
     }
   }
+  despertarReintento = null;
   reconectando = false;
-  if (transmitiendo) avisoVideo('Se perdió la conexión del video. Toca aquí para reintentar.', reconectar);
 }
+window.addEventListener('online', () => despertarReintento?.());
 
 async function pedirWakeLock() {
   try {

@@ -285,7 +285,7 @@
  
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-app.js";
-import { getDatabase, ref, push, onValue, set, remove, onDisconnect } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-database.js";
+import { getDatabase, ref, push, onValue, set, remove, onDisconnect, query, limitToLast, orderByChild, equalTo } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-database.js";
 import {
   initializeAuth,
   getAuth,
@@ -1341,12 +1341,16 @@ function setupProductoEnVivo() {
 
 function setupChat() {
   const messagesEl = document.getElementById('chat-messages');
-  onValue(ref(db, `chats/${liveId}/messages`), (snapshot) => {
+  const mensajes = ref(db, `chats/${liveId}/messages`);
+  // Solo mis mensajes (todo el live): si alguno está "Vendido", se asegura mi contacto.
+  if (authUid) onValue(query(mensajes, orderByChild('uid'), equalTo(authUid)), (snap) => {
+    if (Object.values(snap.val() || {}).some(m => m.vendido)) asegurarContactoLive();
+  });
+  // En pantalla, los últimos 100: quien entra tarde no descarga las 2 h de chat.
+  onValue(query(mensajes, limitToLast(100)), (snapshot) => {
     const data = snapshot.val();
     if (!data) { messagesEl.innerHTML = '<div class="chat-empty">Sé el primero en comentar 👋</div>'; return; }
-    // Revisa TODOS los mensajes (no solo los últimos 100): si alguno mío está "Vendido", se asegura mi contacto.
-    if (Object.values(data).some(m => m.vendido && m.uid && m.uid === authUid)) asegurarContactoLive();
-    const msgs = Object.values(data).sort((a, b) => (a.ts || 0) - (b.ts || 0)).slice(-100);
+    const msgs = Object.values(data).sort((a, b) => (a.ts || 0) - (b.ts || 0));
     messagesEl.innerHTML = msgs.map(m => `
       <div class="chat-msg ${identity && m.author === identity.nombre ? 'mine' : ''}${m.faq ? ' faq' : ''}">
         <span class="author">${esc(m.author)}${m.isVendor ? ' ' + Icon('shopping-bag') : ''}:</span>
@@ -1360,33 +1364,43 @@ function setupChat() {
   });
 }
 
-// ── Polling ligero para detectar cambios de estado / producto actual ──
+// ── Estado del live (terminado / nueva URL de video) ──
+// Llega al instante por RTDB (live_estado/{id}, lo escribe el servidor). El sondeo
+// al servidor queda solo de respaldo, cada 60 s.
+let estadoUnsub = null;
+function aplicarEstado(nueva) {
+  if (!nueva || !sesion || sesion.estado === 'terminado') return;
+  if (nueva.estado === 'terminado') {
+    clearInterval(pollTimer);
+    estadoUnsub?.();
+    sesion = { ...sesion, ...nueva };
+    renderEnded();
+    return;
+  }
+  // Si el vendedor re-publicó con otra URL (o la nuestra venía vacía), reconectar con la nueva.
+  if (nueva.playbackUrl && nueva.playbackUrl !== whepUrlActual) {
+    sesion.playbackUrl = nueva.playbackUrl;
+    whepUrlActual = nueva.playbackUrl;
+    reintentarWHEP(true);
+  }
+}
+
 function startPolling() {
+  estadoUnsub = onValue(ref(db, `live_estado/${liveId}`), (snap) => aplicarEstado(snap.val()), () => {});
   pollTimer = setInterval(async () => {
     if (document.hidden) return; // pestaña oculta: no consulta
     try {
       const resp = await apiFetch({ action: 'obtenerSesionLivePorId', id: liveId });
       if (!resp.ok) return;
       const nueva = resp.sesion;
-      if (nueva.estado === 'terminado') {
-        clearInterval(pollTimer);
-        sesion = nueva;
-        renderEnded();
-        return;
-      }
-      if (!viaRtdb && nueva.producto_actual_id !== sesion.producto_actual_id) {
+      if (!viaRtdb && nueva.estado !== 'terminado' && nueva.producto_actual_id !== sesion.producto_actual_id) {
         sesion.producto_actual_id = nueva.producto_actual_id;
         await asegurarProducto(sesion.producto_actual_id);
         renderProductoActual();
       }
-      // Si el vendedor re-publicó con otra URL (o la nuestra venía vacía), reconectar con la nueva.
-      if (nueva.playbackUrl && nueva.playbackUrl !== whepUrlActual) {
-        sesion.playbackUrl = nueva.playbackUrl;
-        whepUrlActual = nueva.playbackUrl;
-        reintentarWHEP(true);
-      }
+      aplicarEstado(nueva);
     } catch (e) { /* silencioso, reintenta en el siguiente ciclo */ }
-  }, 6000);
+  }, 60000);
 }
 
 async function init() {
