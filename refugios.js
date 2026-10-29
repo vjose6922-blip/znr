@@ -8,6 +8,8 @@
   let todos = [], miCiudad = '';
   const nombreRefugio = (b) => b.organizacion || b.nombre; // organizacion = refugio, nombre = propietario
   const fuera = (b) => !!(b.ciudad && miCiudad && b.ciudad !== miCiudad); // solo se dona a refugios de tu ciudad
+  const miUid = () => { try { return (window.vendorSession || JSON.parse(localStorage.getItem('vendor_session') || 'null'))?.uid || ''; } catch (e) { return ''; } };
+  const propio = (b) => !!(b.vendor_uid && b.vendor_uid === miUid()); // tu propia fundación: no te puedes donar
 
   // ── Filtros: país → ciudad (opciones según los refugios que existen) + texto (nombre o propietario) ──
   const opciones = (sel, valores, todasTxt, elegido) => {
@@ -26,7 +28,7 @@
       <div class="ref-foto">${f ? `<img src="${esc(f)}" alt="${esc(nombreRefugio(b))}" loading="lazy">` : Icon('heart-fill', { size: 32 })}</div>
       <div class="ref-info"><b>${esc(nombreRefugio(b))}</b>${b.organizacion && b.nombre ? `<span>${esc(b.nombre)}</span>` : ''}
         ${b.ciudad || b.ubicacion ? `<small>${Icon('map-pin', { size: 12 })} ${esc(b.ciudad || b.ubicacion)}</small>` : ''}
-        <button type="button" class="ref-btn${out ? ' fuera' : ''}" data-donar="${esc(b.id)}">${out ? `${Icon('map-pin', { size: 12 })} Fuera de tu ciudad` : `${Icon('heart-fill', { size: 12 })} Donar artículo`}</button></div></div>`;
+        <button type="button" class="ref-btn${out || propio(b) ? ' fuera' : ''}" data-donar="${esc(b.id)}">${propio(b) ? 'Tu fundación' : out ? `${Icon('map-pin', { size: 12 })} Fuera de tu ciudad` : `${Icon('heart-fill', { size: 12 })} Donar artículo`}</button></div></div>`;
   }
   function pintar() {
     const lista = filtrados().sort((a, b) => fuera(a) - fuera(b)); // primero los de tu ciudad
@@ -40,7 +42,7 @@
     $('ref-chips').style.display = chips.length ? '' : 'none';
     $('ref-grid').innerHTML = lista.length ? lista.map(tarjeta).join('') : '<p class="ref-vacio">No hay refugios con estos filtros.</p>';
   }
-  const donar = (b) => (fuera(b) ? window.openBeneficiarioModal?.(b.id) : window.openDonarARefugioModal?.({ id: b.id, nombre: nombreRefugio(b) }));
+  const donar = (b) => (fuera(b) || propio(b) ? window.openBeneficiarioModal?.(b.id) : window.openDonarARefugioModal?.({ id: b.id, nombre: nombreRefugio(b) }));
 
   // ── Banners (mismo estilo que los automáticos de Comunidad) ──
   function pintarBanners() {
@@ -63,7 +65,7 @@
   }
   // ── Ruleta: recorre fotos/nombres cada vez más lento y se detiene en un refugio al azar ──
   function ruleta() {
-    const base = filtrados(), pool = base.filter((b) => !fuera(b)).length ? base.filter((b) => !fuera(b)) : base;
+    const base = filtrados().filter((b) => !propio(b)), pool = base.filter((b) => !fuera(b)).length ? base.filter((b) => !fuera(b)) : base;
     if (!pool.length) return window.showTemporaryMessage?.('No hay refugios con estos filtros', 'error');
     const m = Object.assign(document.createElement('div'), { className: 'ruleta-modal' });
     m.innerHTML = `<div class="ruleta-caja" role="dialog" aria-label="Ruleta de refugios"><button type="button" class="ruleta-x" aria-label="Cerrar">×</button>
