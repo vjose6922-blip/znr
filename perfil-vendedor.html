@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <meta http-equiv="Content-Security-Policy" content="
  default-src 'self';
- script-src 'self' 'unsafe-inline' https://www.gstatic.com https://apis.google.com;
+ script-src 'self' 'unsafe-inline' https://www.gstatic.com https://apis.google.com https://www.google.com ;
  style-src 'self' 'unsafe-inline';
  img-src 'self' data: blob:
         https://placehold.co
@@ -35,15 +35,16 @@
    https://nominatim.openstreetmap.org
    https://admin-api-1038143238323.us-central1.run.app
    https://beneficiarios-api-1038143238323.us-central1.run.app
-   https://tienda-znr-api-1038143238323.us-central1.run.app ;
+   https://tienda-znr-api-1038143238323.us-central1.run.app https://content-firebaseappcheck.googleapis.com https://www.google.com ;
  font-src 'self';
- frame-src 'none';
+ frame-src https://www.google.com;
  frame-ancestors 'none';
  object-src 'none';
  base-uri 'self';
  worker-src 'self' blob:;
  child-src 'self' blob:;
 ">
+<script src="app-check.js"></script>
  <script src="error-bootstrap.js"></script>
 
   <title>Perfil de Vendedor - Z&R</title>

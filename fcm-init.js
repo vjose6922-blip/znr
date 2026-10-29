@@ -1,4 +1,4 @@
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
+import { initializeApp, getApps, getApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
 import { getMessaging, getToken, onMessage } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-messaging.js";
 
 const firebaseConfig = {
@@ -13,7 +13,8 @@ const firebaseConfig = {
 
 const VAPID_KEY = "BBnC4VSj0bWV72W9zZeXQUvDSybe8ccZTMhSjtu13gABzbzE1WqwVQ8kCxkcrFk3pTSzrasf978ZqWdsaUgly9o";
 
-const app = initializeApp(firebaseConfig);
+const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
+await window.znrAppCheck?.(app);
 const messaging = getMessaging(app);
 
 // URL real de la Cloud Function (Cloud Run), desplegada 2026-08.

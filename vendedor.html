@@ -4,7 +4,7 @@
  <meta charset="UTF-8">
  <meta http-equiv="Content-Security-Policy" content="
  default-src 'self';
- script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' https://www.gstatic.com https://apis.google.com https://cdn.jsdelivr.net https://*.googleapis.com;
+ script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' https://www.gstatic.com https://apis.google.com https://cdn.jsdelivr.net https://*.googleapis.com https://www.google.com ;
  style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://*.googleapis.com;
  img-src 'self' data: blob:
         https://placehold.co
@@ -35,14 +35,15 @@
    https://nominatim.openstreetmap.org 
    https://cdn.jsdelivr.net
    https://*.firebaseio.com
-   https://*.googleapis.com https://admin-api-1038143238323.us-central1.run.app https://beneficiarios-api-1038143238323.us-central1.run.app https://tienda-znr-api-1038143238323.us-central1.run.app ;
+   https://*.googleapis.com https://admin-api-1038143238323.us-central1.run.app https://beneficiarios-api-1038143238323.us-central1.run.app https://tienda-znr-api-1038143238323.us-central1.run.app https://content-firebaseappcheck.googleapis.com https://www.google.com ;
  font-src 'self' https://www.gstatic.com https://cdn.jsdelivr.net;
- frame-src 'none';
+ frame-src https://www.google.com;
  object-src 'none';
  base-uri 'self';
  worker-src 'self' blob:;
  child-src 'self' blob:;
 ">
+<script src="app-check.js"></script>
  <script src="error-bootstrap.js"></script>
  <script src="https://cdn.jsdelivr.net/npm/qr-code-styling@1.6.0/lib/qr-code-styling.js"></script>
  <meta name="viewport" content="width=device-width, initial-scale=1">
