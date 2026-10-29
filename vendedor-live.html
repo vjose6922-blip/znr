@@ -706,8 +706,8 @@ window.LP = {
     if (!c.ok) throw new Error(c.error || 'No se pudo preparar la transmisión.');
     return { whipUrl: c.whipUrl, segundos: c.segmentoSegundos, playbackUrl: c.playbackUrl };
   },
-  urlSubida: async (seq, tipo) => {
-    const r = await apiFetch({ action: 'obtenerUrlSubidaSegmento', vendorToken: vendorSession.token, liveId: currentSesion.id, seq, contentType: tipo });
+  urlSubida: async (seq, tipo, haceMs) => {
+    const r = await apiFetch({ action: 'obtenerUrlSubidaSegmento', vendorToken: vendorSession.token, liveId: currentSesion.id, seq, contentType: tipo, haceMs });
     return r.ok ? r.uploadUrl : null;
   }
 };
@@ -756,6 +756,9 @@ function getComprobadorUrl(id) {
 }
 
 // ── Espectadores (presencia en tiempo real, vía Firebase) ──
+// Solo el vendedor recibe la lista; a los compradores se les publica solo el número
+// (live_espectadores/{id}), a lo más cada 3 s, en vez de mandarle la lista a cada uno.
+let conteoTimer = null;
 function setupContadorEspectadores(liveId) {
   if (presenceUnsub) presenceUnsub();
   presenceUnsub = onValue(ref(db, `presencia/${liveId}`), (snap) => {
@@ -763,7 +766,20 @@ function setupContadorEspectadores(liveId) {
     lastViewers = Object.values(data).sort((a, b) => (b.ts || 0) - (a.ts || 0));
     const el = document.getElementById('viewer-count');
     if (el) el.textContent = lastViewers.length;
+    conteoTimer ??= setTimeout(() => { conteoTimer = null; set(ref(db, `live_espectadores/${liveId}`), lastViewers.length).catch(() => {}); }, 3000);
   }, (err) => console.error('setupContadorEspectadores falló (revisa las reglas de Firebase):', err));
+  escucharRespaldo(liveId);
+}
+
+// Ventanas de video que piden los reportes (las publica el servidor en hora del servidor;
+// se pasan a la hora de este teléfono con el desfase que calcula Firebase).
+let respaldoUnsub = null, desfaseServidor = 0;
+onValue(ref(db, '.info/serverTimeOffset'), (s) => { desfaseServidor = s.val() || 0; });
+function escucharRespaldo(liveId) {
+  if (respaldoUnsub) respaldoUnsub();
+  respaldoUnsub = onValue(ref(db, `live_respaldo/${liveId}`), (snap) => {
+    ventanasRespaldo(Object.values(snap.val() || {}).map((v) => [v.desde - desfaseServidor, v.hasta - desfaseServidor]));
+  }, () => {});
 }
 
 function hace(ts) {
@@ -1250,6 +1266,7 @@ function renderScheduled() {
 
   document.getElementById('btn-iniciar').addEventListener('click', async () => {
     const btn = document.getElementById('btn-iniciar');
+    if (btn.disabled || !(await avisoAntesDeIniciar())) return;
     const textoOriginal = btn.innerHTML;
     btn.disabled = true;
     btn.textContent = 'Conectando cámara…';
@@ -1772,7 +1789,7 @@ async function finalizarTransmision(finBtn) {
   finalizando = true;
   salirModoVer();
   if (finBtn) { finBtn.disabled = true; finBtn.textContent = 'Finalizando…'; }
-  await detenerTransmision(); // corta cámara y Cloudflare, y sube el último segmento del respaldo
+  await detenerTransmision(() => { if (finBtn) finBtn.textContent = 'Terminando procesos… no cierres esta página'; }); // corta cámara y Cloudflare; termina de subir lo que quede
   try { localStorage.removeItem('znr_live_seq_' + currentSesion.id); } catch (e) { /* sin storage */ }
 
   let revision = null; // borrador de ventas por revisar (lo arma cerrarVentasLive)

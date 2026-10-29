@@ -686,9 +686,10 @@ function quitarPresencia() {
 function setupContadorEspectadores() {
   if (!liveId) return;
   if (presenceCountUnsub) presenceCountUnsub();
-  presenceCountUnsub = onValue(ref(db, `presencia/${liveId}`), (snap) => {
+  // Solo el número (lo publica el vendedor); la lista completa de quién ve solo la recibe él.
+  presenceCountUnsub = onValue(ref(db, `live_espectadores/${liveId}`), (snap) => {
     const el = document.getElementById('viewer-count');
-    if (el) el.textContent = Object.keys(snap.val() || {}).length;
+    if (el && snap.exists()) el.textContent = snap.val();
   }, (err) => console.error('setupContadorEspectadores falló (revisa las reglas de Firebase):', err));
 }
 

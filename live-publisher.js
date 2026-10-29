@@ -5,9 +5,9 @@
 // Usa los ids de DOM: vendor-preview (video), conn-aviso (aviso).
 // El vendedor publica su cámara por WebRTC (WHIP) a un live input de
 // Cloudflare; los compradores lo ven por WHEP en comprador-live.html.
-// Cloudflare NO graba las transmisiones WebRTC, así que además se guarda
-// una copia de baja calidad en segmentos (ver "Respaldo de video") que
-// el backend usa para armar el clip de un reporte.
+// Cloudflare NO graba las transmisiones WebRTC, así que además se graba
+// una copia de baja calidad en segmentos (ver "Respaldo de video"); solo
+// se suben los que pide un reporte, y el backend arma con ellos el clip.
 
 let localStream = null;
 let pcActual = null;
@@ -104,14 +104,14 @@ function cerrarPC() {
 }
 
 function limitarBitrate(pc) {
-  // Tope de 1.5 Mbps al video en vivo para que no compita de más con la
-  // subida del respaldo. No es crítico: si el navegador no lo permite, sigue.
+  // Tope de 1 Mbps al video en vivo: en pantalla de celular casi no se nota y
+  // ahorra datos al vendedor y a cada comprador. No es crítico: si el navegador no lo permite, sigue.
   try {
     pc.getSenders().forEach((sender) => {
       if (!sender.track || sender.track.kind !== 'video') return;
       const params = sender.getParameters();
       if (!params.encodings || !params.encodings.length) params.encodings = [{}];
-      params.encodings[0].maxBitrate = 1500000;
+      params.encodings[0].maxBitrate = 1000000;
       sender.setParameters(params).catch(() => {});
     });
   } catch (e) { /* no crítico */ }
@@ -193,6 +193,16 @@ async function reconectar() {
 }
 window.addEventListener('online', () => despertarReintento?.());
 
+// Antes de iniciar: avisa si va con datos móviles o con poca batería sin cargar (un live de
+// 2 h gasta ~1 GB y mucha batería). Solo Android/Chrome da estos datos; en iPhone no avisa.
+async function avisoAntesDeIniciar() {
+  const avisos = [];
+  if (navigator.connection?.type === 'cellular') avisos.push('Estás con datos móviles: un live de 2 h gasta cerca de 1 GB. Mejor conéctate a WiFi.');
+  const bat = await navigator.getBattery?.().catch(() => null);
+  if (bat && !bat.charging && bat.level < 0.5) avisos.push(`Tu batería está al ${Math.round(bat.level * 100)}% y sin cargar: conecta el cargador, transmitir gasta mucha batería.`);
+  return !avisos.length || confirm(avisos.join('\n\n') + '\n\n¿Iniciar de todos modos?');
+}
+
 async function pedirWakeLock() {
   try {
     if ('wakeLock' in navigator) wakeLock = await navigator.wakeLock.request('screen');
@@ -230,17 +240,19 @@ function liberarMedios() {
   if (localStream) { localStream.getTracks().forEach((t) => t.stop()); localStream = null; }
 }
 
-// Cierra todo: corta el respaldo (esperando hasta 8 s a que termine de
-// subir el último segmento), la conexión a Cloudflare y la cámara.
-async function detenerTransmision() {
+// Cierra todo: corta el respaldo, la conexión a Cloudflare (los compradores ven
+// que terminó) y la cámara. Si quedan segmentos pedidos por un reporte, espera
+// hasta 60 s a que se suban; alEsperar() se llama solo en ese caso, para avisar.
+async function detenerTransmision(alEsperar) {
   transmitiendo = false;
   respaldoActivo = false;
   clearTimeout(discTimer);
   try { await withTimeout(detenerRecorderActual(), 3000); } catch (e) { /* se sigue igual */ }
-  if (subidasPendientes.size) {
-    try { await withTimeout(Promise.allSettled([...subidasPendientes]), 8000); } catch (e) { /* se sigue sin esperar más */ }
-  }
   liberarMedios();
+  if (subidasPendientes.size) {
+    alEsperar?.();
+    try { await withTimeout(Promise.allSettled([...subidasPendientes]), 60000); } catch (e) { /* se sigue sin esperar más */ }
+  }
   if (wakeLock) { try { await wakeLock.release(); } catch (e) { /* ya liberado */ } wakeLock = null; }
   const v = document.getElementById('vendor-preview');
   if (v) v.srcObject = null;
@@ -317,15 +329,16 @@ document.addEventListener('visibilitychange', () => {
 });
 
 window.addEventListener('beforeunload', (e) => {
-  if (transmitiendo) { e.preventDefault(); e.returnValue = ''; }
+  if (transmitiendo || subidasPendientes.size) { e.preventDefault(); e.returnValue = ''; }
 });
 
 // ── Respaldo de video para reportes ──
-// Copia de baja calidad (~500 kbps) grabada en el celular, partida en
-// segmentos de 30 s que se suben a un bucket privado con URLs firmadas.
-// Cada segmento es un archivo independiente (se reinicia el MediaRecorder
-// en cada corte), así el backend puede sacar la ventana de unos minutos
-// alrededor de un reporte. Si algo falla aquí, la transmisión sigue.
+// Copia de baja calidad (~300 kbps) grabada en el celular, partida en
+// segmentos de 30 s (se reinicia el MediaRecorder en cada corte). Solo se
+// guardan en memoria los últimos ~3 min; cuando llega un reporte, el
+// servidor publica su ventana (live_respaldo/{id}, la página llama a
+// ventanasRespaldo) y se suben al bucket privado los segmentos que la tocan,
+// los de memoria y los que se sigan grabando. Si algo falla, la transmisión sigue.
 
 let respaldoActivo = false;
 let recTimer = null;
@@ -334,6 +347,22 @@ let mimeRespaldo = null;
 let tipoRespaldo = null; // 'video/webm' | 'video/mp4'
 let ultimaSeq = -1;
 const subidasPendientes = new Set();
+const MEMORIA_MS = 3 * 60 * 1000;
+let ventanas = []; // [desdeMs, hastaMs] en la hora de este teléfono
+const enMemoria = []; // { seq, inicioMs, finMs, blob }
+const subidos = new Set();
+const pedido = (s) => ventanas.some(([d, h]) => s.inicioMs < h && s.finMs > d);
+
+function ventanasRespaldo(lista) {
+  ventanas = lista;
+  enMemoria.filter(pedido).forEach(encolarSubida);
+}
+
+function guardarSegmento(s) {
+  if (pedido(s)) return encolarSubida(s);
+  enMemoria.push(s);
+  while (enMemoria.length && enMemoria[0].finMs < Date.now() - MEMORIA_MS) enMemoria.shift();
+}
 
 function elegirMimeRespaldo() {
   if (typeof MediaRecorder === 'undefined') return null;
@@ -365,20 +394,25 @@ function siguienteSeq() {
   return ultimaSeq;
 }
 
-async function pedirUrlSubida(seq) {
-  try { return await LP.urlSubida(seq, tipoRespaldo); } catch (e) { return null; }
+// haceMs = cuánto hace que empezó a grabarse: el servidor calcula la hora real con su
+// propio reloj (el del teléfono puede estar mal) y así el clip cuadra con el chat.
+async function pedirUrlSubida(s) {
+  try { return await LP.urlSubida(s.seq, tipoRespaldo, Date.now() - s.inicioMs); } catch (e) { return null; }
 }
 
-function encolarSubida(seq, urlPromise, blob) {
+function encolarSubida(s) {
+  const { seq, blob } = s;
+  if (subidos.has(seq)) return;
   if (subidasPendientes.size >= 20) {
     console.warn('Respaldo: cola de subida llena, se descarta el segmento', seq);
     return;
   }
+  subidos.add(seq);
   const p = (async () => {
-    let url = await urlPromise;
+    let url = null;
     for (let intento = 0; intento < 4; intento++) {
       try {
-        if (!url) url = await pedirUrlSubida(seq);
+        if (!url) url = await pedirUrlSubida(s);
         if (!url) throw new Error('sin URL de subida');
         const res = await fetch(url, { method: 'PUT', headers: { 'Content-Type': tipoRespaldo }, body: blob });
         if (res.ok) return true;
@@ -389,6 +423,7 @@ function encolarSubida(seq, urlPromise, blob) {
       }
     }
     console.warn('Respaldo: no se pudo subir el segmento', seq);
+    subidos.delete(seq); // si sigue en memoria, otro reporte lo vuelve a intentar
     return false;
   })().finally(() => subidasPendientes.delete(p));
   subidasPendientes.add(p);
@@ -399,18 +434,18 @@ function iniciarCicloSegmento() {
   const seq = siguienteSeq();
   let rec;
   try {
-    rec = new MediaRecorder(localStream, { mimeType: mimeRespaldo, videoBitsPerSecond: 500000, audioBitsPerSecond: 32000 });
+    rec = new MediaRecorder(localStream, { mimeType: mimeRespaldo, videoBitsPerSecond: 300000, audioBitsPerSecond: 32000 });
   } catch (e) {
     console.error('Respaldo: no se pudo crear el MediaRecorder', e);
     respaldoActivo = false;
     return;
   }
   const chunks = [];
-  const urlPromise = pedirUrlSubida(seq); // en paralelo: la hora que anota el servidor ≈ inicio de la grabación
+  const inicioMs = Date.now();
   const cerrado = new Promise((resolve) => {
     rec.ondataavailable = (e) => { if (e.data && e.data.size) chunks.push(e.data); };
     rec.onstop = () => {
-      if (chunks.length) encolarSubida(seq, urlPromise, new Blob(chunks, { type: tipoRespaldo }));
+      if (chunks.length) guardarSegmento({ seq, inicioMs, finMs: Date.now(), blob: new Blob(chunks, { type: tipoRespaldo }) });
       resolve();
     };
     rec.onerror = (e) => { console.error('Respaldo: error del MediaRecorder', e); };
