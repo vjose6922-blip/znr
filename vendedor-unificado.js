@@ -2769,6 +2769,12 @@ function _actualizarEstadoCorreo() {
     ? `Tu correo: ${vendorSession.correo}. Ahí te llegan los códigos y los avisos de seguridad. Escribe otro abajo para cambiarlo.`
     : 'Mejora la seguridad de tu cuenta usando tu correo electrónico: recupera tu contraseña o cambia tu número sin esperar al administrador, y recibe avisos de inicios de sesión y cambios en tu cuenta.';
 }
+// Mientras se espera el código solo se ve la caja del código; "Usar otro correo" regresa al formulario.
+window.mostrarFormCorreo = function(form) {
+  document.getElementById('settings-correo-form').style.display = form ? '' : 'none';
+  document.getElementById('settings-correo-codigo-box').style.display = form ? 'none' : 'block';
+  if (form) document.getElementById('settings-correo-msg').textContent = '';
+};
 window.solicitarCorreo = async function() {
   const correo = document.getElementById('settings-correo-nuevo').value.trim(), password = document.getElementById('settings-correo-pwd').value;
   if (!correo || !password) return _msgSeguridad('settings-correo-msg', 'Escribe tu correo y tu contraseña.');
@@ -2778,7 +2784,7 @@ window.solicitarCorreo = async function() {
     const res = await apiCall({ action: 'solicitarCorreo', vendorToken: vendorSession.token, correo, password });
     if (!res.ok) return _msgSeguridad('settings-correo-msg', res.error || 'No se pudo enviar el código.');
     document.getElementById('settings-correo-pwd').value = '';
-    document.getElementById('settings-correo-codigo-box').style.display = 'block';
+    mostrarFormCorreo(false);
     _msgSeguridad('settings-correo-msg', `Te enviamos un código a ${correo} (revisa también spam). Vale 15 minutos.`, true);
   } catch (e) { _msgSeguridad('settings-correo-msg', 'Error de red.'); } finally { btn.disabled = false; }
 };
@@ -2793,7 +2799,7 @@ window.confirmarCodigoCorreo = async function(tipo) { // 'correo' o 'tel'
     try { localStorage.setItem('vendor_session', JSON.stringify(vendorSession)); } catch(e) {}
     input.value = '';
     document.getElementById(`settings-${tipo}-codigo-box`).style.display = 'none';
-    if (tipo === 'correo') document.getElementById('settings-correo-nuevo').value = '';
+    if (tipo === 'correo') { mostrarFormCorreo(true); document.getElementById('settings-correo-nuevo').value = ''; }
     _actualizarEstadoCorreo();
     _msgSeguridad(msgId, res.correo ? 'Correo verificado.' : `Listo, tu número ahora es ${res.telefono}.`, true);
   } catch (e) { _msgSeguridad(msgId, 'Error de red.'); }
