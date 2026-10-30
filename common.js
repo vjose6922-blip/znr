@@ -3237,6 +3237,8 @@ const teniaControllerPrevio = !!navigator.serviceWorker.controller;
 const registration = await navigator.serviceWorker.register('/sw.js', {
 scope: '/'
 });
+// El viejo firebase-messaging-sw.js ya no se usa: si sigue instalado recibe pushes con su token viejo (sin imagen y duplicados).
+navigator.serviceWorker.getRegistrations().then(rs => rs.forEach(r => /firebase-messaging-sw/.test(r.active?.scriptURL || '') && r.unregister())).catch(() => {});
 navigator.serviceWorker.addEventListener('message', event => {
 if (event.data.type === 'CONNECTION_STATUS') {
 }
