@@ -2100,6 +2100,7 @@ const linkPagoInput = document.getElementById('settings-link-pago');
 if (linkPagoInput) linkPagoInput.value = vendorSession.linkPago || '';
 const metodosMsg = document.getElementById('settings-metodos-pago-msg');
 if (metodosMsg) metodosMsg.textContent = '';
+_resumenFilas();
 
   document.getElementById('settings-header-name').textContent = vendorSession.nombre || '';
   const planEl = document.getElementById('settings-header-plan');
@@ -2668,6 +2669,8 @@ function _actualizarEstadoPreguntaYTelefono() {
   const bloqueoEl = document.getElementById('settings-tel-bloqueo');
   const formEl = document.getElementById('settings-tel-form');
   const labelEl = document.getElementById('settings-tel-preg-label');
+  const resEl = document.getElementById('seg-preg-res'); // estado en la fila de Seguridad
+  if (resEl) { resEl.textContent = vendorSession.preguntaSecreta ? 'Configurada' : 'Pendiente'; resEl.classList.toggle('pend', !vendorSession.preguntaSecreta); }
   if (vendorSession.preguntaSecreta) {
     if (estadoEl) estadoEl.textContent = `Ya tienes una configurada: "${vendorSession.preguntaSecreta}". Guarda otra abajo para reemplazarla.`;
     if (bloqueoEl) bloqueoEl.style.display = 'none';
@@ -2761,12 +2764,26 @@ async function solicitarCambioTelefono() {
   }
 }
 
+// Estado a la derecha de cada fila de Perfil y Métodos de pago (se recalcula al escribir).
+window._resumenFilas = function() {
+  const v = id => (document.getElementById(id)?.value || '').trim();
+  const pon = (id, txt, pend) => { const el = document.getElementById(id); if (el) { el.textContent = txt; el.classList.toggle('pend', !!pend); } };
+  const redes = ['settings-facebook', 'settings-twitter', 'settings-instagram', 'settings-tiktok'].filter(v).length;
+  pon('res-negocio', v('settings-nombre') || 'Agregar', !v('settings-nombre'));
+  pon('res-punto', v('settings-punto-entrega') ? 'Listo' : 'Falta', !v('settings-punto-entrega'));
+  pon('res-domicilio', v('settings-monto-minimo-envio') ? `Desde $${Number(v('settings-monto-minimo-envio')).toLocaleString('es-MX')}` : 'No ofrezco');
+  pon('res-redes', redes ? `${redes} de 4` : 'Agregar');
+  pon('res-whatsapp', v('settings-whatsapp') || 'Agregar');
+  pon('res-transferencia', v('settings-clabe') ? (v('settings-link-pago') ? 'CLABE y link' : 'CLABE') : v('settings-link-pago') ? 'Link' : 'Agregar');
+};
+
 // Correo opcional: se agrega o cambia con un código al correo nuevo; confirmarCodigoCorreo también confirma el cambio de número.
 function _msgSeguridad(id, texto, ok) { const el = document.getElementById(id); el.style.color = ok ? '#16a34a' : '#dc2626'; el.textContent = texto; }
 function _actualizarEstadoCorreo() {
-  const el = document.getElementById('settings-correo-estado');
+  const el = document.getElementById('settings-correo-estado'), res = document.getElementById('seg-correo-res');
+  if (res) res.textContent = vendorSession.correo || 'Agregar';
   if (el) el.textContent = vendorSession.correo
-    ? `Tu correo: ${vendorSession.correo}. Ahí te llegan los códigos y los avisos de seguridad. Escribe otro abajo para cambiarlo.`
+    ? 'Ahí te llegan los códigos y los avisos de seguridad. Escribe otro abajo para cambiarlo.'
     : 'Mejora la seguridad de tu cuenta usando tu correo electrónico: recupera tu contraseña o cambia tu número sin esperar al administrador, y recibe avisos de inicios de sesión y cambios en tu cuenta.';
 }
 // Mientras se espera el código solo se ve la caja del código; "Usar otro correo" regresa al formulario.
@@ -2954,6 +2971,8 @@ async function cargarPasarelas() {
   if (!cont) return;
   const ids = Object.keys(PASARELAS);
   const estados = await Promise.all(ids.map(p => apiCall({ action: p + 'EstadoConexion', vendorToken: vendorSession.token }).catch(() => ({}))));
+  const conectadas = estados.filter(e => e && e.ok && e.conectado).length, res = document.getElementById('res-pasarelas');
+  if (res) res.textContent = conectadas ? `${conectadas} conectada${conectadas > 1 ? 's' : ''}` : 'Sin conectar';
   cont.innerHTML = ids.map((p, i) => {
     const e = estados[i] || {}, on = e.ok && e.conectado;
     const [txt, fn, color] = on ? ['Desconectar', 'desconectarPasarela', '#dc2626'] : [e.pendiente ? 'Terminar registro' : 'Conectar', 'conectarPasarela', '#7c3aed'];
