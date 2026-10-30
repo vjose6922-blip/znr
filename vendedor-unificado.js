@@ -1,8 +1,7 @@
 (function() {
-// Reduce una foto a 800 px como máx. (WebP/JPEG). Aquí arriba para que la usen productos y la edición de fundación.
-async function compressImage(file) {
+// Reduce una foto a MAX px como máx. (WebP/JPEG). Aquí arriba para que la usen productos y la edición de fundación.
+async function compressImage(file, MAX = 800) {
 return new Promise((resolve) => {
-const MAX = 800;
 const QUALITY = 0.82;
 const img = new Image();
 const url = URL.createObjectURL(file);
@@ -75,6 +74,9 @@ const MAPA_ACCIONES_MIGRADAS = {
   solicitarResetPasswordVendedor: VENDEDORES_API_URL,
   avisarAdminSinPregunta: VENDEDORES_API_URL,
   enviarCodigoResetVendedor: VENDEDORES_API_URL,
+  enviarCodigoResetPorCorreo: VENDEDORES_API_URL,
+  solicitarCorreo: VENDEDORES_API_URL,
+  confirmarCodigoCorreo: VENDEDORES_API_URL,
   resetPasswordConCodigo: VENDEDORES_API_URL,
   actualizarPerfilVendedor: VENDEDORES_API_URL,
   marcarChecklistDescartado: VENDEDORES_API_URL,
@@ -422,7 +424,8 @@ coverBg: res.coverBg || '',
 coverIcons: res.coverIcons || '',
 coverIconColor: res.coverIconColor || '',
 clabe: res.clabe || '',           
-linkPago: res.linkPago || ''   
+linkPago: res.linkPago || '',
+correo: res.correo || ''
 };
 localStorage.setItem('vendor_session', JSON.stringify(vendorSession));
 
@@ -1580,6 +1583,7 @@ async function uploadSingleImage(file) {
     const formData = new URLSearchParams();
     formData.append('action', 'uploadImageVendedor');
     formData.append('data', base64);
+    formData.append('miniatura', await fileToBase64(await compressImage(file, 300))); // la cuadrícula usa la de 300 px
     formData.append('mimeType', mime);
     formData.append('fileName', file.name.replace(/\.[^.]+$/, '') + (mime === 'image/webp' ? '.webp' : '.jpg'));
     formData.append('vendorToken', token);
@@ -2062,6 +2066,7 @@ function openSettingsModal(expandirPlan) {
   const telPregRespuestaInput = document.getElementById('settings-tel-preg-respuesta');
   if (telPregRespuestaInput) telPregRespuestaInput.value = '';
   _actualizarEstadoPreguntaYTelefono();
+  _actualizarEstadoCorreo();
 
   const esPlus = vendorSession.plan === 'plus';
 
@@ -2203,7 +2208,8 @@ function initForgotPasswordModal() {
   const on = (id, ev, fn) => { const el = document.getElementById(id); if (el) el.addEventListener(ev, fn); };
   on('forgot-password-continue-btn', 'click', continuarForgotPassword);
   on('forgot-password-code-btn', 'click', () => enviarCodigoForgotPassword(false));
-  on('forgot-password-reenviar', 'click', () => enviarCodigoForgotPassword(true));
+  on('forgot-password-reenviar', 'click', () => _forgotCorreo ? enviarCodigoForgotCorreo() : enviarCodigoForgotPassword(true));
+  on('forgot-password-correo-btn', 'click', enviarCodigoForgotCorreo);
   on('forgot-password-reset-btn', 'click', cambiarPasswordConCodigo);
   on('forgot-password-submit-btn', 'click', submitForgotPassword); // "ya no tengo ese número": solicitud al admin
   on('forgot-password-sinnumero-link', 'click', () => {
@@ -2215,6 +2221,7 @@ function initForgotPasswordModal() {
 
 let _forgotPasswordTelefono = '';
 let _forgotPasswordRespuesta = ''; // se conserva para poder pedir otro código sin volver a escribirla
+let _forgotCorreo = ''; // correo (oculto) al que se mandó el código; vacío si lo manda el admin
 
 function _forgotMostrar(paso) {
   ['step1', 'bloqueo', 'step2', 'step3'].forEach(id => {
@@ -2232,6 +2239,7 @@ function openForgotPasswordModal() {
   if (!modal) return;
   _forgotPasswordTelefono = '';
   _forgotPasswordRespuesta = '';
+  _forgotCorreo = '';
   ['forgot-password-phone', 'forgot-password-nuevo-tel', 'forgot-password-respuesta',
    'forgot-password-codigo', 'forgot-password-nueva', 'forgot-password-nueva2'].forEach(id => {
     const el = document.getElementById(id);
@@ -2265,8 +2273,13 @@ async function continuarForgotPassword() {
   try {
     const res = await apiFetch({ action: 'obtenerPreguntaSecreta', telefono: phone });
     _forgotPasswordTelefono = phone;
-    if (res.ok && res.tienePregunta) {
-      document.getElementById('forgot-password-pregunta').textContent = res.pregunta;
+    if (res.ok && (res.tienePregunta || res.correo)) {
+      // Con correo verificado puede pedir el código ahí; con pregunta, también por el admin.
+      document.getElementById('forgot-password-pregunta').textContent = res.pregunta || '';
+      document.getElementById('forgot-password-con-pregunta').style.display = res.tienePregunta ? '' : 'none';
+      document.getElementById('forgot-password-correo').style.display = res.correo ? '' : 'none';
+      document.getElementById('forgot-password-correo-btn').textContent = `Enviar código a ${res.correo}`;
+      document.getElementById('forgot-password-correo-btn').dataset.correo = res.correo || '';
       _forgotMostrar('step2');
     } else {
       // Sin pregunta (o número no registrado: el servidor no distingue): se avisa al admin y se le explica al vendedor.
@@ -2298,6 +2311,7 @@ async function enviarCodigoForgotPassword(esReenvio) {
     const res = await apiFetch({ action: 'enviarCodigoResetVendedor', telefono: _forgotPasswordTelefono, respuestaSecreta });
     if (!res.ok) throw new Error(res.error || 'No se pudo enviar el código');
     _forgotPasswordRespuesta = respuestaSecreta;
+    _forgotCorreo = '';
     document.getElementById('forgot-password-codigo-info').textContent = 'Ya avisamos al administrador: te enviará el código por WhatsApp en unos minutos. Vale 30 minutos.';
     _forgotMostrar('step3');
     if (esReenvio) _forgotMsg('forgot-password-msg3', 'Pedimos otro código. El anterior ya no sirve.', '#16a34a');
@@ -2306,6 +2320,21 @@ async function enviarCodigoForgotPassword(esReenvio) {
     _forgotMsg(msgId, err.message);
   } finally {
     if (btn && !esReenvio) { btn.disabled = false; btn.textContent = 'Solicitar código'; }
+  }
+}
+
+// Paso 2 (con correo verificado): el código llega al correo, sin pregunta ni admin.
+async function enviarCodigoForgotCorreo() {
+  const correo = document.getElementById('forgot-password-correo-btn').dataset.correo;
+  try {
+    const res = await apiFetch({ action: 'enviarCodigoResetPorCorreo', telefono: _forgotPasswordTelefono });
+    if (!res.ok) throw new Error(res.error || 'No se pudo enviar el código');
+    if (_forgotCorreo) _forgotMsg('forgot-password-msg3', 'Te enviamos otro código. El anterior ya no sirve.', '#16a34a');
+    _forgotCorreo = correo;
+    document.getElementById('forgot-password-codigo-info').textContent = `Te enviamos el código a ${correo} (revisa también spam). Vale 30 minutos.`;
+    _forgotMostrar('step3');
+  } catch (err) {
+    _forgotMsg(_forgotCorreo ? 'forgot-password-msg3' : 'forgot-password-msg-correo', err.message);
   }
 }
 
@@ -2713,10 +2742,15 @@ async function solicitarCambioTelefono() {
     const res = await apiCall({ action: 'solicitarCambioTelefono', vendorToken: vendorSession.token, password, nuevoTelefono, respuestaSecreta, credential });
     if (!res.ok) { msg.style.color = '#dc2626'; msg.textContent = res.error || 'No se pudo enviar la solicitud.'; return; }
 
-    vendorSession.telefonoPendiente = nuevoTelefono;
-    try { localStorage.setItem('vendor_session', JSON.stringify(vendorSession)); } catch(e) {}
     msg.style.color = '#16a34a';
-    msg.textContent = 'Solicitud enviada, espera la aprobación del administrador.';
+    if (res.porCorreo) { // con correo verificado no pasa por el admin: se confirma con el código
+      document.getElementById('settings-tel-codigo-box').style.display = 'block';
+      msg.textContent = `Te enviamos un código a ${res.correo}. Escríbelo arriba para confirmar el cambio.`;
+    } else {
+      vendorSession.telefonoPendiente = nuevoTelefono;
+      try { localStorage.setItem('vendor_session', JSON.stringify(vendorSession)); } catch(e) {}
+      msg.textContent = 'Solicitud enviada, espera la aprobación del administrador.';
+    }
     document.getElementById('settings-tel-pwd').value = '';
     document.getElementById('settings-tel-preg-respuesta').value = '';
   } catch (err) {
@@ -2726,6 +2760,44 @@ async function solicitarCambioTelefono() {
     btn.disabled = false; btn.textContent = 'Solicitar cambio de número';
   }
 }
+
+// Correo opcional: se agrega o cambia con un código al correo nuevo; confirmarCodigoCorreo también confirma el cambio de número.
+function _msgSeguridad(id, texto, ok) { const el = document.getElementById(id); el.style.color = ok ? '#16a34a' : '#dc2626'; el.textContent = texto; }
+function _actualizarEstadoCorreo() {
+  const el = document.getElementById('settings-correo-estado');
+  if (el) el.textContent = vendorSession.correo
+    ? `Tu correo: ${vendorSession.correo}. Ahí te llegan los códigos y los avisos de seguridad. Escribe otro abajo para cambiarlo.`
+    : 'Mejora la seguridad de tu cuenta usando tu correo electrónico: recupera tu contraseña o cambia tu número sin esperar al administrador, y recibe avisos de inicios de sesión y cambios en tu cuenta.';
+}
+window.solicitarCorreo = async function() {
+  const correo = document.getElementById('settings-correo-nuevo').value.trim(), password = document.getElementById('settings-correo-pwd').value;
+  if (!correo || !password) return _msgSeguridad('settings-correo-msg', 'Escribe tu correo y tu contraseña.');
+  const btn = document.getElementById('btn-correo');
+  btn.disabled = true;
+  try {
+    const res = await apiCall({ action: 'solicitarCorreo', vendorToken: vendorSession.token, correo, password });
+    if (!res.ok) return _msgSeguridad('settings-correo-msg', res.error || 'No se pudo enviar el código.');
+    document.getElementById('settings-correo-pwd').value = '';
+    document.getElementById('settings-correo-codigo-box').style.display = 'block';
+    _msgSeguridad('settings-correo-msg', `Te enviamos un código a ${correo} (revisa también spam). Vale 15 minutos.`, true);
+  } catch (e) { _msgSeguridad('settings-correo-msg', 'Error de red.'); } finally { btn.disabled = false; }
+};
+window.confirmarCodigoCorreo = async function(tipo) { // 'correo' o 'tel'
+  const input = document.getElementById(`settings-${tipo}-codigo`), msgId = `settings-${tipo}-msg`, codigo = input.value.replace(/\D/g, '');
+  if (codigo.length !== 6) return _msgSeguridad(msgId, 'Escribe el código de 6 dígitos.');
+  try {
+    const res = await apiCall({ action: 'confirmarCodigoCorreo', vendorToken: vendorSession.token, codigo });
+    if (!res.ok) return _msgSeguridad(msgId, res.error || 'Código incorrecto.');
+    if (res.correo) vendorSession.correo = res.correo;
+    if (res.telefono) document.getElementById('settings-tel-actual').textContent = vendorSession.telefono = res.telefono;
+    try { localStorage.setItem('vendor_session', JSON.stringify(vendorSession)); } catch(e) {}
+    input.value = '';
+    document.getElementById(`settings-${tipo}-codigo-box`).style.display = 'none';
+    if (tipo === 'correo') document.getElementById('settings-correo-nuevo').value = '';
+    _actualizarEstadoCorreo();
+    _msgSeguridad(msgId, res.correo ? 'Correo verificado.' : `Listo, tu número ahora es ${res.telefono}.`, true);
+  } catch (e) { _msgSeguridad(msgId, 'Error de red.'); }
+};
 
 // A propósito NO usa vendorToken: si iniciaste sesión en otro
 // dispositivo DESPUÉS que este, el token de este dispositivo ya quedó

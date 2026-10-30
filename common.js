@@ -477,7 +477,7 @@ return String(str)
 function crearSliderImagenesHTML(images, alt) {
   const safeAlt = escapeAttr(alt || '');
   const imgs = (images && images.length) ? images : ['placeholder.svg'];
-  const slides = imgs.map((url, i) => `<div class="mini-slider-slide"><img src="${escapeAttr(url)}" alt="${safeAlt}" loading="lazy" style="width:100%;height:100%;object-fit:contain;display:block;background:var(--color-surface-2,#f5f5f8);" onerror="window.znrLoadImgWithRetry(this)"></div>`).join('');
+  const slides = imgs.map((url, i) => `<div class="mini-slider-slide"><img src="${escapeAttr(miniatura(url))}" alt="${safeAlt}" loading="lazy" style="width:100%;height:100%;object-fit:contain;display:block;background:var(--color-surface-2,#f5f5f8);" onerror="window.znrLoadImgWithRetry(this)"></div>`).join('');
   const dots = imgs.length > 1
     ? `<div class="mini-slider-dots">${imgs.map((_, i) => `<span class="mini-slider-dot${i === 0 ? ' active' : ''}"></span>`).join('')}</div>`
     : '';
@@ -536,9 +536,11 @@ const _miniSliderSt = document.createElement('style');
 _miniSliderSt.textContent = '.mini-slider{position:relative;width:100%;height:100%;overflow:hidden;touch-action:pan-y;}.mini-slider-track{display:flex;width:100%;height:100%;transition:transform .3s ease;}.mini-slider-slide{min-width:100%;height:100%;flex-shrink:0;}.mini-slider-dots{position:absolute;bottom:6px;left:50%;transform:translateX(-50%);display:flex;gap:4px;z-index:2;}.mini-slider-dot{width:5px;height:5px;border-radius:50%;background:rgba(255,255,255,.6);box-shadow:0 0 2px rgba(0,0,0,.4);transition:all .2s;}.mini-slider-dot.active{background:var(--color-accent-solid);width:12px;border-radius:3px;}';
 document.head.appendChild(_miniSliderSt);
 
-// Las imágenes viven en Firebase Storage y se usan tal cual; sin imagen (o ruta inválida), el placeholder de Z&R.
+// Las imágenes viven en Firebase Storage; sin imagen (o ruta inválida), el placeholder de Z&R.
+// Las fotos que terminan en _m traen una miniatura de 300 px en _t: tarjetas y cuadrícula usan la miniatura, el modal la de 800 px.
 const sinImagen = (w) => `https://placehold.co/${w}x${w}/3b1f5f/white?text=Z%26R`;
-function urlImagen(url) { return url && /^(https?:|data:image)/.test(url) ? url : sinImagen(400); }
+const miniatura = (url) => String(url).replace(/_m(\.\w+\?alt=media)$/, '_t$1');
+function urlImagen(url) { return url && /^(https?:|data:image)/.test(url) ? miniatura(url) : sinImagen(400); }
 
 // Modal de donaciones en pantalla completa (refugios, comunidad y panel del vendedor): título, tarjetas y botón fijo abajo.
 const DR_CSS = `.dr-modal{--c:var(--color-accent-solid,#ff3d7f);position:fixed;inset:0;z-index:99999;background:#fff;color:#111;display:flex;flex-direction:column}
@@ -4072,7 +4074,7 @@ function intervalConJitter(fn, baseMs, jitterMs) {
 
   
 
-function getModalImageUrl(url) { return url && /^(https?:|data:image)/.test(url) ? url : sinImagen(900); }
+function getModalImageUrl(url) { return url && /^(https?:|data:image)/.test(url) ? String(url).replace(/_t(\.\w+\?alt=media)$/, '_m$1') : sinImagen(900); }
 window.getModalImageUrl = getModalImageUrl;
 window.intervalConJitter = intervalConJitter;
 
