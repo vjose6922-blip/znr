@@ -1,10 +1,10 @@
-// app-check.js — App Check: reCAPTCHA v3 (invisible) prueba que la petición sale de esta página y no de un bot.
+// app-check.js — App Check: reCAPTCHA Enterprise (Fraud Defense, invisible) prueba que la petición sale de esta página y no de un bot.
 // Va antes que cualquier otro script. Los SDK de Firebase mandan el token solos; aquí se agrega a fetch:
 // APIs de Cloud Run en ?_ac= (sin cabecera extra, así no hay preflight CORS) y RTDB por REST en X-Firebase-AppCheck.
 // Mientras CLAVE sea el marcador no se activa nada.
 (function () {
   'use strict';
-  const CLAVE = '6Lee1AcuAAAAAH4DUNptOgvBdPq64Lr4pUCH5-SI'; // Firebase Console → App Check → Apps → reCAPTCHA v3
+  const CLAVE = '6Lee1AcuAAAAAH4DUNptOgvBdPq64Lr4pUCH5-SI'; // Firebase Console → App Check → Apps → Fraud Defense (reCAPTCHA Enterprise)
   const sdk = (v) => Promise.all(['app', 'app-check'].map((m) => import(`https://www.gstatic.com/firebasejs/${v}/firebase-${m}.js`)));
   // Una sola instancia habla con reCAPTCHA: la de la app principal (la crea si la página aún no la tiene).
   const base = CLAVE.startsWith('PEGA_') ? null : sdk('10.13.0').then(([a, c]) => ({ c, ac: c.initializeAppCheck(
@@ -13,7 +13,7 @@
       databaseURL: 'https://znr-live-default-rtdb.firebaseio.com', projectId: 'znr-live',
       storageBucket: 'znr-live.firebasestorage.app', messagingSenderId: '1038143238323',
       appId: '1:1038143238323:web:5171b9dd8823628086c0c6'
-    }), { provider: new c.ReCaptchaV3Provider(CLAVE), isTokenAutoRefreshEnabled: true }) })).catch(() => null);
+    }), { provider: new c.ReCaptchaEnterpriseProvider(CLAVE), isTokenAutoRefreshEnabled: true }) })).catch(() => null);
   const token = () => Promise.resolve(base).then((b) => b ? b.c.getToken(b.ac) : null).then((t) => t?.token || '', () => '');
 
   // Cada módulo que crea una app de Firebase hace `await window.znrAppCheck(app, versión)` antes de usarla.
