@@ -10,10 +10,11 @@
       'Día de Muertos', 'Acción de Gracias', 'Posadas', 'Navidad', 'Fin de Año'
     ],
     // Fechas en que las escuelas piden disfraz, vestuario o material (los nombres no deben repetir los de festividad).
-    escolar: [
-      'Día de la Bandera', 'Festival de primavera', 'Festival del Día del Niño', 'Festival del Día de las Madres',
-      'Clausura y fin de curso', 'Desfile y kermés de Fiestas Patrias', 'Altar de muertos', 'Desfile de la Revolución',
-      'Pastorela y posada escolar'
+    escolar: [ // en orden del calendario
+      'Día de la Constitución', 'Día de la Bandera', 'Festival del Amor y la Amistad', 'Festival de primavera',
+      'Festival del Día del Niño', 'Batalla de Puebla', 'Festival del Día de las Madres', 'Clausura y fin de curso',
+      'Desfile y kermés de Fiestas Patrias', 'Día de la Raza', 'Día de las Naciones Unidas',
+      'Festival de Halloween y Día de Muertos', 'Desfile de la Revolución', 'Pastorela y posada escolar'
     ],
     temporada: [
       'Regreso a clases', 'Vacaciones de verano', 'Vacaciones de invierno', 'Graduaciones',
@@ -76,13 +77,18 @@
     'Día de Muertos': fija(10, 20, 11, 2),
     'Acción de Gracias': (y) => { const f = nesimoDia(y, 10, 4, 4); return [[D(y, 11, 10), new Date(y, 10, f.getDate(), 23, 59, 59)]]; },
     'Posadas': fija(12, 12, 12, 24),
+    'Día de la Constitución': fija(1, 25, 2, 5),
     'Día de la Bandera': fija(2, 10, 2, 24),
+    'Festival del Amor y la Amistad': fija(2, 1, 2, 14),
     'Festival de primavera': fija(3, 5, 3, 21),
     'Festival del Día del Niño': fija(4, 15, 4, 30),
+    'Batalla de Puebla': fija(4, 22, 5, 5),
     'Festival del Día de las Madres': fija(4, 25, 5, 10),
     'Clausura y fin de curso': fija(6, 15, 7, 15),
     'Desfile y kermés de Fiestas Patrias': fija(9, 1, 9, 16),
-    'Altar de muertos': fija(10, 20, 11, 2),
+    'Día de la Raza': fija(10, 1, 10, 12),
+    'Día de las Naciones Unidas': fija(10, 10, 10, 24),
+    'Festival de Halloween y Día de Muertos': fija(10, 15, 11, 2),
     'Desfile de la Revolución': fija(11, 5, 11, 20),
     'Pastorela y posada escolar': fija(12, 1, 12, 20),
     'Navidad': fija(12, 1, 12, 25),
