@@ -1,8 +1,7 @@
 (function() {
-// Reduce una foto a 800 px como máx. (WebP/JPEG). Aquí arriba para que la usen productos y la edición de fundación.
-async function compressImage(file) {
+// Reduce una foto a MAX px como máx. (WebP/JPEG). Aquí arriba para que la usen productos y la edición de fundación.
+async function compressImage(file, MAX = 800) {
 return new Promise((resolve) => {
-const MAX = 800;
 const QUALITY = 0.82;
 const img = new Image();
 const url = URL.createObjectURL(file);
@@ -1580,6 +1579,7 @@ async function uploadSingleImage(file) {
     const formData = new URLSearchParams();
     formData.append('action', 'uploadImageVendedor');
     formData.append('data', base64);
+    formData.append('miniatura', await fileToBase64(await compressImage(file, 300))); // la cuadrícula usa la de 300 px
     formData.append('mimeType', mime);
     formData.append('fileName', file.name.replace(/\.[^.]+$/, '') + (mime === 'image/webp' ? '.webp' : '.jpg'));
     formData.append('vendorToken', token);
