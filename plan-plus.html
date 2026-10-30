@@ -7,8 +7,8 @@
 </script>
 <meta http-equiv="Content-Security-Policy" content="
  default-src 'self';
- script-src 'self' 'unsafe-inline' https://www.gstatic.com https://apis.google.com https://js.stripe.com https://checkout.stripe.com https://sdk.mercadopago.com https://http2.mlstatic.com;
- frame-src https://js.stripe.com https://checkout.stripe.com https://hooks.stripe.com https://*.mercadopago.com https://*.mercadolibre.com https://*.mlstatic.com;
+ script-src 'self' 'unsafe-inline' https://www.gstatic.com https://apis.google.com https://js.stripe.com https://checkout.stripe.com https://sdk.mercadopago.com https://http2.mlstatic.com https://www.google.com ;
+ frame-src https://js.stripe.com https://checkout.stripe.com https://hooks.stripe.com https://*.mercadopago.com https://*.mercadolibre.com https://*.mlstatic.com https://www.google.com ;
  style-src 'self' 'unsafe-inline';
  img-src 'self' data: blob:
         https://placehold.co
@@ -17,12 +17,13 @@
         https://*.firebasestorage.app
         https://storage.googleapis.com
         https://*.stripe.com https://*.mlstatic.com https://*.mercadopago.com ;
- connect-src 'self' https://znr-live-default-rtdb.firebaseio.com https://vendedores-api-1038143238323.us-central1.run.app https://admin-api-1038143238323.us-central1.run.app https://catalogo-api-1038143238323.us-central1.run.app https://tienda-znr-api-1038143238323.us-central1.run.app  https://*.stripe.com https://*.mercadopago.com https://*.mercadolibre.com https://*.mlstatic.com ;
+ connect-src 'self' https://znr-live-default-rtdb.firebaseio.com https://vendedores-api-1038143238323.us-central1.run.app https://admin-api-1038143238323.us-central1.run.app https://catalogo-api-1038143238323.us-central1.run.app https://tienda-znr-api-1038143238323.us-central1.run.app  https://*.stripe.com https://*.mercadopago.com https://*.mercadolibre.com https://*.mlstatic.com https://content-firebaseappcheck.googleapis.com https://www.google.com ;
  font-src 'self';
  frame-ancestors 'none';
  object-src 'none';
  base-uri 'self';
 ">
+<script src="app-check.js"></script>
 <script src="error-bootstrap.js"></script>
 <script src="error-monitor.js"></script>
 

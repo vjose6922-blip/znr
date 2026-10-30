@@ -47,6 +47,7 @@ const firebaseConfig = {
 };
 
 const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
+await window.znrAppCheck?.(app);
 const db = getFirestore(app);
 
 // Solo usamos signInWithCustomToken en esta página, nunca signInWithPopup/
