@@ -4,7 +4,7 @@
 // Mientras CLAVE sea el marcador no se activa nada.
 (function () {
   'use strict';
-  const CLAVE = 'PEGA_AQUI_LA_CLAVE_DE_SITIO_RECAPTCHA_V3'; // Firebase Console → App Check → Apps → reCAPTCHA v3
+  const CLAVE = '6Lee1AcuAAAAAH4DUNptOgvBdPq64Lr4pUCH5-SI'; // Firebase Console → App Check → Apps → reCAPTCHA v3
   const sdk = (v) => Promise.all(['app', 'app-check'].map((m) => import(`https://www.gstatic.com/firebasejs/${v}/firebase-${m}.js`)));
   // Una sola instancia habla con reCAPTCHA: la de la app principal (la crea si la página aún no la tiene).
   const base = CLAVE.startsWith('PEGA_') ? null : sdk('10.13.0').then(([a, c]) => ({ c, ac: c.initializeAppCheck(
