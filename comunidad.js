@@ -581,9 +581,9 @@ async function loadComunidadPageAlgolia(page, filters, opts = {}) {
       const miCiudad = await obtenerCiudadComprador();
       const filterParts = [];
       if (miCiudad) filterParts.push('ciudad:"' + String(miCiudad).replace(/"/g, '') + '"');
-      if (filters.categoria) filterParts.push('categoria:"' + String(filters.categoria).replace(/"/g, '') + '"');
+      if (filters.categoria) filterParts.push(filtroAlgolia('categoria', filters.categoria));
       if (filters.vendedor)  filterParts.push('vendedor_uid:"' + String(filters.vendedor).replace(/"/g, '') + '"');
-      if (filters.temporada) filterParts.push('temporada:"' + String(filters.temporada).replace(/"/g, '') + '"');
+      if (filters.temporada) filterParts.push(filtroAlgolia('temporada', filters.temporada));
       if (filters.orden === 'verificados') filterParts.push('vendedor_plan:"plus"');
       const filterString = filterParts.join(' AND ');
 
@@ -661,17 +661,50 @@ function loadCommunityProducts() {
   return loadComunidadPage(1, urlFilters);
 }
 
+// ── Filtros en dos pasos: lista corta de grupos y, al elegir uno, un segundo select con "Todo en …" o una opción ──
+// .value es la opción elegida o el grupo completo; filtrarPor() lo convierte en los valores reales a buscar.
+let categoriasPresentes = []; // las que traen los productos (incluye las del catálogo de ZNR)
+const GRUPOS_FILTRO = {
+  categoria: () => (window.ZNR_CATEGORIAS ? window.ZNR_CATEGORIAS.grupos(categoriasPresentes) : {}),
+  temporada: () => (window.ZNR_TEMPORADAS ? window.ZNR_TEMPORADAS.grupos() : {})
+};
+const filtrarPor = (campo, v) => GRUPOS_FILTRO[campo]()[v] || [v];
+const filtroAlgolia = (campo, v) => '(' + filtrarPor(campo, v).map(x => campo + ':"' + String(x).replace(/"/g, '') + '"').join(' OR ') + ')';
+function selectorAgrupado(sel, campo, todas) {
+  const esc = window.escapeHtml || (t => String(t).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])));
+  const lbl = Object.assign(document.createElement('label'), { className: 'filtros-field' });
+  lbl.innerHTML = `<span></span><select class="${sel.className}" data-znr-resaltar></select>`;
+  sel.closest('label').after(lbl);
+  const det = lbl.querySelector('select');
+  const pintar = (grupo, valor) => {
+    const g = GRUPOS_FILTRO[campo](), lista = [...(g[grupo] || [])];
+    if (valor && !lista.includes(valor)) lista.push(valor);
+    sel.innerHTML = `<option value="">${todas}</option>` + Object.keys(g).map(k => `<option>${esc(k)}</option>`).join('');
+    sel.value = grupo;
+    lbl.style.display = grupo ? '' : 'none';
+    lbl.firstElementChild.textContent = grupo;
+    det.innerHTML = `<option value="">Todo en ${esc(grupo)}</option>` + lista.map(o => `<option>${esc(o)}</option>`).join('');
+    det.value = valor;
+  };
+  sel.addEventListener('change', () => pintar(sel.value, '')); // va antes que el applyFilters de bindFilterChangeEvents
+  det.addEventListener('change', () => applyFilters());
+  const api = {
+    get value() { return det.value || sel.value; },
+    set value(v) {
+      const g = GRUPOS_FILTRO[campo]();
+      const grupo = !v ? '' : g[v] ? v : Object.keys(g).find(k => g[k].includes(v)) || (campo === 'categoria' && window.ZNR_CATEGORIAS ? window.ZNR_CATEGORIAS.grupoDe(v) : '');
+      pintar(grupo, grupo && grupo !== v ? v : '');
+    },
+    refrescar() { api.value = api.value; }
+  };
+  return api;
+}
+
 // Pobla los dropdowns con las opciones que devuelve el backend en page=1
 function populateFiltersFromOptions(filterOptions) {
   if (catSelect && filterOptions.categories) {
-    const currentVal = catSelect.value;
-    catSelect.innerHTML = '<option value="">Todas las categorías</option>';
-    filterOptions.categories.forEach(cat => {
-      const opt = document.createElement('option');
-      opt.value = cat; opt.textContent = cat;
-      catSelect.appendChild(opt);
-    });
-    if (currentVal) catSelect.value = currentVal;
+    categoriasPresentes = filterOptions.categories;
+    catSelect.refrescar();
   }
   if (vendorSelect && filterOptions.vendors) {
     const currentVal = vendorSelect.value;
@@ -733,9 +766,7 @@ function initFiltrosSheet() {
   sheet.querySelectorAll('[data-cerrar-filtros]').forEach(el => el.addEventListener('click', cerrar));
   document.getElementById('filtros-aplicar')?.addEventListener('click', cerrar);
   document.getElementById('filtros-limpiar')?.addEventListener('click', () => {
-    ['comunidad-cat', 'comunidad-vendor', 'comunidad-temporada', 'comunidad-orden'].forEach(id => {
-      const el = document.getElementById(id); if (el) el.value = '';
-    });
+    [catSelect, vendorSelect, temporadaSelect, document.getElementById('comunidad-orden')].forEach(el => { if (el) el.value = ''; }); // catSelect/temporadaSelect limpian grupo y detalle
     applyFilters();
   });
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && sheet.classList.contains('open')) cerrar(); });
@@ -1018,9 +1049,9 @@ function filtrarLocal(lista, f) {
     const q = norm(f.busqueda);
     out = out.filter(p => norm([p.nombre, p.descripcion, p.talla, p.categoria, p.vendedor_nombre].join(' ')).includes(q));
   }
-  if (f.categoria) out = out.filter(p => p.categoria === f.categoria);
+  if (f.categoria) out = out.filter(p => filtrarPor('categoria', f.categoria).includes(p.categoria));
   if (f.vendedor) out = out.filter(p => p.vendedor_uid === f.vendedor);
-  if (f.temporada) out = out.filter(p => p.temporada === f.temporada);
+  if (f.temporada) out = out.filter(p => filtrarPor('temporada', f.temporada).includes(p.temporada));
   if (f.orden === 'precio_asc') out.sort((a, b) => (Number(a.precio) || 0) - (Number(b.precio) || 0));
   return out;
 }
@@ -1744,14 +1775,14 @@ if (!window.vendorSession) {
   } catch (e) {}
 }
 gridContainer = document.getElementById('comunidad-grid');
-catSelect = document.getElementById('comunidad-cat');
 vendorSelect = document.getElementById('comunidad-vendor');
-temporadaSelect = document.getElementById('comunidad-temporada');
-if (temporadaSelect && window.ZNR_TEMPORADAS) {
-  // Lista fija (temporadas.js); si la URL trae ?temporada=..., se deja seleccionada.
-  const valorURL = new URLSearchParams(window.location.search).get('temporada') || '';
-  temporadaSelect.innerHTML = '<option value="">Todas</option>' + window.ZNR_TEMPORADAS.opcionesFiltroHTML();
-  if (valorURL) temporadaSelect.value = valorURL;
+{
+  // Categoría y temporada en dos pasos (grupo y detalle); si la URL trae ?categoria= o ?temporada=, quedan elegidas.
+  const urlF = new URLSearchParams(window.location.search), el = (id) => document.getElementById(id);
+  catSelect = el('comunidad-cat') && selectorAgrupado(el('comunidad-cat'), 'categoria', 'Todas las categorías');
+  temporadaSelect = el('comunidad-temporada') && selectorAgrupado(el('comunidad-temporada'), 'temporada', 'Todas');
+  if (catSelect) catSelect.value = urlF.get('categoria') || '';
+  if (temporadaSelect) temporadaSelect.value = urlF.get('temporada') || '';
 }
 paginationDiv = document.getElementById('comunidad-pagination');
 if (!gridContainer) {
