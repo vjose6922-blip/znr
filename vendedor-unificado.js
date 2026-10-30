@@ -2668,6 +2668,8 @@ function _actualizarEstadoPreguntaYTelefono() {
   const bloqueoEl = document.getElementById('settings-tel-bloqueo');
   const formEl = document.getElementById('settings-tel-form');
   const labelEl = document.getElementById('settings-tel-preg-label');
+  const resEl = document.getElementById('seg-preg-res'); // estado en la fila de Seguridad
+  if (resEl) { resEl.textContent = vendorSession.preguntaSecreta ? 'Configurada' : 'Pendiente'; resEl.classList.toggle('pend', !vendorSession.preguntaSecreta); }
   if (vendorSession.preguntaSecreta) {
     if (estadoEl) estadoEl.textContent = `Ya tienes una configurada: "${vendorSession.preguntaSecreta}". Guarda otra abajo para reemplazarla.`;
     if (bloqueoEl) bloqueoEl.style.display = 'none';
@@ -2764,9 +2766,10 @@ async function solicitarCambioTelefono() {
 // Correo opcional: se agrega o cambia con un código al correo nuevo; confirmarCodigoCorreo también confirma el cambio de número.
 function _msgSeguridad(id, texto, ok) { const el = document.getElementById(id); el.style.color = ok ? '#16a34a' : '#dc2626'; el.textContent = texto; }
 function _actualizarEstadoCorreo() {
-  const el = document.getElementById('settings-correo-estado');
+  const el = document.getElementById('settings-correo-estado'), res = document.getElementById('seg-correo-res');
+  if (res) res.textContent = vendorSession.correo || 'Agregar';
   if (el) el.textContent = vendorSession.correo
-    ? `Tu correo: ${vendorSession.correo}. Ahí te llegan los códigos y los avisos de seguridad. Escribe otro abajo para cambiarlo.`
+    ? 'Ahí te llegan los códigos y los avisos de seguridad. Escribe otro abajo para cambiarlo.'
     : 'Mejora la seguridad de tu cuenta usando tu correo electrónico: recupera tu contraseña o cambia tu número sin esperar al administrador, y recibe avisos de inicios de sesión y cambios en tu cuenta.';
 }
 // Mientras se espera el código solo se ve la caja del código; "Usar otro correo" regresa al formulario.

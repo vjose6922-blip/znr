@@ -867,132 +867,110 @@ document.addEventListener('DOMContentLoaded', () => {
         </div>
       </div>
 
-      <!-- ── Sección colapsable: Seguridad ── -->
+      <!-- ── Sección colapsable: Seguridad ── (cada opción es una fila; su formulario se abre al tocarla, una a la vez) -->
+      <style>
+        .seg details{border-bottom:1px solid #eee}.seg details:last-child{border-bottom:none}
+        .seg summary{display:flex;align-items:center;gap:10px;padding:13px 2px;cursor:pointer;list-style:none;font-size:.9rem;font-weight:600;color:#111}
+        .seg summary::-webkit-details-marker{display:none}
+        .seg summary small{margin-left:auto;font-weight:500;font-size:.78rem;color:#888;text-align:right;max-width:55%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+        .seg summary:after{content:'›';color:#bbb;font-size:1.2rem;transition:transform .2s}.seg details[open] summary:after{transform:rotate(90deg)}
+        .seg .pend{color:#ea580c}.seg .cuerpo{padding:0 2px 14px}
+        .seg p.ayuda{margin:0 0 10px;font-size:.78rem;color:#888}
+        .seg input{width:100%;box-sizing:border-box;padding:9px 12px;border-radius:10px;border:1px solid #ddd;font-size:.9rem;margin-bottom:10px;outline:none}
+        .seg .btn{width:100%;padding:11px;border-radius:10px;border:1px solid #7c3aed;background:#fff;color:#7c3aed;font-size:.9rem;font-weight:700;cursor:pointer}
+        .seg .btn.peligro{border:1.5px solid #dc2626;background:#fef2f2;color:#dc2626}
+        .seg .msg{text-align:center;font-size:.8rem;margin:8px 0 0;min-height:18px}
+        .seg label{font-size:.8rem;color:#555;display:block;margin-bottom:4px}
+      </style>
       <div class="settings-section">
         <button class="settings-section-toggle" onclick="toggleSettingsSection(this)">
           <span><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" aria-hidden="true"><use href="#ic-lock"/></svg> Seguridad</span>
           <svg class="toggle-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
         </button>
-        <div class="settings-section-body" style="display:none;">
-          <div style="margin-bottom:16px;padding-bottom:16px;border-bottom:1px solid #eee;">
-            <label style="font-size:.8rem;color:#555;display:block;margin-bottom:8px;">Correo electrónico <span style="color:#aaa;">(opcional)</span></label>
-            <p id="settings-correo-estado" style="margin:0 0 10px;font-size:.78rem;color:#888;">—</p>
-            <div id="settings-correo-form">
-            <input id="settings-correo-nuevo" type="email" autocomplete="email" placeholder="tucorreo@ejemplo.com" maxlength="120" style="width:100%;box-sizing:border-box;padding:9px 12px;border-radius:10px;border:1px solid #ddd;font-size:.9rem;margin-bottom:10px;outline:none;">
-            <input id="settings-correo-pwd" type="password" placeholder="Tu contraseña actual (con la que entras)" style="width:100%;box-sizing:border-box;padding:9px 12px;border-radius:10px;border:1px solid #ddd;font-size:.9rem;margin-bottom:10px;outline:none;">
-            <button onclick="solicitarCorreo()" id="btn-correo" style="width:100%;padding:11px;border-radius:10px;border:1px solid #7c3aed;background:#fff;color:#7c3aed;font-size:.9rem;font-weight:700;cursor:pointer;">Enviar código al correo</button>
+        <div class="settings-section-body seg" style="display:none;">
+          <details name="seg">
+            <summary>Correo electrónico <small id="seg-correo-res">Agregar</small></summary>
+            <div class="cuerpo">
+              <p id="settings-correo-estado" class="ayuda">—</p>
+              <div id="settings-correo-form">
+                <input id="settings-correo-nuevo" type="email" autocomplete="email" placeholder="tucorreo@ejemplo.com" maxlength="120">
+                <input id="settings-correo-pwd" type="password" placeholder="Tu contraseña actual (con la que entras)">
+                <button onclick="solicitarCorreo()" id="btn-correo" class="btn">Enviar código al correo</button>
+              </div>
+              <div id="settings-correo-codigo-box" style="display:none;">
+                <input id="settings-correo-codigo" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="Código de 6 dígitos">
+                <button onclick="confirmarCodigoCorreo('correo')" class="btn">Confirmar código</button>
+                <p style="text-align:center;margin:10px 0 0;font-size:.8rem;"><span onclick="mostrarFormCorreo(true)" style="color:#888;cursor:pointer;text-decoration:underline;">Usar otro correo</span></p>
+              </div>
+              <p id="settings-correo-msg" class="msg"></p>
             </div>
-            <div id="settings-correo-codigo-box" style="display:none;">
-              <input id="settings-correo-codigo" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="Código de 6 dígitos" style="width:100%;box-sizing:border-box;padding:9px 12px;border-radius:10px;border:1px solid #ddd;font-size:.9rem;margin-bottom:10px;outline:none;">
-              <button onclick="confirmarCodigoCorreo('correo')" style="width:100%;padding:11px;border-radius:10px;border:1px solid #7c3aed;background:#fff;color:#7c3aed;font-size:.9rem;font-weight:700;cursor:pointer;">Confirmar código</button>
-              <p style="text-align:center;margin:10px 0 0;font-size:.8rem;"><span onclick="mostrarFormCorreo(true)" style="color:#888;cursor:pointer;text-decoration:underline;">Usar otro correo</span></p>
+          </details>
+
+          <details name="seg">
+            <summary>Contraseña <small>Cambiar</small></summary>
+            <div class="cuerpo" id="settings-pwd-form">
+              <input id="settings-pwd-old" type="password" placeholder="Contraseña actual">
+              <input id="settings-pwd-new" type="password" placeholder="Nueva contraseña">
+              <input id="settings-pwd-confirm" type="password" placeholder="Confirmar nueva contraseña">
+              <button onclick="guardarPassword()" id="btn-guardar-pwd" class="btn">Cambiar contraseña</button>
+              <p id="settings-pwd-msg" class="msg"></p>
             </div>
-            <p id="settings-correo-msg" style="text-align:center;font-size:.8rem;margin:8px 0 0;min-height:18px;"></p>
-          </div>
+          </details>
 
-          <div id="settings-pwd-form">
-            <label style="font-size:.8rem;color:#555;display:block;margin-bottom:4px;">Contraseña actual</label>
-            <input id="settings-pwd-old" type="password" placeholder="••••••"
-              style="width:100%;box-sizing:border-box;padding:9px 12px;border-radius:10px;border:1px solid #ddd;font-size:.9rem;margin-bottom:10px;outline:none;">
-
-            <label style="font-size:.8rem;color:#555;display:block;margin-bottom:4px;">Nueva contraseña <span style="color:#aaa;">(mín. 6 caracteres)</span></label>
-            <input id="settings-pwd-new" type="password" placeholder="••••••"
-              style="width:100%;box-sizing:border-box;padding:9px 12px;border-radius:10px;border:1px solid #ddd;font-size:.9rem;margin-bottom:10px;outline:none;">
-
-            <label style="font-size:.8rem;color:#555;display:block;margin-bottom:4px;">Confirmar contraseña</label>
-            <input id="settings-pwd-confirm" type="password" placeholder="••••••"
-              style="width:100%;box-sizing:border-box;padding:9px 12px;border-radius:10px;border:1px solid #ddd;font-size:.9rem;margin-bottom:12px;outline:none;">
-
-            <button onclick="guardarPassword()" id="btn-guardar-pwd"
-              style="width:100%;padding:11px;border-radius:10px;border:1px solid #7c3aed;background:#fff;color:#7c3aed;font-size:.9rem;font-weight:700;cursor:pointer;">
-              Cambiar contraseña
-            </button>
-            <p id="settings-pwd-msg" style="text-align:center;font-size:.8rem;margin:8px 0 0;min-height:18px;"></p>
-          </div>
-
-          <div style="margin-top:16px;padding-top:16px;border-top:1px solid #eee;">
-            <label style="font-size:.8rem;color:#555;display:block;margin-bottom:8px;">Pregunta de seguridad</label>
-            <p id="settings-preg-estado" style="margin:0 0 10px;font-size:.78rem;color:#888;">—</p>
-
-            <label style="font-size:.8rem;color:#555;display:block;margin-bottom:4px;">Pregunta</label>
-            <input id="settings-preg-pregunta" type="text" placeholder="Ej: ¿Nombre de tu primera mascota?" maxlength="120"
-              style="width:100%;box-sizing:border-box;padding:9px 12px;border-radius:10px;border:1px solid #ddd;font-size:.9rem;margin-bottom:10px;outline:none;">
-            <label style="font-size:.8rem;color:#555;display:block;margin-bottom:4px;">Respuesta</label>
-            <input id="settings-preg-respuesta" type="text" placeholder="Tu respuesta" maxlength="80"
-              style="width:100%;box-sizing:border-box;padding:9px 12px;border-radius:10px;border:1px solid #ddd;font-size:.9rem;margin-bottom:10px;outline:none;">
-            <label style="font-size:.8rem;color:#555;display:block;margin-bottom:4px;">Confirma tu contraseña</label>
-            <input id="settings-preg-pwd" type="password" placeholder="••••••"
-              style="width:100%;box-sizing:border-box;padding:9px 12px;border-radius:10px;border:1px solid #ddd;font-size:.9rem;margin-bottom:12px;outline:none;">
-            <button onclick="guardarPreguntaSecreta()" id="btn-guardar-pregunta"
-              style="width:100%;padding:11px;border-radius:10px;border:1px solid #7c3aed;background:#fff;color:#7c3aed;font-size:.9rem;font-weight:700;cursor:pointer;">
-              Guardar pregunta de seguridad
-            </button>
-            <p id="settings-preg-msg" style="text-align:center;font-size:.8rem;margin:8px 0 0;min-height:18px;"></p>
-          </div>
-
-          <div style="margin-top:16px;padding-top:16px;border-top:1px solid #eee;">
-            <label style="font-size:.8rem;color:#555;display:block;margin-bottom:4px;">Número de cuenta actual</label>
-            <p id="settings-tel-actual" style="margin:0 0 10px;font-size:.9rem;font-weight:700;color:#111;">—</p>
-            <div id="settings-tel-pendiente-aviso" style="display:none;margin-bottom:10px;padding:8px 10px;background:#e0f2fe;border:1px solid #7dd3fc;border-radius:8px;font-size:.78rem;color:#075985;"></div>
-
-            <div id="settings-tel-bloqueo" style="display:none;padding:10px 12px;background:#fff7ed;border:1px solid #fdba74;border-radius:8px;font-size:.8rem;color:#9a3412;">
-              Configura tu pregunta de seguridad (arriba) antes de poder solicitar un cambio de número.
+          <details name="seg">
+            <summary>Pregunta de seguridad <small id="seg-preg-res">—</small></summary>
+            <div class="cuerpo">
+              <p id="settings-preg-estado" class="ayuda">—</p>
+              <input id="settings-preg-pregunta" type="text" placeholder="Pregunta. Ej: ¿Nombre de tu primera mascota?" maxlength="120">
+              <input id="settings-preg-respuesta" type="text" placeholder="Respuesta" maxlength="80">
+              <input id="settings-preg-pwd" type="password" placeholder="Tu contraseña actual">
+              <button onclick="guardarPreguntaSecreta()" id="btn-guardar-pregunta" class="btn">Guardar pregunta de seguridad</button>
+              <p id="settings-preg-msg" class="msg"></p>
             </div>
+          </details>
 
-            <div id="settings-tel-form">
-              <label style="font-size:.8rem;color:#555;display:block;margin-bottom:4px;">Nuevo número</label>
-              <input id="settings-tel-nuevo" type="tel" maxlength="10" placeholder="8671234567"
-                style="width:100%;box-sizing:border-box;padding:9px 12px;border-radius:10px;border:1px solid #ddd;font-size:.9rem;margin-bottom:10px;outline:none;">
-
-              <label style="font-size:.8rem;color:#555;display:block;margin-bottom:4px;">Confirma tu contraseña</label>
-              <input id="settings-tel-pwd" type="password" placeholder="••••••"
-                style="width:100%;box-sizing:border-box;padding:9px 12px;border-radius:10px;border:1px solid #ddd;font-size:.9rem;margin-bottom:10px;outline:none;">
-
-              <label id="settings-tel-preg-label" style="font-size:.8rem;color:#555;display:block;margin-bottom:4px;">Respuesta a tu pregunta de seguridad</label>
-              <input id="settings-tel-preg-respuesta" type="text" placeholder="Tu respuesta"
-                style="width:100%;box-sizing:border-box;padding:9px 12px;border-radius:10px;border:1px solid #ddd;font-size:.9rem;margin-bottom:12px;outline:none;">
-
-              <p style="margin:0 0 12px;font-size:.73rem;color:#aaa;">Si tienes huella activada en este dispositivo, te la pediremos también. El cambio se aplica hasta que el administrador lo apruebe; si verificaste tu correo, al instante con el código que te llega ahí.</p>
-
-              <button onclick="solicitarCambioTelefono()" id="btn-solicitar-tel"
-                style="width:100%;padding:11px;border-radius:10px;border:1px solid #7c3aed;background:#fff;color:#7c3aed;font-size:.9rem;font-weight:700;cursor:pointer;">
-                Solicitar cambio de número
-              </button>
-              <div id="settings-tel-codigo-box" style="display:none;margin-top:10px;">
-              <input id="settings-tel-codigo" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="Código de 6 dígitos" style="width:100%;box-sizing:border-box;padding:9px 12px;border-radius:10px;border:1px solid #ddd;font-size:.9rem;margin-bottom:10px;outline:none;">
-              <button onclick="confirmarCodigoCorreo('tel')" style="width:100%;padding:11px;border-radius:10px;border:1px solid #7c3aed;background:#fff;color:#7c3aed;font-size:.9rem;font-weight:700;cursor:pointer;">Confirmar código</button>
-            </div>
-              <p id="settings-tel-msg" style="text-align:center;font-size:.8rem;margin:8px 0 0;min-height:18px;"></p>
-            </div>
-          </div>
-
-          <div style="margin-top:16px;padding-top:16px;border-top:1px solid #eee;">
-            <label style="font-size:.8rem;color:#555;display:block;margin-bottom:8px;">Sesiones</label>
-            <p style="margin:0 0 10px;font-size:.78rem;color:#888;">Si iniciaste sesión en otro celular o navegador y ya no lo usas, ciérrala aquí. Este dispositivo seguirá con tu sesión activa.</p>
-            <label style="font-size:.8rem;color:#555;display:block;margin-bottom:4px;">Confirma tu contraseña</label>
-            <input id="settings-sesiones-pwd" type="password" placeholder="••••••"
-              style="width:100%;box-sizing:border-box;padding:9px 12px;border-radius:10px;border:1px solid #ddd;font-size:.9rem;margin-bottom:12px;outline:none;">
-            <button onclick="cerrarSesionesRemotas()" id="btn-cerrar-sesiones-remotas"
-              style="width:100%;padding:11px;border-radius:10px;border:1.5px solid #dc2626;background:#fef2f2;color:#dc2626;font-size:.9rem;font-weight:700;cursor:pointer;">
-              Cerrar sesión en otros dispositivos
-            </button>
-            <p id="settings-sesiones-msg" style="text-align:center;font-size:.8rem;margin:8px 0 0;min-height:18px;"></p>
-          </div>
-
-          <div id="settings-webauthn" style="display:none;margin-top:16px;padding-top:16px;border-top:1px solid #eee;">
-            <label style="font-size:.8rem;color:#555;display:flex;align-items:center;gap:6px;margin-bottom:8px;">
-  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" aria-hidden="true"><use href="#ic-fingerprint"/></svg>
-  Entrar con huella o Face ID en este dispositivo
-</label>
-            <div id="settings-webauthn-lista" style="margin-bottom:10px;font-size:.82rem;color:#777;"></div>
-            <button onclick="activarHuellaDispositivo()" id="btn-activar-huella"
-              style="width:100%;padding:11px;border-radius:10px;border:1px solid #7c3aed;background:#fff;color:#7c3aed;font-size:.9rem;font-weight:700;cursor:pointer;">
-              Activar en este dispositivo
-            </button>
-            <p id="settings-webauthn-msg" style="text-align:center;font-size:.8rem;margin:8px 0 0;min-height:18px;"></p>
-          </div>
-
+          <details name="seg">
+            <summary>Número de cuenta <small id="settings-tel-actual">—</small></summary>
+            <div class="cuerpo">
+              <div id="settings-tel-pendiente-aviso" style="display:none;margin-bottom:10px;padding:8px 10px;background:#e0f2fe;border:1px solid #7dd3fc;border-radius:8px;font-size:.78rem;color:#075985;"></div>
+              <div id="settings-tel-bloqueo" style="display:none;padding:10px 12px;background:#fff7ed;border:1px solid #fdba74;border-radius:8px;font-size:.8rem;color:#9a3412;">
+                Configura tu pregunta de seguridad antes de poder cambiar tu número.
+              </div>
+              <div id="settings-tel-form">
+                <input id="settings-tel-nuevo" type="tel" maxlength="10" placeholder="Nuevo número (10 dígitos)">
+                <input id="settings-tel-pwd" type="password" placeholder="Tu contraseña actual">
+                <label id="settings-tel-preg-label">Respuesta a tu pregunta de seguridad</label>
+                <input id="settings-tel-preg-respuesta" type="text" placeholder="Tu respuesta">
+                <p class="ayuda" style="font-size:.73rem;color:#aaa;">Si tienes huella activada te la pediremos también. Con correo verificado el cambio es inmediato; si no, lo aprueba el administrador.</p>
+                <button onclick="solicitarCambioTelefono()" id="btn-solicitar-tel" class="btn">Cambiar número</button>
+                <div id="settings-tel-codigo-box" style="display:none;margin-top:10px;">
+                  <input id="settings-tel-codigo" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="Código de 6 dígitos">
+                  <button onclick="confirmarCodigoCorreo('tel')" class="btn">Confirmar código</button>
                 </div>
+                <p id="settings-tel-msg" class="msg"></p>
+              </div>
+            </div>
+          </details>
+
+          <details name="seg">
+            <summary>Sesiones <small>Otros dispositivos</small></summary>
+            <div class="cuerpo">
+              <p class="ayuda">Si iniciaste sesión en otro celular o navegador y ya no lo usas, ciérrala aquí. Este dispositivo seguirá con tu sesión activa.</p>
+              <input id="settings-sesiones-pwd" type="password" placeholder="Tu contraseña actual">
+              <button onclick="cerrarSesionesRemotas()" id="btn-cerrar-sesiones-remotas" class="btn peligro">Cerrar sesión en otros dispositivos</button>
+              <p id="settings-sesiones-msg" class="msg"></p>
+            </div>
+          </details>
+
+          <details name="seg" id="settings-webauthn" style="display:none;">
+            <summary>Huella o Face ID <small>Este dispositivo</small></summary>
+            <div class="cuerpo">
+              <div id="settings-webauthn-lista" style="margin-bottom:10px;font-size:.82rem;color:#777;"></div>
+              <button onclick="activarHuellaDispositivo()" id="btn-activar-huella" class="btn">Activar en este dispositivo</button>
+              <p id="settings-webauthn-msg" class="msg"></p>
+            </div>
+          </details>
+        </div>
       </div>
 
       <!-- ── Sección colapsable: Métodos de pago ── -->
