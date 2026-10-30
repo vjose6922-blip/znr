@@ -1,6 +1,6 @@
-/* Listas de festividades y temporadas de ZNR (un solo lugar para editarlas).
+/* Listas de festividades, festivales escolares, temporadas y categorías de ZNR (un solo lugar para editarlas).
    Lo usan: vendedor.html (formulario), comunidad.html (filtro), index.html (sección Comunidad)
-   y las tarjetas de producto (chips). */
+   y las tarjetas de producto (chips). CONTROL (banners-temporada.js) copia la lista de temporadas: si cambias una, cambia la otra. */
 (function () {
   const LISTAS = {
     festividad: [
@@ -9,12 +9,20 @@
       'Día del Padre', 'Día del Maestro', 'Fiestas Patrias (Septiembre)', 'Halloween',
       'Día de Muertos', 'Acción de Gracias', 'Posadas', 'Navidad', 'Fin de Año'
     ],
+    // Fechas en que las escuelas piden disfraz, vestuario o material (los nombres no deben repetir los de festividad).
+    escolar: [
+      'Día de la Bandera', 'Festival de primavera', 'Festival del Día del Niño', 'Festival del Día de las Madres',
+      'Clausura y fin de curso', 'Desfile y kermés de Fiestas Patrias', 'Altar de muertos', 'Desfile de la Revolución',
+      'Pastorela y posada escolar'
+    ],
     temporada: [
       'Regreso a clases', 'Vacaciones de verano', 'Vacaciones de invierno', 'Graduaciones',
       'Temporada de bodas', 'Hot Sale', 'Buen Fin', 'Black Friday', 'Rebajas de fin de temporada'
     ]
   };
-  const ETIQUETAS = { festividad: 'Festividades', temporada: 'Temporadas' };
+  const ETIQUETAS = { festividad: 'Festividades', escolar: 'Festivales escolares', temporada: 'Temporadas' };
+  // Para el filtro de Comunidad: { 'Festividades': [...], 'Festivales escolares': [...], 'Temporadas': [...] }.
+  const grupos = () => Object.fromEntries(Object.keys(LISTAS).map((t) => [ETIQUETAS[t], LISTAS[t]]));
   const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const esMulticolor = (p) => !!p && (p.multicolor === true || p.multicolor === 'true' || p.multicolor === 'TRUE');
 
@@ -33,12 +41,6 @@
   }
 
   // <optgroup> para selects de filtro (el valor de cada opción es el nombre).
-  function opcionesFiltroHTML() {
-    return Object.keys(LISTAS).map((tipo) =>
-      '<optgroup label="' + esc(ETIQUETAS[tipo]) + '">' + LISTAS[tipo].map((n) => '<option value="' + esc(n) + '">' + esc(n) + '</option>').join('') + '</optgroup>'
-    ).join('');
-  }
-
   // ── Calendario: cuándo está "en curso" cada festividad/temporada (para "Podría interesarte") ──
   // Cada entrada devuelve los rangos [inicio, fin] que le corresponden en el año `y`.
   // Edita aquí las fechas si quieres que arranquen antes o terminen después.
@@ -74,6 +76,15 @@
     'Día de Muertos': fija(10, 20, 11, 2),
     'Acción de Gracias': (y) => { const f = nesimoDia(y, 10, 4, 4); return [[D(y, 11, 10), new Date(y, 10, f.getDate(), 23, 59, 59)]]; },
     'Posadas': fija(12, 12, 12, 24),
+    'Día de la Bandera': fija(2, 10, 2, 24),
+    'Festival de primavera': fija(3, 5, 3, 21),
+    'Festival del Día del Niño': fija(4, 15, 4, 30),
+    'Festival del Día de las Madres': fija(4, 25, 5, 10),
+    'Clausura y fin de curso': fija(6, 15, 7, 15),
+    'Desfile y kermés de Fiestas Patrias': fija(9, 1, 9, 16),
+    'Altar de muertos': fija(10, 20, 11, 2),
+    'Desfile de la Revolución': fija(11, 5, 11, 20),
+    'Pastorela y posada escolar': fija(12, 1, 12, 20),
     'Navidad': fija(12, 1, 12, 25),
     'Fin de Año': fija(12, 20, 12, 31),
     'Regreso a clases': fija(7, 25, 9, 10),
@@ -99,5 +110,31 @@
     return out.sort((a, b) => a.dias - b.dias);
   }
 
-  window.ZNR_TEMPORADAS = { listas: LISTAS, etiquetas: ETIQUETAS, chipsHTML, opcionesFiltroHTML, esMulticolor, activas, ventanas: VENTANAS };
+  window.ZNR_TEMPORADAS = { listas: LISTAS, etiquetas: ETIQUETAS, grupos, chipsHTML, esMulticolor, activas, ventanas: VENTANAS };
+
+  // ── Categorías de producto en grupos: el vendedor elige la exacta; el filtro de Comunidad muestra los grupos ──
+  const CATEGORIAS = {
+    'Ropa': ['Ropa de mujer', 'Ropa de hombre', 'Ropa infantil', 'Ropa interior y lencería', 'Ropa deportiva'],
+    'Calzado y accesorios': ['Calzado', 'Accesorios', 'Joyería y bisutería', 'Relojes', 'Gafas y óptica', 'Bolsas y equipaje'],
+    'Belleza y cuidado personal': ['Higiene y cuidado personal', 'Cuidado de la piel', 'Cuidado del cabello', 'Perfumes y fragancias', 'Cosméticos y maquillaje'],
+    'Casa y hogar': ['Hogar', 'Decoración del hogar', 'Muebles', 'Textiles del hogar (ropa de cama, toallas)', 'Cocina y utensilios', 'Electrodomésticos', 'Jardín y exteriores', 'Herramientas y bricolaje'],
+    'Tecnología': ['Electrónica y tecnología'],
+    'Escolar y oficina': ['Papelería y oficina', 'Libros y revistas'],
+    'Niños y juguetes': ['Juguetes y juegos'],
+    'Otros': ['Mascotas', 'Automotriz', 'Alimentos y bebidas', 'Salud y bienestar']
+  };
+  // Las del catálogo propio de ZNR (Playeras, Calzado para Dama…) y las viejas se ubican por nombre; lo demás va a "Otros".
+  const grupoCategoria = (c) => Object.keys(CATEGORIAS).find((g) => CATEGORIAS[g].includes(c))
+    || (/calzado|zapat|tenis|accesorio/i.test(c) ? 'Calzado y accesorios' : /ropa|playera|blusa|pantal|short|su[eé]ter|chamarra|vestido|falda|camisa|sudadera/i.test(c) ? 'Ropa' : 'Otros');
+  // Grupos con sus categorías + las que existan en productos (`presentes`) aunque no estén en la lista.
+  const gruposCategoria = (presentes) => {
+    const g = Object.fromEntries(Object.entries(CATEGORIAS).map(([k, v]) => [k, [...v]]));
+    (presentes || []).forEach((c) => { const k = grupoCategoria(c); if (!g[k].includes(c)) g[k].push(c); });
+    return g;
+  };
+  window.ZNR_CATEGORIAS = { grupos: gruposCategoria, grupoDe: grupoCategoria };
+  // <select data-znr-categorias> (formulario del vendedor): la lista agrupada.
+  const llenar = () => document.querySelectorAll('select[data-znr-categorias]').forEach((s) => s.insertAdjacentHTML('beforeend',
+    Object.keys(CATEGORIAS).map((g) => `<optgroup label="${esc(g)}">${CATEGORIAS[g].map((c) => `<option>${esc(c)}</option>`).join('')}</optgroup>`).join('')));
+  document.readyState === 'loading' ? document.addEventListener('DOMContentLoaded', llenar) : llenar();
 })();
