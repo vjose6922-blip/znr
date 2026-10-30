@@ -14,7 +14,9 @@
       storageBucket: 'znr-live.firebasestorage.app', messagingSenderId: '1038143238323',
       appId: '1:1038143238323:web:5171b9dd8823628086c0c6'
     }), { provider: new c.ReCaptchaEnterpriseProvider(CLAVE), isTokenAutoRefreshEnabled: true }) })).catch(() => null);
-  const token = () => Promise.resolve(base).then((b) => b ? b.c.getToken(b.ac) : null).then((t) => t?.token || '', () => '');
+  // Máx. 5 s: si reCAPTCHA no responde, la petición sale sin token en vez de quedarse esperando para siempre.
+  const token = () => Promise.race([Promise.resolve(base).then((b) => b ? b.c.getToken(b.ac) : null).then((t) => t?.token || '', () => ''),
+    new Promise((ok) => setTimeout(ok, 5000, ''))]);
 
   // Cada módulo que crea una app de Firebase hace `await window.znrAppCheck(app, versión)` antes de usarla.
   // Las apps con nombre (lives, chat) reutilizan el token de la principal.

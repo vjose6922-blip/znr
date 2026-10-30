@@ -33,6 +33,9 @@ const API_DOMAINS      = [
   'beneficiarios-api-1038143238323.us-central1.run.app',
   'tienda-znr-api-1038143238323.us-central1.run.app',
 ];
+// reCAPTCHA (App Check) nunca pasa por el service worker: Google lo actualiza seguido y una copia vieja guardada
+// con CACHE_FIRST dejaba a App Check sin token y el catálogo (Firestore) cargando para siempre.
+const NO_INTERCEPTAR = /^https:\/\/(www\.)?(google\.com|recaptcha\.net)\/recaptcha\/|^https:\/\/www\.gstatic\.com\/recaptcha\//;
 const IMAGE_CDN_HOSTS  = ['firebasestorage.googleapis.com', 'lh3.googleusercontent.com']; // lh3: fondos del clima (looks.js)
 
 self.addEventListener('install', event => {
@@ -63,6 +66,8 @@ self.addEventListener('activate', event => {
           .filter(n => n !== CACHE_NAME && n !== DYNAMIC_CACHE)
           .map(n => caches.delete(n))
       );
+      const dyn = await caches.open(DYNAMIC_CACHE); // borra el reCAPTCHA que versiones anteriores dejaron guardado
+      await Promise.all((await dyn.keys()).filter(r => NO_INTERCEPTAR.test(r.url)).map(r => dyn.delete(r)));
       await self.clients.claim();
       const clients = await self.clients.matchAll();
       clients.forEach(c => c.postMessage({ type: 'SW_ACTIVATED' }));
@@ -101,7 +106,7 @@ function getCacheStrategy(request) {
 }
 
 self.addEventListener('fetch', event => {
-  if (event.request.url.startsWith('chrome-extension://')) return;
+  if (event.request.url.startsWith('chrome-extension://') || NO_INTERCEPTAR.test(event.request.url)) return;
   // Transmisión en vivo dentro de ZNR: estas peticiones NO deben pasar por
   // el service worker ni por ningún caché.
   //  - *.cloudflarestream.com: WHIP (vendedor) y WHEP (comprador).
