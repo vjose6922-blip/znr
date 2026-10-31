@@ -599,7 +599,7 @@
     } catch (err) { toast('No se pudo optimizar la ruta. Intenta de nuevo.'); }
   }
 
-  // --- Modal de ruta completa (pantalla completa + bottom-sheet + OSRM) ---
+  // --- Modal de ruta completa (pantalla completa + bottom-sheet + ruta por calles vía backend/Mapbox) ---
   async function trazarRutaCalles(latlngs, conRep) {
     if (latlngs.length < 2) return null;
     const CHUNK = 25;
@@ -792,7 +792,7 @@
         if (followMode) {
           if (primeraVez) {
             // Primera lectura GPS: centra en el repartidor con zoom de calle.
-            // Apago fitAutoPendiente AQUÍ (antes de que OSRM responda) para
+            // Apago fitAutoPendiente AQUÍ (antes de que responda la ruta) para
             // que el fitBounds de recalcular() no vuelva a alejar la vista.
             fitAutoPendiente = false;
             centrarEn(repLatLng, 15, true);
