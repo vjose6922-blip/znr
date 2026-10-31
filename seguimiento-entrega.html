@@ -153,11 +153,12 @@ const etaEl = document.getElementById('eta-note');
 const tituloEl = document.getElementById('th-titulo');
 const subEl = document.getElementById('th-sub');
 
-const VELOCIDAD_PROMEDIO_KMH = 30; // estimado, no hay tráfico real sin Directions API (de pago)
+const VELOCIDAD_PROMEDIO_KMH = 30; // solo si el backend no pudo calcular la ruta por calles
 
 let map = null;
 let destinoMarker = null;
 let repartidorMarker = null;
+let rutaLine = null;
 let pollTimer = null;
 let followMode = true; // true = el mapa sigue al repartidor solo; se apaga si arrastras el mapa a mano
 
@@ -205,12 +206,17 @@ function actualizarMapa(entrega) {
     puntos.push(pos);
   }
 
+  // Ruta por calles (la calcula el backend); el primer punto es el repartidor real, no el redondeado.
+  const ruta = entrega.ruta && puntos.length === 2 ? [puntos[1], ...entrega.ruta.coords] : [];
+  if (!rutaLine && map) rutaLine = L.polyline([], { color: '#ec4899', weight: 4 }).addTo(map);
+  if (rutaLine) rutaLine.setLatLngs(ruta);
+
   // Solo ajustamos el zoom/encuadre automáticamente la PRIMERA vez que
   // tenemos ambos puntos. Después, cada poll solo mueve los marcadores
   // (arriba) sin tocar la vista, para respetar el zoom manual del usuario.
   if (map && puntos.length === 2 && !map._znrFitInicial) {
     map._znrFitInicial = true;
-    map.fitBounds(puntos, { padding: [40, 40] });
+    map.fitBounds(ruta.length ? ruta : puntos, { padding: [40, 40] });
     mostrarBotonRecentrar();
   } else if (map && !map._znrCentradoInicial && puntos.length === 1) {
     map._znrCentradoInicial = true;
@@ -248,10 +254,7 @@ function mostrarBotonRecentrar() {
   btnRecentrar.addTo(map);
 }
 
-// Distancia en línea recta (haversine) — la misma fórmula que usa el
-// backend para decidir "cerca". El ETA es un estimado con velocidad
-// promedio fija, no tráfico real (eso necesitaría la API de Directions
-// de Google, que es de pago).
+// Distancia en línea recta (haversine) — respaldo del ETA cuando no hay ruta por calles.
 function distanciaMetros(lat1, lng1, lat2, lng2) {
   const R = 6371000;
   const toRad = d => d * Math.PI / 180;
@@ -268,7 +271,7 @@ function actualizarETA(entrega) {
   if (!enCamino || !tieneAmbos) { etaEl.textContent = ''; return; }
 
   const metros = distanciaMetros(entrega.repartidorLat, entrega.repartidorLng, entrega.lat, entrega.lng);
-  const minutos = Math.max(1, Math.round((metros / 1000) / VELOCIDAD_PROMEDIO_KMH * 60));
+  const minutos = Math.max(1, Math.round(entrega.ruta ? entrega.ruta.t / 60 : (metros / 1000) / VELOCIDAD_PROMEDIO_KMH * 60));
   etaEl.textContent = entrega.estado === 'cerca'
     ? '📍 Está a solo unos metros de tu ubicación'
     : `⏱️ Llega en aproximadamente ${minutos} minuto${minutos === 1 ? '' : 's'} (estimado)`;
