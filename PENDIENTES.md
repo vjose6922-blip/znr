@@ -33,7 +33,7 @@ es posterior al cambio; si no, en **Cloud Build → Activadores** revisa que ten
 - [x] **C5 Resend**: `RESEND_API_KEY` en `vendedores-api` y dominio `znrcommunity.com` verificado (SPF/DKIM). Sin esto el correo opcional da error.
 - [x] **C6 Mapbox**: token público `pk.` restringido a `https://znrcommunity.com` y `https://www.znrcommunity.com`; pegarlo en
       `MAPBOX_PK` de `entregas-live.html` y `seguimiento-entrega.html` (hoy usan tiles de OpenStreetMap, no aptos para uso intensivo).
-- [ ] **C7 Alerta de presupuesto** en Google Cloud (Facturación → Presupuestos y alertas). Cloudflare no ofrece aviso por correo: se cubre con F7.
+- [x] **C7 Alerta de presupuesto** en Google Cloud (Facturación → Presupuestos y alertas). Cloudflare no ofrece aviso por correo: se cubre con F7.
 - [ ] **C8 Storage ciclo de vida**: `znr-backups` a clase Archive; borrar en `znr-live-grabaciones` lo de más de 7 días.
 - [ ] **C9 App Check TTL**: 1 día (Verificación de aplicaciones → Apps → ZNR WEB).
 - [ ] **C10 Stripe**: confirmar el **primer depósito** a la CLABE (previsto ~2 nov) en Stripe → Saldos (automático lunes y viernes).
@@ -85,7 +85,7 @@ Usa montos chicos ($149 de Plus o ~$10) y reembolsa si no quieres conservarlos. 
 
 ### 3.5 Mapas
 - [x] **M1** `entregas-live.html` → "Ver ruta completa": línea sólida por calles (punteada = error, ver logs de `live-api`).
-- [ ] **M2** Link de seguimiento de un pedido en ruta: línea rosa y ETA.
+- [x] **M2** Link de seguimiento de un pedido en ruta: línea rosa y ETA.
 
 ### 3.6 Celular, datos móviles y carga (znr#61)
 - [ ] **T1** Fotos de productos cargan bien (WebP con `-rw` en `lh3`) y la cuadrícula usa la miniatura de 300 px.
