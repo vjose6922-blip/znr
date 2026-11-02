@@ -361,7 +361,7 @@
 (function() {
   'use strict';
 
-  const MAPBOX_PK = ''; // token PÚBLICO (pk.…) de Mapbox, restringido a tu dominio. Vacío = usa OSM.
+  const MAPBOX_PK = 'pk.eyJ1Ijoiem5yY29tbXVuaXR5IiwiYSI6ImNtdno1dnZubjAxMjcyeG9ybXBkdHMxZW0ifQ.D9JJx77xgMJRxvs2BmF0ig'; // token PÚBLICO (pk.…) de Mapbox, restringido a tu dominio. Vacío = usa OSM.
   const baseMapa = () => MAPBOX_PK
     ? L.tileLayer(`https://api.mapbox.com/styles/v1/mapbox/streets-v12/tiles/512/{z}/{x}/{y}@2x?access_token=${MAPBOX_PK}`, { tileSize: 512, zoomOffset: -1, maxZoom: 19, attribution: '&copy; Mapbox &copy; OpenStreetMap' })
     : L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; OpenStreetMap', maxZoom: 19 });
