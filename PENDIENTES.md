@@ -30,7 +30,7 @@ es posterior al cambio; si no, en **Cloud Build → Activadores** revisa que ten
 - [x] **C2 Algolia** (una vez, después de D3): CONTROL → Herramientas → **Resincronizar todo Comunidad con Algolia**.
 - [x] **C3 Stripe** → Settings → Emails → activar "Pagos exitosos" (recibo al comprador).
 - [x] **C4 Push en CONTROL**: cada master permite notificaciones en el navegador donde usa el panel.
-- [ ] **C5 Resend**: `RESEND_API_KEY` en `vendedores-api` y dominio `znrcommunity.com` verificado (SPF/DKIM). Sin esto el correo opcional da error.
+- [x] **C5 Resend**: `RESEND_API_KEY` en `vendedores-api` y dominio `znrcommunity.com` verificado (SPF/DKIM). Sin esto el correo opcional da error.
 - [ ] **C6 Mapbox**: token público `pk.` restringido a `https://znrcommunity.com` y `https://www.znrcommunity.com`; pegarlo en
       `MAPBOX_PK` de `entregas-live.html` y `seguimiento-entrega.html` (hoy usan tiles de OpenStreetMap, no aptos para uso intensivo).
 - [ ] **C7 Alertas de presupuesto**: Google Cloud (Facturación → Presupuestos) y Cloudflare (Billing → Notifications).
