@@ -24,6 +24,7 @@ messaging.onBackgroundMessage((payload) => {
   self.registration.showNotification(title, {
     body: body,
     icon: "/logo.svg",
+    image: (payload.notification && payload.notification.image) || (payload.data && payload.data.image) || undefined, // mientras siga instalado en algún celular
     vibrate: [200, 100, 200],
     data: { url: url },
     actions: [

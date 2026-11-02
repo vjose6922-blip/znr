@@ -4,19 +4,20 @@
 <meta charset="UTF-8">
 <meta http-equiv="Content-Security-Policy" content="
  default-src 'self';
- script-src 'self' 'unsafe-inline' https://www.gstatic.com https://apis.google.com https://*.firebaseio.com;
+ script-src 'self' 'unsafe-inline' https://www.gstatic.com https://apis.google.com https://*.firebaseio.com https://www.google.com ;
  style-src 'self' 'unsafe-inline';
  img-src 'self' data: blob: https://placehold.co https://via.placeholder.com https://*.fbcdn.net https://firebasestorage.googleapis.com https://*.firebasestorage.app https://storage.googleapis.com ;
- connect-src 'self' https://catalogo-api-1038143238323.us-central1.run.app https://ventas-api-1038143238323.us-central1.run.app https://wttr.in https://www.gstatic.com https://apis.google.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firebaseinstallations.googleapis.com https://fcmregistrations.googleapis.com  https://registrar-token-fcm-1038143238323.us-central1.run.app https://ventas-api-1038143238323.us-central1.run.app https://auth-api-1038143238323.us-central1.run.app https://vendedores-api-1038143238323.us-central1.run.app https://live-api-1038143238323.us-central1.run.app https://firebase.googleapis.com https://znr-live-default-rtdb.firebaseio.com wss://znr-live-default-rtdb.firebaseio.com https://*.firebaseio.com wss://*.firebaseio.com https://nominatim.openstreetmap.org https://*.cloudflarestream.com https://storage.googleapis.com https://admin-api-1038143238323.us-central1.run.app https://tienda-znr-api-1038143238323.us-central1.run.app ;
+ connect-src 'self' https://catalogo-api-1038143238323.us-central1.run.app https://ventas-api-1038143238323.us-central1.run.app https://wttr.in https://www.gstatic.com https://apis.google.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firebaseinstallations.googleapis.com https://fcmregistrations.googleapis.com  https://registrar-token-fcm-1038143238323.us-central1.run.app https://ventas-api-1038143238323.us-central1.run.app https://auth-api-1038143238323.us-central1.run.app https://vendedores-api-1038143238323.us-central1.run.app https://live-api-1038143238323.us-central1.run.app https://firebase.googleapis.com https://znr-live-default-rtdb.firebaseio.com wss://znr-live-default-rtdb.firebaseio.com https://*.firebaseio.com wss://*.firebaseio.com https://nominatim.openstreetmap.org https://*.cloudflarestream.com https://storage.googleapis.com https://admin-api-1038143238323.us-central1.run.app https://tienda-znr-api-1038143238323.us-central1.run.app https://content-firebaseappcheck.googleapis.com https://www.google.com ;
  font-src 'self';
  media-src 'self' blob:;
- frame-src https://apis.google.com https://*.firebaseio.com;
+ frame-src https://apis.google.com https://*.firebaseio.com https://www.google.com ;
  frame-ancestors 'none';
  object-src 'none';
  base-uri 'self';
  worker-src 'self' blob:;
  child-src 'self' blob:;
 ">
+<script src="app-check.js"></script>
  <script src="error-bootstrap.js"></script>
 <script src="error-monitor.js"></script>
 
@@ -605,6 +606,7 @@ const firebaseConfig = {
 // heredaría la sesión del resto del sitio (uid 'cliente_<teléfono>') y ese uid quedaría en nodos públicos
 // (presencia, chats). Además así abrir un live no cierra la sesión del comprador en las demás páginas.
 const fbApp = initializeApp(firebaseConfig, 'live');
+await window.znrAppCheck?.(fbApp, '12.15.0');
 const db = getDatabase(fbApp);
 
 // Solo usamos signInAnonymously aquí, nunca signInWithPopup/Redirect, así

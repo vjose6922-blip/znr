@@ -4,19 +4,20 @@
 <meta charset="UTF-8">
 <meta http-equiv="Content-Security-Policy" content="
  default-src 'self';
- script-src 'self' 'unsafe-inline' https://www.gstatic.com https://apis.google.com https://*.firebaseio.com;
+ script-src 'self' 'unsafe-inline' https://www.gstatic.com https://apis.google.com https://*.firebaseio.com https://www.google.com ;
  style-src 'self' 'unsafe-inline';
  img-src 'self' data: blob: https://placehold.co https://via.placeholder.com https://*.fbcdn.net https://firebasestorage.googleapis.com https://*.firebasestorage.app https://storage.googleapis.com ;
- connect-src 'self' https://catalogo-api-1038143238323.us-central1.run.app https://ventas-api-1038143238323.us-central1.run.app https://wttr.in https://www.gstatic.com https://apis.google.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firebaseinstallations.googleapis.com https://fcmregistrations.googleapis.com  https://registrar-token-fcm-1038143238323.us-central1.run.app https://ventas-api-1038143238323.us-central1.run.app https://auth-api-1038143238323.us-central1.run.app https://vendedores-api-1038143238323.us-central1.run.app https://live-api-1038143238323.us-central1.run.app https://firebase.googleapis.com https://znr-live-default-rtdb.firebaseio.com wss://znr-live-default-rtdb.firebaseio.com https://*.firebaseio.com wss://*.firebaseio.com https://nominatim.openstreetmap.org https://*.cloudflarestream.com https://storage.googleapis.com https://admin-api-1038143238323.us-central1.run.app https://tienda-znr-api-1038143238323.us-central1.run.app ;
+ connect-src 'self' https://catalogo-api-1038143238323.us-central1.run.app https://ventas-api-1038143238323.us-central1.run.app https://wttr.in https://www.gstatic.com https://apis.google.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firebaseinstallations.googleapis.com https://fcmregistrations.googleapis.com  https://registrar-token-fcm-1038143238323.us-central1.run.app https://ventas-api-1038143238323.us-central1.run.app https://auth-api-1038143238323.us-central1.run.app https://vendedores-api-1038143238323.us-central1.run.app https://live-api-1038143238323.us-central1.run.app https://firebase.googleapis.com https://znr-live-default-rtdb.firebaseio.com wss://znr-live-default-rtdb.firebaseio.com https://*.firebaseio.com wss://*.firebaseio.com https://nominatim.openstreetmap.org https://*.cloudflarestream.com https://storage.googleapis.com https://admin-api-1038143238323.us-central1.run.app https://tienda-znr-api-1038143238323.us-central1.run.app https://content-firebaseappcheck.googleapis.com https://www.google.com ;
  font-src 'self';
  media-src 'self' blob:;
- frame-src https://apis.google.com https://*.firebaseio.com;
+ frame-src https://apis.google.com https://*.firebaseio.com https://www.google.com ;
  frame-ancestors 'none';
  object-src 'none';
  base-uri 'self';
  worker-src 'self' blob:;
  child-src 'self' blob:;
 ">
+<script src="app-check.js"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex">
 <title>Cámara — Z&R Live</title>
@@ -65,6 +66,7 @@ const fbApp = initializeApp({
   storageBucket: "znr-live.firebasestorage.app", messagingSenderId: "1038143238323",
   appId: "1:1038143238323:web:5171b9dd8823628086c0c6"
 }, 'live');
+await window.znrAppCheck?.(fbApp, '12.15.0');
 const db = getDatabase(fbApp);
 let auth;
 try { auth = initializeAuth(fbApp, { persistence: [indexedDBLocalPersistence, browserLocalPersistence, browserSessionPersistence] }); }
