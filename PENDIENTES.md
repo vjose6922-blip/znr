@@ -1,6 +1,24 @@
 # Pendientes
 
-Ideas acordadas para más adelante.
+Ideas acordadas para más adelante y lo que falta para cerrar lo ya programado.
+
+## Por publicar y probar (cambios de oct-nov 2026)
+- [ ] Mergear el PR #46 (lives: segundo plano, "¿Sigues ahí?", máximo 3 h; planes Plus/Pro con anual; términos).
+      Antes, desplegar el backend (ver `PENDIENTES.md` de znr-backend).
+- [ ] Reglas de Realtime Database: confirmar que estén publicadas `live_estado`, `live_respaldo`, `live_espectadores`
+      y `".indexOn": ["uid"]` en `chats/$liveId/messages`.
+- [ ] Prueba de live con 2 teléfonos:
+  - apagar el WiFi del vendedor ~30 s (el video vuelve solo);
+  - el contador de espectadores cambia en el comprador;
+  - reportar → el clip aparece en el panel en ~3 min;
+  - finalizar justo después de un reporte ("Terminando procesos…");
+  - lo mismo con la 2ª cámara;
+  - "¿Sigues ahí?" (20 min sin tocar) y el aviso de 10 min antes de las 3 h.
+- [ ] Pago real chico de Pro (mensual y anual) con Stripe y Mercado Pago:
+  - insignia PRO y límite de 1,000;
+  - el pago aparece como Pro en el panel de admin;
+  - los días de Plus se convierten (~2 días de Plus = 1 de Pro).
+- [ ] Con una cuenta que tenga fundación aprobada: en Refugios dice "Tu fundación" y no aparece al donar un producto.
 
 ## Miniaturas de 300 px para el catálogo
 Hoy cada foto se sube a 800 px (WebP, ~80 KB) y la cuadrícula del catálogo descarga esa misma foto.
