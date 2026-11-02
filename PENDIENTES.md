@@ -107,7 +107,7 @@ Usa montos chicos ($149 de Plus o ~$10) y reembolsa si no quieres conservarlos. 
       ```js
       for (let i = 0; i < 5; i++) { const x = new XMLHttpRequest(); x.open('GET', 'https://znr-live-default-rtdb.firebaseio.com/banners_temporada.json?shallow=true'); x.setRequestHeader('X-Firebase-AppCheck', 'token-falso-prueba'); x.send(); }
       ```
-- [ ] **S4 Código antes de `APP_CHECK=bloquear`** (znr-backend, aún sin hacer; Claude puede hacerlo):
+- [x] **S4 Código antes de `APP_CHECK=bloquear`** (hecho en znr-backend, rama `claude/busy-turing-3kwzsb`):
   - `catalogo-api`: `LIBRES_APP_CHECK = { body: ["cronMantenimientoCatalogo"] }` (el Scheduler usa `CRON_SECRET`, no `ADMIN_TOKEN`).
   - `appCheckOk` en los 11 servicios: parsear el body cuando llega como texto (igual que los handlers), o se rechazan jobs de Scheduler.
 - [ ] **S5 App Check en APIs** (al final, después de S3 y S4): F12 → Red, las llamadas a `…run.app` llevan `&_ac=`; poner
@@ -143,4 +143,4 @@ Usa montos chicos ($149 de Plus o ~$10) y reembolsa si no quieres conservarlos. 
 
 ## Limpieza
 - [ ] Borrar la rama `vjose6922-blip-patch-1` de znr (historia vieja de sep 2026, sin relación con `main`).
-- [ ] Cerrar los issues znr#18, znr#61, znr-backend#13, #15 y #37: su contenido ya está aquí.
+- [x] Cerrados los issues znr#18, znr#61, znr-backend#13, #15 y #37: su contenido ya está aquí.
