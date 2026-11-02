@@ -14,24 +14,24 @@ Fuentes unificadas: `PENDIENTES.md` de los 3 repos, `PRUEBAS-PENDIENTES.md` y la
 Los servicios se despliegan solos al fusionar en `main`. Confirma en **Cloud Run** que la última revisión de cada uno
 es posterior al cambio; si no, en **Cloud Build → Activadores** revisa que tenga activador hacia `main` o despliégalo a mano.
 
-- [ ] **D1 `live-api`**: ventas antes de buscar direcciones; `live_estado`; respaldo solo con reporte (`live_respaldo`) y
+- [x] **D1 `live-api`**: ventas antes de buscar direcciones; `live_estado`; respaldo solo con reporte (`live_respaldo`) y
       5 min para la 2ª cámara; aviso de 15 min con consumo de datos; caché corto de la lista de lives (#12).
-- [ ] **D2 `vendedores-api`**: Plus (400) / Pro (1,000), anual y conversión de días; Activar/Quitar Plus y Ajustar días
+- [x] **D2 `vendedores-api`**: Plus (400) / Pro (1,000), anual y conversión de días; Activar/Quitar Plus y Ajustar días
       con motivo en `staff_actividad`; fotos borradas de Storage; `_activoVigente` ("Ver contacto"); correo con Resend.
-- [ ] **D3 `catalogo-api`**: límites 400/1,000; productos Z&R a Algolia y sincronización; `backfillCiudadComunidad` solo master.
-- [ ] **D4 `beneficiarios-api`**: no se puede donar a la fundación propia; fotos borradas de Storage.
-- [ ] **D5 `admin-api`**: banners (posición, tamaño, sombra, "Mostrar solo este banner", "Dónde mostrar").
-- [ ] **D6 `tienda-znr-api`**: sincroniza Algolia al vender/devolver (mismo `ADMIN_TOKEN` que catálogo); precio siempre del producto guardado.
-- [ ] **D7 `ventas-api`**: donación en línea con nombre del refugio y regreso a `refugios.html`.
-- [ ] **D8 `historias-api`**: un token de admin vencido ya no llega al monitor de errores.
+- [x] **D3 `catalogo-api`**: límites 400/1,000; productos Z&R a Algolia y sincronización; `backfillCiudadComunidad` solo master.
+- [x] **D4 `beneficiarios-api`**: no se puede donar a la fundación propia; fotos borradas de Storage.
+- [x] **D5 `admin-api`**: banners (posición, tamaño, sombra, "Mostrar solo este banner", "Dónde mostrar").
+- [x] **D6 `tienda-znr-api`**: sincroniza Algolia al vender/devolver (mismo `ADMIN_TOKEN` que catálogo); precio siempre del producto guardado.
+- [x] **D7 `ventas-api`**: donación en línea con nombre del refugio y regreso a `refugios.html`.
+- [x] **D8 `historias-api`**: un token de admin vencido ya no llega al monitor de errores.
 
 ## 2. Configuración en consolas (sin código)
-- [ ] **C1 RTDB reglas** publicadas: `live_estado`, `live_respaldo`, `live_espectadores` y `".indexOn": ["uid"]` en `chats/$liveId/messages`.
-- [ ] **C2 Algolia** (una vez, después de D3): CONTROL → Herramientas → **Resincronizar todo Comunidad con Algolia**.
-- [ ] **C3 Stripe** → Settings → Emails → activar "Pagos exitosos" (recibo al comprador).
-- [ ] **C4 Push en CONTROL**: cada master permite notificaciones en el navegador donde usa el panel.
-- [ ] **C5 Resend**: `RESEND_API_KEY` en `vendedores-api` y dominio `znrcommunity.com` verificado (SPF/DKIM). Sin esto el correo opcional da error.
-- [ ] **C6 Mapbox**: token público `pk.` restringido a `https://znrcommunity.com` y `https://www.znrcommunity.com`; pegarlo en
+- [x] **C1 RTDB reglas** publicadas: `live_estado`, `live_respaldo`, `live_espectadores` y `".indexOn": ["uid"]` en `chats/$liveId/messages`.
+- [x] **C2 Algolia** (una vez, después de D3): CONTROL → Herramientas → **Resincronizar todo Comunidad con Algolia**.
+- [x] **C3 Stripe** → Settings → Emails → activar "Pagos exitosos" (recibo al comprador).
+- [x] **C4 Push en CONTROL**: cada master permite notificaciones en el navegador donde usa el panel.
+- [x] **C5 Resend**: `RESEND_API_KEY` en `vendedores-api` y dominio `znrcommunity.com` verificado (SPF/DKIM). Sin esto el correo opcional da error.
+- [x] **C6 Mapbox**: token público `pk.` restringido a `https://znrcommunity.com` y `https://www.znrcommunity.com`; pegarlo en
       `MAPBOX_PK` de `entregas-live.html` y `seguimiento-entrega.html` (hoy usan tiles de OpenStreetMap, no aptos para uso intensivo).
 - [ ] **C7 Alertas de presupuesto**: Google Cloud (Facturación → Presupuestos) y Cloudflare (Billing → Notifications).
 - [ ] **C8 Storage ciclo de vida**: `znr-backups` a clase Archive; borrar en `znr-live-grabaciones` lo de más de 7 días.
@@ -64,7 +64,7 @@ Usa montos chicos ($149 de Plus o ~$10) y reembolsa si no quieres conservarlos. 
 - [ ] **L5** Comprador con sesión escribe en el chat: en RTDB → `chats`, el `uid` **no** empieza con `cliente_`. Chat y producto destacado funcionan.
 
 ### 3.3 Comunidad, Refugios, Banners e Inicio
-- [ ] **R1** Comunidad → Filtros → categoría del catálogo Z&R: salen productos de Z&R (requiere C2).
+- [x] **R1** Comunidad → Filtros → categoría del catálogo Z&R: salen productos de Z&R (requiere C2).
 - [ ] **R2** Perfil de vendedor → **Ver contacto**: llamar / WhatsApp (antes "Error interno").
 - [ ] **R3** Refugios → **Donar artículo** con sesión de vendedor: abre la lista de productos.
 - [ ] **R4** Panel de vendedor → **Editar información** de la fundación con foto nueva → llega a CONTROL → Beneficiarios → Ediciones.
@@ -122,7 +122,7 @@ Usa montos chicos ($149 de Plus o ~$10) y reembolsa si no quieres conservarlos. 
 - [ ] **S9 (futuro) Storage**: servir fotos de `pedidos_personalizados/` con URL firmada desde `pedidos-api` en vez de `allow get: if true`.
 
 ## 5. Después del lanzamiento (mejoras e ideas)
-- [ ] **F1 Tráfico real en mapas**: abrir PR de la rama `claude/admiring-cannon-rz50he` de znr-backend (commit `d341ff4`:
+- [x] **F1 Tráfico real en mapas** (znr-backend#40, fusionado; probar con M1 y revisar consumo de Mapbox): rama `claude/admiring-cannon-rz50he` (commit `d341ff4`:
       `driving-traffic` y caché de 5 min) y unirlo.
 - [ ] **F2 Fondos del clima fuera de Google Drive**: `looks.js` carga 34 fondos por id (`WEATHER_IMAGES`, `lh3`). Subirlos a
       Storage o `img/clima/*.webp`, cambiar `getImageUrl` y quitar `lh3` de la CSP y del service worker.
