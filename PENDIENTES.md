@@ -43,7 +43,7 @@ Si algo falla, el error sale en pantalla y en el **Monitor de errores** de CONTR
 Usa montos chicos ($149 de Plus o ~$10) y reembolsa si no quieres conservarlos. Detalle técnico: `PAGOS-BACKEND.md` de znr-backend.
 
 ### 3.1 Pagos (dinero real)
-- [ ] **P1 Plus con Stripe** (`plan-plus.html` → "Suscribirme con tarjeta"): recuadro dentro de la página → plan activo,
+- [x] **P1 Plus con Stripe** (`plan-plus.html` → "Suscribirme con tarjeta"): recuadro dentro de la página → plan activo,
       en "Pagos recibidos" de CONTROL y "Se cobra solo cada mes". Luego **Cancelar renovación** (sigue hasta vencer) y **Reanudar**.
 - [ ] **P2 Plus con Mercado Pago**: mismo flujo; al cancelar se corta de inmediato y dura lo pagado. En MP → Webhooks llegan con 200.
 - [ ] **P3 Pro mensual y anual** (Stripe y MP): insignia PRO, límite 1,000, sale como Pro en admin, ~2 días de Plus = 1 de Pro.
