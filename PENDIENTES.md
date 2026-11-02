@@ -14,6 +14,8 @@ Código ya en `main` de znr, CONTROL y znr-backend (`app-check.js`, PR znr#47, C
    - Se queda en 0: RTDB ignora la cabecera; cambiar las lecturas REST de la página antes de aplicar.
 3. **APIs de Cloud Run:** desplegar los 11 servicios con `APP_CHECK=bloquear` (ver README de znr-backend). Antes,
    confirmar en F12 → Red que las llamadas a `…run.app` llevan `&_ac=`. Hacerlo al final, después de RTDB.
+   **Antes de activarlo hay que corregir 2 cosas del backend** (detalle en `PENDIENTES.md` de znr-backend), o se
+   bloquean trabajos de Cloud Scheduler.
 4. **TTL del token:** dejarlo en **1 día** (Verificación de aplicaciones → Apps → ZNR WEB) para gastar menos reCAPTCHA.
 5. **No aplicar en Storage:** las imágenes se cargan con `<img>` y no llevan token.
 
