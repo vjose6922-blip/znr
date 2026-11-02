@@ -20,6 +20,27 @@ Ideas acordadas para más adelante y lo que falta para cerrar lo ya programado.
   - los días de Plus se convierten (~2 días de Plus = 1 de Pro).
 - [ ] Con una cuenta que tenga fundación aprobada: en Refugios dice "Tu fundación" y no aparece al donar un producto.
 
+## Banners, Comunidad, Refugios e Inicio (sesión de oct 2026)
+Código ya en `main` (znr #26–#41, CONTROL #13–#21, znr-backend #16–#22). Falta comprobarlo con datos reales:
+- [ ] Publicar en Cloud Run lo que falte de esa sesión (ver `PENDIENTES.md` de znr-backend).
+- [ ] Una sola vez: CONTROL → Herramientas → **Resincronizar todo Comunidad con Algolia** (sube los productos de Z&R;
+      sin eso no aparecen al filtrar por categoría en Comunidad).
+- [ ] Probar en producción:
+  - Comunidad → Filtros → una categoría del catálogo de Z&R: deben salir productos de Z&R.
+  - Perfil de vendedor → **Ver contacto**: muestra llamar / WhatsApp (antes "Error interno").
+  - Refugios → **Donar artículo** con sesión de vendedor: abre la lista de productos (antes pedía iniciar sesión).
+  - Panel de vendedor → **Editar información** de la fundación, cambiando una foto: llega a CONTROL → Beneficiarios → Ediciones.
+  - Inicio: banners (temporada marcados "Inicio" o "Inicio y Comunidad" + automáticos) y vendedores destacados al azar.
+
+## Fondos del clima (último uso de Google Drive)
+`looks.js` (sección de looks en `index.html` y `outfit.html`) carga **34 fondos del clima** desde Google Drive por id
+(`WEATHER_IMAGES`, `lh3.googleusercontent.com`). Subirlos a Firebase Storage o al repo (ej. `img/clima/*.webp`),
+cambiar `getImageUrl` y quitar `lh3` de la CSP de esas 2 páginas y del service worker. Con eso no queda nada de Drive.
+
+## Scroll infinito en Comunidad (idea)
+Hoy son 30 artículos por página con botones de página. Cargar los siguientes 30 al llegar al final (como Instagram o
+Shein). Requiere que `renderProducts` agregue tarjetas en vez de reemplazar la cuadrícula.
+
 ## Miniaturas de 300 px para el catálogo
 Hoy cada foto se sube a 800 px (WebP, ~80 KB) y la cuadrícula del catálogo descarga esa misma foto.
 Generar al subir una miniatura de ~300 px y usarla en la cuadrícula; la de 800 px solo al abrir el artículo.
