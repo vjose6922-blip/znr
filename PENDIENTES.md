@@ -84,7 +84,7 @@ Usa montos chicos ($149 de Plus o ~$10) y reembolsa si no quieres conservarlos. 
 - [ ] **K7** Aviso de errores repetidos solo le llega a master.
 
 ### 3.5 Mapas
-- [ ] **M1** `entregas-live.html` → "Ver ruta completa": línea sólida por calles (punteada = error, ver logs de `live-api`).
+- [x] **M1** `entregas-live.html` → "Ver ruta completa": línea sólida por calles (punteada = error, ver logs de `live-api`).
 - [ ] **M2** Link de seguimiento de un pedido en ruta: línea rosa y ETA.
 
 ### 3.6 Celular, datos móviles y carga (znr#61)
