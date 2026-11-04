@@ -33,8 +33,25 @@
     return p;
   }
 
+  // Gota con brillo: trazo que se desvanece hacia arriba + cabeza redonda con un punto de luz.
+  // Se dibuja una sola vez por tema y luego se copia en cada gota (más ligero que dibujarla cada cuadro).
+  const gotas = {};
+  function gota(osc) {
+    if (gotas[osc]) return gotas[osc];
+    const c = document.createElement('canvas'), x = c.getContext('2d'), col = osc ? '190,210,255' : '70,90,140';
+    c.width = 16; c.height = 48; x.scale(2, 2); // 8×24 a doble resolución
+    const gr = x.createLinearGradient(0, 0, 0, 22);
+    gr.addColorStop(0, `rgba(${col},0)`); gr.addColorStop(1, `rgba(${col},.65)`);
+    x.strokeStyle = gr; x.lineWidth = 2.2; x.lineCap = 'round';
+    x.beginPath(); x.moveTo(4, 1); x.lineTo(4, 21); x.stroke();
+    x.fillStyle = `rgba(${col},.8)`; x.beginPath(); x.arc(4, 21.2, 1.9, 0, 6.3); x.fill();
+    x.fillStyle = 'rgba(255,255,255,.65)'; x.beginPath(); x.arc(3.4, 20.6, 0.65, 0, 6.3); x.fill();
+    return (gotas[osc] = c);
+  }
+
+  let dpr = 1;
   function medir() {
-    const dpr = Math.min(devicePixelRatio || 1, 2);
+    dpr = Math.min(devicePixelRatio || 1, 2);
     W = innerWidth; H = innerHeight; cv.width = W * dpr; cv.height = H * dpr; g.setTransform(dpr, 0, 0, dpr, 0, 0);
   }
   // Tarjetas visibles con las que pueden chocar gotas y copos (se miden cada 0.5 s, no en cada cuadro)
@@ -71,8 +88,10 @@
           for (let k = 0; k < 4; k++) chispas.push({ x: p.x, y: c.top, vx: rnd(-1.6, 1.6), vy: rnd(-2.6, -1), vida: 1 });
           parts[i] = nueva(true); continue;
         }
-        g.strokeStyle = osc ? 'rgba(190,210,255,.4)' : 'rgba(70,90,140,.38)'; g.lineWidth = 1.3;
-        g.beginPath(); g.moveTo(p.x, p.y); g.lineTo(p.x - (modo.viento || 1) * 1.5, p.y - p.l); g.stroke();
+        const s = p.l / 20; // largo de la estela; inclinada según el viento
+        g.setTransform(dpr, 0, 0, dpr, p.x * dpr, p.y * dpr); g.rotate(-Math.atan2(modo.viento || 1, p.v));
+        g.drawImage(gota(osc), -4, -22 * s, 8, 24 * s);
+        g.setTransform(dpr, 0, 0, dpr, 0, 0);
         if (p.y > H + 20) parts[i] = nueva(true);
       } else if (p.t === 'nieve') {
         p.f += 0.02 * dt; p.y += p.v * dt; p.x += Math.sin(p.f) * 0.5 * dt + (modo.viento || 0) * 0.3;
