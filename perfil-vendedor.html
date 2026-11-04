@@ -907,6 +907,7 @@
  <script src="burbuja-mensajes.js" defer></script>
   <script src="error-monitor.js" defer></script>
   <script src="cache-manager.js" defer></script>
+  <script src="scroll-infinito.js"></script>
 
 
 
@@ -987,7 +988,8 @@
         return String(str || '').replace(/\D/g, '');
       }
 
-      const PRODUCTS_PAGE_SIZE = 12;
+      const PRODUCTS_PAGE_SIZE = 30; // tanda del scroll infinito
+      let anexandoPerfil = false, scrollPerfil = null;
 
       async function cargarCalificacionVendedor(uid, nombre) {
         const slot = document.getElementById('profile-rating-slot');
@@ -1717,21 +1719,23 @@ Badge: p.badge || '',
             return;
           }
 
+          if (anexandoPerfil) { // siguiente tanda del scroll infinito: se agrega al final
+            const tmp = document.createElement('div');
+            tmp.innerHTML = filtered.slice(gridEl.querySelectorAll('.profile-product-card').length, productsShown).map((p, idx) => buildProductCardHtml(p, idx)).join('');
+            wireProductCardEvents(tmp);
+            gridEl.append(...tmp.children);
+            return;
+          }
           const visible = filtered.slice(0, productsShown);
           gridEl.innerHTML = visible.map((p, idx) => buildProductCardHtml(p, idx)).join('');
-
-          if (loadMoreWrap) {
-            const remaining = filtered.length - productsShown;
-            loadMoreWrap.innerHTML = remaining > 0
-              ? `<button id="profile-load-more-btn" class="primary-button">Mostrar ${Math.min(remaining, PRODUCTS_PAGE_SIZE)} más</button>`
-              : '';
-            const loadMoreBtn = document.getElementById('profile-load-more-btn');
-            if (loadMoreBtn) {
-              loadMoreBtn.addEventListener('click', function() {
-                productsShown += PRODUCTS_PAGE_SIZE;
-                renderProductsGrid();
-              });
-            }
+          if (loadMoreWrap) loadMoreWrap.innerHTML = '';
+          if (window.znrScrollInfinito) {
+            scrollPerfil = scrollPerfil || window.znrScrollInfinito({
+              lista: gridEl, tarjetas: '#profile-products-grid > .profile-product-card',
+              hayMas: () => productsShown < getFilteredProducts().length,
+              cargarMas: async () => { productsShown += PRODUCTS_PAGE_SIZE; anexandoPerfil = true; try { renderProductsGrid(); } finally { anexandoPerfil = false; } },
+            });
+            scrollPerfil.reiniciar();
           }
 
           wireProductCardEvents(gridEl);
