@@ -362,6 +362,8 @@ weatherType: c === 'calor' ? 'calor' : (c === 'frio' || c.includes('nieve')) ? '
 temperature: classified.temperature,
 city: ciudad
 };
+window.znrClimaActual = { timeOfDay: classified.timeOfDay, condition: c }; // animación de fondo (clima-animado.js)
+window.dispatchEvent(new CustomEvent('znr:clima', { detail: window.znrClimaActual }));
 if (reordenar && allLooks.length > 0) {
 allLooks = sortLooksByWeather(allLooks);
 looks = [...allLooks];
