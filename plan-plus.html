@@ -264,6 +264,18 @@
 </div>
 
 <script>
+// Aviso con el diseño de la página (clases custom-alert de styles.css) en vez del alert/confirm del navegador.
+function ppDialogo(titulo, texto, cancelar) {
+  return new Promise((ok) => {
+    const m = document.createElement('div'); m.className = 'custom-alert-modal';
+    m.innerHTML = `<div class="custom-alert-content"><div class="custom-alert-header"><h3></h3></div><div class="custom-alert-body"><p></p></div><div class="custom-alert-footer">${cancelar ? `<button class="custom-alert-btn cancel">${cancelar}</button>` : ''}<button class="custom-alert-btn confirm">Aceptar</button></div></div>`;
+    m.querySelector('h3').textContent = titulo; m.querySelector('p').textContent = texto;
+    const cerrar = (v) => { m.classList.add('closing'); setTimeout(() => { m.remove(); ok(v); }, 150); };
+    m.querySelector('.confirm').onclick = () => cerrar(true);
+    m.onclick = (e) => { if (e.target === m || e.target.classList.contains('cancel')) cerrar(false); };
+    document.body.appendChild(m);
+  });
+}
 async function apiCall(data) {
   const API_BASE = "https://vendedores-api-1038143238323.us-central1.run.app";
   const params = new URLSearchParams();
@@ -396,7 +408,7 @@ function conectarSuscripcion(area, sol) {
     const reanudar = !!toggle.dataset.reanudar;
     const aviso = toggle.dataset.mp ? '¿Cancelar la renovación automática de Mercado Pago? Ya no se cobrará y tu plan sigue hasta su fecha de vencimiento.'
       : '¿Cancelar la renovación automática? Tu plan sigue hasta que termine el mes ya pagado.';
-    if (!reanudar && !confirm(aviso)) return;
+    if (!reanudar && !(await ppDialogo('Cancelar renovación', aviso, 'No, mantener'))) return;
     toggle.disabled = true; err.textContent = '';
     try {
       const r = await apiCall({ action: 'cancelarSuscripcionPlanPlus', reanudar, vendorToken: vendorSession.token });
@@ -522,13 +534,13 @@ async function solicitar() {
   try {
     const res = await apiCall({ action: 'solicitarPlanPlus', vendorToken: vendorSession.token });
     if (!res.ok) {
-      alert(res.error || 'No se pudo enviar la solicitud. Intenta de nuevo.');
+      ppDialogo('Aviso', res.error || 'No se pudo enviar la solicitud. Intenta de nuevo.');
       if (btn) { btn.disabled = false; btn.innerHTML = `${Icon('star')} Solicitar Plan Plus`; }
       return;
     }
     await cargar(true);
   } catch (e) {
-    alert('Error de red. Intenta de nuevo.');
+    ppDialogo('Aviso', 'Error de red. Intenta de nuevo.');
     if (btn) { btn.disabled = false; btn.innerHTML = `${Icon('star')} Solicitar Plan Plus`; }
   }
 }
