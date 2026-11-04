@@ -65,10 +65,10 @@ Usa montos chicos ($149 de Plus o ~$10) y reembolsa si no quieres conservarlos. 
 
 ### 3.3 Comunidad, Refugios, Banners e Inicio
 - [x] **R1** Comunidad → Filtros → categoría del catálogo Z&R: salen productos de Z&R (requiere C2).
-- [ ] **R2** Perfil de vendedor → **Ver contacto**: llamar / WhatsApp (antes "Error interno").
-- [ ] **R3** Refugios → **Donar artículo** con sesión de vendedor: abre la lista de productos.
-- [ ] **R4** Panel de vendedor → **Editar información** de la fundación con foto nueva → llega a CONTROL → Beneficiarios → Ediciones.
-- [ ] **R5** Cuenta con fundación aprobada: Refugios dice "Tu fundación" y no aparece al donar un producto.
+- [x] **R2** Perfil de vendedor → **Ver contacto**: llamar / WhatsApp (antes "Error interno").
+- [x] **R3** Refugios → **Donar artículo** con sesión de vendedor: abre la lista de productos.
+- [x] **R4** Panel de vendedor → **Editar información** de la fundación con foto nueva → llega a CONTROL → Beneficiarios → Ediciones.
+- [x] **R5** Cuenta con fundación aprobada: Refugios dice "Tu fundación" y no aparece al donar un producto.
 - [ ] **R6** Inicio: banners ("Inicio" / "Inicio y Comunidad" + automáticos) y vendedores destacados al azar.
 - [ ] **R7** Banner vencido muestra **"Renovar <año>"**; después ajustar con "Editar" las fechas móviles (Semana Santa, Día del Padre, Buen Fin…).
 - [ ] **R8** Banners creados antes de "Dónde mostrar" salen solo en Comunidad: editarlos si deben ir en Inicio.
@@ -96,7 +96,7 @@ Usa montos chicos ($149 de Plus o ~$10) y reembolsa si no quieres conservarlos. 
 - [ ] **T6** Modo avión: página "sin conexión" e imágenes caídas con placeholder.
 - [ ] **T7** "Elegir otra ciudad": salen ciudades chicas (Del Rio, Eagle Pass) en orden alfabético; editar vendedor/fundación con ciudad chica muestra estado y ciudad.
 - [ ] **T8** Seguimiento de entrega: cambiar de app y volver → se actualiza.
-- [ ] **T9** Correo opcional del vendedor (Ajustes → Seguridad): código de verificación, recuperar contraseña y cambiar número con el correo (requiere C5).
+- [x] **T9** Correo opcional del vendedor (Ajustes → Seguridad): código de verificación, recuperar contraseña y cambiar número con el correo (requiere C5).
 - [ ] **T10 Revisión general**: catálogo, historias, perfiles, pedidos, avisos push e inicio de sesión funcionan en el sitio y en CONTROL.
 
 ## 4. Seguridad (puede ser justo después del lanzamiento, en este orden)
