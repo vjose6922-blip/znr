@@ -74,14 +74,14 @@ Usa montos chicos ($149 de Plus o ~$10) y reembolsa si no quieres conservarlos. 
 - [ ] **R8** Banners creados antes de "Dónde mostrar" salen solo en Comunidad: editarlos si deben ir en Inicio.
 
 ### 3.4 Panel CONTROL
-- [ ] **K1** Notificaciones → Beneficiarios: contadores = Nuevas + Ediciones + Reportes; "Aprobados" lista los refugios.
-- [ ] **K2** Sesión en otro dispositivo: el panel anterior cierra sesión y el login muestra el aviso rojo.
-- [ ] **K3** Estadísticas de vendedor (Inicio y Herramientas): Activar/Quitar Plus, Ajustar días, Suspender y Eliminar exigen motivo y sale en `Audit.html` (requiere D2).
-- [ ] **K4** Cuentas existentes (Master): filtro por ciudad y lista a pantalla completa.
-- [ ] **K5** Chat de soporte: ventana completa y "Agregar personas" con buscador y varias a la vez.
-- [ ] **K6** Monitor de errores: ya no salen `showPanel is not defined`, CSP `connect-src` de firebaseio en `plan-plus.html`,
+- [x] **K1** Notificaciones → Beneficiarios: contadores = Nuevas + Ediciones + Reportes; "Aprobados" lista los refugios.
+- [x] **K2** Sesión en otro dispositivo: el panel anterior cierra sesión y el login muestra el aviso rojo.
+- [x] **K3** Estadísticas de vendedor (Inicio y Herramientas): Activar/Quitar Plus, Ajustar días, Suspender y Eliminar exigen motivo y sale en `Audit.html` (requiere D2).
+- [x] **K4** Cuentas existentes (Master): filtro por ciudad y lista a pantalla completa.
+- [x] **K5** Chat de soporte: ventana completa y "Agregar personas" con buscador y varias a la vez.
+- [x] **K6** Monitor de errores: ya no salen `showPanel is not defined`, CSP `connect-src` de firebaseio en `plan-plus.html`,
       `Cannot read properties of null (reading 'ok')` ni `Failed to fetch`. **"📋 Copiar errores"** copia o descarga `errores-znr.txt`.
-- [ ] **K7** Aviso de errores repetidos solo le llega a master.
+- [x] **K7** Aviso de errores repetidos solo le llega a master.
 
 ### 3.5 Mapas
 - [x] **M1** `entregas-live.html` → "Ver ruta completa": línea sólida por calles (punteada = error, ver logs de `live-api`).
