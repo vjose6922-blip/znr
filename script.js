@@ -1,7 +1,8 @@
 (function () {
 'use strict';
 let currentPageGlobal = 1;      // página actual (única fuente de verdad)
-const PRODUCTS_PER_PAGE = 10;   // límite de productos por página
+const PRODUCTS_PER_PAGE = 30;   // productos por tanda del scroll infinito
+let anexandoCatalogo = false, scrollCatalogo = null;
 let totalPagesGlobal = 1;
 let currentFilters = {};        // filtros activos para reutilizar en cambio de página
 let _suppressFilterEvents = false;
@@ -115,9 +116,6 @@ window.ConnectionMonitor.showOfflineBanner();
 showTemporaryMessage(' Modo offline - Mostrando catálogo guardado', 'info');
 }
 }
-window.addEventListener('beforeunload', () => {
-sessionStorage.setItem('index_scroll_position', window.scrollY);
-});
 function getGenderFromCategory(categoria) {
 if (!categoria) return null;
 const categoriaLower = String(categoria).toLowerCase().trim();
@@ -272,13 +270,7 @@ function _renderAfterLoad(products, meta) {
       totalPagesGlobal = meta.totalPages || 1;
       currentPageGlobal = meta.page || 1;
     }
-    // Scroll al top cuando cambia la página (excepto en la carga inicial)
-    if (meta && meta.page > 1) {
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    }
-
     renderProductsPage(true);
-    renderPagination();  
 
     updateFilterChips({
       searchValue: document.getElementById("search-input")?.value || '',
@@ -289,13 +281,6 @@ function _renderAfterLoad(products, meta) {
     });
 
     handleInitialHash();
-
-
-    const savedScroll = sessionStorage.getItem('index_scroll_position');
-    if (savedScroll && !initialHashHandled) {
-      setTimeout(() => window.scrollTo(0, parseInt(savedScroll)), 100);
-      sessionStorage.removeItem('index_scroll_position');
-    }
   } catch(err) {
     console.error('Error en _renderAfterLoad:', err);
     if (typeof showTemporaryMessage === 'function') showTemporaryMessage('❌ Error: ' + err.message, 'error');
@@ -506,7 +491,8 @@ if (typeof window.sortByUserSize === 'function' && filteredProducts.length) {
 const sorted = window.sortByUserSize(filteredProducts);
 if (sorted.some((p, i) => p !== filteredProducts[i])) filteredProducts = sorted;
 }
-// Los productos ya vienen paginados desde el backend — renderizamos todos
+// Siguiente tanda del scroll infinito: se agrega al final.
+if (anexandoCatalogo) { filteredProducts.forEach((p) => container.appendChild(createProductCard(p))); startGlobalSliderInterval(); return; }
 container.innerHTML = "";
 if (filteredProducts.length === 0) {
 container.innerHTML = '<p class="helper-text">No hay productos para mostrar</p>';
@@ -520,60 +506,20 @@ container.appendChild(card);
 renderPagination();
 startGlobalSliderInterval();
 }
+// Scroll infinito (scroll-infinito.js) en lugar de botones de página; cada carga desde cero lo reinicia.
 function renderPagination() {
-  const pagination = document.getElementById("pagination");
-  if (!pagination) return;
-
-  const totalPages = totalPagesGlobal || 1;
-  const currentPage = currentPageGlobal || 1;
-
-  pagination.innerHTML = "";
-
-  if (totalPages <= 1) {
-    pagination.style.display = 'none';
-    return;
-  }
-  pagination.style.display = 'flex';
-
-  // Botón Anterior
-  if (currentPageGlobal > 1) {
-    const prevBtn = document.createElement("button");
-    prevBtn.innerHTML = Icon('arrow-left') + "";
-    prevBtn.onclick = () => {
-      fetchProducts(false, currentPageGlobal - 1, currentFilters);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    };
-    pagination.appendChild(prevBtn);
-  }
-
-  // Números de página (máximo 5 a la vista)
-  let startPage = Math.max(1, currentPageGlobal - 2);
-  let endPage = Math.min(totalPages, startPage + 4);
-  if (endPage - startPage < 4 && startPage > 1) startPage = Math.max(1, endPage - 4);
-
-  for (let i = startPage; i <= endPage; i++) {
-    const btn = document.createElement("button");
-    btn.textContent = i;
-    if (i === currentPageGlobal) btn.classList.add("active-page");
-    btn.onclick = (function(p) {
-      return function() {
-        fetchProducts(false, p, currentFilters);
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-      };
-    })(i);
-    pagination.appendChild(btn);
-  }
-
-  // Botón Siguiente
-  if (currentPageGlobal < totalPages) {
-    const nextBtn = document.createElement("button");
-    nextBtn.innerHTML = "" + Icon('arrow-right');
-    nextBtn.onclick = () => {
-      fetchProducts(false, currentPageGlobal + 1, currentFilters);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    };
-    pagination.appendChild(nextBtn);
-  }
+  const pagination = document.getElementById("pagination"), container = document.getElementById("products-container");
+  if (pagination) pagination.style.display = 'none';
+  if (!window.znrScrollInfinito || !container) return;
+  scrollCatalogo = scrollCatalogo || window.znrScrollInfinito({
+    lista: container, tarjetas: '#products-container > .product-card',
+    hayMas: () => currentPageGlobal < totalPagesGlobal,
+    cargarMas: async () => {
+      anexandoCatalogo = true;
+      try { await fetchProducts(false, currentPageGlobal + 1, currentFilters); } finally { anexandoCatalogo = false; }
+    },
+  });
+  if (!anexandoCatalogo) scrollCatalogo.reiniciar();
 }
 
 

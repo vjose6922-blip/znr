@@ -115,6 +115,7 @@ console.warn(' showTemporaryMessage no definida');
 }
 const PAGE_SIZE = 30;             // productos por página (con 3 carruseles intercalados en la 1ª)
 let allCommunityProducts = [];    // productos de
+let anexando = false, mostradosComunidad = [], scrollComunidad = null; // scroll infinito
 let filteredProducts = [];        // alias de allComm000
 let currentPage = 1;              // página actual
 let totalPagesGlobal = 1;         // total de páginas devuelto por el backend
@@ -281,7 +282,7 @@ async function loadComunidadPageInspector(page, filters, opts = {}) {
       if (gridContainer) showSkeletonComunidad(gridContainer, 6);
       if (typeof window.showLoader === 'function') window.showLoader('Cargando comunidad...');
     }
-  } else if (opts.isPageChange) {
+  } else if (opts.isPageChange && !anexando) {
     if (gridContainer) showSkeletonComunidad(gridContainer, PAGE_SIZE);
   }
 
@@ -546,7 +547,7 @@ async function loadComunidadPageAlgolia(page, filters, opts = {}) {
       if (gridContainer) showSkeletonComunidad(gridContainer, 6);
       if (typeof window.showLoader === 'function') window.showLoader('Cargando comunidad...');
     }
-  } else if (opts.isPageChange) {
+  } else if (opts.isPageChange && !anexando) {
     if (gridContainer) showSkeletonComunidad(gridContainer, PAGE_SIZE);
   }
 
@@ -1106,6 +1107,15 @@ try {
   // Los productos ya vienen paginados desde el backend — renderizamos todo el array,
   // ocultando los que ya no tienen stock disponible.
   const visibles = filteredProducts.filter(p => Number(stockVivo(p) || 0) > 0);
+  if (anexando) { // siguiente tanda del scroll infinito: se agrega al final, sin carruseles
+    mostradosComunidad = mostradosComunidad.concat(visibles);
+    window.allCommunityProductsIndexed = mostradosComunidad;
+    visibles.forEach(product => { const card = createCommunityCard(product); if (card) gridContainer.appendChild(card); });
+    initLazyImages();
+    return;
+  }
+  mostradosComunidad = visibles;
+  window.allCommunityProductsIndexed = visibles;
   if (visibles.length === 0) {
     gridContainer.innerHTML = `<div style="grid-column:1/-1; text-align:center; padding:40px;">No hay productos que coincidan con los filtros.</div>`;
     renderPagination();
@@ -1159,7 +1169,7 @@ window.restaurarBusquedaNormalComunidad = function () {
 // Busca el producto compartido en cualquiera de los arreglos que ya
 // tengamos en memoria (no depende del grid ni de en qué página quedó).
 function buscarProductoComunidadPorId(id) {
-  const fuentes = [communityRandomOrder, allCommunityProducts, filteredProducts];
+  const fuentes = [communityRandomOrder, mostradosComunidad, allCommunityProducts, filteredProducts];
   for (const arr of fuentes) {
     if (!Array.isArray(arr)) continue;
     const p = arr.find(x => String(x.id) === String(id));
@@ -1530,49 +1540,19 @@ console.error('Error creando tarjeta para producto', product.id, err);
 return null;
 }
 }
+// Scroll infinito (scroll-infinito.js): reemplaza los botones de página; cada carga desde cero lo reinicia.
 function renderPagination() {
-  if (!paginationDiv) return;
-  const totalPages = totalPagesGlobal || 1;
-  paginationDiv.innerHTML = '';
-  if (totalPages <= 1) { paginationDiv.style.display = 'none'; return; }
-  paginationDiv.style.display = 'flex';
-
-  // Botón Anterior
-  if (currentPage > 1) {
-    const prevBtn = document.createElement('button');
-    prevBtn.innerHTML = Icon('arrow-left') + '';
-    prevBtn.onclick = () => {
-      loadComunidadPage(currentPage - 1, currentFilters, { isPageChange: true });
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    };
-    paginationDiv.appendChild(prevBtn);
-  }
-
-  // Números de página (máximo 5 visibles)
-  let startPage = Math.max(1, currentPage - 2);
-  let endPage   = Math.min(totalPages, startPage + 4);
-  if (endPage - startPage < 4 && startPage > 1) startPage = Math.max(1, endPage - 4);
-  for (let i = startPage; i <= endPage; i++) {
-    const btn = document.createElement('button');
-    btn.textContent = i;
-    if (i === currentPage) btn.classList.add('active-page');
-    btn.onclick = (function(p) { return function() {
-      loadComunidadPage(p, currentFilters, { isPageChange: true });
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    }; })(i);
-    paginationDiv.appendChild(btn);
-  }
-
-  // Botón Siguiente
-  if (currentPage < totalPages) {
-    const nextBtn = document.createElement('button');
-    nextBtn.innerHTML = '' + Icon('arrow-right');
-    nextBtn.onclick = () => {
-      loadComunidadPage(currentPage + 1, currentFilters, { isPageChange: true });
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    };
-    paginationDiv.appendChild(nextBtn);
-  }
+  if (paginationDiv) paginationDiv.style.display = 'none';
+  if (!window.znrScrollInfinito || !gridContainer) return;
+  scrollComunidad = scrollComunidad || window.znrScrollInfinito({
+    lista: gridContainer, tarjetas: '#comunidad-grid > .product-card',
+    hayMas: () => currentPage < totalPagesGlobal,
+    cargarMas: async () => {
+      anexando = true;
+      try { await loadComunidadPage(currentPage + 1, currentFilters, { isPageChange: true }); } finally { anexando = false; }
+    },
+  });
+  if (!anexando) scrollComunidad.reiniciar();
 }
 function initLazyImages() {
 if (!('IntersectionObserver' in window)) return;
