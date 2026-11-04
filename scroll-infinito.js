@@ -1,6 +1,7 @@
 // Scroll infinito compartido (Catálogo, Comunidad y Perfil de vendedor): carga la siguiente tanda al acercarse al final.
 // Cada `tope` tarjetas pide "Ver más" (así se alcanza el pie de página) y al volver atrás restaura las tandas y la posición.
 // Uso: const si = znrScrollInfinito({ lista, tarjetas, hayMas, cargarMas }); tras pintar desde cero, si.reiniciar().
+// cargarMas puede devolver true/false (avanzó o no): con true sigue aunque la tanda no agregue tarjetas (p. ej. todo agotado).
 window.znrScrollInfinito = function ({ lista, tarjetas, hayMas, cargarMas, tope = 150 }) {
   const clave = 'znr_si_' + location.pathname + location.search, contar = () => lista.querySelectorAll(tarjetas).length;
   const st = document.createElement('style');
@@ -25,9 +26,10 @@ window.znrScrollInfinito = function ({ lista, tarjetas, hayMas, cargarMas, tope 
     if (ocupado || !hayMas() || atascado || contar() >= limite) return pintar();
     const antes = contar();
     ocupado = true; pintar();
-    try { await cargarMas(); tandas++; } catch (e) { console.warn('scroll infinito:', e); }
+    let avanzo = false;
+    try { avanzo = await cargarMas(); tandas++; } catch (e) { console.warn('scroll infinito:', e); }
     ocupado = false;
-    atascado = contar() === antes && hayMas(); // no llegó nada: se deja el botón para no reintentar en bucle
+    atascado = avanzo !== true && contar() === antes && hayMas(); // no avanzó: se deja el botón para no reintentar en bucle
     pintar();
     if (cerca() && !atascado) siguiente();
   }
@@ -43,7 +45,7 @@ window.znrScrollInfinito = function ({ lista, tarjetas, hayMas, cargarMas, tope 
       if (r) restaurar = null;
       if (r && r.tandas) {
         limite = Infinity;
-        while (tandas < r.tandas && hayMas()) { const n = contar(); await cargarMas(); tandas++; if (contar() === n) break; }
+        while (tandas < r.tandas && hayMas()) { const n = contar(); const ok = await cargarMas(); tandas++; if (ok !== true && contar() === n) break; }
         limite = Math.max(tope, contar());
         requestAnimationFrame(() => scrollTo(0, r.y));
       } else if (r) requestAnimationFrame(() => scrollTo(0, r.y));

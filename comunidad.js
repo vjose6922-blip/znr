@@ -459,7 +459,7 @@ async function asegurarCatalogoBase() {
           communityRandomOrder = construirOrdenAleatorioComunidad(searchResult.hits || []);
         }
         // Filtra al catálogo de la ciudad del comprador (el feed de ciudad ya viene filtrado).
-        communityRandomOrder = communityRandomOrder.filter((p) => p.ciudad === miCiudad);
+        communityRandomOrder = mismoOrdenAlRegresar(communityRandomOrder.filter((p) => p.ciudad === miCiudad));
         window.communityRandomOrder = communityRandomOrder;
   return communityRandomOrder;
 }
@@ -499,6 +499,18 @@ function construirOrdenAleatorioComunidad(hits) {
 
 const CATALOGO_SNAPSHOT_URL = 'https://znr-live-default-rtdb.firebaseio.com/catalogo/snapshot.json';
 const CATALOGO_SNAPSHOT_MAX_AGE_MS = 10 * 60 * 1000; // 2x el refresh (5 min); más viejo = el trigger probablemente murió
+
+// El orden es aleatorio en cada visita; al volver con "atrás" se reutiliza el mismo para que el scroll
+// infinito recupere los mismos artículos en el mismo lugar.
+function mismoOrdenAlRegresar(lista) {
+  try {
+    const nav = performance.getEntriesByType('navigation')[0], k = 'znr_orden_comunidad';
+    const prev = nav && nav.type === 'back_forward' && JSON.parse(sessionStorage.getItem(k) || 'null');
+    if (prev) { const pos = new Map(prev.map((id, i) => [String(id), i])); lista = [...lista].sort((a, b) => (pos.get(String(a.id)) ?? 1e9) - (pos.get(String(b.id)) ?? 1e9)); }
+    sessionStorage.setItem(k, JSON.stringify(lista.map((p) => p.id)));
+  } catch (_) {}
+  return lista;
+}
 
 async function intentarCatalogoDesdeSnapshot(ciudad) {
   // Primero el feed de la ciudad del comprador; si no existe, el global (se filtra por ciudad después).
@@ -1547,9 +1559,12 @@ function renderPagination() {
   scrollComunidad = scrollComunidad || window.znrScrollInfinito({
     lista: gridContainer, tarjetas: '#comunidad-grid > .product-card',
     hayMas: () => currentPage < totalPagesGlobal,
-    cargarMas: async () => {
+    cargarMas: async () => { // devuelve si avanzó de página (una tanda toda agotada no agrega tarjetas, pero sí avanza)
+      for (let i = 0; isLoading && i < 60; i++) await new Promise((r) => setTimeout(r, 150)); // otra carga en curso: esperar (máx. 9 s)
+      const antes = currentPage;
       anexando = true;
       try { await loadComunidadPage(currentPage + 1, currentFilters, { isPageChange: true }); } finally { anexando = false; }
+      return currentPage > antes;
     },
   });
   if (!anexando) scrollComunidad.reiniciar();
