@@ -934,12 +934,12 @@
         if (!btn) return;
         const tel = await window.asegurarComprador('Para ver el contacto del vendedor');
         if (!tel) return;
-        btn.disabled = true;
+        btn.disabled = true; btn.textContent = 'Cargando contacto…'; btn.setAttribute('aria-busy', 'true');
         const r = await fetch(window.VENDEDORES_API_URL, {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ action: 'obtenerContactoVendedor', vendedorUid: getVendorUid(), telefono: tel, compradorToken: localStorage.getItem('comprador_token') || '' })
         }).then(x => x.json()).catch(() => ({}));
-        if (!r.ok) { btn.disabled = false; showTemporaryMessage(r.error || 'No se pudo cargar el contacto. Intenta de nuevo.', 'error'); return; }
+        if (!r.ok) { btn.disabled = false; btn.textContent = 'Ver contacto'; btn.removeAttribute('aria-busy'); showTemporaryMessage(r.error || 'No se pudo cargar el contacto. Intenta de nuevo.', 'error'); return; }
         const hola = encodeURIComponent('Hola ' + (btn.dataset.nombre || '') + ', vi tu perfil en Z&R y me interesan tus productos.');
         btn.outerHTML = `<a href="tel:+52${esc(r.telefono)}" class="profile-meta-item">Llamar · ${esc(r.telefono)}</a>` +
           `<a href="https://wa.me/52${esc(r.whatsapp)}?text=${hola}" target="_blank" rel="noopener" class="profile-meta-item">Enviar mensaje</a>`;
