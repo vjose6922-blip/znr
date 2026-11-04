@@ -99,6 +99,8 @@ const WEATHER_IMAGES = new Set([
 'nieve',
 ]);
 const getImageUrl = (nombre) => `img/clima/${nombre}.webp?v=${CLIMA_V}`;
+// Pestaña "Clima" de znr-devconsole: ver cualquier fondo y volver al clima real.
+window.znrClima = { nombres: [...WEATHER_IMAGES], url: getImageUrl, probar: (n) => updateLooksNavBackground(getImageUrl(n)), real: () => initWeatherAndBackground() };
 function classifyTimeOfDay(hour) {
 if (hour >= 5 && hour < 8) return 'amanecer';
 if (hour >= 8 && hour < 12) return 'dia';

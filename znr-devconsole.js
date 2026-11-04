@@ -414,6 +414,7 @@
         '<button class="znr-tab" data-tab="info">Info</button>' +
         '<button class="znr-tab" data-tab="repl">REPL</button>' +
         '<button class="znr-tab" data-tab="ciudad">Ciudad</button>' +
+        '<button class="znr-tab" data-tab="clima">Clima</button>' +
         '<input class="znr-filter" id="znr-dc-search" placeholder="filtrar…" style="width:120px;">' +
         '<div class="znr-spacer"></div>' +
         '<button class="znr-btn-mini" id="znr-dc-clear">Limpiar</button>' +
@@ -515,6 +516,19 @@
     else if (currentTab === "info") renderInfo();
     else if (currentTab === "repl") renderRepl();
     else if (currentTab === "ciudad") renderCiudad();
+    else if (currentTab === "clima") renderClima();
+  }
+
+  // ---------- Clima: probar los fondos de img/clima (looks.js) ----------
+  function renderClima() {
+    var body = document.getElementById("znr-dc-body"), c = window.znrClima;
+    if (!c) { body.innerHTML = '<div class="znr-empty">Solo en Inicio y Outfit (looks.js aún no carga: baja hasta la sección de looks).</div>'; return; }
+    body.innerHTML = '<div class="znr-card"><button class="znr-btn-mini" id="znr-dc-clima-real">Volver al clima real</button> <span id="znr-dc-clima-sel" style="color:#f39c12"></span></div>' +
+      c.nombres.map(function (n) { return '<div class="znr-card znr-clima" data-n="' + n + '" style="cursor:pointer;padding:4px"><img src="' + c.url(n) + '" style="width:100%;height:40px;object-fit:cover;border-radius:4px;display:block"><span>' + n + '</span></div>'; }).join("");
+    body.querySelectorAll(".znr-clima").forEach(function (el) {
+      el.addEventListener("click", function () { c.probar(el.dataset.n); document.getElementById("znr-dc-clima-sel").textContent = "Mostrando: " + el.dataset.n; });
+    });
+    document.getElementById("znr-dc-clima-real").addEventListener("click", function () { c.real(); document.getElementById("znr-dc-clima-sel").textContent = ""; });
   }
 
   function getFilter() {
