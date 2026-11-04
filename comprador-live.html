@@ -185,13 +185,15 @@
   /* Debajo del video (info, producto, chat) es contenido normal que
      se desplaza libremente. */
 
+  /* --vv-alto / --vv-arriba: la parte visible de la pantalla cuando abre el teclado (ver ajuste al teclado en el script) */
   .identity-overlay {
-    position: fixed; inset: 0; background: rgba(0,0,0,.7);
+    position: fixed; left: 0; right: 0; top: var(--vv-arriba, 0); height: var(--vv-alto, 100%); background: rgba(0,0,0,.7);
     display: flex; align-items: flex-end; z-index: var(--z-modal, 300);
   }
   .identity-sheet {
     background: var(--color-surface); border-radius: 20px 20px 0 0;
-    padding: 20px; width: 100%; box-sizing: border-box;
+    padding: 20px 20px calc(20px + env(safe-area-inset-bottom, 0px)); width: 100%; box-sizing: border-box;
+    max-height: 100%; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch;
   }
   .identity-sheet h2 { margin: 0 0 6px; color: var(--color-text-primary); font-size: 17px; }
   .identity-sheet p { margin: 0 0 16px; font-size: 13px; color: var(--color-text-soft); }
@@ -841,6 +843,19 @@ function renderScheduledWait() {
     </div>`;
 }
 
+// ── Formularios con teclado: el fondo se ajusta a la parte visible de la pantalla (en iPhone el teclado
+// tapa sin achicar la página) y el campo que se toca se centra, para no escribir a ciegas. ──
+(function ajusteTeclado() {
+  const vv = window.visualViewport, raiz = document.documentElement.style;
+  if (vv) {
+    const medir = () => { raiz.setProperty('--vv-alto', vv.height + 'px'); raiz.setProperty('--vv-arriba', vv.offsetTop + 'px'); };
+    vv.addEventListener('resize', medir); vv.addEventListener('scroll', medir); medir();
+  }
+  document.addEventListener('focusin', (e) => {
+    if (e.target.matches('input, textarea, select') && e.target.closest('.identity-overlay')) setTimeout(() => e.target.scrollIntoView({ block: 'center' }), 300);
+  });
+})();
+
 // ── Identidad del comprador (nombre + teléfono, se guarda local) ──
 function getIdentity() {
   try {
@@ -1457,11 +1472,10 @@ async function init() {
     catch (e) { return null; }
   })();
   if (!vendorToken) { renderRequiereVendedor(); return; }
-  let vendorNombre = '', vendorTelefono = '';
+  let vendorTelefono = '';
   try {
     const sesionVendedor = await apiFetch({ action: 'verificarSesionVendedor', vendorToken }, 'POST');
     if (!sesionVendedor.ok) { renderRequiereVendedor(); return; }
-    vendorNombre = sesionVendedor.nombre || '';
     vendorTelefono = sesionVendedor.telefono || '';
     vendorTokenCLive = vendorToken;
     vendorTelCLive = String(vendorTelefono).replace(/\D/g, '');
@@ -1470,13 +1484,11 @@ async function init() {
     return;
   }
 
-  identity = getIdentity();
-  // Ya verificamos que es una cuenta real — si todavía no había llenado el
-  // sheet de "Únete al chat" en este navegador, le ahorramos escribir de
-  // nuevo lo que ya sabemos de su cuenta de vendedor.
-  if (!identity) identity = {};
-  if (!identity.nombre && vendorNombre) identity.nombre = vendorNombre;
-  if (!identity.telefono && vendorTelefono) identity.telefono = vendorTelefono;
+  // Datos del formulario: solo los del comprador con sesión (client_phone + comprador_token). Lo guardado de
+  // otro número (p. ej. la cuenta de vendedor o un comprador anterior) no se usa, ni el nombre de la cuenta de vendedor.
+  const telComprador = localStorage.getItem('comprador_token') ? (localStorage.getItem('client_phone') || '').replace(/\D/g, '') : '';
+  identity = getIdentity() || {};
+  if (String(identity.telefono || '').replace(/\D/g, '') !== telComprador) identity = telComprador ? { telefono: telComprador } : {};
   await authReady; // esperar a que Firebase asigne el uid anónimo antes de leer/escribir RTDB
 
   try {
