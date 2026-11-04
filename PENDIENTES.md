@@ -124,7 +124,7 @@ Usa montos chicos ($149 de Plus o ~$10) y reembolsa si no quieres conservarlos. 
 ## 5. Después del lanzamiento (mejoras e ideas)
 - [x] **F1 Tráfico real en mapas** (znr-backend#40, fusionado; probar con M1 y revisar consumo de Mapbox): rama `claude/admiring-cannon-rz50he` (commit `d341ff4`:
       `driving-traffic` y caché de 5 min) y unirlo.
-- [ ] **F2 Fondos del clima fuera de Google Drive**: `looks.js` carga 34 fondos por id (`WEATHER_IMAGES`, `lh3`). Subirlos a
+- [x] **F2 Fondos del clima fuera de Google Drive**: `looks.js` carga 34 fondos por id (`WEATHER_IMAGES`, `lh3`). Subirlos a
       Storage o `img/clima/*.webp`, cambiar `getImageUrl` y quitar `lh3` de la CSP y del service worker.
 - [x] **F10 Chats de lives sin reporte**: la limpieza de 12 h (`limpiarGrabacionesLive`) borra `chats`, `presencia` y
       `faq_enfriamiento` del live si no tiene reportes (znr-backend). Los de lives anteriores a este cambio no se borran solos.
