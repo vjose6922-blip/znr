@@ -526,7 +526,7 @@
     body.innerHTML = '<div class="znr-card"><button class="znr-btn-mini" id="znr-dc-clima-real">Volver al clima real</button> <span id="znr-dc-clima-sel" style="color:#f39c12"></span></div>' +
       c.nombres.map(function (n) { return '<div class="znr-card znr-clima" data-n="' + n + '" style="cursor:pointer;padding:4px"><img src="' + c.url(n) + '" style="width:100%;height:40px;object-fit:cover;border-radius:4px;display:block"><span>' + n + '</span></div>'; }).join("");
     body.querySelectorAll(".znr-clima").forEach(function (el) {
-      el.addEventListener("click", function () { c.probar(el.dataset.n); document.getElementById("znr-dc-clima-sel").textContent = "Mostrando: " + el.dataset.n; });
+      el.addEventListener("click", function () { document.getElementById("znr-dc-clima-sel").textContent = "Mostrando: " + el.dataset.n + " · prendas de clima " + c.probar(el.dataset.n); });
     });
     document.getElementById("znr-dc-clima-real").addEventListener("click", function () { c.real(); document.getElementById("znr-dc-clima-sel").textContent = ""; });
   }

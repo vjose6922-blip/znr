@@ -100,7 +100,13 @@ const WEATHER_IMAGES = new Set([
 ]);
 const getImageUrl = (nombre) => `img/clima/${nombre}.webp?v=${CLIMA_V}`;
 // Pestaña "Clima" de znr-devconsole: ver cualquier fondo y volver al clima real.
-window.znrClima = { nombres: [...WEATHER_IMAGES], url: getImageUrl, probar: (n) => updateLooksNavBackground(getImageUrl(n)), real: () => initWeatherAndBackground() };
+window.znrClima = { nombres: [...WEATHER_IMAGES], url: getImageUrl,
+  probar: (n) => { // "noche_tormenta" → hora "noche" + clima "tormenta"; aplica fondo y prendas de ese clima
+    const [h, ...r] = n.split('_'), hora = ['amanecer', 'dia', 'tarde', 'atardecer', 'noche'].includes(h);
+    aplicarClima({ timeOfDay: hora ? h : 'dia', condition: (hora ? r.join('_') : n) || 'despejado', temperature: currentWeather && currentWeather.temperature }, currentWeather && currentWeather.city, true, getImageUrl(n));
+    return currentWeather.weatherType;
+  },
+  real: () => { _refrescoPorCiudad = true; initWeatherAndBackground(); } };
 function classifyTimeOfDay(hour) {
 if (hour >= 5 && hour < 8) return 'amanecer';
 if (hour >= 8 && hour < 12) return 'dia';
@@ -183,6 +189,8 @@ function updateLooksNavBackground(imageUrl) {
     const img = new Image();
     img.onload = () => {
       looksNav.style.backgroundImage = `url('${imageUrl}')`;
+      looksNav.style.backgroundSize = 'cover'; // la regla `background:` de styles.css lo dejaba a tamaño real (recortado)
+      looksNav.style.backgroundPosition = 'center';
       looksNav.classList.remove('default-bg');
       looksNav.classList.remove('fallback-bg');
     };
@@ -334,37 +342,27 @@ await initWeatherAndBackground();
 console.warn(' Se agotaron los reintentos de clima. Usando valores estimados.');
 weatherRetryCount = 0;
 weatherRetryTimer = null;
-const classified = classifyWeather(null);
-updateWeatherWidgetUI(classified);
-updateLooksNavBackground(selectBackgroundImage(classified));
-const c = classified.condition;
-currentWeather = {
-weatherType: (c === 'calor' ? 'calor' : (c === 'frio' ? 'frio' : (c.includes('lluvia') || c.includes('tormenta') ? 'lluvioso' : 'templado'))),
-temperature: classified.temperature,
-city: ubicacion.ciudad
-};
-if (allLooks.length > 0) {
-allLooks = sortLooksByWeather(allLooks);
-looks = [...allLooks];
-renderLooks();
-}
+aplicarClima(classifyWeather(null), ubicacion.ciudad, true);
 }
 return;
 }
 const isRetrySuccess = weatherRetryCount > 0;
 weatherRetryCount = 0;
 if (weatherRetryTimer) { clearTimeout(weatherRetryTimer); weatherRetryTimer = null; }
-const classified = classifyWeather(weatherData);
+aplicarClima(classifyWeather(weatherData), ubicacion.ciudad, isRetrySuccess || _refrescoPorCiudad);
+_refrescoPorCiudad = false;
+}
+// Fondo, tipo de clima (calor / frio / lluvioso / templado) y orden de los looks. `fondo` fuerza una imagen (pestaña Clima de la consola).
+function aplicarClima(classified, ciudad, reordenar, fondo) {
 updateWeatherWidgetUI(classified);
-updateLooksNavBackground(selectBackgroundImage(classified));
+updateLooksNavBackground(fondo || selectBackgroundImage(classified));
 const c = classified.condition;
 currentWeather = {
-weatherType: (c === 'calor' ? 'calor' : (c === 'frio' ? 'frio' : (c.includes('lluvia') || c.includes('tormenta') ? 'lluvioso' : 'templado'))),
+weatherType: c === 'calor' ? 'calor' : (c === 'frio' || c.includes('nieve')) ? 'frio' : /lluvia|tormenta/.test(c) ? 'lluvioso' : 'templado',
 temperature: classified.temperature,
-city: ubicacion.ciudad
+city: ciudad
 };
-if ((isRetrySuccess || _refrescoPorCiudad) && allLooks.length > 0) {
-_refrescoPorCiudad = false;
+if (reordenar && allLooks.length > 0) {
 allLooks = sortLooksByWeather(allLooks);
 looks = [...allLooks];
 renderLooks();
