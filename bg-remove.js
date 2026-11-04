@@ -55,7 +55,13 @@
     ort.env.wasm.wasmPaths = ORT_WASM_PATH;
     ort.env.wasm.numThreads = 1;
     avance(0, 'Cargando modelo (la 1.ª vez tarda más)…');
-    var r = await fetch(MODEL_URL);
+    // GitHub Pages a veces responde 503 un momento (p. ej. mientras publica): se reintenta 2 veces antes de rendirse.
+    var r;
+    for (var intento = 0; intento < 3; intento++) {
+      if (intento) await new Promise(function (ok) { setTimeout(ok, intento * 1000); });
+      r = await fetch(MODEL_URL + (intento ? '?r=' + intento : '')).catch(function () { return { ok: false, status: 0 }; });
+      if (r.ok || (r.status && r.status < 500)) break;
+    }
     if (!r.ok) throw new Error('No se encontró ' + MODEL_URL + ' (HTTP ' + r.status + ').');
     var buf = await r.arrayBuffer();
     if (buf.byteLength < 1000000) throw new Error('El archivo del modelo es inválido.');
