@@ -741,7 +741,6 @@ const currentLooks = sortLooksByWeather([...allBuiltLooks]);
 allLooks = currentLooks;
 looks = [...allLooks];
 renderLooks();
-initLazyImagesAfterRender();
 }
 if (currentIndex < LOOKS_CONFIG.length) {
 setTimeout(processBatch, 50);
@@ -750,7 +749,6 @@ saveLooksToCacheOptimized(allBuiltLooks);
 allLooks = sortLooksByWeather(allBuiltLooks);
 looks = [...allLooks];
 renderLooks();
-initLazyImagesAfterRender();
 preloadAdjacentPages();
 const endTime = performance.now();
 resolve();
@@ -951,6 +949,7 @@ container.appendChild(fragment);
 renderLooksPagination(totalPages);
 preloadAdjacentPages();
 checkSharedOutfitHash();
+initLazyImagesAfterRender(); // las fotos de las tarjetas se cargan al acercarse (sin esto quedan en blanco)
 }
 
 // Modal de outfit compartido: guarda los IDs reales de los productos
@@ -1023,7 +1022,6 @@ if (currentLooksPage > 1) {
 const prevBtn = createPaginationButton("←", () => {
 currentLooksPage--;
 renderLooks();
-initLazyImagesAfterRender();
 window.scrollTo({ top: 0, behavior: 'smooth' });
 });
 paginationDiv.appendChild(prevBtn);
@@ -1032,7 +1030,6 @@ for (let i = startPage; i <= endPage; i++) {
 const pageBtn = createPaginationButton(i.toString(), () => {
 currentLooksPage = i;
 renderLooks();
-initLazyImagesAfterRender();
 window.scrollTo({ top: 0, behavior: 'smooth' });
 });
 if (i === currentLooksPage) pageBtn.classList.add("active-page");
@@ -1042,7 +1039,6 @@ if (currentLooksPage < totalPages) {
 const nextBtn = createPaginationButton("→", () => {
 currentLooksPage++;
 renderLooks();
-initLazyImagesAfterRender();
 window.scrollTo({ top: 0, behavior: 'smooth' });
 });
 paginationDiv.appendChild(nextBtn);
@@ -1324,7 +1320,6 @@ sessionStorage.removeItem("looks_scroll_position");
 const renderInitialLooks = () => {
 setTimeout(() => {
 renderLooks();
-initLazyImagesAfterRender();
 preloadAdjacentPages();
 hideSkeletonLooks();
 }, 50);
