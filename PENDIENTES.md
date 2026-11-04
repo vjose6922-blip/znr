@@ -69,9 +69,9 @@ Usa montos chicos ($149 de Plus o ~$10) y reembolsa si no quieres conservarlos. 
 - [x] **R3** Refugios → **Donar artículo** con sesión de vendedor: abre la lista de productos.
 - [x] **R4** Panel de vendedor → **Editar información** de la fundación con foto nueva → llega a CONTROL → Beneficiarios → Ediciones.
 - [x] **R5** Cuenta con fundación aprobada: Refugios dice "Tu fundación" y no aparece al donar un producto.
-- [ ] **R6** Inicio: banners ("Inicio" / "Inicio y Comunidad" + automáticos) y vendedores destacados al azar.
-- [ ] **R7** Banner vencido muestra **"Renovar <año>"**; después ajustar con "Editar" las fechas móviles (Semana Santa, Día del Padre, Buen Fin…).
-- [ ] **R8** Banners creados antes de "Dónde mostrar" salen solo en Comunidad: editarlos si deben ir en Inicio.
+- [x] **R6** Inicio: banners ("Inicio" / "Inicio y Comunidad" + automáticos) y vendedores destacados al azar.
+- [x] **R7** Banner vencido muestra **"Renovar <año>"**; después ajustar con "Editar" las fechas móviles (Semana Santa, Día del Padre, Buen Fin…).
+- [x] **R8** Banners creados antes de "Dónde mostrar" salen solo en Comunidad: editarlos si deben ir en Inicio.
 
 ### 3.4 Panel CONTROL
 - [x] **K1** Notificaciones → Beneficiarios: contadores = Nuevas + Ediciones + Reportes; "Aprobados" lista los refugios.
