@@ -60,50 +60,45 @@ function loadImageWithRetry(imgEl, url, attempt = 0) {
   };
   probe.src = url;
 }
-const WEATHER_IMAGES = {
-'amanecer_aguanieve': '1nhMnXB76Y4iWrP9LXoKZt0UbIw9_xwlO',
-'amanecer_lluvia_ligera': '1U8Clnj-ub65qX5RiuVb928MGJGvLUDY-',
-'amanecer_lluvia': '1GRFUjoe1lV8yOj_f04_xXA-B1rScCkzp',
-'amanecer_nublado_parcial': '1Xmi9084iduw7KotQa_CHQAHPXW0kfTxK',
-'amanecer_nublado': '1Nsmbk5ZfxCgsnjAAXb8cDkajnI4LLtoa',
-'amanecer_nieve': '1jrl3QNGjquK3znKmv7aqzZ9eirbV5XCS',
-'atardecer_nublado_parcial': '1HhTVJBbrZGMDQrJGW7_a9Wsqs_aqZojm',
-'atardecer_nublado': '1i7FpkNS22Lo2B9gO3PZigCYSqn66c7e8',
-'atardecer': '1vsbL1ecVHapE_i6IFetayLnQE0JKtYQ6',
-'dia_calor': '1LIjulG9gfJI7gH97rvYsSXlbdQpa25QZ',
-'dia_frio': '1xmZlWh7kUGszRImJY5aOtx4GdPmXFrL6',
-'dia_lluvia_fuerte': '1RZmReM6hkm6E4GSKvx68_1ogXvL_mKz8',
-'dia_lluvia': '1RZmReM6hkm6E4GSKvx68_1ogXvL_mKz8',
-'dia_nublado_con_lluvia': '1RZmReM6hkm6E4GSKvx68_1ogXvL_mKz8',
-'dia_nublado_parcial': '1ANwRMoStv_mdgCoXI9sdC3dsD22hKaBO',
-'dia_nublado': '1ZCofR0LsGBrEpmnt1J7pyIsxfWoRRy8x',
-'dia_soleado': '1Po-6qWC9qfsO_-svdOY6zzoh_suCPLCE',
-'dia_tormenta': '1PD3UhJ0DwPzgGiVPoUCnu7GGbv3Ca9rQ',
-'noche_aguanieve': '1s0VQzWFLK-B2PNDwnGV0RahObItO_NoP',
-'noche_lluvia': '1Yca47R8c0scCINJjtINcksJc3AL2X_PC',
-'noche_con_nubes': '1QEWLrYWPfzHar7gVEOGZUXO3EOZ4wZRt',
-'noche_nublada': '1WHKUUwDNLFmjhgcPUvkJhpnu3HnX-mqa',
-'noche_tormenta': '102tPkkum3VJBHgYeAvocs3Ac7IJudO9T',
-'tarde_aguanieve': '1K4_0yLksIGQPxL3m-6A4Q5QOB5OCuXxl',
-'tarde_despejada': '13zDRnNL-y6tywCk7IY3J-OvvZt36MD6E',
-'tarde_lluvia_fuerte': '1Z9h76cUX-KAykP9FttlnUtvYwy6NXWim',
-'tarde_lluvia': '1sojz2uI_eXPeJtWRx-tT2nMuL1B3EYAm',
-'tarde_nublado_parcial': '1IEdBME6kox9zLJx7z_yxzlxWAS8ELgUs',
-'tarde_nublado': '1CUz5vvA5ehTRDgvpRpUNxJc5Emc1as3d',
-'tarde_soleado': '1i2xsSnE92pgbNDNWxl-gbvcWo0I2-Dzn',
-'tarde_tormenta': '1ES-72omJuliBo08CCbK57fZle1-jygX9',
-'tormenta_viento_fuerte': '19QkReOvxAEaJtVs93wl9RFa1N33REMgZ',
-'nieve': '1n5dfGyPU36LsPrSV1-iOXmdOCFlv9WXd',
-'default': '1WHKUUwDNLFmjhgcPUvkJhpnu3HnX-mqa'
-};
-function getImageUrl(fileId, size = 1200) {
-if (!fileId) {
-console.warn('getImageUrl: No hay fileId');
-return null;
-}
-const url = `https://lh3.googleusercontent.com/d/${fileId}=w${size}`;
-return url;
-}
+// Fondos del clima: img/clima/<nombre>.webp. Para cambiar uno, reemplaza el archivo con el mismo nombre
+// y sube CLIMA_V (el service worker guarda las imágenes y sin esto seguiría mostrando la vieja).
+const CLIMA_V = 1;
+const WEATHER_IMAGES = new Set([
+'amanecer_aguanieve',
+'amanecer_lluvia_ligera',
+'amanecer_lluvia',
+'amanecer_nublado_parcial',
+'amanecer_nublado',
+'amanecer_nieve',
+'atardecer_nublado_parcial',
+'atardecer_nublado',
+'atardecer',
+'dia_calor',
+'dia_frio',
+'dia_lluvia_fuerte',
+'dia_lluvia',
+'dia_nublado_con_lluvia',
+'dia_nublado_parcial',
+'dia_nublado',
+'dia_soleado',
+'dia_tormenta',
+'noche_aguanieve',
+'noche_lluvia',
+'noche_con_nubes',
+'noche_nublada',
+'noche_tormenta',
+'tarde_aguanieve',
+'tarde_despejada',
+'tarde_lluvia_fuerte',
+'tarde_lluvia',
+'tarde_nublado_parcial',
+'tarde_nublado',
+'tarde_soleado',
+'tarde_tormenta',
+'tormenta_viento_fuerte',
+'nieve',
+]);
+const getImageUrl = (nombre) => `img/clima/${nombre}.webp?v=${CLIMA_V}`;
 function classifyTimeOfDay(hour) {
 if (hour >= 5 && hour < 8) return 'amanecer';
 if (hour >= 8 && hour < 12) return 'dia';
@@ -175,15 +170,8 @@ return `${timeOfDay}_${mappedCondition}`;
 }
 function selectBackgroundImage(classified) {
 const imageKey = getImageKey(classified.timeOfDay, classified.condition, classified.hasRainWithNubes);
-let fileId = WEATHER_IMAGES[imageKey];
-if (!fileId) {
 const fallbackKey = `${classified.timeOfDay}_${classified.condition.replace('_fuerte', '').replace('_ligera', '')}`;
-fileId = WEATHER_IMAGES[fallbackKey];
-}
-if (!fileId) {
-fileId = WEATHER_IMAGES['default'];
-}
-return getImageUrl(fileId, 400);
+return getImageUrl([imageKey, fallbackKey].find((k) => WEATHER_IMAGES.has(k)) || 'noche_nublada');
 }
 function updateLooksNavBackground(imageUrl) {
   const looksNav = document.getElementById('looks-nav-bg');

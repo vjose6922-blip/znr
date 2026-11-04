@@ -36,7 +36,7 @@ const API_DOMAINS      = [
 // reCAPTCHA (App Check) nunca pasa por el service worker: Google lo actualiza seguido y una copia vieja guardada
 // con CACHE_FIRST dejaba a App Check sin token y el catálogo (Firestore) cargando para siempre.
 const NO_INTERCEPTAR = /^https:\/\/(www\.)?(google\.com|recaptcha\.net)\/recaptcha\/|^https:\/\/www\.gstatic\.com\/recaptcha\//;
-const IMAGE_CDN_HOSTS  = ['firebasestorage.googleapis.com', 'lh3.googleusercontent.com']; // lh3: fondos del clima (looks.js)
+const IMAGE_CDN_HOSTS  = ['firebasestorage.googleapis.com'];
 
 self.addEventListener('install', event => {
   event.waitUntil(

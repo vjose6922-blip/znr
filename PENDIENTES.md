@@ -35,8 +35,8 @@ es posterior al cambio; si no, en **Cloud Build → Activadores** revisa que ten
       `MAPBOX_PK` de `entregas-live.html` y `seguimiento-entrega.html` (hoy usan tiles de OpenStreetMap, no aptos para uso intensivo).
 - [x] **C7 Alerta de presupuesto** en Google Cloud (Facturación → Presupuestos y alertas). Cloudflare no ofrece aviso por correo: se cubre con F7.
 - [ ] **C8 Storage ciclo de vida**: `znr-backups` a clase Archive; borrar en `znr-live-grabaciones` lo de más de 7 días.
-- [ ] **C9 App Check TTL**: 1 día (Verificación de aplicaciones → Apps → ZNR WEB).
-- [ ] **C10 Stripe**: confirmar el **primer depósito** a la CLABE (previsto ~2 nov) en Stripe → Saldos (automático lunes y viernes).
+- [x] **C9 App Check TTL**: 1 día (Verificación de aplicaciones → Apps → ZNR WEB).
+- [x] **C10 Stripe**: confirmar el **primer depósito** a la CLABE (previsto ~2 nov) en Stripe → Saldos (automático lunes y viernes).
 
 ## 3. Pruebas en producción
 Si algo falla, el error sale en pantalla y en el **Monitor de errores** de CONTROL: captura y llévala a Claude.
@@ -100,7 +100,7 @@ Usa montos chicos ($149 de Plus o ~$10) y reembolsa si no quieres conservarlos. 
 - [ ] **T10 Revisión general**: catálogo, historias, perfiles, pedidos, avisos push e inicio de sesión funcionan en el sitio y en CONTROL.
 
 ## 4. Seguridad (puede ser justo después del lanzamiento, en este orden)
-- [ ] **S1 Teléfonos filtrados (hacer primero)**: RTDB → `chats` y `presencia`: borrar mensajes con `uid` que empiece con `cliente_` (znr-backend#15).
+- [x] **S1 Teléfonos filtrados (hacer primero)**: RTDB → `chats` y `presencia`: borrar mensajes con `uid` que empiece con `cliente_` (znr-backend#15).
 - [ ] **S2 App Check en Firestore**: Firebase → Verificación de aplicaciones → APIs → **Aplicar** (98 % verificadas).
 - [ ] **S3 App Check en RTDB**: aún NO aplicar (84 % sin token). En la consola de znrcommunity.com correr la prueba y ver si sube
       "Sin verificar: solicitudes no válidas" (sube a 5 → aplicar; se queda en 0 → cambiar las lecturas REST antes):
@@ -124,8 +124,10 @@ Usa montos chicos ($149 de Plus o ~$10) y reembolsa si no quieres conservarlos. 
 ## 5. Después del lanzamiento (mejoras e ideas)
 - [x] **F1 Tráfico real en mapas** (znr-backend#40, fusionado; probar con M1 y revisar consumo de Mapbox): rama `claude/admiring-cannon-rz50he` (commit `d341ff4`:
       `driving-traffic` y caché de 5 min) y unirlo.
-- [ ] **F2 Fondos del clima fuera de Google Drive**: `looks.js` carga 34 fondos por id (`WEATHER_IMAGES`, `lh3`). Subirlos a
+- [x] **F2 Fondos del clima fuera de Google Drive**: `looks.js` carga 34 fondos por id (`WEATHER_IMAGES`, `lh3`). Subirlos a
       Storage o `img/clima/*.webp`, cambiar `getImageUrl` y quitar `lh3` de la CSP y del service worker.
+- [x] **F10 Chats de lives sin reporte**: la limpieza de 12 h (`limpiarGrabacionesLive`) borra `chats`, `presencia` y
+      `faq_enfriamiento` del live si no tiene reportes (znr-backend). Los de lives anteriores a este cambio no se borran solos.
 - [ ] **F3 Scroll infinito en Comunidad**: cargar los siguientes 30 al llegar al final (`renderProducts` debe agregar, no reemplazar).
 - [ ] **F4 Mapas**: "Reordenar" con >11 paradas (respaldo: parada más cercana); mover `baseMapa()` y "◎" a `common.js`;
       cambiar Nominatim solo si falla seguido.
