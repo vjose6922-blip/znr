@@ -657,6 +657,7 @@ ${(n.items || []).map(it => `
 <span>$${Number(it.precio || 0).toLocaleString()}</span>
 </div>
 `).join('')}
+<button type="button" class="vsn-chat-btn" style="display:flex;align-items:center;justify-content:center;gap:6px;width:100%;margin-top:8px;padding:8px;border:none;border-radius:10px;background:#ff4f81;color:#fff;font-size:12.5px;font-weight:700;cursor:pointer;">💬 Chat con el cliente</button>
 ${n.clientPhone ? `<a href="https://wa.me/${(String(n.clientPhone).replace(/\D/g,'').length===10?'52':'')}${esc2(String(n.clientPhone).replace(/\D/g,''))}" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:4px;font-size:12px;color:${esConfirmada ? '#4d8064' : '#8a7238'};margin-top:4px;text-decoration:underline;">${Icon('whatsapp')} +52 ${esc2(n.clientPhone)}</a>` : ''}
 <div style="display:flex;gap:8px;margin-top:10px;">
 ${esConfirmada
@@ -668,6 +669,9 @@ ${esConfirmada ? `<div style="font-size:11px;color:#4d8064;margin-top:6px;">El s
 </div>
 `;
 }).join('');
+container.querySelectorAll('.vsn-chat-btn').forEach(btn => {
+btn.addEventListener('click', () => window.znrAbrirChatVenta && window.znrAbrirChatVenta(vendorSession.uid, btn.closest('.vsn-card').dataset.req, 'vendedor', btn));
+});
 container.querySelectorAll('.vsn-confirm-btn').forEach(btn => {
 btn.addEventListener('click', () => resolveVendorSaleNotification(btn.closest('.vsn-card').dataset.req, 'confirmar', btn));
 });

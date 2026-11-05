@@ -24,6 +24,8 @@ const TEXTO_ESTADO = {
   en_elaboracion: "En elaboración", listo: "Listo", entregado: "Entregado",
   rechazado: "Rechazada", cancelado: "Cancelado", expirado: "Expirada"
 };
+// Chats de pedidos normales (tipo "venta", ver pedido-chat.js): se listan junto a los personalizados.
+const TEXTO_VENTA = { pendiente: "Por confirmar", confirmada: "Confirmado", entregado: "Entregado", sin_stock: "Sin stock" };
 
 let sesiones = {};   // { comprador: {tel}, vendedor: {token, uid} }
 let rolActual = "comprador";
@@ -97,7 +99,7 @@ function render() {
   volver.innerHTML = typeof Icon === "function" ? Icon("arrow-left") : "‹";
   const partes = [h("header", { class: "app-header" },
     h("div", { class: "header-left" }, volver,
-      h("div", { class: "header-text" }, h("h1", { class: "app-title", text: "Pedidos personalizados" }), h("p", { class: "app-subtitle", text: rolActual === "vendedor" ? "Solicitudes de tus clientes" : "Lo que has pedido" }))))];
+      h("div", { class: "header-text" }, h("h1", { class: "app-title", text: "Pedidos y chats" }), h("p", { class: "app-subtitle", text: rolActual === "vendedor" ? "Solicitudes de tus clientes" : "Lo que has pedido" }))))];
 
   if (hayAmbos) {
     partes.push(h("div", { class: "pp-tabs" },
@@ -133,7 +135,7 @@ function render() {
       esMiTurno(p, rolActual) ? h("span", { class: "turno", "aria-label": "Te toca responder" }) : null,
       p.productoImagen ? h("img", { src: p.productoImagen, alt: "", loading: "lazy" }) : h("div", { style: "width:54px;height:54px;border-radius:10px;background:var(--color-surface-3,#e5e7eb);flex-shrink:0" }),
       h("div", { class: "info" }, h("b", { text: p.productoNombre || "Pedido" }), h("small", { text: otro }), h("small", { text: ult ? quien + ult.texto : "" })),
-      h("div", { class: "meta" }, h("span", { class: "pp-badge" + clase, text: TEXTO_ESTADO[e] || e }), h("small", { text: fechaCorta(ms(p.actualizadoEn)) }))));
+      h("div", { class: "meta" }, h("span", { class: "pp-badge" + clase, text: p.tipo === "venta" ? "Chat · " + (TEXTO_VENTA[p.estadoVenta] || "Pedido") : TEXTO_ESTADO[e] || e }), h("small", { text: fechaCorta(ms(p.actualizadoEn)) }))));
   });
   partes.push(cont);
   app.replaceChildren(...partes);

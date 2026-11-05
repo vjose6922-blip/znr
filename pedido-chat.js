@@ -40,6 +40,34 @@ const TEXTO_ESTADO = {
 };
 const CERRADOS = ["entregado", "rechazado", "cancelado", "expirado"];
 
+// Chat de un pedido normal (Comunidad / live): pedido.tipo === "venta". Sin cotización, pagos ni etapas: solo la
+// conversación, el resumen del pedido y WhatsApp de respaldo. Se borra solo 30 días después de entregado.
+const esVenta = () => pedido && pedido.tipo === "venta";
+const TEXTO_VENTA = { pendiente: "Por confirmar", confirmada: "Confirmado", entregado: "Entregado", sin_stock: "Sin stock" };
+const RESPUESTAS_VENTA = [
+  "¡Hola! Ya vi tu pedido.",
+  "¿A qué hora te queda bien la entrega?",
+  "¿Me confirmas tu dirección?",
+  "Tu pedido va en camino.",
+  "¡Gracias por tu compra!"
+];
+
+// WhatsApp de respaldo: el vendedor tiene el teléfono del comprador; el comprador pide el del vendedor al servidor
+// (requiere su sesión y tiene tope diario, igual que "Ver contacto").
+async function abrirWhatsApp(btn) {
+  if (identidad.rol === "vendedor") { window.open("https://wa.me/52" + pedido.compradorTel, "_blank", "noopener"); return; }
+  const w = window.open("", "_blank");
+  if (btn) btn.disabled = true;
+  try {
+    const r = await fetch(window.VENDEDORES_API_URL, { method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "obtenerContactoVendedor", vendedorUid: pedido.vendedorUid, telefono: identidad.tel, compradorToken: localStorage.getItem("comprador_token") || "" }) }).then((x) => x.json());
+    if (r.ok && r.whatsapp && w) { w.location.href = "https://wa.me/52" + r.whatsapp + "?text=" + encodeURIComponent("Hola, te escribo por mi pedido en Z&R."); return; }
+    if (w) w.close();
+    toast(r.error || "No se pudo abrir WhatsApp. Intenta de nuevo.");
+  } catch (_) { if (w) w.close(); toast("Sin conexión. Intenta de nuevo."); }
+  finally { if (btn) btn.disabled = false; }
+}
+
 const db = getFirestore(getApp());
 const app = document.getElementById("app");
 
@@ -236,6 +264,13 @@ function renderEncabezado() {
   ui.titulo.textContent = pedido.productoNombre || "Pedido personalizado";
   ui.sub.textContent = contraparte();
 
+  if (esVenta()) {
+    const ev = pedido.estadoVenta || "pendiente";
+    ui.badge.textContent = TEXTO_VENTA[ev] || "Pedido";
+    ui.badge.className = "pp-badge" + (ev === "entregado" ? " ok" : ev === "sin_stock" ? " bad" : "");
+    ui.prog.style.display = "none";
+    return;
+  }
   const act = pagoActivo();
   const porCalificar = !soyVendedor && e === "entregado" && !pedido.calificacion;
   const miTurno = soyVendedor
@@ -264,7 +299,10 @@ function textoPagosCorto() {
 function renderResumen() {
   const c = acordado();
   let txt;
-  if (c && c.precio) {
+  if (esVenta()) {
+    const n = (pedido.items || []).reduce((t, it) => t + (Number(it.cantidad) || 1), 0);
+    txt = dinero(pedido.total) + " · " + n + (n === 1 ? " artículo" : " artículos");
+  } else if (c && c.precio) {
     txt = [dinero(c.precio) + " · " + fechaCorta(c.fechaEntrega), pedido.cotizacionAceptada ? textoPagosCorto() : "", pedido.calificacion ? "★" + pedido.calificacion.estrellas : ""].filter(Boolean).join(" · ");
   } else {
     txt = "Desde " + dinero(pedido.precioDesde) + (pedido.tiempoElaboracionDias ? " · " + pedido.tiempoElaboracionDias + " días" : "");
@@ -279,8 +317,26 @@ const ESTADO_PAGO_FILA = {
   pendiente: "pendiente", por_confirmar: "por confirmar", confirmado: "✔ pagado", pagado_efectivo: "✔ pagado en efectivo", pagado_transferencia: "✔ pagado por transferencia"
 };
 
+function renderDetalleVenta() {
+  ui.detalle.appendChild(h("div", { class: "pp-d-ref" },
+    pedido.productoImagen ? h("img", { src: pedido.productoImagen, alt: "", loading: "lazy" }) : null,
+    h("div", {}, h("b", { text: pedido.productoNombre || "Pedido" }), h("span", { text: "Pedido de Comunidad · este chat se borra 30 días después de entregado" }))));
+  const dl = h("dl", { class: "pp-d-dl" });
+  (pedido.items || []).forEach((it) => {
+    dl.appendChild(h("dt", { text: it.nombre + (it.talla ? " · " + it.talla : "") + " × " + (it.cantidad || 1) }));
+    dl.appendChild(h("dd", { text: dinero((Number(it.precio) || 0) * (Number(it.cantidad) || 1)) }));
+  });
+  dl.appendChild(h("dt", { text: "Total" })); dl.appendChild(h("dd", {}, h("b", { text: dinero(pedido.total) })));
+  ui.detalle.appendChild(dl);
+}
+
 function renderDetalle() {
   ui.detalle.replaceChildren();
+  if (esVenta()) {
+    renderDetalleVenta();
+    if (pedido.bloqueadoPor === identidad.rol) ui.detalle.appendChild(h("p", { class: "pp-hint", text: "Bloqueaste a esta persona. Puedes quitarlo desde ⋯." }));
+    return;
+  }
   const e = estadoEfectivo();
   const c = acordado();
   ui.detalle.appendChild(h("div", { class: "pp-d-ref" },
@@ -414,6 +470,7 @@ function configBarra(e, vend) {
   const a = pedido.pagoAnticipo, r = pedido.pagoRestante;
   const cot = pedido.cotizacion;
   const btnPago = (tipo) => [["Datos de pago", "", () => abrirDatosPago(tipo)], ["Ya pagué", "primary", (b) => subirComprobante(tipo, b)]];
+  if (esVenta()) return { info: "¿Sin respuesta? También por WhatsApp", botones: [["WhatsApp", "", abrirWhatsApp]] };
 
   if (e === "expirado") return { info: "Esta solicitud expiró sin respuesta." + (vend ? "" : " Puedes hacer un pedido nuevo desde el artículo."), tono: "bad", botones: [] };
   if (e === "rechazado") return { info: "El vendedor no pudo tomar este pedido.", tono: "bad", botones: [] };
@@ -498,7 +555,7 @@ function renderBarra() {
   const hayRapidas = vend && !cerrado;
   ui.btnRapidas.style.display = hayRapidas ? "" : "none";
   if (hayRapidas) {
-    RESPUESTAS_RAPIDAS.forEach((txt) => {
+    (esVenta() ? RESPUESTAS_VENTA : RESPUESTAS_RAPIDAS).forEach((txt) => {
       const b = h("button", { type: "button", text: txt.length > 34 ? txt.slice(0, 32) + "…" : txt, title: txt });
       b.addEventListener("click", () => { ui.ta.value = txt; ui.ta.dispatchEvent(new Event("input")); rapidasAbiertas = false; ui.rapidas.style.display = "none"; ui.ta.focus(); });
       ui.rapidas.appendChild(b);
@@ -638,6 +695,7 @@ function abrirMenu() {
   if (vend && (e === "solicitado" || e === "cotizado")) botones.push(["Rechazar solicitud", "danger", (b, cerrar) => { cerrar(); pedirMotivo("Rechazar solicitud", "rechazado"); }]);
   if (vend && ["aceptado", "en_elaboracion", "listo"].includes(e)) botones.push(["Cancelar pedido", "danger", (b, cerrar) => { cerrar(); pedirMotivo("Cancelar pedido", "cancelado"); }]);
   if (!vend && (e === "solicitado" || e === "cotizado")) botones.push(["Cancelar solicitud", "danger", (b, cerrar) => { cerrar(); cancelarComprador(b); }]);
+  if (esVenta()) botones.push(["Escribir por WhatsApp", "", (b, cerrar) => { cerrar(); abrirWhatsApp(); }]);
   botones.push(["Reportar conversación", "", (b, cerrar) => { cerrar(); abrirReporte(); }]);
   botones.push(yaBloqueado
     ? ["Desbloquear a " + otro, "", async (b, cerrar) => { const r = await hacer(b, "desbloquearUsuario"); if (r) { cerrar(); toast("Desbloqueado"); } }]

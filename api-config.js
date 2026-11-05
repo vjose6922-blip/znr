@@ -50,6 +50,25 @@
     media.appendChild(b);
   };
 
+  // Abre (o crea) el chat de un pedido normal y lleva a pedido-chat.html. rol: 'vendedor' (sesión de vendedor)
+  // o 'comprador' (client_phone + comprador_token). Lo usan la tarjeta de venta del vendedor y los avisos del comprador.
+  window.znrAbrirChatVenta = async (vendedorUid, requestId, rol, btn) => {
+    const p = new URLSearchParams({ action: 'abrirChatVenta', vendedorUid, requestId });
+    if (rol === 'vendedor') {
+      try { p.set('vendorToken', (JSON.parse(localStorage.getItem('vendor_session') || 'null') || {}).token || ''); } catch (_) {}
+    } else {
+      p.set('telefono', (localStorage.getItem('client_phone') || '').replace(/\D/g, ''));
+      p.set('compradorToken', localStorage.getItem('comprador_token') || '');
+    }
+    if (btn) btn.disabled = true;
+    const r = await fetch(PEDIDOS_API_URL, { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: p.toString() })
+      .then((x) => x.json()).catch(() => ({ error: 'Sin conexión. Intenta de nuevo.' }));
+    if (btn) btn.disabled = false;
+    if (r.ok) { location.href = 'pedido-chat.html?pedido=' + encodeURIComponent(r.pedidoId) + '&rol=' + r.rol; return; }
+    const msg = r.error || 'No se pudo abrir el chat.';
+    if (typeof window.showTemporaryMessage === 'function') window.showTemporaryMessage(msg, 'error'); else alert(msg);
+  };
+
   Object.defineProperties(window, {
     CATALOGO_API_URL:     { get: () => CATALOGO_API_URL,     configurable: false, enumerable: false },
     VENDEDORES_API_URL:   { get: () => VENDEDORES_API_URL,   configurable: false, enumerable: false },
