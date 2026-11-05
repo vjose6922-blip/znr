@@ -128,6 +128,8 @@ Usa montos chicos ($149 de Plus o ~$10) y reembolsa si no quieres conservarlos. 
       Storage o `img/clima/*.webp`, cambiar `getImageUrl` y quitar `lh3` de la CSP y del service worker.
 - [x] **F10 Chats de lives sin reporte**: la limpieza de 12 h (`limpiarGrabacionesLive`) borra `chats`, `presencia` y
       `faq_enfriamiento` del live si no tiene reportes (znr-backend). Los de lives anteriores a este cambio no se borran solos.
+- [x] **F11 Chats de soporte**: los finalizados se borran a los 7 días (antes la tarea nunca corría; znr-backend#43).
+      Regla de RTDB con `".indexOn": ["estado"]` en `chats_soporte` publicada.
 - [x] **F3 Scroll infinito** en Catálogo, Comunidad y Perfil de vendedor (`scroll-infinito.js`): tandas de 30, "Ver más" cada 150, restaura posición al regresar.
 - [ ] **F4 Mapas**: "Reordenar" con >11 paradas (respaldo: parada más cercana); mover `baseMapa()` y "◎" a `common.js`;
       cambiar Nominatim solo si falla seguido.
