@@ -560,7 +560,7 @@ const PICKUP_HORAS = ['9:00 AM','10:00 AM','11:00 AM','12:00 PM','1:00 PM','2:00
       }
       // Avisos del pedido normal del comprador: botón al chat del pedido (pedido-chat.html, tipo "venta").
       const vendChat = meta.vendedor_uid || meta.vendorUid;
-      const chatBtn = meta.requestId && vendChat && ['pedido_enviado_vendedor', 'confirmacion_vendedor', 'sin_stock_vendedor', 'pedido_entregado', 'compra_live'].includes(n.tipo)
+      const chatBtn = meta.requestId && vendChat && ['pedido_enviado_vendedor', 'confirmacion_vendedor', 'sin_stock_vendedor', 'pedido_entregado', 'compra_live', 'pago_confirmado', 'pedido_en_ruta'].includes(n.tipo)
         ? `<button type="button" class="nc-wa-btn nc-chat-btn" style="background:#ff4f81;color:#fff;border:none;cursor:pointer" data-vendedor="${esc(vendChat)}" data-request="${esc(meta.requestId)}" onclick="event.stopPropagation()">💬 Chat con el vendedor</button>`
         : '';
       const waBtn = meta.whatsappUrl
@@ -593,12 +593,12 @@ const PICKUP_HORAS = ['9:00 AM','10:00 AM','11:00 AM','12:00 PM','1:00 PM','2:00
         ? `<div class="nc-pickup-aviso" onclick="event.stopPropagation()">
              <p class="nc-pickup-aviso-label">🕒 Avisa a qué hora pasas por tu pedido</p>
              <div class="nc-pickup-aviso-row">
-               <select class="nc-pickup-select" data-tel="${meta.vendedorTel || ''}" data-pedido="${esPedidoPers ? meta.pedidoId : ''}" data-nombre="${(meta.vendedorNombre || '').replace(/"/g, '&quot;')}">
+               <select class="nc-pickup-select" data-tel="${meta.vendedorTel || ''}" data-pedido="${esPedidoPers ? meta.pedidoId : ''}" data-chat="${!esPedidoPers && meta.requestId && meta.vendedor_uid ? esc('PV_' + meta.vendedor_uid + '_' + meta.requestId) : ''}" data-nombre="${(meta.vendedorNombre || '').replace(/"/g, '&quot;')}">
                  ${PICKUP_HORAS.map(h => `<option value="${h}">${h}</option>`).join('')}
                </select>
                <button type="button" class="nc-pickup-btn">💬 Avisar</button>
              </div>
-             <p class="nc-pickup-aviso-note">${esPedidoPers ? 'Se lo enviamos al vendedor por el chat del pedido.' : 'Se abre WhatsApp con el vendedor. Si no está disponible a esa hora, pueden reagendar directo desde el chat.'}</p>
+             <p class="nc-pickup-aviso-note">${esPedidoPers || (meta.requestId && meta.vendedor_uid) ? 'Se lo enviamos al vendedor por el chat del pedido.' : 'Se abre WhatsApp con el vendedor. Si no está disponible a esa hora, pueden reagendar directo desde el chat.'}</p>
            </div>`
         : '';
       // Pago pendiente (OXXO/SPEI vía MercadoPago, checkout de invitado sin
@@ -676,9 +676,14 @@ const PICKUP_HORAS = ['9:00 AM','10:00 AM','11:00 AM','12:00 PM','1:00 PM','2:00
             .catch(() => { btn.textContent = 'Sin conexión'; btn.disabled = false; });
           return;
         }
-        if (!tel) return;
         const texto = `Hola, buen día 👋 Pasaré a recoger mi pedido a las ${hora}.`;
-        window.open(`https://wa.me/52${tel}?text=${encodeURIComponent(texto)}`, '_blank');
+        const porWhatsApp = () => { if (tel) window.open(`https://wa.me/52${tel}?text=${encodeURIComponent(texto)}`, '_blank'); };
+        const chat = select ? select.dataset.chat : '';
+        if (!chat) { porWhatsApp(); return; }
+        btn.disabled = true; // pedido normal: al chat del pedido; si no se puede, WhatsApp de respaldo
+        fetch(window.PEDIDOS_API_URL, { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams({ action: 'enviarMensajePedido', pedidoId: chat, contenido: '🕒 ' + texto, telefono: localStorage.getItem('client_phone') || '', compradorToken: localStorage.getItem('comprador_token') || '' }).toString() })
+          .then(r => r.json()).then(r => { if (r.ok) btn.textContent = '✔ Enviado al chat'; else { btn.disabled = false; porWhatsApp(); } })
+          .catch(() => { btn.disabled = false; porWhatsApp(); });
       });
     });
 
