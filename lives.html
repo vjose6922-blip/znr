@@ -117,7 +117,7 @@
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-app.js";
 import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-database.js";
-import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-auth.js";
+import { initializeAuth, getAuth, indexedDBLocalPersistence, browserLocalPersistence, browserSessionPersistence, signInAnonymously } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-auth.js";
 
 // App de Firebase propia ('live'), con su propia sesión SIEMPRE anónima: si usara la app por defecto
 // heredaría la sesión del resto del sitio (uid 'cliente_<teléfono>') y ese uid quedaría en nodos públicos
@@ -134,7 +134,10 @@ const fbApp = initializeApp({
 await window.znrAppCheck?.(fbApp, '12.15.0');
 const db = getDatabase(fbApp);
 // Solo el número que publica el vendedor (live_espectadores), no la lista completa de presencia.
-const authReady = signInAnonymously(getAuth(fbApp)).catch(() => {});
+// Sin popupRedirectResolver (solo sesión anónima): getAuth intentaba cargar apis.google.com y la CSP lo bloqueaba.
+let auth;
+try { auth = initializeAuth(fbApp, { persistence: [indexedDBLocalPersistence, browserLocalPersistence, browserSessionPersistence] }); } catch (e) { auth = getAuth(fbApp); }
+const authReady = signInAnonymously(auth).catch(() => {});
 const contar = (id) => authReady.then(() => get(ref(db, `live_espectadores/${id}`))).then(s => s.val() || 0).catch(() => 0);
 
 const API_BASE = "https://live-api-1038143238323.us-central1.run.app";

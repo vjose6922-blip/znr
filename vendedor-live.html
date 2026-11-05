@@ -608,6 +608,16 @@ const firebaseConfig = {
 const fbApp = initializeApp(firebaseConfig, 'live');
 await window.znrAppCheck?.(fbApp, '12.15.0');
 const db = getDatabase(fbApp);
+// Aviso si el chat (Realtime Database) no logra conectarse en 8 s: sin esto los mensajes se quedan en espera sin avisar.
+{
+  const aviso = document.createElement('div');
+  aviso.setAttribute('role', 'status');
+  aviso.style.cssText = 'position:fixed;left:12px;right:12px;top:calc(64px + env(safe-area-inset-top,0px));z-index:9999;display:none;background:#b3261e;color:#fff;padding:10px 14px;border-radius:12px;font-size:13px;line-height:1.35;box-shadow:0 4px 14px rgba(0,0,0,.25)';
+  aviso.textContent = 'Sin conexión con el chat: tus mensajes se enviarán cuando vuelva. Si estás en la red de una empresa o escuela, puede estar bloqueada; prueba con datos móviles.';
+  document.body.appendChild(aviso);
+  let espera = null;
+  onValue(ref(db, '.info/connected'), (s) => { clearTimeout(espera); if (s.val()) aviso.style.display = 'none'; else espera = setTimeout(() => { aviso.style.display = 'block'; }, 8000); });
+}
 
 // Solo usamos signInAnonymously aquí, nunca signInWithPopup/Redirect, así
 // que inicializamos Auth SIN popupRedirectResolver para que el SDK no
