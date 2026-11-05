@@ -103,6 +103,8 @@ Usa montos chicos ($149 de Plus o ~$10) y reembolsa si no quieres conservarlos. 
 - [ ] **X1** Comprador: en el aviso de su pedido (enviado / confirmado / entregado) toca **"💬 Chat con el vendedor"** → abre el chat del pedido.
 - [ ] **X2** Vendedor: en la tarjeta de la venta toca **"💬 Chat con el cliente"** → abre el MISMO chat; se escriben y llega el aviso (burbuja).
 - [ ] **X3** En el chat: botón **WhatsApp** (respaldo) abre WhatsApp de la otra persona; fotos y "Reportar conversación" funcionan.
+- [ ] **X5** El chat se crea solo al hacer el pedido, con mensajes automáticos: 🛍️ pedido enviado, ✅ stock confirmado / 🚫 sin stock,
+      💳 pago recibido, 🛵 va en camino (live), 🕒 "paso a recoger a las…" (desde el aviso) y 🎉 entregado.
 - [ ] **X4** El chat aparece en **"Pedidos y chats"** (mis-pedidos.html) con la etiqueta "Chat · …". Se borra solo 30 días después de entregado.
 
 ## 4. Seguridad (puede ser justo después del lanzamiento, en este orden)

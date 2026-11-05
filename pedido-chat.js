@@ -382,7 +382,8 @@ function miniaturaComprobante(url) {
 // Cada hecho importante (aceptar, pagar, empezar, entregar…) se muestra como un mensaje de quien lo hizo, alineado a su lado.
 const ICONO_EVENTO = {
   cotizacion_aceptada: "✅", cotizacion_rechazada: "↩️", solicitud_cancelada: "🚫", pedido_rechazado: "🚫", pedido_cancelado: "🚫",
-  elaboracion: "🔨", listo: "📦", entregado: "🎉", calificacion: "⭐", pago_confirmado: "✅", pago_no_recibido: "⚠️"
+  elaboracion: "🔨", listo: "📦", entregado: "🎉", calificacion: "⭐", pago_confirmado: "✅", pago_no_recibido: "⚠️",
+  pedido_enviado: "🛍️", stock_confirmado: "✅", sin_stock: "🚫", recoger: "🕒" // chat de pedidos normales (pedidos-api eventoChatVenta)
 };
 
 function burbujaEvento(m) {
