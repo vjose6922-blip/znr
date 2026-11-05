@@ -34,7 +34,7 @@ es posterior al cambio; si no, en **Cloud Build → Activadores** revisa que ten
 - [x] **C6 Mapbox**: token público `pk.` restringido a `https://znrcommunity.com` y `https://www.znrcommunity.com`; pegarlo en
       `MAPBOX_PK` de `entregas-live.html` y `seguimiento-entrega.html` (hoy usan tiles de OpenStreetMap, no aptos para uso intensivo).
 - [x] **C7 Alerta de presupuesto** en Google Cloud (Facturación → Presupuestos y alertas). Cloudflare no ofrece aviso por correo: se cubre con F7.
-- [ ] **C8 Storage ciclo de vida**: `znr-backups` a clase Archive; borrar en `znr-live-grabaciones` lo de más de 7 días.
+- [x] **C8 Storage ciclo de vida**: `znr-backups` a clase Archive; borrar en `znr-live-grabaciones` lo de más de 7 días.
 - [x] **C9 App Check TTL**: 1 día (Verificación de aplicaciones → Apps → ZNR WEB).
 - [x] **C10 Stripe**: confirmar el **primer depósito** a la CLABE (previsto ~2 nov) en Stripe → Saldos (automático lunes y viernes).
 
@@ -59,7 +59,7 @@ Usa montos chicos ($149 de Plus o ~$10) y reembolsa si no quieres conservarlos. 
 ### 3.2 Lives (2 teléfonos)
 - [ ] **L1** Apagar WiFi del vendedor ~30 s → el video vuelve solo (también con la 2ª cámara).
 - [ ] **L2** El contador de espectadores cambia en el comprador.
-- [ ] **L3** Reportar → el clip aparece en el panel en ~3 min; finalizar justo después muestra "Terminando procesos…".
+- [x] **L3** Reportar → el clip aparece en el panel en ~3 min; finalizar justo después muestra "Terminando procesos…".
 - [ ] **L4** "¿Sigues ahí?" a los 20 min sin tocar y aviso 10 min antes de las 3 h.
 - [ ] **L5** Comprador con sesión escribe en el chat: en RTDB → `chats`, el `uid` **no** empieza con `cliente_`. Chat y producto destacado funcionan.
 
@@ -88,20 +88,20 @@ Usa montos chicos ($149 de Plus o ~$10) y reembolsa si no quieres conservarlos. 
 - [x] **M2** Link de seguimiento de un pedido en ruta: línea rosa y ETA.
 
 ### 3.6 Celular, datos móviles y carga (znr#61)
-- [ ] **T1** Fotos de productos cargan bien (WebP con `-rw` en `lh3`) y la cuadrícula usa la miniatura de 300 px.
-- [ ] **T2** Preferencias → Apariencia → **Ahorro de datos**: en historias sale "▶ Ver video" y reproduce al tocar.
-- [ ] **T3** Android con datos móviles: aviso "Estás usando datos móviles" al abrir live o historias (en iPhone no sale, es normal).
-- [ ] **T4** Botón del asistente aparece ~1.5 s después; animaciones de inicio y catálogo sin parpadeo.
-- [ ] **T5** Tocar una notificación push abre la página correcta.
-- [ ] **T6** Modo avión: página "sin conexión" e imágenes caídas con placeholder.
-- [ ] **T7** "Elegir otra ciudad": salen ciudades chicas (Del Rio, Eagle Pass) en orden alfabético; editar vendedor/fundación con ciudad chica muestra estado y ciudad.
+- [x] **T1** Fotos de productos cargan bien (WebP con `-rw` en `lh3`) y la cuadrícula usa la miniatura de 300 px.
+- [x] **T2** Preferencias → Apariencia → **Ahorro de datos**: en historias sale "▶ Ver video" y reproduce al tocar.
+- [x] **T3** Android con datos móviles: aviso "Estás usando datos móviles" al abrir live o historias (en iPhone no sale, es normal).
+- [x] **T4** Botón del asistente aparece ~1.5 s después; animaciones de inicio y catálogo sin parpadeo.
+- [x] **T5** Tocar una notificación push abre la página correcta.
+- [x] **T6** Modo avión: página "sin conexión" e imágenes caídas con placeholder.
+- [x] **T7** "Elegir otra ciudad": salen ciudades chicas (Del Rio, Eagle Pass) en orden alfabético; editar vendedor/fundación con ciudad chica muestra estado y ciudad.
 - [ ] **T8** Seguimiento de entrega: cambiar de app y volver → se actualiza.
 - [x] **T9** Correo opcional del vendedor (Ajustes → Seguridad): código de verificación, recuperar contraseña y cambiar número con el correo (requiere C5).
 - [ ] **T10 Revisión general**: catálogo, historias, perfiles, pedidos, avisos push e inicio de sesión funcionan en el sitio y en CONTROL.
 
 ## 4. Seguridad (puede ser justo después del lanzamiento, en este orden)
 - [x] **S1 Teléfonos filtrados (hacer primero)**: RTDB → `chats` y `presencia`: borrar mensajes con `uid` que empiece con `cliente_` (znr-backend#15).
-- [ ] **S2 App Check en Firestore**: Firebase → Verificación de aplicaciones → APIs → **Aplicar** (98 % verificadas).
+- [x] **S2 App Check en Firestore**: Firebase → Verificación de aplicaciones → APIs → **Aplicar** (98 % verificadas).
 - [ ] **S3 App Check en RTDB**: aún NO aplicar (84 % sin token). En la consola de znrcommunity.com correr la prueba y ver si sube
       "Sin verificar: solicitudes no válidas" (sube a 5 → aplicar; se queda en 0 → cambiar las lecturas REST antes):
       ```js
