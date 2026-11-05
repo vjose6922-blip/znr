@@ -1,12 +1,30 @@
 # Pendientes Z&R: lista única (znr + CONTROL + znr-backend)
 
-Actualizado: 2 nov 2026. **Este es el único archivo de pendientes.** Los `PENDIENTES.md` de CONTROL y znr-backend
+Actualizado: 5 nov 2026. **Este es el único archivo de pendientes.** Los `PENDIENTES.md` de CONTROL y znr-backend
 apuntan aquí. Al terminar algo, cambia `[ ]` por `[x]`. Para pedir ayuda a Claude, cita el código (ej. "haz S2").
 
 Fuentes unificadas: `PENDIENTES.md` de los 3 repos, `PRUEBAS-PENDIENTES.md` y la lista de pruebas de
 `PAGOS-BACKEND.md` (znr-backend), e issues abiertos znr#18, znr#61, znr-backend#13, #15 y #37.
 
 **Orden sugerido:** 1 → 2 → 3 → lanzar. Las secciones 4 y 5 pueden ir después del lanzamiento.
+
+---
+
+## ▶️ Para retomar: lo que falta antes de lanzar
+Todo el código ya está en `main` de los 3 repos (sin PRs abiertos). Solo faltan pruebas:
+
+1. **Con el celular (10 min):** T8 (seguimiento de entrega al cambiar de app) y T10 (revisión general).
+2. **En casa, con 2 teléfonos:**
+   - **Fuera del WiFi del trabajo**: esa red bloquea el video en vivo y el chat en tiempo real (usar datos móviles o WiFi de casa).
+   - **Dos cuentas de vendedor distintas** (una transmite, otra compra): iniciar sesión con la misma cuenta en otro
+     teléfono cierra la sesión del primero y el live pierde el respaldo de video.
+   - **Lives:** L1, L2, L4, L5 (sección 3.2).
+   - **Chat de pedidos:** X1–X5 (sección 3.7). Hacer un **pedido nuevo**: solo los pedidos creados desde el 5 nov
+     tienen el chat automático.
+3. **Pagos con dinero real:** P2–P11 (sección 3.1). Montos chicos y reembolsar después.
+4. **Opcional (consola, 2 min):** C11, la transferencia `storage-continuo`.
+
+Después de lanzar: sección 4 (seguridad) y 5 (mejoras).
 
 ---
 
@@ -35,6 +53,9 @@ es posterior al cambio; si no, en **Cloud Build → Activadores** revisa que ten
       `MAPBOX_PK` de `entregas-live.html` y `seguimiento-entrega.html` (hoy usan tiles de OpenStreetMap, no aptos para uso intensivo).
 - [x] **C7 Alerta de presupuesto** en Google Cloud (Facturación → Presupuestos y alertas). Cloudflare no ofrece aviso por correo: se cubre con F7.
 - [x] **C8 Storage ciclo de vida**: `znr-backups` a clase Archive; borrar en `znr-live-grabaciones` lo de más de 7 días.
+- [ ] **C11 (opcional)** Google Cloud → Transferencia de datos → Storage Transfer Service → el trabajo que copia a
+      `znr-backups/storage-continuo/`: que **"Borrar archivos del destino que no estén en el origen"** esté desactivado
+      (`znr-backups` es clase Archive: borrar antes de 1 año tiene cobro).
 - [x] **C9 App Check TTL**: 1 día (Verificación de aplicaciones → Apps → ZNR WEB).
 - [x] **C10 Stripe**: confirmar el **primer depósito** a la CLABE (previsto ~2 nov) en Stripe → Saldos (automático lunes y viernes).
 
@@ -103,9 +124,9 @@ Usa montos chicos ($149 de Plus o ~$10) y reembolsa si no quieres conservarlos. 
 - [ ] **X1** Comprador: en el aviso de su pedido (enviado / confirmado / entregado) toca **"💬 Chat con el vendedor"** → abre el chat del pedido.
 - [ ] **X2** Vendedor: en la tarjeta de la venta toca **"💬 Chat con el cliente"** → abre el MISMO chat; se escriben y llega el aviso (burbuja).
 - [ ] **X3** En el chat: botón **WhatsApp** (respaldo) abre WhatsApp de la otra persona; fotos y "Reportar conversación" funcionan.
+- [ ] **X4** El chat aparece en **"Pedidos y chats"** (mis-pedidos.html) con la etiqueta "Chat · …". Se borra solo 30 días después de entregado.
 - [ ] **X5** El chat se crea solo al hacer el pedido, con mensajes automáticos: 🛍️ pedido enviado, ✅ stock confirmado / 🚫 sin stock,
       💳 pago recibido, 🛵 va en camino (live), 🕒 "paso a recoger a las…" (desde el aviso) y 🎉 entregado.
-- [ ] **X4** El chat aparece en **"Pedidos y chats"** (mis-pedidos.html) con la etiqueta "Chat · …". Se borra solo 30 días después de entregado.
 
 ## 4. Seguridad (puede ser justo después del lanzamiento, en este orden)
 - [x] **S1 Teléfonos filtrados (hacer primero)**: RTDB → `chats` y `presencia`: borrar mensajes con `uid` que empiece con `cliente_` (znr-backend#15).
