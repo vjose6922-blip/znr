@@ -99,6 +99,12 @@ Usa montos chicos ($149 de Plus o ~$10) y reembolsa si no quieres conservarlos. 
 - [x] **T9** Correo opcional del vendedor (Ajustes → Seguridad): código de verificación, recuperar contraseña y cambiar número con el correo (requiere C5).
 - [ ] **T10 Revisión general**: catálogo, historias, perfiles, pedidos, avisos push e inicio de sesión funcionan en el sitio y en CONTROL.
 
+### 3.7 Chat de pedidos normales (vendedor ↔ comprador, WhatsApp de respaldo)
+- [ ] **X1** Comprador: en el aviso de su pedido (enviado / confirmado / entregado) toca **"💬 Chat con el vendedor"** → abre el chat del pedido.
+- [ ] **X2** Vendedor: en la tarjeta de la venta toca **"💬 Chat con el cliente"** → abre el MISMO chat; se escriben y llega el aviso (burbuja).
+- [ ] **X3** En el chat: botón **WhatsApp** (respaldo) abre WhatsApp de la otra persona; fotos y "Reportar conversación" funcionan.
+- [ ] **X4** El chat aparece en **"Pedidos y chats"** (mis-pedidos.html) con la etiqueta "Chat · …". Se borra solo 30 días después de entregado.
+
 ## 4. Seguridad (puede ser justo después del lanzamiento, en este orden)
 - [x] **S1 Teléfonos filtrados (hacer primero)**: RTDB → `chats` y `presencia`: borrar mensajes con `uid` que empiece con `cliente_` (znr-backend#15).
 - [x] **S2 App Check en Firestore**: Firebase → Verificación de aplicaciones → APIs → **Aplicar** (98 % verificadas).
