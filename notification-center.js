@@ -43,6 +43,8 @@
     telefono_actualizado:   { grupo: 'cuenta',  icono: Icon('lock') },
     telefono_rechazado:     { grupo: 'cuenta',  icono: Icon('lock') },
     informe_semanal:        { grupo: 'cuenta',  icono: Icon('stats') },
+    venta_donada:           { grupo: 'pedidos', icono: Icon('heart-fill') },
+    pago_donacion_confirmado:{ grupo: 'pedidos', icono: Icon('check') },
     insignia_donador:       { grupo: 'cuenta',  icono: Icon('gift') },
     insignia_por_vencer:    { grupo: 'cuenta',  icono: Icon('clock') },
     password_cambiada:      { grupo: 'cuenta',  icono: Icon('lock') },
@@ -579,6 +581,10 @@ const PICKUP_HORAS = ['9:00 AM','10:00 AM','11:00 AM','12:00 PM','1:00 PM','2:00
       const chatBtn = meta.requestId && vendChat && ['pedido_enviado_vendedor', 'confirmacion_vendedor', 'sin_stock_vendedor', 'pedido_entregado', 'compra_live', 'pago_confirmado', 'pedido_en_ruta'].includes(n.tipo)
         ? `<button type="button" class="nc-wa-btn nc-chat-btn" style="background:#ff4f81;color:#fff;border:none;cursor:pointer" data-vendedor="${esc(vendChat)}" data-request="${esc(meta.requestId)}" onclick="event.stopPropagation()">💬 Chat con el vendedor</button>`
         : '';
+      // Venta donada: la fundación confirma con un toque que recibió el pago (ventas-api confirmarPagoDonacion).
+      const donBtn = n.tipo === 'venta_donada' && meta.requestId && meta.vendedor_uid && meta.beneficiarioId
+        ? `<button type="button" class="nc-wa-btn nc-don-btn" style="background:#16a34a;color:#fff;border:none;cursor:pointer" data-vendedor="${esc(meta.vendedor_uid)}" data-request="${esc(meta.requestId)}" data-ben="${esc(meta.beneficiarioId)}" onclick="event.stopPropagation()">✅ Recibí el pago</button>`
+        : '';
       const waBtn = meta.whatsappUrl
         ? `<a class="nc-wa-btn" href="${meta.whatsappUrl}" target="_blank" rel="noopener" onclick="event.stopPropagation()">${Icon('whatsapp')} Escribir por WhatsApp</a>`
         : '';
@@ -666,6 +672,7 @@ const PICKUP_HORAS = ['9:00 AM','10:00 AM','11:00 AM','12:00 PM','1:00 PM','2:00
             <p class="nc-item-fecha">${fechaCorta(n.fecha)}</p> <!-- FECHA SIEMPRE VISIBLE -->
             <div class="nc-msg-collapsed">
               <p class="nc-item-msg">${n.tipo === 'pedido_personalizado_mensaje' ? esc(n.mensaje) : (n.mensaje || '')}</p>
+              ${donBtn}
               ${chatBtn}
               ${waBtn}
               ${mapsBtn}
@@ -700,6 +707,18 @@ const PICKUP_HORAS = ['9:00 AM','10:00 AM','11:00 AM','12:00 PM','1:00 PM','2:00
         fetch(window.PEDIDOS_API_URL, { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams({ action: 'enviarMensajePedido', pedidoId: chat, contenido: '🕒 ' + texto, telefono: localStorage.getItem('client_phone') || '', compradorToken: localStorage.getItem('comprador_token') || '' }).toString() })
           .then(r => r.json()).then(r => { if (r.ok) btn.textContent = '✔ Enviado al chat'; else { btn.disabled = false; porWhatsApp(); } })
           .catch(() => { btn.disabled = false; porWhatsApp(); });
+      });
+    });
+
+    listEl.querySelectorAll('.nc-don-btn').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        let token = '';
+        try { token = (JSON.parse(localStorage.getItem('vendor_session') || 'null') || {}).token || ''; } catch (_) {}
+        btn.disabled = true;
+        const r = await fetch(window.VENTAS_API_URL, { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: new URLSearchParams({ action: 'confirmarPagoDonacion', vendorToken: token, vendedor_uid: btn.dataset.vendedor, requestId: btn.dataset.request, beneficiarioId: btn.dataset.ben }).toString() })
+          .then(x => x.json()).catch(() => ({ error: 'Sin conexión. Intenta de nuevo.' }));
+        if (r.ok) btn.textContent = '✔ Pago confirmado'; else { btn.disabled = false; btn.textContent = r.error || 'Error, reintenta'; }
       });
     });
 

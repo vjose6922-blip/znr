@@ -578,6 +578,14 @@ window.cardDonar = ({ id, img, titulo, precio, sub, etiqueta, extra = '', sel, c
   <div style="flex:1;min-width:0;"><b>${titulo}</b>${precio != null ? `<div class="dr-precio">$${Number(precio || 0).toLocaleString('es-MX')}</div>` : ''}${sub ? `<small>${sub}</small>` : ''}
     ${etiqueta ? `<span class="dr-stock">${etiqueta}</span>` : ''}${extra}</div>
   ${corazon ? `<span class="dr-heart">${Icon('heart', { size: 26 })}${Icon('heart-fill', { size: 26 })}</span>` : ''}</div>`;
+// Donar por piezas (beneficiarios-api asignarDonacion): con más de 1 en stock se elige cuántas; las donadas salen como
+// una publicación "Donativo" aparte y el resto sigue a la venta normal. Con 1 pieza no aparece (se dona completo).
+window.cantidadDonar = p => +p.stock > 1 && p.tipoVenta !== 'personalizado'
+  ? `<label class="dr-cant" style="display:flex;align-items:center;gap:8px;margin:12px 0 4px;font-size:.9rem;font-weight:700;">¿Cuántas piezas donas?
+      <input type="number" id="dr-cantidad" min="1" max="${+p.stock}" value="${+p.stock}" inputmode="numeric" style="width:70px;padding:6px 8px;border-radius:10px;border:1px solid #ddd;font-size:1rem;"> de ${+p.stock}</label>
+     <p style="font-size:.78rem;color:#888;margin:0 0 8px;line-height:1.4;">Las donadas salen como una publicación "Donativo" (el pago va a la fundación); las demás siguen a la venta normal.</p>`
+  : '';
+window.leerCantidadDonar = root => { const i = root && root.querySelector('#dr-cantidad'); if (!i) return ''; const n = Math.trunc(+i.value); return String(i.value === '' || isNaN(n) ? +i.max : Math.min(Math.max(n, 1), +i.max)); };
 window.stockDonar = p => p.tipoVenta === 'personalizado' ? 'Bajo pedido' : `${+p.stock <= 5 ? 'Solo ' : ''}${+p.stock || 0} disponible${+p.stock === 1 ? '' : 's'}`;
 
 function generateRequestId() {

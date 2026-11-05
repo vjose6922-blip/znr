@@ -19,6 +19,7 @@ Todo el código ya está en `main` de los 3 repos (sin PRs abiertos). Solo falta
    - **Dos cuentas de vendedor distintas** (una transmite, otra compra): iniciar sesión con la misma cuenta en otro
      teléfono cierra la sesión del primero y el live pierde el respaldo de video.
    - **Lives:** L1, L2, L4, L5 (sección 3.2).
+   - **Donaciones:** D1–D3 (sección 3.8), con una cuenta de vendedor y la cuenta dueña de una fundación aprobada.
    - **Chat de pedidos:** X1–X5 (sección 3.7). Hacer un **pedido nuevo**: solo los pedidos creados desde el 5 nov
      tienen el chat automático.
 3. **Pagos con dinero real:** P2–P11 (sección 3.1). Montos chicos y reembolsar después.
@@ -127,6 +128,14 @@ Usa montos chicos ($149 de Plus o ~$10) y reembolsa si no quieres conservarlos. 
 - [ ] **X4** El chat aparece en **"Pedidos y chats"** (mis-pedidos.html) con la etiqueta "Chat · …". Se borra solo 30 días después de entregado.
 - [ ] **X5** El chat se crea solo al hacer el pedido, con mensajes automáticos: 🛍️ pedido enviado, ✅ stock confirmado / 🚫 sin stock,
       💳 pago recibido, 🛵 va en camino (live), 🕒 "paso a recoger a las…" (desde el aviso) y 🎉 entregado.
+
+### 3.8 Donaciones por piezas y pago a la fundación
+- [ ] **D1** Donar un artículo con **varias piezas** (panel de vendedor → Donar, y desde Refugios): sale "¿Cuántas piezas donas?".
+      Al donar 2 de 5 aparece una publicación aparte "Donativo" con 2 y el original queda con 3. Con 1 pieza se dona completo.
+- [ ] **D2** Comprar la publicación "Donativo": la **fundación** recibe el aviso "❤️ Venta donada…" con **"✅ Recibí el pago"**;
+      al tocarlo, el vendedor recibe el aviso, su tarjeta de venta dice "Pago a … ✅ confirmado" y queda el mensaje en el chat.
+- [ ] **D3** Quitar la donación de la copia: sus piezas regresan al original. Al venderse todas, la copia desaparece pero
+      la donación sigue contando para la insignia y el ranking.
 
 ## 4. Seguridad (puede ser justo después del lanzamiento, en este orden)
 - [x] **S1 Teléfonos filtrados (hacer primero)**: RTDB → `chats` y `presencia`: borrar mensajes con `uid` que empiece con `cliente_` (znr-backend#15).

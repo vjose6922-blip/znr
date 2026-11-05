@@ -528,6 +528,9 @@ window.openDonarARefugioModal = async function(beneficiario) {
       elegido = c && disponibles.find(p => String(p.id) === c.dataset.id);
       if (!elegido) return;
       marcar(c);
+      let cant = body.querySelector('#dr-cant-wrap');
+      if (!cant) { cant = document.createElement('div'); cant.id = 'dr-cant-wrap'; body.appendChild(cant); }
+      cant.innerHTML = window.cantidadDonar(elegido);
       cta.disabled = false; cta.textContent = `Donar ${elegido.nombre || ''} · $${Number(elegido.precio || 0).toLocaleString('es-MX')}`;
     };
   };
@@ -535,7 +538,7 @@ window.openDonarARefugioModal = async function(beneficiario) {
   cta.onclick = async () => {
     if (!elegido) return;
     cta.disabled = true; cta.textContent = 'Donando…';
-    const data = await api('asignarDonacion', { pid: elegido.id, p: { beneficiario_id: beneficiario.id } }).catch(() => ({ error: 'Error de conexión' }));
+    const data = await api('asignarDonacion', { pid: elegido.id, p: { beneficiario_id: beneficiario.id, cantidad: window.leerCantidadDonar(body) } }).catch(() => ({ error: 'Error de conexión' }));
     if (data.ok) { showMsg('Donación asignada correctamente', true); cargarProductos(); } else { showMsg(data.error || 'Error', false); cta.disabled = false; cta.textContent = 'Reintentar'; }
   };
 

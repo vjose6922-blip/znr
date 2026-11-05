@@ -657,6 +657,7 @@ ${(n.items || []).map(it => `
 <span>$${Number(it.precio || 0).toLocaleString()}</span>
 </div>
 `).join('')}
+${Object.values(n.donaciones || {}).map(d => `<div style="margin-top:8px;padding:7px 10px;border-radius:10px;font-size:12px;font-weight:600;background:${d.estado === 'confirmado' ? '#dcfce7;color:#166534' : '#ffedd5;color:#9a3412'};">❤️ Pago a ${esc2(d.nombre)} ($${Number(d.monto || 0).toLocaleString()}): ${d.estado === 'confirmado' ? '✅ confirmado, ya puedes entregar lo donado' : '⏳ pendiente; entrega lo donado cuando confirme'}</div>`).join('')}
 <button type="button" class="vsn-chat-btn" style="display:flex;align-items:center;justify-content:center;gap:6px;width:100%;margin-top:8px;padding:8px;border:none;border-radius:10px;background:#ff4f81;color:#fff;font-size:12.5px;font-weight:700;cursor:pointer;">💬 Chat con el cliente</button>
 ${n.clientPhone ? `<a href="https://wa.me/${(String(n.clientPhone).replace(/\D/g,'').length===10?'52':'')}${esc2(String(n.clientPhone).replace(/\D/g,''))}" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:4px;font-size:12px;color:${esConfirmada ? '#4d8064' : '#8a7238'};margin-top:4px;text-decoration:underline;">${Icon('whatsapp')} +52 ${esc2(n.clientPhone)}</a>` : ''}
 <div style="display:flex;gap:8px;margin-top:10px;">
@@ -3362,7 +3363,7 @@ window.openDonarProductosModal = async function(productoId) {
   };
   body.innerHTML = window.cardDonar({ id: esc(prod.id), img: prod.imagen1 && esc(urlImagen(prod.imagen1)), titulo: esc(prod.nombre), precio: prod.precio, etiqueta: window.stockDonar(prod), corazon: false })
     + (donado ? '<p style="font-size:.85rem;color:#555;line-height:1.5;">Este producto ya está asignado a un beneficiario. ¿Deseas quitar la donación?</p>'
-      : '<p class="dr-tit">Elige a quién donar</p><div id="donar-bens"><p style="color:#aaa;text-align:center;">Cargando beneficiarios…</p></div>');
+      : window.cantidadDonar(prod) + '<p class="dr-tit">Elige a quién donar</p><div id="donar-bens"><p style="color:#aaa;text-align:center;">Cargando beneficiarios…</p></div>');
   if (donado) {
     cta.disabled = false; cta.classList.add('quitar');
     cta.onclick = () => enviar({ action: 'desasignarDonacion' }, 'Donación removida', 'Quitar donación');
@@ -3380,7 +3381,7 @@ window.openDonarProductosModal = async function(productoId) {
     marcar(c); benId = c.dataset.id;
     cta.disabled = false; cta.textContent = `Donar a ${bens.find(b => String(b.id) === benId)?.nombre || 'beneficiario'}`;
   };
-  cta.onclick = () => benId && enviar({ action: 'asignarDonacion', beneficiario_id: benId }, 'Donación asignada correctamente', 'Reintentar');
+  cta.onclick = () => benId && enviar({ action: 'asignarDonacion', beneficiario_id: benId, cantidad: window.leerCantidadDonar(body) }, 'Donación asignada correctamente', 'Reintentar');
 };
 
 window.openGestionarDonacionesModal = async function(page = 1) {
