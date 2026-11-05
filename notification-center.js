@@ -42,7 +42,23 @@
     donacion_retirada:      { grupo: 'cuenta',  icono: Icon('send') },
     telefono_actualizado:   { grupo: 'cuenta',  icono: Icon('lock') },
     telefono_rechazado:     { grupo: 'cuenta',  icono: Icon('lock') },
-    informe_semanal:        { grupo: 'cuenta',  icono: Icon('stats') }
+    informe_semanal:        { grupo: 'cuenta',  icono: Icon('stats') },
+    insignia_donador:       { grupo: 'cuenta',  icono: Icon('gift') },
+    insignia_por_vencer:    { grupo: 'cuenta',  icono: Icon('clock') },
+    password_cambiada:      { grupo: 'cuenta',  icono: Icon('lock') },
+    marcado_confiable:      { grupo: 'cuenta',  icono: Icon('check') },
+    plus_cobro_fallido:     { grupo: 'cuenta',  icono: Icon('credit-card') },
+    plus_recordatorio:      { grupo: 'cuenta',  icono: Icon('star') },
+    tips_bienvenida:        { grupo: 'cuenta',  icono: Icon('lightbulb') },
+    // Ya caían en Pedidos (el grupo por defecto), pero sin icono propio
+    codigo_entrega:         { grupo: 'pedidos', icono: Icon('lock') },
+    devolucion:             { grupo: 'pedidos', icono: Icon('refresh') },
+    pedido_personalizado_nuevo:        { grupo: 'pedidos', icono: Icon('shopping-bag') },
+    pedido_personalizado_cotizacion:   { grupo: 'pedidos', icono: Icon('dollar') },
+    pedido_personalizado_estado:       { grupo: 'pedidos', icono: Icon('box') },
+    pedido_personalizado_pago:         { grupo: 'pedidos', icono: Icon('credit-card') },
+    pedido_personalizado_calificacion: { grupo: 'pedidos', icono: Icon('star') },
+    pedido_personalizado_recordatorio: { grupo: 'pedidos', icono: Icon('clock') }
   };
 
   function getIdentity() {
