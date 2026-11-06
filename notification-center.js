@@ -277,9 +277,9 @@
 .nc-pickup-select{
   flex:1;
   min-width:0;
-  background:rgba(255,255,255,.06);
-  border:1px solid rgba(255,255,255,.15);
-  color:#fff;
+  background:var(--color-surface,#fff);
+  border:1px solid rgba(96,165,250,.45);
+  color:var(--color-text-main,#1f2937);
   border-radius:10px;
   padding:8px 9px;
   font-size:12px;
@@ -585,6 +585,15 @@ const PICKUP_HORAS = ['9:00 AM','10:00 AM','11:00 AM','12:00 PM','1:00 PM','2:00
       const donBtn = n.tipo === 'venta_donada' && meta.requestId && meta.vendedor_uid && meta.beneficiarioId
         ? `<button type="button" class="nc-wa-btn nc-don-btn" style="background:#16a34a;color:#fff;border:none;cursor:pointer" data-vendedor="${esc(meta.vendedor_uid)}" data-request="${esc(meta.requestId)}" data-ben="${esc(meta.beneficiarioId)}" onclick="event.stopPropagation()">✅ Recibí el pago</button>`
         : '';
+      // Referencia de 4 dígitos de las ventas donadas: grande y con copiar (se perdía dentro del texto del aviso)
+      const refsDon = n.tipo === 'venta_donada' && meta.ref ? [{ ref: meta.ref, monto: meta.monto, nombre: '' }]
+        : n.tipo === 'pedido_enviado_vendedor' && Array.isArray(meta.refsDonacion) ? meta.refsDonacion : [];
+      const refHtml = refsDon.filter(d => /^\d{4}$/.test(String(d.ref))).map(d => `<div onclick="event.stopPropagation()" style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:8px;padding:10px 12px;border-radius:12px;background:rgba(249,115,22,.1);border:1px solid rgba(249,115,22,.35);">
+          <div style="min-width:0;"><div style="font-size:11px;font-weight:700;color:#c2410c;">${n.tipo === 'venta_donada' ? 'Referencia del pago' : '❤️ Referencia para ' + esc(d.nombre || 'la fundación')} · $${Number(d.monto || 0).toLocaleString()}</div>
+            <div style="font-size:22px;font-weight:800;letter-spacing:.18em;color:var(--color-text-main,#111);">${esc(d.ref)}</div>
+            ${n.tipo === 'venta_donada' ? '' : '<div style="font-size:10.5px;color:#9a3412;">Escríbela en el concepto de tu transferencia.</div>'}</div>
+          <button type="button" class="nc-copy-ref" data-ref="${esc(d.ref)}" style="flex-shrink:0;border:none;border-radius:10px;padding:8px 12px;background:#f97316;color:#fff;font-weight:700;font-size:12px;cursor:pointer;">${Icon('clipboard')} Copiar</button>
+        </div>`).join('');
       const waBtn = meta.whatsappUrl
         ? `<a class="nc-wa-btn" href="${meta.whatsappUrl}" target="_blank" rel="noopener" onclick="event.stopPropagation()">${Icon('whatsapp')} Escribir por WhatsApp</a>`
         : '';
@@ -672,6 +681,7 @@ const PICKUP_HORAS = ['9:00 AM','10:00 AM','11:00 AM','12:00 PM','1:00 PM','2:00
             <p class="nc-item-fecha">${fechaCorta(n.fecha)}</p> <!-- FECHA SIEMPRE VISIBLE -->
             <div class="nc-msg-collapsed">
               <p class="nc-item-msg">${n.tipo === 'pedido_personalizado_mensaje' ? esc(n.mensaje) : (n.mensaje || '')}</p>
+              ${refHtml}
               ${donBtn}
               ${chatBtn}
               ${waBtn}
@@ -708,6 +718,10 @@ const PICKUP_HORAS = ['9:00 AM','10:00 AM','11:00 AM','12:00 PM','1:00 PM','2:00
           .then(r => r.json()).then(r => { if (r.ok) btn.textContent = '✔ Enviado al chat'; else { btn.disabled = false; porWhatsApp(); } })
           .catch(() => { btn.disabled = false; porWhatsApp(); });
       });
+    });
+
+    listEl.querySelectorAll('.nc-copy-ref').forEach(btn => {
+      btn.addEventListener('click', (e) => { e.stopPropagation(); window.znrCopiar ? window.znrCopiar(btn.dataset.ref, btn) : navigator.clipboard.writeText(btn.dataset.ref).catch(() => {}); });
     });
 
     listEl.querySelectorAll('.nc-don-btn').forEach(btn => {

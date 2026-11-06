@@ -3721,7 +3721,8 @@ async function loadBeneficiarioDonaciones() {
               <div style="font-size:.8rem;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(d.producto_nombre||d.producto_id)}</div>
               <div style="font-size:.72rem;color:#888;">De: ${esc(d.vendedor_nombre)}</div>
             </div>
-            <span style="font-size:.7rem;padding:2px 7px;border-radius:20px;background:#dcfce7;color:#166534;font-weight:700;flex-shrink:0;">Activa</span>
+            ${d.vendida ? '<span style="font-size:.7rem;padding:2px 7px;border-radius:20px;background:#e0e7ff;color:#3730a3;font-weight:700;flex-shrink:0;">Vendida</span>'
+              : '<span style="font-size:.7rem;padding:2px 7px;border-radius:20px;background:#dcfce7;color:#166534;font-weight:700;flex-shrink:0;">Activa</span>'}
           </div>`;
     area.innerHTML = perfilHtml + `<div style="margin-top:12px;padding-top:12px;border-top:1px solid #f5f5f5;">
       <p style="margin:0 0 8px;font-size:.78rem;font-weight:800;color:#f97316;">Donaciones que recibes (${dons.length})</p>
