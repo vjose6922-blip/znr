@@ -127,13 +127,15 @@ Usa montos chicos ($149 de Plus o ~$10) y reembolsa si no quieres conservarlos. 
 - [ ] **X3** En el chat: botón **WhatsApp** (respaldo) abre WhatsApp de la otra persona; fotos y "Reportar conversación" funcionan.
 - [ ] **X4** El chat aparece en **"Pedidos y chats"** (mis-pedidos.html) con la etiqueta "Chat · …". Se borra solo 30 días después de entregado.
 - [ ] **X5** El chat se crea solo al hacer el pedido, con mensajes automáticos: 🛍️ pedido enviado, ✅ stock confirmado / 🚫 sin stock,
-      💳 pago recibido, 🛵 va en camino (live), 🕒 "paso a recoger a las…" (desde el aviso) y 🎉 entregado.
+      💳 pago recibido, 📍 punto de recolección con botón a Maps (sin envío a domicilio), 🛵 va en camino (live), 🕒 "paso a recoger a las…" (desde el aviso) y 🎉 entregado.
 
 ### 3.8 Donaciones por piezas y pago a la fundación
 - [ ] **D1** Donar un artículo con **varias piezas** (panel de vendedor → Donar, y desde Refugios): sale "¿Cuántas piezas donas?".
       Al donar 2 de 5 aparece una publicación aparte "Donativo" con 2 y el original queda con 3. Con 1 pieza se dona completo.
 - [ ] **D2** Comprar la publicación "Donativo": la **fundación** recibe el aviso "❤️ Venta donada…" con **"✅ Recibí el pago"**;
       al tocarlo, el vendedor recibe el aviso, su tarjeta de venta dice "Pago a … ✅ confirmado" y queda el mensaje en el chat.
+      Cada pago trae una **referencia de 4 dígitos** (el comprador la ve al enviar el pedido y en el chat). Aunque la fundación
+      marque el aviso como leído, en su panel queda el botón flotante **"❤️ N pagos por confirmar"**.
 - [ ] **D3** Quitar la donación de la copia: sus piezas regresan al original. Al venderse todas, la copia desaparece pero
       la donación sigue contando para la insignia y el ranking.
 

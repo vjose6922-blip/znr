@@ -559,6 +559,17 @@ const DR_CSS = `.dr-modal{--c:var(--color-accent-solid,#ff3d7f);position:fixed;i
 .dr-pie{padding:10px 16px calc(10px + env(safe-area-inset-bottom));max-width:560px;width:100%;margin:0 auto;box-sizing:border-box}
 .dr-cta{width:100%;padding:15px;border:none;border-radius:14px;background:var(--c);color:#fff;font-weight:700;font-size:1.05rem;cursor:pointer}.dr-cta:disabled{opacity:.5}.dr-cta.quitar{background:#fee2e2;color:#b91c1c}`;
 // titulo ya escapado. Devuelve las piezas del modal; tocar una tarjeta la marca (borde y corazón).
+// Copia texto (con respaldo si el navegador no permite el portapapeles) y lo confirma en el mismo botón: los avisos
+// flotantes quedaban detrás de los modales y no se sabía si se había copiado.
+window.znrCopiar = async (texto, btn) => {
+  let ok = false;
+  try { await navigator.clipboard.writeText(texto); ok = true; } catch (_) {
+    const ta = Object.assign(document.createElement('textarea'), { value: texto }); ta.style.cssText = 'position:fixed;opacity:0';
+    document.body.appendChild(ta); ta.select(); try { ok = document.execCommand('copy'); } catch (_) {} ta.remove();
+  }
+  if (btn) { const antes = btn.innerHTML; btn.textContent = ok ? '✓ Copiado' : 'No se pudo copiar'; setTimeout(() => { btn.innerHTML = antes; }, 1600); }
+  return ok;
+};
 window.modalDonar = ({ id, titulo, sub = 'Tu donación salva vidas', cta = 'Elige un artículo' }) => {
   document.getElementById(id)?.remove();
   const modal = Object.assign(document.createElement('div'), { id, className: 'dr-modal' });
@@ -2899,11 +2910,7 @@ document.body.appendChild(modal);
 modal.querySelectorAll('.vcm-copy-cuenta').forEach(btn => {
 btn.addEventListener('click', () => {
 const cuenta = btn.dataset.cuenta || '';
-if (navigator.clipboard && window.isSecureContext) {
-navigator.clipboard.writeText(cuenta).then(() => showTemporaryMessage(' Cuenta copiada', 'success'));
-} else {
-showTemporaryMessage(cuenta, 'info');
-}
+window.znrCopiar(cuenta, btn);
 });
 });
 const statusBox = modal.querySelector('#vcm-status');
@@ -2934,7 +2941,7 @@ sendBtn.addEventListener('click', async () => {
 sendBtn.disabled = true;
 sendBtn.style.opacity = '.7';
 sendBtn.textContent = 'Enviando notificación…';
-let ok = false;
+let ok = false, refsDonacion = [];
 try {
 if (vendorUid) {
 const VENTAS_API_URL_CHECKOUT = "https://ventas-api-1038143238323.us-central1.run.app"; // TODO: pegar la URL real tras el deploy
@@ -2958,18 +2965,20 @@ vendorNombre: nombre || ""
 });
 const data = await res.json();
 ok = !!(data && data.ok);
+refsDonacion = (data && data.refsDonacion) || [];
 }
 } catch (err) {
 console.error("No se pudo notificar al vendedor:", err);
 }
 if (ok) {
-showStatus(` Notificamos a ${nombre}. Te avisaremos aquí mismo en cuanto confirme.` + (vendorUid ? ' Si no responde pronto, revisa tu campanita de notificaciones: ahí vas a tener el botón para escribirle por WhatsApp.' : ''), 'success');
+showStatus(` Notificamos a ${nombre}. Te avisaremos aquí mismo en cuanto confirme.` + (vendorUid ? ' También puedes escribirle por el chat del pedido.' : '')
+  + refsDonacion.map(d => ` ❤️ Al transferir a ${d.nombre} ($${Number(d.monto).toLocaleString()}), escribe la referencia ${d.ref} en el concepto.`).join(''), 'success');
 if (vendorUid) {
 const waBtn = document.createElement('button');
 waBtn.type = 'button';
-waBtn.textContent = '💬 Escribirle por WhatsApp';
+waBtn.textContent = '💬 Escribirle por chat';
 waBtn.style.cssText = 'display:block;width:100%;text-align:center;margin-top:10px;padding:12px;border:0;border-radius:14px;background:rgba(37,211,102,.12);color:#25D366;font-size:13px;font-weight:700;cursor:pointer;';
-waBtn.addEventListener('click', abrirWa);
+waBtn.addEventListener('click', () => window.znrAbrirChatVenta(vendorUid, requestId, 'comprador', waBtn)); // WhatsApp queda de respaldo dentro del chat
 statusBox.insertAdjacentElement('afterend', waBtn);
 }
 sendBtn.style.display = 'none';

@@ -743,10 +743,8 @@ const PICKUP_HORAS = ['9:00 AM','10:00 AM','11:00 AM','12:00 PM','1:00 PM','2:00
         e.stopPropagation();
         const clabe = btn.dataset.clabe || '';
         if (!clabe) return;
-        if (navigator.clipboard && window.isSecureContext) {
-          navigator.clipboard.writeText(clabe)
-            .then(() => { btn.textContent = '✓ Copiada'; setTimeout(() => { btn.innerHTML = `${Icon('clipboard')} Copiar CLABE`; }, 1500); });
-        }
+        if (window.znrCopiar) { window.znrCopiar(clabe, btn); return; }
+        navigator.clipboard.writeText(clabe).then(() => { btn.textContent = '✓ Copiada'; setTimeout(() => { btn.innerHTML = `${Icon('clipboard')} Copiar CLABE`; }, 1500); }).catch(() => {});
       });
     });
 
