@@ -359,6 +359,7 @@
         <div class="resumen-chip pend"><span class="num">${pendientes}</span><span class="lbl">Pendientes</span></div>
       </div>
       <div class="ruta-actions">
+        <button class="btn-ruta-accion" id="btn-marcar-todos">${Icon('check')} Marcar todos los pendientes</button>
         <button class="btn-ruta-accion primario" id="btn-iniciar-ruta">${Icon('map-pin')} Iniciar ruta (${seleccion.size} marcado${seleccion.size === 1 ? '' : 's'})</button>
         ${enlacesRuta().map((u, i, a) => `<a class="btn-ruta-accion" href="${esc(u)}" target="_blank" rel="noopener">${Icon('map-pin')} ${a.length > 1 ? `Ruta ${i + 1} en Google Maps` : 'Abrir ruta en Google Maps'}</a>`).join('')}
         <button class="btn-ruta-accion" id="btn-optimizar-ruta">${Icon('refresh')} Reordenar (más cercano)</button>
@@ -459,6 +460,7 @@
 
     document.getElementById('btn-refrescar').addEventListener('click', () => cargar(true).then(() => toast('Actualizado')));
     document.getElementById('btn-iniciar-ruta').addEventListener('click', iniciarRuta);
+    document.getElementById('btn-marcar-todos').addEventListener('click', () => { entrega.grupos.filter(g => !EN_CAMINO.includes(g.estado) && g.estado !== 'entregado').forEach(g => seleccion.add(g.compradorKey)); render(); });
     document.getElementById('btn-optimizar-ruta').addEventListener('click', optimizarRuta);
 
     wrap.querySelectorAll('.entrega-card').forEach(card => {

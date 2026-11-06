@@ -41,11 +41,12 @@
     text-align: center; padding: 10px; border-radius: var(--radius-md);
     font-size: 13px; font-weight: 700; margin-bottom: 14px;
   }
-  .estado-banner.entregado { background: rgba(74,222,128,.15); color: #4ade80; }
-  .estado-banner.en-camino { background: rgba(59,130,246,.15); color: #60a5fa; }
-  .estado-banner.esperando { background: rgba(251,191,36,.15); color: #fbbf24; }
-  .estado-banner.preparando { background: rgba(251,146,60,.15); color: #fb923c; }
-  .estado-banner.cerca { background: rgba(192,132,252,.15); color: #c084fc; }
+  .estado-banner { color: #fff; } /* fondo sólido: se lee bien al sol y con poca vista */
+  .estado-banner.entregado { background: #15803d; }
+  .estado-banner.en-camino { background: #1d4ed8; }
+  .estado-banner.esperando { background: #92400e; }
+  .estado-banner.preparando { background: #c2410c; }
+  .estado-banner.cerca { background: #7e22ce; }
 
   .codigo-box { text-align: center; padding: 14px; margin-bottom: 14px; border-radius: var(--radius-md); border: 2px dashed var(--color-border-subtle); }
   .codigo-box small { display: block; font-size: 12px; color: var(--color-text-soft); line-height: 1.4; }
@@ -125,7 +126,7 @@
     <h1 id="th-titulo">Seguimiento de tu pedido</h1>
     <p id="th-sub"></p>
   </div>
-  <div id="banner"></div>
+  <div id="banner" role="status" aria-live="polite"></div>
   <div id="codigo-zone"></div>
   <p class="eta-note" id="eta-note"></p>
   <div id="pago-zone"></div>
@@ -243,7 +244,8 @@ function actualizarBanner(entrega) {
 
   const n = entrega.paradasAntes;
   if (entrega.estado === 'en-ruta' && n > 0) texto += ` · Faltan ${n} entrega${n === 1 ? '' : 's'} antes de la tuya`;
-  bannerEl.innerHTML = `<div class="estado-banner ${clase}">${texto}</div>`;
+  const html = `<div class="estado-banner ${clase}">${texto}</div>`;
+  if (bannerEl.innerHTML !== html) bannerEl.innerHTML = html; // sin repetir el aviso del lector en cada consulta
 
   if (entrega.estado === 'entregado' && pollTimer) { clearInterval(pollTimer); pollTimer = null; }
 }
