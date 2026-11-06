@@ -970,12 +970,13 @@ const BANNERS_AUTO = {
 };
 // Orden: banners de temporada y después los automáticos. Si alguno está marcado "solo este" (campañas fuertes), solo esos.
 function pintarBanners() {
+  const cont = document.getElementById('com-banners');
+  if (!cont || !window.znrBanner) return; // HTML viejo en caché sin #com-banners o banner-temporada.js sin cargar
   const exclusivos = bannersVigentes.filter(b => b.exclusivo === 'si');
   const html = (exclusivos.length ? exclusivos : bannersVigentes).map(b => window.znrBanner.html(b, 'role="listitem" data-vista="temporada"'))
     .concat(exclusivos.length ? [] : Object.keys(BANNERS_AUTO).filter(v => listasCarrusel[v]?.length).map(v => window.znrBanner.html(
       { ...BANNERS_AUTO[v](listasCarrusel[v]), tema: 'claro', degradado: 'no', fotos: listasCarrusel[v].slice(0, 3).map(p => p.imagen1).filter(Boolean) },
       `role="listitem" data-vista="${v}"`)));
-  const cont = document.getElementById('com-banners');
   cont.innerHTML = html.join('');
   cont.scrollLeft = 0;
   document.getElementById('com-hero-wrap').hidden = !html.length;

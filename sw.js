@@ -100,7 +100,9 @@ function getCacheStrategy(request) {
   // La lista de ciudades pesa bastante y casi nunca cambia: se baja una vez y se actualiza en segundo plano
   // (al cambiarla, la versión nueva se ve en la siguiente visita). Sin esto se descargaría completa en cada página.
   if (/\/ciudades(-extra)?\.js$/.test(url.pathname)) return 'STALE_WHILE_REVALIDATE';
-  if (['document','script'].includes(request.destination) && url.origin === self.location.origin) return 'NETWORK_FIRST_FRESH';
+  // El CSS propio también: con STALE_WHILE_REVALIDATE la primera visita tras un deploy mezclaba HTML nuevo con
+  // styles.css viejo (p.ej. el header quedaba bajo la Dynamic Island). Con ETag cada visita solo cuesta un 304.
+  if (['document','script','style'].includes(request.destination) && url.origin === self.location.origin) return 'NETWORK_FIRST_FRESH';
   if (request.destination === 'style') return 'STALE_WHILE_REVALIDATE';
   return 'CACHE_FIRST';
 }

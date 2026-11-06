@@ -37,6 +37,7 @@
   <button id="ins" title="Tocar elementos para ver su nombre">🔍 Inspeccionar</button>
   <button id="th" title="Zonas de alcance del pulgar">👍 Alcance</button>
   <button id="rl" title="Recargar">↻</button>
+  <button id="cc" title="Borrar caché y service worker de ZNR en este navegador">🧹</button>
 </div>
 <div id="stage"><div id="dev"><div id="scr"><iframe id="f"></iframe><div id="thumb"></div><div id="hl"></div></div></div></div>
 <div id="info"></div><div id="warn"></div>
@@ -127,6 +128,7 @@ $('rot').onclick = () => { S.rot = !S.rot; build(); };
 $('rl').onclick = () => f.contentWindow.location.reload();
 $('ins').onclick = e => { S.ins = !S.ins; e.target.classList.toggle('on', S.ins); if (!S.ins) { $('hl').style.display = $('info').style.display = 'none'; } };
 $('th').onclick = e => { const on = e.target.classList.toggle('on'); $('thumb').style.display = on ? 'block' : 'none'; };
+$('cc').onclick = async () => { for (const k of await caches.keys()) await caches.delete(k); for (const r of await navigator.serviceWorker?.getRegistrations() || []) await r.unregister(); f.contentWindow.location.reload(); };
 const hl = $('hl'); addEventListener('resize', fit); build();
 </script>
 </body>
