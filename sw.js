@@ -3,7 +3,8 @@
 // cada deploy para que los usuarios vean el contenido fresco. Solo
 // cambiarías este nombre si algún día necesitas forzar un borrado total
 // de la caché (p.ej. cambiaste la lógica de cacheo en sí).
-const CACHE_NAME    = 'zr-cache';
+// v2 (2026-11): había dispositivos sirviendo un catalogo.html de octubre (pedía offline-manager.js y sin Firestore).
+const CACHE_NAME    = 'zr-cache-v2';
 const DYNAMIC_CACHE = 'zr-dynamic';
 const OFFLINE_URL   = '/offline.html';
 
@@ -67,7 +68,9 @@ self.addEventListener('activate', event => {
           .map(n => caches.delete(n))
       );
       const dyn = await caches.open(DYNAMIC_CACHE); // borra el reCAPTCHA que versiones anteriores dejaron guardado
-      await Promise.all((await dyn.keys()).filter(r => NO_INTERCEPTAR.test(r.url)).map(r => dyn.delete(r)));
+      // También el HTML/JS/CSS propio que versiones viejas guardaron aquí (las imágenes se conservan).
+      const viejo = (u) => NO_INTERCEPTAR.test(u) || (new URL(u).origin === self.location.origin && /(\/|\.html|\.js|\.css)$/.test(new URL(u).pathname));
+      await Promise.all((await dyn.keys()).filter(r => viejo(r.url)).map(r => dyn.delete(r)));
       await self.clients.claim();
       const clients = await self.clients.matchAll();
       clients.forEach(c => c.postMessage({ type: 'SW_ACTIVATED' }));
