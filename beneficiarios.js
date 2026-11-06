@@ -517,6 +517,7 @@ window.openDonarARefugioModal = async function(beneficiario) {
         : '<p style="color:#aaa;text-align:center;padding:16px 0;">No tienes productos disponibles para donar.<br><small>Un producto ya donado a otro refugio no puede reasignarse sin quitarlo primero.</small></p>');
 
     body.onclick = async (e) => {
+      if (e.target.closest('#dr-cant-wrap')) return; // tocar el selector de piezas no cambia el artículo elegido
       const q = e.target.closest('.dr-quitar');
       if (q) {
         q.disabled = true; q.textContent = 'Quitando…';
@@ -528,9 +529,12 @@ window.openDonarARefugioModal = async function(beneficiario) {
       elegido = c && disponibles.find(p => String(p.id) === c.dataset.id);
       if (!elegido) return;
       marcar(c);
+      // Selector de piezas justo debajo del artículo elegido (al final de la lista quedaba fuera de la vista)
       let cant = body.querySelector('#dr-cant-wrap');
-      if (!cant) { cant = document.createElement('div'); cant.id = 'dr-cant-wrap'; body.appendChild(cant); }
+      if (!cant) { cant = document.createElement('div'); cant.id = 'dr-cant-wrap'; }
       cant.innerHTML = window.cantidadDonar(elegido);
+      c.after(cant);
+      if (cant.innerHTML) cant.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
       cta.disabled = false; cta.textContent = `Donar ${elegido.nombre || ''} · $${Number(elegido.precio || 0).toLocaleString('es-MX')}`;
     };
   };
