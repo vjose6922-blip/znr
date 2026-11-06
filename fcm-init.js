@@ -1,5 +1,5 @@
 import { initializeApp, getApps, getApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
-import { getMessaging, getToken, onMessage } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-messaging.js";
+import { getMessaging, getToken, onMessage, isSupported } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-messaging.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyAaOe_lxLdQtTFCtw2BDR8KZRSafEMkkes",
@@ -15,7 +15,8 @@ const VAPID_KEY = "BBnC4VSj0bWV72W9zZeXQUvDSybe8ccZTMhSjtu13gABzbzE1WqwVQ8kCxkcr
 
 const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
 await window.znrAppCheck?.(app);
-const messaging = getMessaging(app);
+// Safari en iOS fuera de la PWA (y navegadores sin Push API) no soportan FCM: getMessaging lanzaba y tumbaba el módulo.
+const messaging = (await isSupported().catch(() => false)) ? getMessaging(app) : null;
 
 // URL real de la Cloud Function (Cloud Run), desplegada 2026-08.
 const CLOUD_FN_REGISTRAR_TOKEN_URL =
@@ -59,7 +60,7 @@ async function registrarTokenFCM(ownerType, ownerId, token) {
  * dispositivos donde la sesión siga abierta.
  */
 async function eliminarTokenFCM(ownerType, ownerId) {
-  if (!ownerType || !ownerId) return false;
+  if (!ownerType || !ownerId || !messaging) return false;
   try {
     if (Notification.permission !== "granted") return false;
     const registration = await navigator.serviceWorker.getRegistration("/firebase-messaging-sw.js");
@@ -85,7 +86,7 @@ async function eliminarTokenFCM(ownerType, ownerId) {
 
 async function solicitarPermisoNotificacionesSiFalta(ownerType, ownerId) {
   try {
-    if (!("Notification" in window) || !("serviceWorker" in navigator)) return null;
+    if (!messaging || !("Notification" in window) || !("serviceWorker" in navigator)) return null;
 
     if (Notification.permission === "denied") return null;
 
@@ -119,7 +120,7 @@ async function solicitarPermisoNotificacionesSiFalta(ownerType, ownerId) {
   }
 }
 // Notificaciones recibidas MIENTRAS la app está abierta en primer plano
-onMessage(messaging, (payload) => {
+if (messaging) onMessage(messaging, (payload) => {
   const { title, body } = payload.notification || {};
   if (title && Notification.permission === "granted") {
     new Notification(title, { body, icon: "/logo.svg" });
