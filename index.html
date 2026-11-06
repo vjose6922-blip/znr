@@ -162,7 +162,7 @@
 
  #home-looks-container.looks-grid.layout-grid {
  display: grid !important;
- grid-template-columns: repeat(2, 1fr) !important;
+ grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
  gap: 8px !important;
  padding: 0 4px !important;
  }
@@ -256,7 +256,7 @@
  }
 
  .recent-scroll.layout-grid {
- grid-template-columns: repeat(2, 1fr);
+ grid-template-columns: repeat(2, minmax(0, 1fr));
  }
 
  .recent-product-card {
@@ -315,8 +315,8 @@
  }
 
  @media (max-width: 768px) {
- .categories-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; }
- .products-scroll { grid-template-columns: repeat(2, 1fr); gap: 12px; }
+ .categories-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+ .products-scroll { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
  }
 
  .app-header { position: flex !important; top: 0; left: 0; right: 0; width: 100%; box-sizing: border-box; }
@@ -421,7 +421,7 @@
 .fs-name span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .fs-name svg { flex-shrink: 0; }
 .fs-desc { margin: 0; font-size: .82rem; line-height: 1.35; color: var(--color-text-muted); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-.fs-prods { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin: 12px 0; }
+.fs-prods { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; margin: 12px 0; }
 .fs-prods img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 12px; background: var(--color-surface-2); }
 .fs-btn { display: flex; align-items: center; justify-content: center; gap: 6px; padding: 11px; border-radius: 999px; background: var(--gradient-accent); color: #fff; font-size: .9rem; font-weight: 700; text-decoration: none; box-shadow: 0 8px 18px rgba(var(--color-accent-rgb), .28); }
 .featured-seller .m-hero-dots { position: static; padding: 6px 0 12px; }
@@ -432,7 +432,7 @@
 .section-link { display: inline-flex; align-items: center; font-size: 0.9rem; font-weight: 600; color: var(--color-accent-solid); text-decoration: none; }
 
 /* Categorías */
-.home-page .categories-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; padding: 0 16px; max-width: 1000px; }
+.home-page .categories-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; padding: 0 16px; max-width: 1000px; }
 .home-page .category-card { position: relative; display: flex; flex-direction: row; align-items: center; gap: 10px; padding: 10px; text-align: left; border-radius: 22px; background: var(--color-surface); border: 1px solid var(--card-border); box-shadow: var(--shadow-soft); }
 .category-media { display: grid; place-items: center; width: 54px; height: 54px; flex-shrink: 0; overflow: hidden; border-radius: 50%; background: var(--tile-warm); color: var(--color-accent-solid); }
 .category-card[data-g="MUJER"] .category-media { background: var(--tile-rose); }

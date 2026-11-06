@@ -82,12 +82,14 @@
   }
   #comunidad-grid.layout-grid {
     display: grid;
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 8px;
     padding: 8px 16px 80px;
     width: 100%;
     box-sizing: border-box;
   }
+  /* En pantallas angostas (320px) Añadir + reportar + compartir no caben: los íconos bajan a otra línea en vez de cortarse */
+  #comunidad-grid .product-actions { flex-wrap: wrap; }
   #comunidad-grid.layout-grid .comunidad-card {
     min-width: 0;
     width: 100%;
@@ -444,7 +446,7 @@
  
  
  @media (max-width: 640px) {
- .community-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; }
+ .community-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
         .products-container.layout-grid { gap: 8px !important; }
         .comunidad-card { min-width: 0; width: 100%; box-sizing: border-box; }
  .comunidad-toolbar { gap: 6px; }
