@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>ZNR Emulador</title>
+<style>
+  *{box-sizing:border-box} html,body{margin:0;height:100%;background:#16161a;color:#eee;font:13px -apple-system,system-ui,sans-serif}
+  body{display:flex;flex-direction:column}
+  #bar{display:flex;flex-wrap:wrap;gap:6px;padding:8px;padding-top:max(8px,env(safe-area-inset-top));background:#222228;border-bottom:1px solid #333}
+  #bar select,#bar input,#bar button{background:#2e2e36;color:#eee;border:1px solid #444;border-radius:8px;padding:6px 8px;font:inherit}
+  #bar input{flex:1;min-width:120px} #bar button.on{background:#0a84ff;border-color:#0a84ff}
+  #stage{flex:1;position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center}
+  #dev{position:absolute;transform-origin:center;background:#000;border:12px solid #0b0b0d;box-shadow:0 0 0 2px #444,0 20px 60px #000a}
+  #scr{position:relative;width:100%;height:100%;overflow:hidden;border-radius:inherit;background:#fff}
+  iframe{position:absolute;left:0;border:0;background:#fff}
+  .sb{position:absolute;top:0;left:0;right:0;display:flex;justify-content:space-between;align-items:center;padding:0 26px;font-weight:600;font-size:15px;z-index:3;pointer-events:none}
+  .isl{position:absolute;left:50%;transform:translateX(-50%);background:#000;z-index:4;pointer-events:none}
+  .home{position:absolute;bottom:8px;left:50%;transform:translateX(-50%);width:134px;height:5px;border-radius:3px;background:#000;z-index:4;pointer-events:none}
+  .saf{position:absolute;bottom:0;left:0;right:0;background:#f2f2f7ee;border-top:1px solid #ccc;z-index:3;display:flex;justify-content:center;padding-top:8px;color:#000;pointer-events:none}
+  .saf span{background:#e3e3e8;border-radius:10px;padding:8px 0;width:85%;text-align:center;font-size:14px}
+  #thumb{position:absolute;inset:0;z-index:5;pointer-events:none;display:none;background:radial-gradient(circle at 75% 105%,#0c06 0 45%,#fc04 45% 72%,#f004 72%)}
+  #hl{position:absolute;z-index:6;pointer-events:none;outline:2px solid #0a84ff;background:#0a84ff22;display:none}
+  #info{position:fixed;left:8px;right:8px;bottom:max(8px,env(safe-area-inset-bottom));background:#222228f2;border:1px solid #444;border-radius:12px;padding:10px 12px;display:none;z-index:9;max-height:40vh;overflow:auto;word-break:break-all}
+  #info b{color:#0a84ff} #info .w{color:#ff9f0a} #info button{float:right;margin-left:6px}
+  #warn{position:fixed;top:auto;left:8px;bottom:max(8px,env(safe-area-inset-bottom));background:#ff453a;color:#fff;border-radius:8px;padding:6px 10px;display:none;z-index:8}
+</style>
+</head>
+<body>
+<div id="bar">
+  <select id="d"></select>
+  <select id="m"><option value="safari">Safari</option><option value="pwa">PWA (inicio)</option><option value="none">Sin barras</option></select>
+  <select id="p"></select>
+  <input id="u" placeholder="/index.html">
+  <button id="rot" title="Rotar">⟳</button>
+  <button id="ins" title="Tocar elementos para ver su nombre">🔍 Inspeccionar</button>
+  <button id="th" title="Zonas de alcance del pulgar">👍 Alcance</button>
+  <button id="rl" title="Recargar">↻</button>
+</div>
+<div id="stage"><div id="dev"><div id="scr"><iframe id="f"></iframe><div id="thumb"></div><div id="hl"></div></div></div></div>
+<div id="info"></div><div id="warn"></div>
+<script>
+// [nombre, ancho, alto, inset superior, inset inferior, tipo]
+const DEV = [
+  ['iPhone SE',375,667,20,0,'home'], ['iPhone 13 mini',375,812,50,34,'notch'], ['iPhone 14',390,844,47,34,'notch'],
+  ['iPhone 15 Pro',393,852,59,34,'island'], ['iPhone 15 Pro Max',430,932,59,34,'island'], ['iPhone 16 Pro Max',440,956,62,34,'island'],
+  ['Android pequeño',320,640,24,0,'android'], ['Galaxy S23',360,780,24,0,'android'], ['Pixel 8',412,915,24,0,'android'], ['iPad mini',744,1133,24,20,'ipad']];
+const PAGES = ['index','catalogo','comunidad','lives','mis-pedidos','perfil-vendedor','vendedor','outfit','armar-outfit','refugios','feed-actividad','plan-plus','pedido-chat','seguimiento-entrega','comprador-live','vendedor-live','entregas-live','camara-live','offline','privacidad','terminos'];
+const $ = id => document.getElementById(id), f = $('f'), q = new URLSearchParams(location.search);
+const ls = (k, v) => { try { return v === undefined ? localStorage.getItem('emu_' + k) : localStorage.setItem('emu_' + k, v); } catch (e) {} };
+const S = { d: +(q.get('d') ?? ls('d') ?? 4), m: q.get('m') || ls('m') || 'safari', u: q.get('u') || ls('u') || '/index.html', rot: false, ins: false };
+$('d').innerHTML = DEV.map((d, i) => `<option value="${i}">${d[0]} · ${d[1]}×${d[2]}</option>`).join('');
+$('p').innerHTML = '<option value="">Página…</option>' + PAGES.map(p => `<option>/${p}.html</option>`).join('');
+$('d').value = S.d; $('m').value = S.m; $('u').value = S.u;
+
+function build() {
+  let [, w, h, top, bot, type] = DEV[S.d]; if (S.rot) [w, h] = [h, w];
+  const ios = type !== 'android', round = type !== 'home';
+  const dev = $('dev'), scr = $('scr'); dev.style.width = w + 24 + 'px'; dev.style.height = h + 24 + 'px';
+  dev.style.borderRadius = type === 'home' ? '36px' : type === 'ipad' ? '26px' : '52px'; scr.style.borderRadius = round ? (type === 'ipad' ? '18px' : '42px') : '0';
+  scr.querySelectorAll('.sb,.isl,.home,.saf').forEach(e => e.remove());
+  const add = (cls, css, html = '') => scr.insertAdjacentHTML('beforeend', `<div class="${cls}" style="${css}">${html}</div>`);
+  const t = S.rot ? 0 : top, sbH = S.m === 'none' ? 0 : t, safH = S.m === 'safari' && ios ? 50 + (S.rot ? 0 : bot) : 0;
+  if (sbH) add('sb', `height:${t}px;color:${S.m === 'pwa' ? '#fff' : '#000'};background:${S.m === 'pwa' ? 'transparent' : '#f2f2f7'};mix-blend-mode:${S.m === 'pwa' ? 'difference' : 'normal'}`, `<span>9:41</span><span>${ios ? '▂▄▆ ᯤ ▮' : '▂▄▆ ▮'}</span>`);
+  if (!S.rot && type === 'island') add('isl', 'top:11px;width:124px;height:36px;border-radius:20px');
+  if (!S.rot && type === 'notch') add('isl', 'top:0;width:160px;height:32px;border-radius:0 0 20px 20px');
+  if (safH) add('saf', `height:${safH}px`, '<span>🔒 znrcommunity.com</span>');
+  if (ios && bot && S.m !== 'safari') add('home', '');
+  // Safari: la página empieza bajo la barra de estado y termina sobre la barra inferior.
+  // PWA (black-translucent): la página ocupa toda la pantalla, bajo la barra de estado y el indicador home.
+  const y = S.m === 'safari' ? sbH : 0; f.style.top = y + 'px'; f.style.width = w + 'px'; f.style.height = h - y - safH + 'px';
+  S.ins_t = S.m === 'pwa' ? t : 0; S.ins_b = S.m === 'pwa' ? (S.rot ? 21 : bot) : 0;
+  fit(); if (f.dataset.src !== S.u) { f.dataset.src = S.u; f.src = S.u; } else f.contentWindow?.location.reload();
+}
+function fit() {
+  const st = $('stage'), dev = $('dev'), k = Math.min(1, (st.clientWidth - 16) / dev.offsetWidth, (st.clientHeight - 16) / dev.offsetHeight);
+  dev.style.transform = `scale(${k})`; S.k = k;
+}
+// Simula env(safe-area-inset-*) reescribiendo las reglas CSS del iframe (solo si la página declara viewport-fit=cover, como iOS real).
+function safeArea(doc) {
+  const cover = /viewport-fit\s*=\s*cover/.test(doc.querySelector('meta[name=viewport]')?.content || '');
+  const v = { top: cover ? S.ins_t : 0, bottom: cover ? S.ins_b : 0, left: 0, right: 0 };
+  const fix = s => s.replace(/env\(\s*safe-area-inset-(top|bottom|left|right)\s*(?:,[^()]*(?:\([^()]*\)[^()]*)*)?\)/g, (_, k) => v[k] + 'px');
+  const walk = rules => { for (const r of rules) { if (r.cssRules) walk(r.cssRules); if (r.style && r.style.cssText.includes('safe-area-inset')) r.style.cssText = fix(r.style.cssText); } };
+  for (const sh of doc.styleSheets) { try { walk(sh.cssRules); } catch (e) {} }
+  doc.querySelectorAll('[style*="safe-area-inset"]').forEach(e => e.setAttribute('style', fix(e.getAttribute('style'))));
+}
+// Nombre legible de un elemento + selector CSS para buscarlo en el código.
+const nameOf = e => e.tagName.toLowerCase() + (e.id ? '#' + e.id : '') + [...e.classList].map(c => '.' + c).join('');
+const path = e => { const a = []; for (; e && e.nodeType === 1 && a.length < 6; e = e.parentElement) { a.unshift(nameOf(e)); if (e.id) break; } return a.join(' > '); };
+function show(e, doc, hover) {
+  const r = e.getBoundingClientRect(), hl = $('hl'), y = parseFloat(f.style.top), small = r.width < 44 || r.height < 44;
+  Object.assign(hl.style, { display: 'block', left: r.left + 'px', top: r.top + y + 'px', width: r.width + 'px', height: r.height + 'px' }); if (hover) return;
+  const txt = (e.getAttribute('aria-label') || e.title || e.alt || e.placeholder || e.innerText || '').trim().slice(0, 80);
+  const cs = doc.defaultView.getComputedStyle(e), off = r.left < 0 || r.right > doc.documentElement.clientWidth;
+  $('info').style.display = 'block';
+  $('info').innerHTML = `<button onclick="this.parentNode.style.display='none';hl.style.display='none'">✕</button><button id="cp">Copiar</button>
+    <b>${esc(nameOf(e))}</b><br>${txt ? '“' + esc(txt) + '”<br>' : ''}<small>${esc(path(e))}</small><br>
+    ${Math.round(r.width)}×${Math.round(r.height)} px · x ${Math.round(r.left)}, y ${Math.round(r.top)} · ${cs.position} · z ${cs.zIndex}
+    ${small ? '<br><span class="w">⚠ Objetivo táctil menor a 44×44 (guía iOS)</span>' : ''}${off ? '<br><span class="w">⚠ Se sale de la pantalla</span>' : ''}`;
+  $('cp').onclick = () => navigator.clipboard?.writeText(path(e));
+}
+const esc = s => s.replace(/[&<>"]/g, c => '&#' + c.charCodeAt(0) + ';');
+// Avisa si hay scroll horizontal (contenido no centrado / desbordado) y qué elementos lo causan.
+function overflow(doc) {
+  const W = doc.documentElement.clientWidth, scroll = doc.documentElement.scrollWidth > W + 1;
+  const bad = scroll ? [...doc.body.querySelectorAll('*')].filter(e => { const r = e.getBoundingClientRect(); return r.width && r.left < W && r.right > W + 1; }) : [];
+  const w = $('warn'); w.style.display = bad.length ? 'block' : 'none';
+  w.textContent = `⚠ Scroll horizontal · ${bad.length} elemento(s) se salen por la derecha: ${bad.slice(0, 3).map(nameOf).join(', ')}`; w.onclick = () => show(bad[0], doc);
+}
+f.onload = () => {
+  let doc; try { doc = f.contentDocument; doc.body; } catch (e) { return; }
+  safeArea(doc); setTimeout(() => { safeArea(doc); overflow(doc); }, 1500);
+  for (const ev of ['click', 'pointerdown', 'touchstart', 'mousedown', 'pointerup', 'mouseup', 'touchend'])
+    doc.addEventListener(ev, e => { if (!S.ins) return; e.preventDefault(); e.stopPropagation(); if (ev === 'click') show(e.target, doc); }, { capture: true, passive: false });
+  doc.addEventListener('mousemove', e => S.ins && show(e.target, doc, 1), true);
+  doc.addEventListener('scroll', () => $('hl').style.display = 'none', true);
+  try { const p = f.contentWindow.location.pathname + f.contentWindow.location.search; $('u').value = S.u = p; ls('u', p); } catch (e) {}
+};
+$('d').onchange = e => { ls('d', S.d = +e.target.value); build(); };
+$('m').onchange = e => { ls('m', S.m = e.target.value); build(); };
+$('p').onchange = e => { if (e.target.value) { $('u').value = e.target.value; go(); } };
+$('u').onkeydown = e => e.key === 'Enter' && go();
+const go = () => { S.u = $('u').value || '/index.html'; ls('u', S.u); build(); };
+$('rot').onclick = () => { S.rot = !S.rot; build(); };
+$('rl').onclick = () => f.contentWindow.location.reload();
+$('ins').onclick = e => { S.ins = !S.ins; e.target.classList.toggle('on', S.ins); if (!S.ins) { $('hl').style.display = $('info').style.display = 'none'; } };
+$('th').onclick = e => { const on = e.target.classList.toggle('on'); $('thumb').style.display = on ? 'block' : 'none'; };
+const hl = $('hl'); addEventListener('resize', fit); build();
+</script>
+</body>
+</html>
