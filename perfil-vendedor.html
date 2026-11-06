@@ -669,7 +669,7 @@
     .profile-skeleton-card-price{ height: 15px; width: 50%; margin-bottom: 10px; border-radius: 4px; }
     .profile-skeleton-card-btn  { height: 28px; border-radius: 30px; }
     @media (max-width: 480px) {
-      .profile-skeleton-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+      .profile-skeleton-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
     }
 
     @media (max-width: 480px) {
@@ -684,7 +684,7 @@
         font-size: 20px;
       }
       .profile-products-grid {
-        grid-template-columns: repeat(2, 1fr);
+        grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: 10px;
       }
     }
