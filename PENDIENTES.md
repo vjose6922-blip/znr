@@ -105,9 +105,17 @@ Usa montos chicos ($149 de Plus o ~$10) y reembolsa si no quieres conservarlos. 
       `Cannot read properties of null (reading 'ok')` ni `Failed to fetch`. **"📋 Copiar errores"** copia o descarga `errores-znr.txt`.
 - [x] **K7** Aviso de errores repetidos solo le llega a master.
 
-### 3.5 Mapas
-- [x] **M1** `entregas-live.html` → "Ver ruta completa": línea sólida por calles (punteada = error, ver logs de `live-api`).
-- [x] **M2** Link de seguimiento de un pedido en ruta: línea rosa y ETA.
+### 3.5 Mapas y rutas de entrega (sin Mapbox)
+- [ ] **M1** `entregas-live.html`: marcar pedidos con la casilla → "Iniciar ruta" → todos "En ruta" y el primero "Siguiente".
+- [ ] **M2** "Abrir ruta en Google Maps" abre las paradas en el orden mostrado, en Android y en iPhone. Probar cuántas paradas
+      acepta en el navegador del celular y ajustar `PARADAS_POR_ENLACE` (hoy 4 = destino + 3) en `entregas-live.html`.
+- [ ] **M3** Con más paradas que el límite salen "Ruta 1", "Ruta 2"… y cada una funciona; las paradas sin GPS van al final.
+- [ ] **M4** "No se pudo entregar" pide contactar primero; al confirmar, el pedido sale de la ruta y el siguiente pasa a "Siguiente".
+- [ ] **M5** Comprador: recibe "En camino" → "Eres la siguiente parada" → "Entregado" / "No se pudo entregar", y cada aviso
+      reemplaza al anterior en el teléfono. Antes de ser la siguiente ve "Faltan N entregas antes de la tuya" y no hay mapa.
+- [ ] **M6** Siendo la siguiente parada: mapa de OpenFreeMap con el repartidor moviéndose y ETA.
+- [ ] **M7** Tras desplegar `live-api`: borrar la variable `MAPBOX_TOKEN` y **revocar los dos tokens en la cuenta de Mapbox**
+      (el secreto `sk.` y el público `pk.` que estaba en `entregas-live.html` y `seguimiento-entrega.html`).
 
 ### 3.6 Celular, datos móviles y carga (znr#61)
 - [x] **T1** Fotos de productos cargan bien (WebP con `-rw` en `lh3`) y la cuadrícula usa la miniatura de 300 px.
@@ -171,8 +179,7 @@ Usa montos chicos ($149 de Plus o ~$10) y reembolsa si no quieres conservarlos. 
 - [x] **F11 Chats de soporte**: los finalizados se borran a los 7 días (antes la tarea nunca corría; znr-backend#43).
       Regla de RTDB con `".indexOn": ["estado"]` en `chats_soporte` publicada.
 - [x] **F3 Scroll infinito** en Catálogo, Comunidad y Perfil de vendedor (`scroll-infinito.js`): tandas de 30, "Ver más" cada 150, restaura posición al regresar.
-- [ ] **F4 Mapas**: "Reordenar" con >11 paradas (respaldo: parada más cercana); mover `baseMapa()` y "◎" a `common.js`;
-      cambiar Nominatim solo si falla seguido.
+- [x] **F4 Mapas**: "Reordenar" ahora es vecino más cercano en el teléfono, sin límite de paradas. Nominatim: cambiar solo si falla seguido.
 - [ ] **F5 Ahorro de cuota**: `Cache-Control: public, max-age=60` en respuestas públicas; caché de búsquedas de Algolia;
       paginar `obtenerBeneficiarios` y `obtenerDonaciones`.
 - [ ] **F6 Pago de pedidos dentro de la página** (Stripe Embedded Checkout / Mercado Pago Bricks), como ya hace Plan Plus.

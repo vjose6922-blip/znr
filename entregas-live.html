@@ -8,8 +8,8 @@
  default-src 'self';
  script-src 'self' 'unsafe-inline' https://www.gstatic.com https://cdn.jsdelivr.net https://www.google.com ;
  style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net;
- img-src 'self' data: blob: https://placehold.co https://via.placeholder.com https://*.tile.openstreetmap.org https://api.mapbox.com https://cdn.jsdelivr.net https://firebasestorage.googleapis.com https://*.firebasestorage.app https://storage.googleapis.com ;
- connect-src https://admin-api-1038143238323.us-central1.run.app 'self' https://wttr.in https://www.gstatic.com https://firebaseinstallations.googleapis.com https://fcmregistrations.googleapis.com https://registrar-token-fcm-1038143238323.us-central1.run.app https://ventas-api-1038143238323.us-central1.run.app https://auth-api-1038143238323.us-central1.run.app https://live-api-1038143238323.us-central1.run.app https://firebase.googleapis.com https://znr-live-default-rtdb.firebaseio.com https://nominatim.openstreetmap.org https://*.tile.openstreetmap.org https://catalogo-api-1038143238323.us-central1.run.app https://tienda-znr-api-1038143238323.us-central1.run.app https://vendedores-api-1038143238323.us-central1.run.app https://content-firebaseappcheck.googleapis.com https://www.google.com ;
+ img-src 'self' data: blob: https://placehold.co https://via.placeholder.com https://cdn.jsdelivr.net https://firebasestorage.googleapis.com https://*.firebasestorage.app https://storage.googleapis.com ;
+ connect-src https://admin-api-1038143238323.us-central1.run.app 'self' https://wttr.in https://www.gstatic.com https://firebaseinstallations.googleapis.com https://fcmregistrations.googleapis.com https://registrar-token-fcm-1038143238323.us-central1.run.app https://ventas-api-1038143238323.us-central1.run.app https://auth-api-1038143238323.us-central1.run.app https://live-api-1038143238323.us-central1.run.app https://firebase.googleapis.com https://znr-live-default-rtdb.firebaseio.com https://catalogo-api-1038143238323.us-central1.run.app https://tienda-znr-api-1038143238323.us-central1.run.app https://vendedores-api-1038143238323.us-central1.run.app https://content-firebaseappcheck.googleapis.com https://www.google.com ;
  font-src 'self';
  frame-src https://www.google.com;
  frame-ancestors 'none';
@@ -27,11 +27,9 @@
 <script>document.documentElement.dataset.theme = localStorage.getItem('theme') || 'light';</script>
 <link rel="preload" href="styles.css" as="style">
 <link rel="stylesheet" href="styles.css">
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css">
 <script src="api-config.js"></script>
 <script src="icons.js" defer></script>
 <script src="znr-select.js" defer></script>
-<script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js" defer></script>
 <style>
   .entregas-wrap { max-width: 640px; margin: 0 auto; padding: 16px; padding-bottom: 80px; }
 
@@ -59,7 +57,14 @@
   .resumen-chip.pend .num { color: #fbbf24; }
   .resumen-chip.ruta .num { color: #60a5fa; }
 
-  .ruta-actions { display: flex; gap: 8px; margin-bottom: 14px; }
+  .ruta-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
+  a.btn-ruta-accion { text-decoration: none; }
+  .btn-ruta-accion.primario { flex-basis: 100%; background: var(--color-accent-solid, #ec4899); color: #fff; border: none; }
+  .sel-ruta { width: 22px; height: 22px; flex-shrink: 0; accent-color: var(--color-accent-solid, #ec4899); }
+  .fallo { margin-top: 10px; padding: 10px; border-radius: var(--radius-md); background: var(--color-surface-2); display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .fallo p { margin: 0; flex-basis: 100%; font-size: 13px; }
+  .estado-pill.siguiente { background: rgba(192,132,252,.15); color: #c084fc; }
+  .estado-pill.no-entregado { background: rgba(248,113,113,.15); color: #f87171; }
   .btn-ruta-accion {
     flex: 1; border: none; border-radius: var(--radius-md); cursor: pointer;
     background: var(--color-surface-2); color: var(--color-text-primary);
@@ -162,94 +167,6 @@
     background: var(--color-accent-solid, #ec4899);
     color: #fff; font-size: 12px; font-weight: 800; flex-shrink: 0;
   }
-
-  /* ============================================================
-     MODAL DE RUTA — PANTALLA COMPLETA + BOTTOM SHEET
-     ============================================================ */
-  .route-modal-overlay {
-    position: fixed; inset: 0; background: #000; z-index: 200;
-    display: flex; align-items: stretch; justify-content: center;
-  }
-  .route-modal {
-    position: relative;
-    width: 100%; max-width: 640px;
-    background: var(--color-surface); overflow: hidden;
-  }
-  #route-map { position: absolute; inset: 0; z-index: 0; }
-
-  .route-modal-header {
-    position: absolute; top: 12px; left: 12px; right: 12px; z-index: 500;
-    display: flex; justify-content: space-between; align-items: center;
-    padding: 10px 14px; margin: 0;
-    background: color-mix(in srgb, var(--color-surface) 86%, transparent);
-    backdrop-filter: blur(14px) saturate(1.6);
-    -webkit-backdrop-filter: blur(14px) saturate(1.6);
-    border: 1px solid var(--color-border-subtle);
-    border-radius: 14px;
-    box-shadow: 0 6px 20px rgba(0,0,0,.22);
-  }
-  .route-modal-header h3 {
-    margin: 0; font-size: 14.5px; color: var(--color-text-primary);
-    display: flex; align-items: center; gap: 6px;
-  }
-  .route-modal-close {
-    background: none; border: none; color: var(--color-text-soft);
-    font-size: 22px; line-height: 1; cursor: pointer; padding: 0 4px;
-  }
-
-  .route-note {
-    position: absolute; left: 12px; right: 12px; z-index: 500;
-    margin: 0; padding: 8px 14px; font-size: 12px;
-    background: color-mix(in srgb, var(--color-surface) 86%, transparent);
-    backdrop-filter: blur(14px);
-    -webkit-backdrop-filter: blur(14px);
-    border-radius: 10px;
-    box-shadow: 0 4px 14px rgba(0,0,0,.15);
-  }
-  .route-note-info { top: 68px; color: var(--color-text-soft); }
-  #route-note { top: 108px; color: #3a2a04; background: rgba(251,191,36,.92); }
-
-  /* Bottom sheet de paradas */
-  .route-list-sheet {
-    position: absolute; left: 0; right: 0; bottom: 0; z-index: 500;
-    background: var(--color-surface);
-    border-radius: 18px 18px 0 0;
-    box-shadow: 0 -10px 30px rgba(0,0,0,.25);
-    max-height: 55vh;
-    display: flex; flex-direction: column;
-    transition: max-height .3s cubic-bezier(.2,.7,.3,1);
-    padding-bottom: env(safe-area-inset-bottom, 0);
-  }
-  .route-list-sheet.collapsed { max-height: 58px; }
-  .sheet-handle {
-    padding: 12px 0 8px; text-align: center; cursor: pointer;
-    flex-shrink: 0; user-select: none; touch-action: manipulation;
-  }
-  .sheet-handle::before {
-    content: ''; display: inline-block; width: 42px; height: 4px;
-    border-radius: 2px;
-    background: var(--color-text-soft); opacity: .45;
-  }
-  .sheet-title {
-    font-size: 12px; font-weight: 600; color: var(--color-text-soft);
-    text-align: center; padding: 0 16px 8px;
-    text-transform: uppercase; letter-spacing: .04em;
-  }
-  .route-list-sheet.collapsed .sheet-title { padding-bottom: 4px; }
-  .route-list { overflow-y: auto; padding: 0 16px 20px; }
-  .route-list-item { display: flex; gap: 10px; align-items: flex-start; padding: 10px 0; border-bottom: 1px solid var(--color-border-subtle); }
-  .route-list-item:last-child { border-bottom: none; }
-  .route-list-item .rli-num {
-    width: 22px; height: 22px; border-radius: 50%; background: var(--color-accent-solid, #ec4899);
-    color: #fff; font-size: 11px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 1px;
-  }
-  .route-list-item .rli-nombre { font-size: 13.5px; color: var(--color-text-primary); font-weight: 600; }
-  .route-list-item .rli-dir { font-size: 12px; color: var(--color-text-soft); }
-
-  /* Ajuste fino de controles Leaflet para que no choquen con el header */
-  .route-modal .leaflet-top.leaflet-left { top: 70px; }
-  .route-modal .leaflet-top.leaflet-right { top: 70px; }
-  .route-modal .leaflet-bottom.leaflet-right { bottom: 62px; }
 
   .center-card { max-width: 480px; margin: 60px auto; padding: 0 20px; text-align: center; }
   .center-card .icon { font-size: 44px; margin-bottom: 12px; }
@@ -361,10 +278,6 @@
 (function() {
   'use strict';
 
-  const MAPBOX_PK = 'pk.eyJ1Ijoiem5yY29tbXVuaXR5IiwiYSI6ImNtdno1dnZubjAxMjcyeG9ybXBkdHMxZW0ifQ.D9JJx77xgMJRxvs2BmF0ig'; // token PÚBLICO (pk.…) de Mapbox, restringido a tu dominio. Vacío = usa OSM.
-  const baseMapa = () => MAPBOX_PK
-    ? L.tileLayer(`https://api.mapbox.com/styles/v1/mapbox/streets-v12/tiles/512/{z}/{x}/{y}@2x?access_token=${MAPBOX_PK}`, { tileSize: 512, zoomOffset: -1, maxZoom: 19, attribution: '&copy; Mapbox &copy; OpenStreetMap' })
-    : L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; OpenStreetMap', maxZoom: 19 });
   const params0 = new URLSearchParams(location.search);
   // Código de acceso del repartidor (?id=...&t=CODIGO): se guarda en el
   // dispositivo para que sobreviva a recargas, a la cola offline y a abrir la
@@ -416,20 +329,24 @@
       </div>`;
   }
 
-  function mapsUrl(g) {
-    if (typeof g.lat === 'number' && typeof g.lng === 'number') {
-      return `https://www.google.com/maps/dir/?api=1&destination=${g.lat},${g.lng}&travelmode=driving`;
-    }
-    if (g.direccion) {
-      return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(g.direccion)}&travelmode=driving`;
-    }
-    return null;
+  const EN_CAMINO = ['en-ruta', 'siguiente', 'cerca'];
+  const PARADAS_POR_ENLACE = 4; // destino + 3 intermedias: lo que acepta Google Maps en navegador móvil (ajustar tras probar)
+  const tieneGeo = g => typeof g.lat === 'number' && typeof g.lng === 'number';
+  const punto = g => tieneGeo(g) ? `${g.lat},${g.lng}` : g.compradorDireccion;
+  // Sin "origin": Google Maps arranca en la ubicación actual y respeta el orden recibido.
+  const mapsDir = p => { const d = p.pop(); return `https://www.google.com/maps/dir/?api=1&travelmode=driving&destination=${encodeURIComponent(d)}${p.length ? '&waypoints=' + p.map(encodeURIComponent).join('%7C') : ''}`; };
+  const mapsUrl = g => punto(g) ? mapsDir([punto(g)]) : null;
+  function enlacesRuta() {
+    const l = gruposOrdenados(), enRuta = l.filter(g => EN_CAMINO.includes(g.estado));
+    const p = (enRuta.length ? enRuta : l.filter(g => !['entregado', 'no-entregado'].includes(g.estado))).map(punto).filter(Boolean), out = [];
+    for (let i = 0; i < p.length; i += PARADAS_POR_ENLACE) out.push(mapsDir(p.slice(i, i + PARADAS_POR_ENLACE)));
+    return out;
   }
 
   function renderResumen() {
     const total = entrega.grupos.length;
     const entregados = entrega.grupos.filter(g => g.estado === 'entregado').length;
-    const enRuta = entrega.grupos.filter(g => g.estado === 'en-ruta' || g.estado === 'cerca').length;
+    const enRuta = entrega.grupos.filter(g => EN_CAMINO.includes(g.estado)).length;
     const pendientes = total - entregados - enRuta;
     const pct = total ? (entregados / total) * 100 : 0;
     return `
@@ -442,19 +359,22 @@
         <div class="resumen-chip pend"><span class="num">${pendientes}</span><span class="lbl">Pendientes</span></div>
       </div>
       <div class="ruta-actions">
-        <button class="btn-ruta-accion" id="btn-ver-ruta">${Icon('map-pin')} Ver ruta completa</button>
-        <button class="btn-ruta-accion" id="btn-optimizar-ruta">${Icon('refresh')} Reordenar (más eficiente)</button>
+        <button class="btn-ruta-accion primario" id="btn-iniciar-ruta">${Icon('map-pin')} Iniciar ruta (${seleccion.size} marcado${seleccion.size === 1 ? '' : 's'})</button>
+        ${enlacesRuta().map((u, i, a) => `<a class="btn-ruta-accion" href="${esc(u)}" target="_blank" rel="noopener">${Icon('map-pin')} ${a.length > 1 ? `Ruta ${i + 1} en Google Maps` : 'Abrir ruta en Google Maps'}</a>`).join('')}
+        <button class="btn-ruta-accion" id="btn-optimizar-ruta">${Icon('refresh')} Reordenar (más cercano)</button>
       </div>`;
   }
 
-  const ESTADOS_CONOCIDOS = ['pendiente', 'preparando', 'en-ruta', 'cerca', 'entregado'];
+  const ESTADOS_CONOCIDOS = ['pendiente', 'preparando', 'en-ruta', 'siguiente', 'cerca', 'entregado', 'no-entregado'];
 
   function ESTADO_LABEL(estado) {
     return {
       pendiente: [Icon('clock'), 'PENDIENTE'],
       preparando: [Icon('box'), 'PREPARANDO'],
       'en-ruta': [Icon('map-pin'), 'EN RUTA'],
+      siguiente: [Icon('map-pin'), 'SIGUIENTE'],
       cerca: [Icon('map-pin'), 'CERCA'],
+      'no-entregado': [Icon('x'), 'NO ENTREGADO'],
       entregado: [Icon('check'), 'ENTREGADO'],
     }[estado];
   }
@@ -464,13 +384,14 @@
     const url = mapsUrl(g);
     const compartiendo = activos.has(g.compradorKey);
     const puedeEditar = estado !== 'entregado';
-    const enCamino = estado === 'en-ruta' || estado === 'cerca';
+    const enCamino = EN_CAMINO.includes(estado);
     const [ico, label] = ESTADO_LABEL(estado);
     const hero = idx === 0 && estado !== 'entregado';
     const abierta = hero || expandedKeys.has(g.compradorKey);
     return `
     <div class="entrega-card ${estado === 'entregado' ? 'is-entregado' : ''} ${abierta ? 'expanded' : ''} ${hero ? 'hero' : ''}" data-key="${esc(g.compradorKey)}">
       <div class="card-header" data-action="toggle-card">
+        ${!enCamino && estado !== 'entregado' ? `<input type="checkbox" class="sel-ruta" ${seleccion.has(g.compradorKey) ? 'checked' : ''} aria-label="Llevar en la ruta">` : ''}
         ${estado !== 'entregado' ? `<span class="mover"><button data-mv="-1" aria-label="Subir">▲</button><button data-mv="1" aria-label="Bajar">▼</button></span>` : `<span class="orden-num">${idx + 1}</span>`}
         <div class="ch-info">
           <h2>${esc(g.compradorNombre)}</h2>
@@ -494,7 +415,6 @@
           ${(g.items || []).map(it => `<div class="item-row"><span>${esc(it.nombre)}</span><span>$${Number(it.precio || 0).toLocaleString()}</span></div>`).join('')}
           <div class="total-row"><span>Total</span><span>$${Number(g.total || 0).toLocaleString()}</span></div>
         </div>
-        ${typeof g.lat === 'number' ? `<button class="btn-maps" data-action="navegar">${Icon('map-pin')} Navegar en el mapa</button>` : ''}
         ${url ? `<a class="btn-maps" href="${esc(url)}" target="_blank" rel="noopener">${Icon('map-pin')} Abrir en Google Maps (pausa el seguimiento)</a>` : ''}
         ${puedeEditar ? `
         <div style="display:flex; gap:8px; margin-top:8px;">
@@ -504,25 +424,32 @@
           </select>
         </div>
         <div class="tracking-row" style="display:flex; gap:8px; margin-top:8px;">
-          <button class="btn-tracking ${compartiendo ? 'active' : ''}" data-action="toggle-ruta" style="flex:1;">${compartiendo ? Icon('clock') + ' Detener ruta' : Icon('map-pin') + ' Iniciar ruta / compartir ubicación'}</button>${compartiendo && g.compradorTelefono ? `<a class="btn-tracking" style="display:flex;align-items:center;text-decoration:none" href="${waLink(g)}" target="_blank" rel="noopener">Enviar link</a>` : ''}
+          <button class="btn-tracking ${compartiendo ? 'active' : ''}" data-action="toggle-ruta" style="flex:1;">${compartiendo ? Icon('clock') + ' Quitar de la ruta' : Icon('map-pin') + ' Agregar a la ruta'}</button>${compartiendo && g.compradorTelefono ? `<a class="btn-tracking" style="display:flex;align-items:center;text-decoration:none" href="${waLink(g)}" target="_blank" rel="noopener">Enviar link</a>` : ''}
         </div>` : ''}
         ${g.pideCodigo && estado !== 'entregado' ? `<input class="cod-input" inputmode="numeric" maxlength="4" autocomplete="off" placeholder="Código del cliente" aria-label="Código de entrega del cliente">` : ''}
         <div class="estado-actions">
           <button class="btn-entregado ${estado === 'entregado' ? 'active' : ''}" data-action="entregado" ${estado === 'entregado' ? 'disabled' : ''}>${Icon('check')} Entregado</button>
           <button class="btn-avisar" data-action="avisar">${Icon('map-pin')} Avisar llegada</button>
+          ${enCamino ? `<button class="btn-avisar" data-action="fallo">${Icon('x')} No se pudo entregar</button>` : ''}
         </div>
+        ${contactando.has(g.compradorKey) ? `<div class="fallo"><p>Antes, intenta contactar al cliente:</p>
+          ${g.compradorTelefono ? `<a class="tel-link" href="tel:${esc(String(g.compradorTelefono))}">${Icon('phone-call')} Llamar</a><a class="tel-link" href="https://wa.me/${waNum(g.compradorTelefono)}" target="_blank" rel="noopener">${Icon('whatsapp')} WhatsApp</a>` : ''}
+          <button class="btn-avisar" data-action="confirmar-fallo">Confirmar: no se pudo entregar</button></div>` : ''}
       </div>
     </div>`;
   }
 
   function gruposOrdenados() {
-    return entrega.grupos.slice().sort((a, b) => (a.estado === 'entregado') - (b.estado === 'entregado') || (a.orden ?? 999) - (b.orden ?? 999));
+    const fin = g => ({ 'no-entregado': 1, entregado: 2 })[g.estado] || 0; // fuera de la ruta: al final
+    return entrega.grupos.slice().sort((a, b) => fin(a) - fin(b) || (a.orden ?? 999) - (b.orden ?? 999));
   }
   const grupoDe = k => entrega?.grupos.find(g => String(g.compradorKey) === String(k));
 
-  const expandedKeys = new Set();
+  const expandedKeys = new Set(), seleccion = new Set(), contactando = new Set();
 
   function render() {
+    let primera = true; // igual que el servidor: la primera parada en ruta es la "siguiente"
+    gruposOrdenados().forEach(g => { if (EN_CAMINO.includes(g.estado)) { g.estado = primera ? 'siguiente' : 'en-ruta'; primera = false; } });
     headerTitle.textContent = entrega.liveTitulo ? `Entregas — ${entrega.liveTitulo}` : 'Entregas';
     headerSubtitle.textContent = entrega.vendedorNombre ? `De ${entrega.vendedorNombre}` : 'Coordinación de entregas';
 
@@ -531,7 +458,7 @@
       `<p class="local-note">Lo que marques aquí lo va a ver el vendedor desde su panel.</p>`;
 
     document.getElementById('btn-refrescar').addEventListener('click', () => cargar(true).then(() => toast('Actualizado')));
-    document.getElementById('btn-ver-ruta').addEventListener('click', () => abrirMapaRuta());
+    document.getElementById('btn-iniciar-ruta').addEventListener('click', iniciarRuta);
     document.getElementById('btn-optimizar-ruta').addEventListener('click', optimizarRuta);
 
     wrap.querySelectorAll('.entrega-card').forEach(card => {
@@ -542,7 +469,9 @@
         render();
       });
       card.querySelectorAll('.estado-actions button').forEach(btn => {
-        if (btn.dataset.action === 'avisar') {
+        if (btn.dataset.action === 'fallo') {
+          btn.addEventListener('click', () => { contactando.has(key) ? contactando.delete(key) : contactando.add(key); render(); });
+        } else if (btn.dataset.action === 'avisar') {
           btn.addEventListener('click', () => avisarLlegada(key, btn));
         } else if (btn.dataset.action === 'entregado') {
           btn.addEventListener('click', () => {
@@ -554,7 +483,10 @@
         }
       });
       card.querySelectorAll('[data-mv]').forEach(b => b.addEventListener('click', e => { e.stopPropagation(); mover(key, +b.dataset.mv); }));
-      card.querySelector('[data-action="navegar"]')?.addEventListener('click', () => abrirMapaRuta(key));
+      card.querySelector('[data-action="confirmar-fallo"]')?.addEventListener('click', async () => { contactando.delete(key); dejar(key); await toggleEstado(key, 'no-entregado'); });
+      const sel = card.querySelector('.sel-ruta');
+      sel?.addEventListener('click', e => e.stopPropagation());
+      sel?.addEventListener('change', () => { sel.checked ? seleccion.add(key) : seleccion.delete(key); render(); });
       card.querySelector('[data-copy]')?.addEventListener('click', e => { e.stopPropagation(); navigator.clipboard?.writeText(e.currentTarget.dataset.copy).then(() => toast('Dirección copiada')); });
       const select = card.querySelector('[data-action="set-estado-manual"]');
       if (select) select.addEventListener('change', () => toggleEstado(key, select.value));
@@ -579,239 +511,28 @@
     catch (err) { enqueue('guardarOrdenEntregas', { ordenes }, 'orden'); }
   }
 
-  const tieneGeo = g => typeof g.lat === 'number' && typeof g.lng === 'number';
-
   async function optimizarRuta() {
     const todos = gruposOrdenados(), previo = todos.map(g => g.orden);
-    const pend = todos.filter(g => g.estado !== 'entregado'), geo = pend.filter(tieneGeo);
-    if (geo.length > 11) { toast('Para reordenar automáticamente el máximo es 11 paradas con ubicación.'); return; }
-    if (geo.length < 2) { toast('No hay suficientes entregas con ubicación para reordenar.'); return; }
-    const pos = await new Promise(r => navigator.geolocation ? navigator.geolocation.getCurrentPosition(p => r([p.coords.latitude, p.coords.longitude]), () => r(null), { enableHighAccuracy: true, timeout: 5000 }) : r(null));
-    const pts = (pos ? [pos] : []).concat(geo.map(g => [g.lat, g.lng]));
-    try {
-      const r = await apiFetch({ action: 'optimizarRutaEntrega', liveId, puntos: JSON.stringify(pts) }, 'POST');
-      if (!r.ok) throw new Error(r.error);
-      const off = pos ? 1 : 0;
-      const orden = (pos ? r.orden : [0, ...r.orden]).map(i => geo[i - off]);
-      [...orden, ...pend.filter(g => !tieneGeo(g)), ...todos.filter(g => g.estado === 'entregado')].forEach((g, i) => { g.orden = i; });
-      render(); persistirOrden();
-      toast('Ruta reordenada', { undo: () => { todos.forEach((g, i) => { g.orden = previo[i]; }); render(); persistirOrden(); } });
-    } catch (err) { toast('No se pudo optimizar la ruta. Intenta de nuevo.'); }
+    const pend = todos.filter(g => g.estado !== 'entregado'), resto = pend.filter(tieneGeo), orden = [];
+    if (resto.length < 2) { toast('No hay suficientes entregas con ubicación para reordenar.'); return; }
+    let p = await new Promise(r => navigator.geolocation ? navigator.geolocation.getCurrentPosition(x => r([x.coords.latitude, x.coords.longitude]), () => r(null), { enableHighAccuracy: true, timeout: 5000 }) : r(null));
+    for (p = p || [resto[0].lat, resto[0].lng]; resto.length; p = [orden.at(-1).lat, orden.at(-1).lng]) {
+      const d = g => metros(p, [g.lat, g.lng]);
+      orden.push(resto.splice(resto.reduce((m, g, i) => d(g) < d(resto[m]) ? i : m, 0), 1)[0]);
+    }
+    [...orden, ...pend.filter(g => !tieneGeo(g)), ...todos.filter(g => g.estado === 'entregado')].forEach((g, i) => { g.orden = i; });
+    render(); persistirOrden();
+    toast('Ruta reordenada', { undo: () => { todos.forEach((g, i) => { g.orden = previo[i]; }); render(); persistirOrden(); } });
   }
 
-  // --- Modal de ruta completa (pantalla completa + bottom-sheet + ruta por calles vía backend/Mapbox) ---
-  async function trazarRutaCalles(latlngs, conRep) {
-    if (latlngs.length < 2) return null;
-    const CHUNK = 25;
-    const tramosCoords = [];
-    for (let i = 0; i < latlngs.length - 1; i += CHUNK - 1) tramosCoords.push(latlngs.slice(i, i + CHUNK));
-    try {
-      const tramos = await Promise.all(tramosCoords.map(async (tramo, i) => {
-        const r = await apiFetch({ action: 'rutaEntrega', liveId, puntos: JSON.stringify(tramo), conRep: conRep && i === 0 ? '1' : '0' }, 'POST');
-        if (!r.ok) throw new Error(r.error);
-        return { coords: r.coords, legs: r.legs };
-      }));
-      const ruta = tramos.reduce((acc, tr, i) => i === 0 ? tr.coords : acc.concat(tr.coords.slice(1)), []);
-      ruta.legs = tramos.flatMap(tr => tr.legs); // un tramo por cada par de puntos consecutivos
-      return ruta;
-    } catch (err) {
-      return null;
-    }
-  }
-
-  function abrirMapaRuta(soloKey) {
-    const puntos = gruposOrdenados().filter(g => g.estado !== 'entregado' && tieneGeo(g) && (!soloKey || g.compradorKey === soloKey));
-    const overlay = document.createElement('div');
-    overlay.className = 'route-modal-overlay';
-    overlay.innerHTML = `
-      <div class="route-modal">
-        <div id="route-map"></div>
-        <div class="route-modal-header">
-          <h3>${Icon('map-pin')} Ruta (${puntos.length} parada${puntos.length === 1 ? '' : 's'})</h3>
-          <button class="route-modal-close" id="route-modal-close" aria-label="Cerrar">&times;</button>
-        </div>
-        <p class="route-note route-note-info" id="route-gps-note">Buscando tu ubicación…</p>
-        <p class="route-note" id="route-note" style="display:none;"></p>
-        <div class="route-list-sheet" id="route-sheet">
-          <div class="sheet-handle" id="sheet-handle" role="button" aria-label="Mostrar u ocultar paradas"></div>
-          <div class="sheet-title">${puntos.length} parada${puntos.length === 1 ? '' : 's'} · toca para expandir</div>
-          <div class="route-list">
-            <div class="rli-total"></div>
-            ${puntos.length ? puntos.map((g, i) => `
-              <div class="route-list-item">
-                <span class="rli-num">${i + 1}</span>
-                <div><div class="rli-nombre">${esc(g.compradorNombre)}</div><div class="rli-dir">${esc(g.compradorDireccion || 'Sin dirección')}</div></div>
-                <span class="rli-eta"></span>
-              </div>`).join('') : '<p style="color:var(--color-text-soft); text-align:center; padding:20px;">Ninguna entrega pendiente tiene ubicación guardada todavía.</p>'}
-          </div>
-        </div>
-      </div>`;
-    document.body.appendChild(overlay);
-
-    let map = null, repMarker = null, line = null, watchId = null;
-    let ultimoCalculo = 0, ultimoPos = null;
-    let fitAutoPendiente = true;
-    let followMode = true;
-    const REFRESH_MS = 60000;
-
-    function cerrar() {
-      if (watchId !== null) navigator.geolocation.clearWatch(watchId);
-      map = null;
-      overlay.remove();
-    }
-    document.getElementById('route-modal-close').addEventListener('click', cerrar);
-    overlay.addEventListener('click', e => { if (e.target === overlay) cerrar(); });
-
-    // Toggle del bottom-sheet
-    const sheet = document.getElementById('route-sheet');
-    const sheetTitle = sheet.querySelector('.sheet-title');
-    document.getElementById('sheet-handle').addEventListener('click', () => {
-      sheet.classList.toggle('collapsed');
-      const colapsado = sheet.classList.contains('collapsed');
-      sheetTitle.textContent = `${puntos.length} parada${puntos.length === 1 ? '' : 's'} · toca para ${colapsado ? 'expandir' : 'ocultar'}`;
-      // Espera a que termine la animación del sheet (.3s) y re-centra si sigues en modo seguir
-      setTimeout(() => { if (map && followMode && repMarker) map.panTo(desplazarCentro(repMarker.getLatLng()), { animate: true, duration: 0.4 }); }, 320);
-    });
-
-    if (!puntos.length || typeof L === 'undefined') return;
-
-    function calcularPadding() {
-      const sheetH = sheet.offsetHeight || (sheet.classList.contains('collapsed') ? 70 : Math.min(window.innerHeight * 0.55, 380));
-      return {
-        paddingTopLeft: [30, 100],
-        paddingBottomRight: [30, sheetH + 20]
-      };
-    }
-
-    // El bottom-sheet (y el encabezado) tapan parte del mapa: el "centro" de lo que
-    // realmente se ve NO es el centro del contenedor. setView/panTo a secas dejaban
-    // tu punto justo debajo del sheet; aquí se desplaza el centro para que tu punto
-    // quede en medio de la zona visible.
-    function desplazarCentro(latlng, zoom) {
-      const z = zoom != null ? zoom : map.getZoom();
-      const pad = calcularPadding();
-      const dy = (pad.paddingBottomRight[1] - pad.paddingTopLeft[1]) / 2;
-      return map.unproject(map.project(latlng, z).add([0, dy]), z);
-    }
-    function centrarEn(latlng, zoom, animate) {
-      const z = zoom != null ? zoom : map.getZoom();
-      map.setView(desplazarCentro(latlng, z), z, { animate });
-    }
-
-    function recalcular(repLatLng) {
-      const paradas = puntos.map(g => [g.lat, g.lng]);
-      const todos = repLatLng ? [repLatLng, ...paradas] : paradas;
-      trazarRutaCalles(todos, !!repLatLng).then(ruta => {
-        if (!map) return;
-        line.setLatLngs(ruta || todos);
-        line.setStyle({ dashArray: ruta ? null : '6 6' });
-        if (fitAutoPendiente) {
-          map.fitBounds(ruta || todos, calcularPadding());
-          if (repLatLng) fitAutoPendiente = false;
-        }
-        if (ruta) { // ETA acumulado por parada y total
-          const fmt = (t, d) => { const m = Math.max(1, Math.round(t / 60)); return `${m >= 60 ? Math.floor(m / 60) + ' h ' + (m % 60) + ' min' : m + ' min'} · ${(d / 1000).toFixed(1)} km`; };
-          let t = 0, d = 0;
-          const etas = document.querySelectorAll('.rli-eta');
-          ruta.legs.forEach((l, k) => { t += l.t; d += l.d; const i = repLatLng ? k : k + 1; if (etas[i]) etas[i].textContent = fmt(t, d); });
-          const tot = document.querySelector('.rli-total');
-          if (tot) tot.textContent = 'Total: ' + fmt(t, d);
-        }
-        const note = document.getElementById('route-note');
-        if (note) {
-          note.style.display = ruta ? 'none' : 'block';
-          note.textContent = 'No se pudo calcular la ruta por calles — se muestra la línea directa.';
-        }
-      });
-    }
-
-    function mostrarBotonRecentrar() {
-      const Control = L.Control.extend({
-        onAdd: function() {
-          const btn = L.DomUtil.create('button', '');
-          btn.innerHTML = '◎';
-          btn.title = 'Centrar y reactivar seguimiento';
-          Object.assign(btn.style, {
-            width: '38px', height: '38px', fontSize: '18px',
-            background: 'var(--color-surface-2, #1e2128)',
-            color: 'var(--color-text-primary, #fff)',
-            border: '1px solid var(--color-border-subtle, #333)',
-            borderRadius: '8px', cursor: 'pointer'
-          });
-          L.DomEvent.disableClickPropagation(btn);
-          btn.onclick = () => {
-            followMode = true;
-            if (repMarker) {
-              // Al reactivar seguimiento, subimos el zoom a nivel calle
-              // (mínimo 15) para que realmente se vea el punto morado, no
-              // una vista de ciudad entera donde el punto es una mota.
-              centrarEn(repMarker.getLatLng(), Math.max(map.getZoom(), 15), true);
-            } else if (line) {
-              map.fitBounds(line.getBounds(), calcularPadding());
-            }
-          };
-          return btn;
-        },
-        onRemove: function() {}
-      });
-      new Control({ position: 'topright' }).addTo(map);
-    }
-
-    setTimeout(() => {
-      map = L.map('route-map', { zoomControl: false });
-      L.control.zoom({ position: 'topleft' }).addTo(map);
-      baseMapa().addTo(map);
-
-      const latlngs = puntos.map(g => [g.lat, g.lng]);
-      latlngs.forEach((ll, i) => L.marker(ll, { icon: L.divIcon({ className: '', html: `<div class="num-pin">${i + 1}</div>`, iconSize: [26, 26], iconAnchor: [13, 13] }) }).addTo(map).bindPopup(`${i + 1}. ${puntos[i].compradorNombre}`));
-      line = L.polyline(latlngs, { color: '#ec4899', weight: 3, dashArray: '6 6' }).addTo(map);
-
-      // invalidateSize antes del primer fitBounds — el contenedor acaba de
-      // pasar a pantalla completa y Leaflet puede tener medidas cacheadas.
-      map.invalidateSize();
-      map.fitBounds(latlngs, calcularPadding());
-      mostrarBotonRecentrar();
-      map.on('dragstart', () => { followMode = false; });
-      recalcular(null);
-
-      const gpsNote = document.getElementById('route-gps-note');
-      if (!navigator.geolocation) { if (gpsNote) gpsNote.textContent = 'Tu navegador no soporta geolocalización.'; return; }
-      const repIcon = L.divIcon({
-        className: '', html: '<div style="width:14px;height:14px;border-radius:50%;background:#c084fc;border:2px solid #fff;box-shadow:0 0 0 2px #c084fc;"></div>',
-        iconSize: [14, 14], iconAnchor: [7, 7]
-      });
-
-      watchId = navigator.geolocation.watchPosition((pos) => {
-        if (!map) return;
-        const repLatLng = [pos.coords.latitude, pos.coords.longitude];
-        const primeraVez = !repMarker;
-
-        if (primeraVez) repMarker = L.marker(repLatLng, { icon: repIcon }).addTo(map).bindPopup('Tú');
-        else repMarker.setLatLng(repLatLng);
-
-        if (followMode) {
-          if (primeraVez) {
-            // Primera lectura GPS: centra en el repartidor con zoom de calle.
-            // Apago fitAutoPendiente AQUÍ (antes de que responda la ruta) para
-            // que el fitBounds de recalcular() no vuelva a alejar la vista.
-            fitAutoPendiente = false;
-            centrarEn(repLatLng, 15, true);
-          } else {
-            map.panTo(desplazarCentro(repLatLng), { animate: true, duration: 0.5 });
-          }
-        }
-        if (primeraVez && gpsNote) gpsNote.textContent = 'Tu punto morado se mueve solo · se actualiza solo';
-
-        const ahora = Date.now();
-        const dt = ahora - ultimoCalculo;
-        if (dt < 30000 || (dt < REFRESH_MS && ultimoPos && metros(ultimoPos, repLatLng) < 100)) return;
-        ultimoCalculo = ahora; ultimoPos = repLatLng;
-        recalcular(repLatLng);
-      }, (err) => {
-        // Antes el error se tragaba en silencio y el mapa se quedaba sin centrar sin explicar por qué.
-        if (gpsNote && err && err.code === 1) gpsNote.textContent = 'Activa el permiso de ubicación del navegador para ver tu punto en el mapa.';
-      }, { enableHighAccuracy: true, maximumAge: 5000 });
-    }, 50);
+  async function iniciarRuta() {
+    const keys = [...seleccion];
+    if (!keys.length) { toast('Marca con la casilla los pedidos que vas a llevar.'); return; }
+    if (!navigator.geolocation) { toast('Tu navegador no soporta geolocalización.'); return; }
+    keys.forEach(k => { grupoDe(k).estado = 'en-ruta'; seguir(k); }); seleccion.clear(); render();
+    const compradorKeys = JSON.stringify(keys);
+    try { const r = await apiFetch({ action: 'iniciarRutaEntregas', liveId, compradorKeys }, 'POST'); if (!r.ok) toast(r.error || 'No se pudo iniciar la ruta.'); cargar(true); }
+    catch (err) { enqueue('iniciarRutaEntregas', { compradorKeys }, 'iniciar:' + compradorKeys); }
   }
 
   const activos = new Set(); // compradorKeys que reciben mi ubicación (un solo GPS para todos)
@@ -820,7 +541,7 @@
   const metros = (a, b) => Math.hypot((b[0] - a[0]) * 110540, (b[1] - a[1]) * 111320 * Math.cos(a[0] * Math.PI / 180));
   const waNum = t => { const d = String(t).replace(/\D/g, ''); return d.length === 10 ? '52' + d : d.replace(/^521(?=\d{10}$)/, '52'); };
   const linkSeguimiento = key => `${location.origin}/seguimiento-entrega.html?live=${encodeURIComponent(liveId)}&key=${encodeURIComponent(key)}`;
-  const waLink = g => `https://wa.me/${waNum(g.compradorTelefono)}?text=${encodeURIComponent('¡Tu pedido va en camino! Sigue la ubicación del repartidor aquí: ' + linkSeguimiento(g.compradorKey))}`;
+  const waLink = g => `https://wa.me/${waNum(g.compradorTelefono)}?text=${encodeURIComponent('¡Tu pedido va en camino! Síguelo aquí: ' + linkSeguimiento(g.compradorKey))}`;
   const pantalla = async on => { try { if (on) wakeLock = await navigator.wakeLock.request('screen'); else { await wakeLock?.release(); wakeLock = null; } } catch (e) {} };
 
   function seguir(key) {
@@ -839,20 +560,14 @@
     navigator.geolocation.clearWatch(watchId); watchId = null; pantalla(false);
   }
 
-  // Envía solo si te moviste >20 m (mín. 5 s) o como latido cada 30 s
+  // Envía solo si te moviste >20 m (mín. 15 s) o como latido cada 30 s, y solo con ruta activa
   function onPos({ coords: { latitude: lat, longitude: lng } }) {
     const ahora = Date.now(), p = [lat, lng], dt = ahora - ultimo.t;
-    if (ultimo.pos && dt < 30000 && !(dt > 5000 && metros(ultimo.pos, p) > 20)) return;
+    if (ultimo.pos && dt < 30000 && !(dt > 15000 && metros(ultimo.pos, p) > 20)) return;
     ultimo = { t: ahora, pos: p };
     if (!activos.size) return;
-    const compradorKeys = JSON.stringify([...activos]); // un solo POST para todos los activos
-    apiFetch({ action: 'actualizarUbicacionRepartidor', liveId, compradorKeys, lat, lng }, 'POST')
-      .then(resp => {
-        let cambio = false;
-        Object.entries(resp.estados || {}).forEach(([k, e]) => { const g = grupoDe(k); if (g && activos.has(k) && g.estado !== e) { g.estado = e; cambio = true; } });
-        if (cambio) render();
-      })
-      .catch(() => enqueue('actualizarUbicacionRepartidor', { compradorKeys, lat, lng }, 'ubi'));
+    apiFetch({ action: 'actualizarUbicacionRepartidor', liveId, lat, lng }, 'POST')
+      .catch(() => enqueue('actualizarUbicacionRepartidor', { lat, lng }, 'ubi'));
   }
 
   async function toggleRuta(key) {
@@ -861,7 +576,7 @@
     expandedKeys.add(key);
     seguir(key);
     await toggleEstado(key, 'en-ruta');
-    if (!['en-ruta', 'cerca'].includes(grupoDe(key)?.estado)) dejar(key);
+    if (!EN_CAMINO.includes(grupoDe(key)?.estado)) dejar(key);
   }
 
   async function avisarLlegada(key, btn) {
@@ -937,7 +652,7 @@
     }
     dejar(key); g.estado = 'entregado'; render();
     toast(`Entregado a ${g.compradorNombre}`, {
-      undo: () => { g.estado = prev; if (['en-ruta', 'cerca'].includes(prev)) seguir(key); render(); },
+      undo: () => { g.estado = prev; if (EN_CAMINO.includes(prev)) seguir(key); render(); },
       commit: () => { g.estado = prev; toggleEstado(key, 'entregado'); }
     });
   }
@@ -972,7 +687,7 @@
       if (!(silent && igual && entrega)) { entrega = resp; render(); }
       if (!reanudado) { // retoma el GPS si recargaron la página en plena ruta
         reanudado = true;
-        JSON.parse(localStorage.getItem(trackKey()) || '[]').forEach(k => ['en-ruta', 'cerca'].includes(grupoDe(k)?.estado) && seguir(k));
+        JSON.parse(localStorage.getItem(trackKey()) || '[]').forEach(k => EN_CAMINO.includes(grupoDe(k)?.estado) && seguir(k));
       }
       sync();
     } catch (err) {
