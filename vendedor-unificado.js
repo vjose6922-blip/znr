@@ -589,6 +589,7 @@ checkStockBanner();
 checkInsigniaSolidarioChip();
 renderVendorPlanPanel();
 loadVendorSaleNotifications();
+cargarPagosDonacionPendientes();
 // Desde la notificación "Tu informe semanal está listo" (vendedor.html?informe=1) se muestra
 // de inmediato y aunque ya se hubiera cerrado antes.
 const _forzarInforme = new URLSearchParams(location.search).get('informe') === '1';
@@ -598,6 +599,7 @@ if (!window._vsnPollingStarted) {
   window._vsnPollingStarted = true;
  
   window.addEventListener('znr:nueva-notificacion', loadVendorSaleNotifications);
+  window.addEventListener('znr:nueva-notificacion', cargarPagosDonacionPendientes);
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.addEventListener('message', (event) => {
       if (event.data && event.data.type === 'znr-nueva-notificacion') {
@@ -610,6 +612,40 @@ if (!window._vsnPollingStarted) {
   });
    intervalConJitter(loadVendorSaleNotifications, 600000, 60000);
 }
+}
+
+// Fundación: pagos de ventas donadas por confirmar. Botón flotante que sigue ahí aunque marque el aviso como leído;
+// cada pago muestra su referencia de 4 dígitos (la que el comprador pone en el concepto de la transferencia).
+async function cargarPagosDonacionPendientes() {
+  if (!vendorSession || !vendorSession.token || !window.VENTAS_API_URL) return;
+  const api = (p) => fetch(window.VENTAS_API_URL, { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({ vendorToken: vendorSession.token, ...p }).toString() }).then(r => r.json()).catch(() => ({}));
+  const r = await api({ action: 'pagosDonacionPendientes' });
+  let fab = document.getElementById('fab-pagos-donacion');
+  const pagos = (r.ok && r.pagos) || [];
+  if (!pagos.length) { fab?.remove(); return; }
+  if (!fab) {
+    fab = Object.assign(document.createElement('button'), { id: 'fab-pagos-donacion', type: 'button' });
+    fab.style.cssText = 'position:fixed;left:14px;bottom:calc(84px + env(safe-area-inset-bottom,0px));z-index:900;padding:10px 14px;border:none;border-radius:999px;background:#f97316;color:#fff;font-weight:800;font-size:.82rem;box-shadow:0 6px 18px rgba(249,115,22,.4);cursor:pointer;';
+    document.body.appendChild(fab);
+  }
+  fab.textContent = `❤️ ${pagos.length} pago${pagos.length === 1 ? '' : 's'} por confirmar`;
+  fab.onclick = () => {
+    const esc = s => String(s || '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    const { body, cta } = window.modalDonar({ id: 'modal-pagos-donacion', titulo: 'Pagos por confirmar', sub: 'Confirma solo cuando el dinero ya esté en tu cuenta. Busca la referencia en el concepto de la transferencia.' });
+    cta.parentElement.style.display = 'none';
+    body.innerHTML = pagos.map((p, i) => `<div style="padding:12px;border:1px solid #fed7aa;border-radius:12px;margin-bottom:10px;background:#fff7ed;">
+      <div style="display:flex;justify-content:space-between;gap:8px;align-items:center;"><b style="font-size:1rem;">Ref. ${esc(p.ref)}</b><b style="color:#c2410c;">$${Number(p.monto || 0).toLocaleString()}</b></div>
+      <div style="font-size:.8rem;color:#555;margin:4px 0 8px;">${esc(p.comprador)} · ${esc((p.articulos || []).join(', '))}<br><small style="color:#888;">Donado por ${esc(p.vendedorNombre)}</small></div>
+      <button data-i="${i}" class="btn-conf-don" style="width:100%;padding:9px;border:none;border-radius:10px;background:#16a34a;color:#fff;font-weight:700;cursor:pointer;">✅ Recibí el pago</button></div>`).join('');
+    body.onclick = async (e) => {
+      const b = e.target.closest('.btn-conf-don'); if (!b) return;
+      const p = pagos[+b.dataset.i]; b.disabled = true; b.textContent = 'Confirmando…';
+      const res = await api({ action: 'confirmarPagoDonacion', vendedor_uid: p.vendedor_uid, requestId: p.requestId, beneficiarioId: p.beneficiarioId });
+      b.textContent = res.ok ? '✔ Pago confirmado' : (res.error || 'Error, reintenta'); b.disabled = !!res.ok;
+      if (res.ok) cargarPagosDonacionPendientes();
+    };
+  };
 }
 
 async function loadVendorSaleNotifications() {
@@ -3678,19 +3714,27 @@ async function loadBeneficiarioDonaciones() {
           <p style="margin:0;font-size:.78rem;color:#c2410c;">${Icon('heart-fill')} Estás registrado como fundación, pero no pudimos cargar el detalle completo de tu perfil ahora mismo.</p>
         </div>`;
 
-    area.innerHTML = perfilHtml + `<div style="margin-top:12px;padding-top:12px;border-top:1px solid #f5f5f5;">
-      <p style="margin:0 0 8px;font-size:.78rem;font-weight:800;color:#f97316;">Donaciones que recibes (${dons.length})</p>
-      ${dons.length === 0
-        ? '<p style="color:#aaa;font-size:.78rem;text-align:center;padding:6px 0;">Aún no hay donaciones activas para ti.</p>'
-        : dons.map(d => `<div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid #f5f5f8;">
+    // Solo las 3 más recientes aquí; todas en un modal (con muchas donaciones la sección crecía sin fin).
+    const filaDon = d => `<div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid #f5f5f8;">
             ${d.producto_imagen ? `<img src="${esc(d.producto_imagen)}" alt="" style="width:36px;height:36px;object-fit:cover;border-radius:8px;flex-shrink:0;">` : `<div style="width:36px;height:36px;background:#f0f0f5;border-radius:8px;flex-shrink:0;"></div>`}
             <div style="flex:1;min-width:0;">
               <div style="font-size:.8rem;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(d.producto_nombre||d.producto_id)}</div>
               <div style="font-size:.72rem;color:#888;">De: ${esc(d.vendedor_nombre)}</div>
             </div>
             <span style="font-size:.7rem;padding:2px 7px;border-radius:20px;background:#dcfce7;color:#166534;font-weight:700;flex-shrink:0;">Activa</span>
-          </div>`).join('')}
+          </div>`;
+    area.innerHTML = perfilHtml + `<div style="margin-top:12px;padding-top:12px;border-top:1px solid #f5f5f5;">
+      <p style="margin:0 0 8px;font-size:.78rem;font-weight:800;color:#f97316;">Donaciones que recibes (${dons.length})</p>
+      ${dons.length === 0
+        ? '<p style="color:#aaa;font-size:.78rem;text-align:center;padding:6px 0;">Aún no hay donaciones activas para ti.</p>'
+        : dons.slice(0, 3).map(filaDon).join('')}
+      ${dons.length > 3 ? `<button id="btn-ver-donaciones" style="width:100%;margin-top:8px;padding:8px;border-radius:9px;border:1.5px solid #f97316;background:#fff;color:#c2410c;font-weight:700;font-size:.78rem;cursor:pointer;">Ver todas (${dons.length})</button>` : ''}
     </div>`;
+    document.getElementById('btn-ver-donaciones')?.addEventListener('click', () => {
+      const { body, cta } = window.modalDonar({ id: 'modal-donaciones-recibidas', titulo: `Donaciones que recibes (${dons.length})`, sub: 'Artículos que vendedores donaron a tu fundación' });
+      cta.parentElement.style.display = 'none';
+      body.innerHTML = dons.map(filaDon).join('');
+    });
     if (miBen) {
       document.getElementById('btn-editar-fundacion')?.addEventListener('click', () => abrirEditarFundacionVendedor(miBen));
       document.getElementById('btn-eliminar-fundacion')?.addEventListener('click', () => solicitarEliminarFundacionVendedor(miBen));

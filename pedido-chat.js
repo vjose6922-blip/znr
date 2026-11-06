@@ -446,6 +446,12 @@ function renderMensajes() {
     const t = ms(m.creadoEn);
     const dia = t ? new Date(t).toDateString() : "";
     if (dia && dia !== diaPrev) { ui.msgs.appendChild(h("div", { class: "pp-day", text: diaLargo(t) })); diaPrev = dia; }
+    if (m.tipo === "sistema" && m.mapsUrl) { // punto de recolección (ventas-api, al confirmar stock sin envío a domicilio)
+      ui.msgs.appendChild(h("div", { class: "pp-sys", style: "opacity:1;background:var(--color-surface-2,#f5f5f8);border-radius:12px;padding:8px 12px" },
+        h("div", { text: m.contenido }),
+        h("a", { href: m.mapsUrl, target: "_blank", rel: "noopener", style: "display:inline-block;margin-top:6px;padding:6px 12px;border-radius:999px;background:#ff4f81;color:#fff;font-weight:700;text-decoration:none", text: "📍 Ver en Google Maps" })));
+      continue;
+    }
     if (m.tipo === "sistema") { ui.msgs.appendChild(h("div", { class: "pp-sys", text: m.contenido })); continue; }
     if (m.tipo === "cotizacion") { ui.msgs.appendChild(chipCotizacion(m, e)); continue; }
     if (m.tipo === "pago") { ui.msgs.appendChild(chipPago(m)); continue; }
