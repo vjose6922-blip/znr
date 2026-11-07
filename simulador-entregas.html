@@ -1,0 +1,272 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Simulador de entregas</title>
+<!--
+  SIMULADOR TEMPORAL (se puede borrar sin afectar nada). Nada sale a tu servidor real:
+  las páginas reales entregas-live.html y seguimiento-entrega.html se cargan sin modificar dentro de este
+  archivo y sus llamadas a live-api las contesta un servidor falso (SIM.api) que imita la lógica de live-api.
+  No toca Firestore, no descuenta stock y no manda notificaciones reales.
+-->
+<script>
+// Modo "pantalla": ?frame=entregas-live.html|seguimiento-entrega.html → carga esa página real con el servidor y el GPS simulados.
+(() => {
+  const q = new URLSearchParams(location.search), pagina = q.get('frame');
+  if (!['entregas-live.html', 'seguimiento-entrega.html'].includes(pagina)) return;
+  document.documentElement.style.display = 'none';
+  const P = parent.SIM, real = window.fetch.bind(window);
+  window.fetch = async (input, init = {}) => {
+    const url = String(input && input.url || input);
+    if (!/\.run\.app/.test(url)) return real(input, init); // mapas, librerías y archivos de la página: reales
+    const p = Object.fromEntries(new URLSearchParams(url.split('?')[1] || ''));
+    if (typeof init.body === 'string') new URLSearchParams(init.body).forEach((v, k) => { p[k] = v; });
+    const data = /live-api/.test(url) ? P.api(p) : { ok: true }; // otras APIs (registro de errores, etc.): sin efecto
+    await new Promise(r => setTimeout(r, 200)); // latencia de red
+    return new Response(JSON.stringify(data), { headers: { 'Content-Type': 'application/json' } });
+  };
+  const pos = () => ({ coords: { latitude: P.fis.lat, longitude: P.fis.lng, accuracy: 5 }, timestamp: Date.now() });
+  Object.defineProperty(navigator, 'geolocation', { configurable: true, value: {
+    getCurrentPosition: ok => setTimeout(() => ok(pos()), 100),
+    watchPosition: ok => setInterval(() => ok(pos()), 1000),
+    clearWatch: id => clearInterval(id) } });
+  real(pagina).then(r => r.text()).then(html => {
+    document.open(); document.write(html.replace('<script src="app-check.js"><\/script>', '')); document.close();
+  });
+})();
+</script>
+<style>
+  :root { --bg:#f4f4f6; --card:#fff; --tx:#1b1b1f; --soft:#64646e; --bd:#dcdce2; --ac:#db2777; --ok:#15803d; }
+  @media (prefers-color-scheme: dark) { :root { --bg:#141417; --card:#1f1f24; --tx:#ececf0; --soft:#a0a0aa; --bd:#34343c; } }
+  * { box-sizing:border-box } body { margin:0; background:var(--bg); color:var(--tx); font:14px/1.45 system-ui,-apple-system,sans-serif }
+  header { display:flex; flex-wrap:wrap; gap:10px; align-items:center; justify-content:space-between; padding:12px 16px; border-bottom:1px solid var(--bd); background:var(--card) }
+  header h1 { font-size:16px; margin:0 } header small { color:var(--soft) }
+  main { padding:16px; max-width:1400px; margin:0 auto }
+  .card { background:var(--card); border:1px solid var(--bd); border-radius:12px; padding:14px; margin-bottom:12px }
+  .card h2 { font-size:14px; margin:0 0 10px }
+  label { display:block; margin:8px 0 4px; color:var(--soft); font-size:12px }
+  input, select { width:100%; padding:8px 10px; border-radius:8px; border:1px solid var(--bd); background:var(--bg); color:var(--tx); font:inherit }
+  button { padding:9px 14px; border-radius:8px; border:1px solid var(--bd); background:var(--bg); color:var(--tx); font:inherit; font-weight:600; cursor:pointer }
+  button.pri { background:var(--ac); border-color:var(--ac); color:#fff } button:disabled { opacity:.5; cursor:default }
+  .fila { display:flex; flex-wrap:wrap; gap:8px; align-items:center } .fila > * { flex:1 1 140px }
+  .chk { display:flex; gap:8px; align-items:center; margin-top:10px; color:var(--tx); font-size:13px } .chk input { width:auto }
+  .video { aspect-ratio:16/9; max-height:280px; width:100%; border-radius:12px; background:linear-gradient(135deg,#7c3aed,#db2777); color:#fff; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px; position:relative }
+  .vivo { position:absolute; top:10px; left:10px; background:#dc2626; padding:2px 8px; border-radius:6px; font-size:12px; font-weight:700 }
+  #chat { height:220px; overflow:auto; margin-top:10px; font-size:13px } #chat p { margin:4px 0 } #chat b { color:var(--ac) }
+  .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(340px,1fr)); gap:16px; align-items:start }
+  .tel { background:#000; border-radius:36px; padding:10px; width:375px; max-width:100%; margin:0 auto }
+  .tel iframe { display:block; width:100%; height:720px; border:0; border-radius:28px; background:#fff }
+  .tit { text-align:center; font-weight:700; margin-bottom:8px }
+  table { width:100%; border-collapse:collapse; font-size:12.5px } td, th { text-align:left; padding:5px 4px; border-bottom:1px solid var(--bd) }
+  .cod { font-family:ui-monospace,monospace; font-weight:700; letter-spacing:.1em }
+  .noti { border:1px solid var(--bd); border-radius:10px; padding:8px 10px; margin:6px 0; font-size:12.5px } .noti b { display:block }
+  .noti small { color:var(--soft) } .aviso { background:#fef3c7; color:#78350f; border-radius:8px; padding:8px 10px; margin-top:8px; font-size:13px }
+  .stat { display:flex; justify-content:space-between; padding:3px 0; font-size:13px } .stat b { font-variant-numeric:tabular-nums }
+  [hidden] { display:none !important }
+</style>
+</head>
+<body>
+<header>
+  <div><h1>Simulador de entregas</h1><small>Servidor falso: no toca tus datos reales, no descuenta stock ni manda notificaciones.</small></div>
+  <button id="reiniciar">Reiniciar simulación</button>
+</header>
+<main>
+  <!-- 1. Crear el live -->
+  <section id="f-config" class="card" hidden>
+    <h2>1. Crear el live</h2>
+    <div class="fila">
+      <div><label>Título del live</label><input id="c-titulo" value="Live de prueba"></div>
+      <div><label>Nombre del vendedor</label><input id="c-vend" value="Tienda Demo"></div>
+      <div><label>Compradores</label><input id="c-n" type="number" min="2" max="12" value="6"></div>
+    </div>
+    <div class="fila">
+      <div><label>Latitud del punto de salida</label><input id="c-lat" value="27.4863"></div>
+      <div><label>Longitud del punto de salida</label><input id="c-lng" value="-99.5075"></div>
+    </div>
+    <label class="chk"><input type="checkbox" id="c-singps" checked> Incluir un comprador sin GPS (solo dirección escrita)</label>
+    <p><button class="pri" id="c-iniciar">Iniciar live</button></p>
+  </section>
+
+  <!-- 2. Live en curso -->
+  <section id="f-live" class="card" hidden>
+    <h2>2. Live en curso</h2>
+    <div class="video"><span class="vivo">● EN VIVO</span><strong id="l-titulo"></strong><span id="l-vistas"></span></div>
+    <div id="chat"></div>
+    <p><button class="pri" id="l-cerrar" disabled>Cerrar live y confirmar ventas</button></p>
+  </section>
+
+  <!-- 3. Entregas -->
+  <section id="f-entregas" hidden>
+    <div class="grid">
+      <div><div class="tit">📱 Repartidor</div><div class="tel"><iframe id="fr-rep" title="Página del repartidor"></iframe></div></div>
+      <div><div class="tit">📱 Comprador: <select id="sel-comp" style="width:auto"></select></div><div class="tel"><iframe id="fr-comp" title="Seguimiento del comprador"></iframe></div></div>
+      <div>
+        <div class="card">
+          <h2>🛵 GPS del repartidor</h2>
+          <label class="chk"><input type="checkbox" id="g-conducir" checked> Conducir solo hacia la siguiente parada</label>
+          <label>Velocidad</label>
+          <select id="g-vel"><option value="1">Real (30 km/h)</option><option value="5" selected>5× más rápido</option><option value="20">20× más rápido</option></select>
+          <p class="fila"><button id="g-saltar">Llegar a la siguiente parada</button><button id="g-salida">Volver al punto de salida</button></p>
+          <div id="g-estado" style="font-size:13px;color:var(--soft)"></div>
+        </div>
+        <div class="card"><h2>👥 Compradores (los códigos solo los ve cada comprador)</h2><div id="tabla"></div></div>
+        <div class="card"><h2>🔔 Notificaciones (la última de cada comprador)</h2><div id="notis"></div></div>
+        <div class="card"><h2>📊 Consumo del servidor en esta simulación</h2><div id="stats"></div></div>
+      </div>
+    </div>
+  </section>
+</main>
+<script>
+if (!new URLSearchParams(location.search).get('frame')) (() => {
+  const $ = id => document.getElementById(id);
+  const CLAVE = 'sim_entregas_v1', EN_RUTA = ['en-ruta', 'siguiente', 'cerca'];
+  const NOMBRES = ['Ana López', 'Beto Ramírez', 'Caro Díaz', 'Dani Torres', 'Eli Garza', 'Fer Ruiz', 'Gaby Soto', 'Hugo Peña', 'Iris Vega', 'Juan Mora', 'Karla Cruz', 'Luis Rangel'];
+  const PRODUCTOS = [['Blusa floral', 250], ['Jeans', 380], ['Tenis', 520], ['Bolsa', 300], ['Vestido', 450], ['Gorra', 150], ['Sudadera', 400], ['Lentes', 200]];
+  const dist = (a, b) => { const r = x => x * Math.PI / 180, dLa = r(b.lat - a.lat), dLo = r(b.lng - a.lng);
+    const h = Math.sin(dLa / 2) ** 2 + Math.cos(r(a.lat)) * Math.cos(r(b.lat)) * Math.sin(dLo / 2) ** 2; return 12742000 * Math.atan2(Math.sqrt(h), Math.sqrt(1 - h)); };
+  const nuevo = () => ({ fase: 'config', stats: { gps: 0, gpsAntes: 0, consultas: 0, lecturasPos: 0 }, notifs: [], entregas: [] });
+  let D; try { D = JSON.parse(localStorage.getItem(CLAVE)) || nuevo(); } catch (e) { D = nuevo(); }
+  const guardar = () => { try { localStorage.setItem(CLAVE, JSON.stringify(D)); } catch (e) {} };
+  const SIM = window.SIM = { fis: D.fis || { lat: 27.4863, lng: -99.5075 } };
+
+  // ── Servidor falso: misma lógica que live-api (estados, siguiente parada, "Faltan N", código, avisos) ──
+  const E = k => D.entregas.find(e => e.compradorKey === String(k));
+  const avisar = (e, titulo, msg) => D.notifs.unshift({ key: e.compradorKey, nombre: e.compradorNombre, titulo, msg, t: Date.now() });
+  function avanzar() {
+    D.entregas.filter(e => EN_RUTA.includes(e.estado)).sort((a, b) => a.orden - b.orden).forEach((e, i) => {
+      if (!i && e.estado !== 'siguiente') avisar(e, '📍 ¡Eres la siguiente parada!', `El repartidor de ${D.live.vendedor} va hacia ti. Ya puedes ver su ubicación en el mapa. Ten a la mano tu código: ${e.codigo}.`);
+      e.estado = i ? 'en-ruta' : 'siguiente'; e.paradasAntes = i;
+    });
+  }
+  function cambiarEstado(p, sinAvanzar) {
+    const e = E(p.compradorKey), est = ['pendiente', 'preparando', 'en-ruta', 'entregado', 'no-entregado'].includes(p.estado) ? p.estado : 'pendiente';
+    if (!e) return { ok: false, error: 'No se encontró ese comprador en esta transmisión.' };
+    const ant = e.estado;
+    if (ant === 'entregado' && est !== 'entregado') return { ok: false, error: 'Este pedido ya fue entregado, no se puede cambiar de estado.' };
+    if (est === 'en-ruta' && EN_RUTA.includes(ant)) return { ok: true, estado: ant };
+    if (est === 'entregado' && ant !== 'entregado') {
+      if ((e.bloqueo || 0) > Date.now()) return { ok: false, error: 'Demasiados intentos. Espera unos minutos.' };
+      if (String(p.codigo || '').trim() !== e.codigo) {
+        e.intentos = (e.intentos || 0) + 1; if (e.intentos >= 5) { e.intentos = 0; e.bloqueo = Date.now() + 600000; }
+        return { ok: false, codigoIncorrecto: true, error: e.bloqueo > Date.now() ? 'Demasiados intentos. Espera 10 minutos.' : 'Código incorrecto. Pídeselo al cliente.' };
+      }
+    }
+    e.estado = est;
+    if (est === 'en-ruta') avisar(e, '🛵 ¡Tu pedido va en camino!', `Tu pedido de ${D.live.vendedor} va en camino. Te avisaremos cuando seas la siguiente parada. Tu código de entrega: ${e.codigo}.`);
+    if (est === 'no-entregado' && ant !== 'no-entregado') {
+      avisar(e, '😕 No se pudo entregar tu pedido', `No pudimos entregarte tu pedido de ${D.live.vendedor} esta vez. El vendedor se pondrá en contacto contigo.`);
+      D.notifs.unshift({ key: 'vendedor', nombre: 'Vendedor', titulo: '😕 No se pudo entregar', msg: `No se pudo entregar a ${e.compradorNombre}. Contáctalo para acordar otra entrega.`, t: Date.now() });
+    }
+    if (est === 'entregado' && ant !== 'entregado') avisar(e, '🎉 ¡Pedido entregado!', `Tu pedido de ${D.live.vendedor} fue entregado con éxito. ¡Gracias por tu compra!`);
+    if (!sinAvanzar && (EN_RUTA.includes(est) || EN_RUTA.includes(ant))) avanzar();
+    return { ok: true, estado: est };
+  }
+  const ACCIONES = {
+    obtenerEntregasLive: () => ({ ok: true, liveId: D.live.id, liveTitulo: D.live.titulo, vendedorNombre: D.live.vendedor,
+      grupos: D.entregas.map(({ codigo, intentos, bloqueo, paradasAntes, ...g }) => ({ ...g, pideCodigo: true,
+        ...(g.estado === 'entregado' && { compradorTelefono: '', compradorDireccion: '', lat: null, lng: null }) })) }),
+    guardarOrdenEntregas: p => { JSON.parse(p.ordenes || '[]').forEach(o => { const e = E(o.compradorKey); if (e) e.orden = Number(o.orden) || 0; }); avanzar(); return { ok: true }; },
+    iniciarRutaEntregas: p => { JSON.parse(p.compradorKeys || '[]').forEach(k => cambiarEstado({ compradorKey: k, estado: 'en-ruta' }, true)); avanzar(); return { ok: true }; },
+    actualizarEstadoEntrega: p => cambiarEstado(p),
+    actualizarUbicacionRepartidor: p => { D.rep = { lat: +p.lat, lng: +p.lng, t: Date.now() }; D.stats.gps++;
+      D.stats.gpsAntes += Math.max(1, D.entregas.filter(e => EN_RUTA.includes(e.estado)).length); return { ok: true }; },
+    notificarLlegadaEntrega: p => { const e = E(p.compradorKey); e && avisar(e, '🛵 ¡Ya casi llegamos!', `El repartidor de ${D.live.vendedor} está afuera de tu domicilio con tu pedido.`); return { ok: true, enviados: 1 }; },
+    obtenerMetodosPagoEntrega: () => ({ ok: true, mostrar: false }),
+    obtenerEntregaPorClave: p => {
+      const e = E(p.compradorKey); if (!e) return { ok: false, error: 'No se encontró esta entrega.' };
+      D.stats.consultas++;
+      const sig = e.estado === 'siguiente', rep = sig ? D.rep : null; if (sig) D.stats.lecturasPos++;
+      const cerca = !!(rep && e.lat != null && dist(rep, e) < 200);
+      return { ok: true, entrega: { compradorNombre: e.compradorNombre, vendedorNombre: D.live.vendedor, estado: cerca ? 'cerca' : e.estado,
+        paradasAntes: e.estado === 'en-ruta' ? e.paradasAntes : null, pagoDisponible: false, pedidoConfirmado: true,
+        lat: e.lat, lng: e.lng, direccion: e.compradorDireccion, repartidorLat: rep ? rep.lat : null, repartidorLng: rep ? rep.lng : null,
+        repartidorUpdatedAt: rep ? new Date(rep.t).toISOString() : null, codigoEntrega: e.estado === 'entregado' ? '' : e.codigo } };
+    },
+  };
+  SIM.api = p => {
+    const antes = E($('sel-comp').value)?.estado, r = (ACCIONES[p.action] || (() => ({ ok: true })))(p);
+    guardar(); pintarPanel();
+    if (E($('sel-comp').value)?.estado !== antes) setTimeout(() => $('fr-comp').contentWindow.cargar?.(), 300); // como si abriera el aviso
+    return JSON.parse(JSON.stringify(r));
+  };
+
+  // ── Fases ──
+  function mostrar() {
+    ['config', 'live', 'entregas'].forEach(f => { $('f-' + f).hidden = D.fase !== f; });
+    if (D.fase === 'live') verLive();
+    if (D.fase === 'entregas') verEntregas();
+  }
+  $('c-iniciar').onclick = () => {
+    const n = Math.min(12, Math.max(2, +$('c-n').value || 6)), lat = +$('c-lat').value, lng = +$('c-lng').value;
+    D = nuevo(); D.fase = 'live'; D.salida = { lat, lng }; SIM.fis = D.fis = { lat, lng };
+    D.live = { id: 'SIM' + Date.now(), titulo: $('c-titulo').value || 'Live de prueba', vendedor: $('c-vend').value || 'Tienda Demo' };
+    D.entregas = NOMBRES.slice(0, n).map((nombre, i) => {
+      const sinGps = $('c-singps').checked && i === n - 1, items = [PRODUCTOS[(i * 3) % 8], PRODUCTOS[(i * 5 + 1) % 8]].slice(0, 1 + (i % 2));
+      return { compradorKey: String(5550000001 + i), compradorNombre: nombre, compradorTelefono: String(5550000001 + i),
+        compradorDireccion: sinGps ? 'Av. Reforma 1200, Nuevo Laredo, Tamps.' : `Calle Simulada ${10 + i * 7}, Col. Centro`,
+        lat: sinGps ? null : +(lat + (Math.random() - .5) * .05).toFixed(5), lng: sinGps ? null : +(lng + (Math.random() - .5) * .05).toFixed(5),
+        items: items.map(([nombre, precio]) => ({ nombre, precio, cantidad: 1 })), total: items.reduce((s, x) => s + x[1], 0),
+        estado: 'pendiente', orden: i, codigo: String(1000 + Math.floor(Math.random() * 9000)) };
+    });
+    guardar(); mostrar();
+  };
+  function verLive() {
+    $('l-titulo').textContent = D.live.titulo; $('chat').innerHTML = ''; $('l-cerrar').disabled = true;
+    const lineas = D.entregas.flatMap(e => e.items.map(it => `<b>${e.compradorNombre}:</b> ¡Lo quiero! — ${it.nombre} $${it.precio} ✅ apartado`));
+    let i = 0; const t = setInterval(() => {
+      $('l-vistas').textContent = `👁 ${12 + i * 3} viendo`;
+      if (i >= lineas.length) { clearInterval(t); $('l-cerrar').disabled = false; return; }
+      $('chat').insertAdjacentHTML('beforeend', `<p>${lineas[i++]}</p>`); $('chat').scrollTop = 1e6;
+    }, 600);
+  }
+  $('l-cerrar').onclick = () => { D.fase = 'entregas'; guardar(); mostrar(); };
+  function verEntregas() {
+    $('sel-comp').innerHTML = D.entregas.map(e => `<option value="${e.compradorKey}">${e.compradorNombre}</option>`).join('');
+    $('fr-rep').src = `simulador-entregas.html?frame=entregas-live.html&id=${D.live.id}&t=sim`;
+    cargarComprador(); pintarPanel();
+  }
+  const cargarComprador = () => { $('fr-comp').src = `simulador-entregas.html?frame=seguimiento-entrega.html&live=${D.live.id}&key=${$('sel-comp').value}`; };
+  $('sel-comp').onchange = cargarComprador;
+
+  // ── Panel ──
+  const ETQ = { pendiente: '⏳ Pendiente', preparando: '📦 Preparando', 'en-ruta': '🛵 En ruta', siguiente: '📍 Siguiente', entregado: '✅ Entregado', 'no-entregado': '😕 No entregado' };
+  function pintarPanel() {
+    if (D.fase !== 'entregas') return;
+    $('tabla').innerHTML = `<table><tr><th>Comprador</th><th>Estado</th><th>Faltan</th><th>Código</th></tr>${D.entregas.slice().sort((a, b) => a.orden - b.orden).map(e =>
+      `<tr><td>${e.compradorNombre}${e.lat == null ? ' <small>(sin GPS)</small>' : ''}</td><td>${ETQ[e.estado] || e.estado}</td><td>${e.estado === 'en-ruta' ? e.paradasAntes : ''}</td><td class="cod">${e.codigo}</td></tr>`).join('')}</table>`;
+    const ultimas = D.notifs.filter((n, i, a) => a.findIndex(x => x.key === n.key) === i); // la más reciente de cada uno (reemplaza a las anteriores)
+    $('notis').innerHTML = ultimas.length ? ultimas.map(n => `<div class="noti"><small>${n.nombre} · ${new Date(n.t).toLocaleTimeString()}</small><b>${n.titulo}</b>${n.msg}</div>`).join('') : '<small>Aún no hay notificaciones.</small>';
+    const s = D.stats;
+    $('stats').innerHTML = [['Envíos de GPS del repartidor', s.gps], ['Escrituras por esos envíos', s.gps], ['Escrituras con el sistema anterior', s.gpsAntes],
+      ['Consultas de la página del comprador', s.consultas], ['Lecturas de la posición del repartidor', s.lecturasPos], ['Consultas a Mapbox', 0]]
+      .map(([a, b]) => `<div class="stat"><span>${a}</span><b>${b}</b></div>`).join('');
+  }
+
+  // ── Repartidor que se mueve solo ──
+  const objetivo = () => D.entregas.filter(e => EN_RUTA.includes(e.estado) && e.lat != null).sort((a, b) => a.orden - b.orden)[0];
+  setInterval(() => {
+    if (D.fase !== 'entregas') return;
+    const o = objetivo(), est = $('g-estado');
+    if (!o) { est.textContent = D.entregas.some(e => EN_RUTA.includes(e.estado)) ? 'La siguiente parada no tiene GPS: el repartidor la busca con la dirección escrita.' : 'Sin ruta activa. Marca pedidos e inicia la ruta en el teléfono del repartidor.'; return; }
+    const d = dist(SIM.fis, o), paso = 30 / 3.6 * +$('g-vel').value;
+    if ($('g-conducir').checked && d > 15) {
+      const f = Math.min(1, paso / d); SIM.fis = D.fis = { lat: SIM.fis.lat + (o.lat - SIM.fis.lat) * f, lng: SIM.fis.lng + (o.lng - SIM.fis.lng) * f };
+    }
+    const r = dist(SIM.fis, o);
+    est.innerHTML = r <= 15 ? `<div class="aviso">Llegaste con <b>${o.compradorNombre}</b>. Pídele su código (está en la tabla) y márcalo como Entregado.</div>`
+      : `Rumbo a <b>${o.compradorNombre}</b>: faltan ${r >= 1000 ? (r / 1000).toFixed(1) + ' km' : Math.round(r) + ' m'}.`;
+  }, 1000);
+  $('g-saltar').onclick = () => { const o = objetivo(); if (o) SIM.fis = D.fis = { lat: o.lat, lng: o.lng }; };
+  $('g-salida').onclick = () => { SIM.fis = D.fis = { ...D.salida }; };
+  $('reiniciar').onclick = () => {
+    if (!confirm('¿Borrar la simulación y empezar de nuevo?')) return;
+    Object.keys(localStorage).filter(k => k === CLAVE || (D.live && k.includes(D.live.id))).forEach(k => localStorage.removeItem(k));
+    D = nuevo(); $('fr-rep').src = $('fr-comp').src = 'about:blank'; mostrar();
+  };
+  mostrar();
+})();
+</script>
+</body>
+</html>
