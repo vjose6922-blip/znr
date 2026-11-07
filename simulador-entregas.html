@@ -82,8 +82,8 @@
       <div><label>Compradores</label><input id="c-n" type="number" min="2" max="12" value="6"></div>
     </div>
     <div class="fila">
-      <div><label>Latitud del punto de salida</label><input id="c-lat" value="27.4863"></div>
-      <div><label>Longitud del punto de salida</label><input id="c-lng" value="-99.5075"></div>
+      <div><label>Latitud del punto de salida</label><input id="c-lat" value="27.4650"></div>
+      <div><label>Longitud del punto de salida</label><input id="c-lng" value="-99.5350"></div>
     </div>
     <label class="chk"><input type="checkbox" id="c-singps" checked> Incluir un comprador sin GPS (solo dirección escrita)</label>
     <p><button class="pri" id="c-iniciar">Iniciar live</button></p>
@@ -129,7 +129,7 @@ if (!new URLSearchParams(location.search).get('frame')) (() => {
   const nuevo = () => ({ fase: 'config', stats: { gps: 0, gpsAntes: 0, consultas: 0, lecturasPos: 0 }, notifs: [], entregas: [] });
   let D; try { D = JSON.parse(localStorage.getItem(CLAVE)) || nuevo(); } catch (e) { D = nuevo(); }
   const guardar = () => { try { localStorage.setItem(CLAVE, JSON.stringify(D)); } catch (e) {} };
-  const SIM = window.SIM = { fis: D.fis || { lat: 27.4863, lng: -99.5075 } };
+  const SIM = window.SIM = { fis: D.fis || { lat: 27.4650, lng: -99.5350 } };
 
   // ── Servidor falso: misma lógica que live-api (estados, siguiente parada, "Faltan N", código, avisos) ──
   const E = k => D.entregas.find(e => e.compradorKey === String(k));
@@ -206,7 +206,7 @@ if (!new URLSearchParams(location.search).get('frame')) (() => {
       const sinGps = $('c-singps').checked && i === n - 1, items = [PRODUCTOS[(i * 3) % 8], PRODUCTOS[(i * 5 + 1) % 8]].slice(0, 1 + (i % 2));
       return { compradorKey: String(5550000001 + i), compradorNombre: nombre, compradorTelefono: String(5550000001 + i),
         compradorDireccion: sinGps ? 'Av. Reforma 1200, Nuevo Laredo, Tamps.' : `Calle Simulada ${10 + i * 7}, Col. Centro`,
-        lat: sinGps ? null : +(lat + (Math.random() - .5) * .05).toFixed(5), lng: sinGps ? null : +(lng + (Math.random() - .5) * .05).toFixed(5),
+        lat: sinGps ? null : +(lat + (Math.random() - .5) * .03).toFixed(5), lng: sinGps ? null : +(lng + (Math.random() - .5) * .04).toFixed(5), // ~3 km a la redonda, del lado mexicano
         items: items.map(([nombre, precio]) => ({ nombre, precio, cantidad: 1 })), total: items.reduce((s, x) => s + x[1], 0),
         estado: 'pendiente', orden: i, codigo: String(1000 + Math.floor(Math.random() * 9000)) };
     });

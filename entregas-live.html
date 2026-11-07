@@ -433,7 +433,7 @@
     const on = (id, fn) => document.getElementById(id)?.addEventListener('click', fn);
     on('btn-refrescar', () => cargar(true).then(() => toast('Actualizado')));
     on('btn-iniciar-ruta', iniciarRuta);
-    on('btn-optimizar-ruta', optimizarRuta);
+    on('btn-optimizar-ruta', () => optimizarRuta());
     on('btn-marcar-todos', () => { entrega.grupos.filter(g => !EN_CAMINO.includes(g.estado) && g.estado !== 'entregado').forEach(g => seleccion.add(g.compradorKey)); render(); });
 
     wrap.querySelectorAll('.entrega-card').forEach(card => {
@@ -478,18 +478,24 @@
     catch (err) { enqueue('guardarOrdenEntregas', { ordenes }, 'orden'); }
   }
 
-  async function optimizarRuta() {
+  // Orden por cercanía desde donde está el repartidor y luego se quitan cruces (2-opt: si invertir un tramo
+  // acorta el recorrido, se invierte). Todo en el teléfono, sin APIs. alIniciar: solo las paradas en ruta, sin aviso.
+  async function optimizarRuta(alIniciar) {
     const todos = gruposOrdenados(), previo = todos.map(g => g.orden);
-    const pend = todos.filter(g => g.estado !== 'entregado'), resto = pend.filter(tieneGeo), orden = [];
-    if (resto.length < 2) { toast('No hay suficientes entregas con ubicación para reordenar.'); return; }
-    let p = await new Promise(r => navigator.geolocation ? navigator.geolocation.getCurrentPosition(x => r([x.coords.latitude, x.coords.longitude]), () => r(null), { enableHighAccuracy: true, timeout: 5000 }) : r(null));
-    for (p = p || [resto[0].lat, resto[0].lng]; resto.length; p = [orden.at(-1).lat, orden.at(-1).lng]) {
-      const d = g => metros(p, [g.lat, g.lng]);
-      orden.push(resto.splice(resto.reduce((m, g, i) => d(g) < d(resto[m]) ? i : m, 0), 1)[0]);
+    const resto = todos.filter(g => (alIniciar ? EN_CAMINO.includes(g.estado) : g.estado !== 'entregado') && tieneGeo(g));
+    if (resto.length < 2) { if (!alIniciar) toast('No hay suficientes entregas con ubicación para reordenar.'); return; }
+    const pos = await new Promise(r => navigator.geolocation ? navigator.geolocation.getCurrentPosition(x => r({ lat: x.coords.latitude, lng: x.coords.longitude }), () => r(null), { enableHighAccuracy: true, timeout: 5000 }) : r(null));
+    const ruta = [pos || resto[0]], d = (a, b) => b ? metros([a.lat, a.lng], [b.lat, b.lng]) : 0; // ruta[0] = punto de salida
+    while (resto.length) { const p = ruta.at(-1); ruta.push(resto.splice(resto.reduce((m, g, i) => d(p, g) < d(p, resto[m]) ? i : m, 0), 1)[0]); }
+    for (let mejora = true, n = 0; mejora && n++ < 50;) {
+      mejora = false;
+      for (let i = 1; i < ruta.length - 1; i++) for (let j = i + 1; j < ruta.length; j++)
+        if (d(ruta[i - 1], ruta[j]) + d(ruta[i], ruta[j + 1]) + 1 < d(ruta[i - 1], ruta[i]) + d(ruta[j], ruta[j + 1])) { ruta.splice(i, j - i + 1, ...ruta.slice(i, j + 1).reverse()); mejora = true; }
     }
-    [...orden, ...pend.filter(g => !tieneGeo(g)), ...todos.filter(g => g.estado === 'entregado')].forEach((g, i) => { g.orden = i; });
-    render(); persistirOrden();
-    toast('Ruta reordenada', { undo: () => { todos.forEach((g, i) => { g.orden = previo[i]; }); render(); persistirOrden(); } });
+    const orden = ruta.slice(1);
+    [...orden, ...todos.filter(g => g.estado !== 'entregado' && !orden.includes(g)), ...todos.filter(g => g.estado === 'entregado')].forEach((g, i) => { g.orden = i; });
+    render(); await persistirOrden();
+    if (!alIniciar) toast('Ruta reordenada', { undo: () => { todos.forEach((g, i) => { g.orden = previo[i]; }); render(); persistirOrden(); } });
   }
 
   async function iniciarRuta() {
@@ -497,6 +503,7 @@
     if (!keys.length) { toast('Marca con la casilla los pedidos que vas a llevar.'); return; }
     if (!navigator.geolocation) { toast('Tu navegador no soporta geolocalización.'); return; }
     keys.forEach(k => { grupoDe(k).estado = 'en-ruta'; seguir(k); }); seleccion.clear(); render();
+    await optimizarRuta(true); // ordena solo por cercanía al salir, sin depender de que toquen "Reordenar"
     const compradorKeys = JSON.stringify(keys);
     try { const r = await apiFetch({ action: 'iniciarRutaEntregas', liveId, compradorKeys }, 'POST'); if (!r.ok) toast(r.error || 'No se pudo iniciar la ruta.'); cargar(true); }
     catch (err) { enqueue('iniciarRutaEntregas', { compradorKeys }, 'iniciar:' + compradorKeys); }
