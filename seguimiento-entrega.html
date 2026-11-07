@@ -8,8 +8,8 @@
  default-src 'self';
  script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://www.gstatic.com https://www.google.com ;
  style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net;
- img-src 'self' data: blob: https://*.tile.openstreetmap.org https://api.mapbox.com https://cdn.jsdelivr.net https://firebasestorage.googleapis.com https://*.firebasestorage.app https://storage.googleapis.com ;
- connect-src https://admin-api-1038143238323.us-central1.run.app 'self' https://live-api-1038143238323.us-central1.run.app https://vendedores-api-1038143238323.us-central1.run.app https://ventas-api-1038143238323.us-central1.run.app https://*.tile.openstreetmap.org https://content-firebaseappcheck.googleapis.com https://www.google.com ;
+ img-src 'self' data: blob: https://tiles.openfreemap.org https://cdn.jsdelivr.net https://firebasestorage.googleapis.com https://*.firebasestorage.app https://storage.googleapis.com ;
+ connect-src https://admin-api-1038143238323.us-central1.run.app 'self' https://live-api-1038143238323.us-central1.run.app https://vendedores-api-1038143238323.us-central1.run.app https://ventas-api-1038143238323.us-central1.run.app https://tiles.openfreemap.org https://content-firebaseappcheck.googleapis.com https://www.google.com ;
  font-src 'self';
  frame-src https://www.google.com;
  frame-ancestors 'none';
@@ -27,7 +27,6 @@
 <script>document.documentElement.dataset.theme = localStorage.getItem('theme') || 'light';</script>
 <link rel="preload" href="styles.css" as="style">
 <link rel="stylesheet" href="styles.css">
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css">
 <script src="icons.js" defer></script>
 <script src="pagos.js" defer></script>
 <style>
@@ -42,11 +41,12 @@
     text-align: center; padding: 10px; border-radius: var(--radius-md);
     font-size: 13px; font-weight: 700; margin-bottom: 14px;
   }
-  .estado-banner.entregado { background: rgba(74,222,128,.15); color: #4ade80; }
-  .estado-banner.en-camino { background: rgba(59,130,246,.15); color: #60a5fa; }
-  .estado-banner.esperando { background: rgba(251,191,36,.15); color: #fbbf24; }
-  .estado-banner.preparando { background: rgba(251,146,60,.15); color: #fb923c; }
-  .estado-banner.cerca { background: rgba(192,132,252,.15); color: #c084fc; }
+  .estado-banner { color: #fff; } /* fondo sólido: se lee bien al sol y con poca vista */
+  .estado-banner.entregado { background: #15803d; }
+  .estado-banner.en-camino { background: #1d4ed8; }
+  .estado-banner.esperando { background: #92400e; }
+  .estado-banner.preparando { background: #c2410c; }
+  .estado-banner.cerca { background: #7e22ce; }
 
   .codigo-box { text-align: center; padding: 14px; margin-bottom: 14px; border-radius: var(--radius-md); border: 2px dashed var(--color-border-subtle); }
   .codigo-box small { display: block; font-size: 12px; color: var(--color-text-soft); line-height: 1.4; }
@@ -57,6 +57,7 @@
     margin: -6px 0 14px;
   }
 
+  #map:not(.activo) { display: none; }
   #map {
     width: 100%; aspect-ratio: 4/5; max-height: 70vh; border-radius: var(--radius-lg);
     border: 1px solid var(--color-border-subtle); background: var(--color-surface-2);
@@ -125,20 +126,15 @@
     <h1 id="th-titulo">Seguimiento de tu pedido</h1>
     <p id="th-sub"></p>
   </div>
-  <div id="banner"></div>
+  <div id="banner" role="status" aria-live="polite"></div>
   <div id="codigo-zone"></div>
   <p class="eta-note" id="eta-note"></p>
   <div id="pago-zone"></div>
   <div id="map"></div>
-  <p class="track-note">El mapa se actualiza solo cada pocos segundos mientras tengas esta página abierta — no hace falta que la recargues.</p>
+  <p class="track-note">Te avisaremos en cada paso. Cuando seas la siguiente parada aparecerá el mapa con el repartidor y se actualiza solo.</p>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
-const MAPBOX_PK = 'pk.eyJ1Ijoiem5yY29tbXVuaXR5IiwiYSI6ImNtdno1dnZubjAxMjcyeG9ybXBkdHMxZW0ifQ.D9JJx77xgMJRxvs2BmF0ig'; // token PÚBLICO (pk.…) de Mapbox, restringido a tu dominio. Vacío = usa OSM.
-const baseMapa = () => MAPBOX_PK
-  ? L.tileLayer(`https://api.mapbox.com/styles/v1/mapbox/streets-v12/tiles/512/{z}/{x}/{y}@2x?access_token=${MAPBOX_PK}`, { tileSize: 512, zoomOffset: -1, maxZoom: 19, attribution: '&copy; Mapbox &copy; OpenStreetMap' })
-  : L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; OpenStreetMap', maxZoom: 19 });
 const API_BASE = "https://live-api-1038143238323.us-central1.run.app"; // TODO: pegar la URL real tras el deploy
 const VENDEDORES_API = "https://vendedores-api-1038143238323.us-central1.run.app";
 const VENTAS_API = "https://ventas-api-1038143238323.us-central1.run.app";
@@ -153,105 +149,47 @@ const etaEl = document.getElementById('eta-note');
 const tituloEl = document.getElementById('th-titulo');
 const subEl = document.getElementById('th-sub');
 
-const VELOCIDAD_PROMEDIO_KMH = 30; // solo si el backend no pudo calcular la ruta por calles
+const VELOCIDAD_PROMEDIO_KMH = 30; // estimado del tiempo de llegada (línea recta)
 
-let map = null;
-let destinoMarker = null;
-let repartidorMarker = null;
-let rutaLine = null;
 let pollTimer = null;
-let followMode = true; // true = el mapa sigue al repartidor solo; se apaga si arrastras el mapa a mano
+let ultimaCarga = 0, esSiguiente = false;
+// Mientras no seas la siguiente parada basta con revisar cada 60 s (los cambios llegan por notificación);
+// siendo la siguiente, cada 15 s para mover al repartidor en el mapa.
+const tick = () => !document.hidden && (esSiguiente || Date.now() - ultimaCarga > 60000) && cargar();
 
 function renderError(msg) {
   if (pollTimer) clearInterval(pollTimer);
   wrap.innerHTML = `<div class="track-error">${msg}</div>`;
 }
 
-function initMap(lat, lng) {
-  map = L.map('map', { zoomControl: true }).setView([lat, lng], 15);
-  baseMapa().addTo(map);
-  // Si el comprador arrastra el mapa a mano, soltamos el seguimiento
-  // automático hasta que vuelva a pulsar el botón "◎".
+// Mapa: MapLibre + OpenFreeMap (gratis y sin límite para uso comercial). La librería se descarga solo
+// cuando el pedido es la siguiente parada; antes no hay mapa ni se pide la posición del repartidor.
+const MAPLIBRE = 'https://cdn.jsdelivr.net/npm/maplibre-gl@4.7.1/dist/maplibre-gl';
+let map = null, repMarker = null, followMode = true, libMapa = null, pts = {};
+const cargarLibMapa = () => libMapa ||= new Promise((ok, err) => {
+  document.head.insertAdjacentHTML('beforeend', `<link rel="stylesheet" href="${MAPLIBRE}.css">`);
+  document.head.appendChild(Object.assign(document.createElement('script'), { src: MAPLIBRE + '.js', onload: ok, onerror: err }));
+});
+const punto = color => Object.assign(document.createElement('div'), { style: `width:16px;height:16px;border-radius:50%;background:${color};border:3px solid #fff;box-shadow:0 0 0 2px ${color}` });
+function recentrar() { // encuadra repartidor y destino, y vuelve a seguir al repartidor
+  followMode = true;
+  const b = new maplibregl.LngLatBounds(pts.rep, pts.rep);
+  if (pts.destino) b.extend(pts.destino);
+  map.fitBounds(b, { padding: 50, maxZoom: 16, duration: 0 });
+}
+async function actualizarMapa(e) {
+  pts = { rep: typeof e.repartidorLat === 'number' ? [e.repartidorLng, e.repartidorLat] : null, destino: typeof e.lat === 'number' ? [e.lng, e.lat] : null };
+  document.getElementById('map').classList.toggle('activo', !!pts.rep);
+  if (!pts.rep) return;
+  await cargarLibMapa();
+  if (map) { repMarker.setLngLat(pts.rep); if (followMode) map.easeTo({ center: pts.rep }); return; }
+  map = new maplibregl.Map({ container: 'map', style: 'https://tiles.openfreemap.org/styles/liberty', center: pts.rep, zoom: 15, attributionControl: { compact: true } });
   map.on('dragstart', () => { followMode = false; });
-}
-
-function actualizarMapa(entrega) {
-  const puntos = [];
-
-  if (typeof entrega.lat === 'number' && typeof entrega.lng === 'number') {
-    if (!map) initMap(entrega.lat, entrega.lng);
-    if (!destinoMarker) {
-      destinoMarker = L.marker([entrega.lat, entrega.lng], {
-        title: 'Tu dirección'
-      }).addTo(map).bindPopup('Tu dirección');
-    }
-    puntos.push([entrega.lat, entrega.lng]);
-  }
-
-  if (typeof entrega.repartidorLat === 'number' && typeof entrega.repartidorLng === 'number') {
-    if (!map) initMap(entrega.repartidorLat, entrega.repartidorLng);
-    const pos = [entrega.repartidorLat, entrega.repartidorLng];
-    if (!repartidorMarker) {
-      const icon = L.divIcon({
-        className: '', html: '<div style="width:16px;height:16px;border-radius:50%;background:#c084fc;border:3px solid #fff;box-shadow:0 0 0 2px #c084fc;"></div>',
-        iconSize: [16, 16], iconAnchor: [8, 8]
-      });
-      repartidorMarker = L.marker(pos, { icon, title: 'Repartidor' }).addTo(map).bindPopup('Repartidor');
-    } else {
-      repartidorMarker.setLatLng(pos);
-      // Modo "seguir": se recentra en el repartidor sin tocar tu zoom,
-      // pero solo mientras followMode siga activo.
-      if (followMode && map._znrFitInicial) map.panTo(pos, { animate: true, duration: 0.5 });
-    }
-    puntos.push(pos);
-  }
-
-  // Ruta por calles (la calcula el backend); el primer punto es el repartidor real, no el redondeado.
-  const ruta = entrega.ruta && puntos.length === 2 ? [puntos[1], ...entrega.ruta.coords] : [];
-  if (!rutaLine && map) rutaLine = L.polyline([], { color: '#ec4899', weight: 4 }).addTo(map);
-  if (rutaLine) rutaLine.setLatLngs(ruta);
-
-  // Solo ajustamos el zoom/encuadre automáticamente la PRIMERA vez que
-  // tenemos ambos puntos. Después, cada poll solo mueve los marcadores
-  // (arriba) sin tocar la vista, para respetar el zoom manual del usuario.
-  if (map && puntos.length === 2 && !map._znrFitInicial) {
-    map._znrFitInicial = true;
-    map.fitBounds(ruta.length ? ruta : puntos, { padding: [40, 40] });
-    mostrarBotonRecentrar();
-  } else if (map && !map._znrCentradoInicial && puntos.length === 1) {
-    map._znrCentradoInicial = true;
-  }
-}
-
-let btnRecentrar = null;
-function mostrarBotonRecentrar() {
-  if (btnRecentrar || !map) return;
-  const Control = L.Control.extend({
-    onAdd: function() {
-      const btn = L.DomUtil.create('button', '');
-      btn.innerHTML = '◎';
-      btn.title = 'Centrar y reactivar seguimiento';
-      Object.assign(btn.style, {
-        width: '38px', height: '38px', fontSize: '18px',
-        background: 'var(--color-surface-2, #1e2128)',
-        color: 'var(--color-text-primary, #fff)',
-        border: '1px solid var(--color-border-subtle, #333)',
-        borderRadius: '8px', cursor: 'pointer'
-      });
-      L.DomEvent.disableClickPropagation(btn);
-      btn.onclick = () => {
-        followMode = true;
-        const puntos = [];
-        if (destinoMarker) puntos.push(destinoMarker.getLatLng());
-        if (repartidorMarker) puntos.push(repartidorMarker.getLatLng());
-        if (puntos.length) map.fitBounds(puntos, { padding: [40, 40] });
-      };
-      return btn;
-    },
-    onRemove: function() {}
-  });
-  btnRecentrar = new Control({ position: 'topright' });
-  btnRecentrar.addTo(map);
+  repMarker = new maplibregl.Marker({ element: punto('#c084fc') }).setLngLat(pts.rep).addTo(map);
+  if (pts.destino) new maplibregl.Marker({ color: '#ec4899' }).setLngLat(pts.destino).addTo(map);
+  const btn = Object.assign(document.createElement('button'), { textContent: '◎', title: 'Centrar y reactivar seguimiento', onclick: recentrar, style: 'width:38px;height:38px;font-size:18px;cursor:pointer' });
+  map.addControl({ onAdd: () => Object.assign(document.createElement('div'), { className: 'maplibregl-ctrl maplibregl-ctrl-group' }).appendChild(btn).parentNode, onRemove() {} }, 'top-right');
+  map.once('load', () => { map.resize(); recentrar(); });
 }
 
 // Distancia en línea recta (haversine) — respaldo del ETA cuando no hay ruta por calles.
@@ -266,12 +204,12 @@ function distanciaMetros(lat1, lng1, lat2, lng2) {
 function actualizarETA(entrega) {
   const tieneAmbos = typeof entrega.lat === 'number' && typeof entrega.lng === 'number'
     && typeof entrega.repartidorLat === 'number' && typeof entrega.repartidorLng === 'number';
-  const enCamino = entrega.estado === 'en-ruta' || entrega.estado === 'cerca';
+  const enCamino = entrega.estado === 'siguiente' || entrega.estado === 'cerca';
 
   if (!enCamino || !tieneAmbos) { etaEl.textContent = ''; return; }
 
   const metros = distanciaMetros(entrega.repartidorLat, entrega.repartidorLng, entrega.lat, entrega.lng);
-  const minutos = Math.max(1, Math.round(entrega.ruta ? entrega.ruta.t / 60 : (metros / 1000) / VELOCIDAD_PROMEDIO_KMH * 60));
+  const minutos = Math.max(1, Math.round((metros / 1000) / VELOCIDAD_PROMEDIO_KMH * 60));
   etaEl.textContent = entrega.estado === 'cerca'
     ? '📍 Está a solo unos metros de tu ubicación'
     : `⏱️ Llega en aproximadamente ${minutos} minuto${minutos === 1 ? '' : 's'} (estimado)`;
@@ -281,7 +219,9 @@ const ESTADO_BANNER = {
   pendiente: ['esperando', '⏳ Esperando confirmación del vendedor'],
   preparando: ['preparando', '📦 El vendedor está preparando tu pedido'],
   'en-ruta': ['en-camino', '🛵 El repartidor va en camino'],
+  siguiente: ['cerca', '📍 ¡Eres la siguiente parada! El repartidor va hacia ti'],
   cerca: ['cerca', '📍 El repartidor está cerca de tu ubicación'],
+  'no-entregado': ['esperando', '😕 No se pudo entregar tu pedido. El vendedor te contactará para acordar otra entrega.'],
   entregado: ['entregado', '✅ ¡Tu pedido ya fue entregado! 🎉'],
 };
 
@@ -302,11 +242,10 @@ function actualizarBanner(entrega) {
     texto = '✅ El vendedor confirmó tu pedido — pronto saldrá a entregarse';
   }
 
-  if (entrega.estado === 'en-ruta' && typeof entrega.repartidorLat === 'number') {
-    bannerEl.innerHTML = `<div class="estado-banner en-camino">🛵 El repartidor está en camino – puedes ver su ubicación en el mapa</div>`;
-  } else {
-    bannerEl.innerHTML = `<div class="estado-banner ${clase}">${texto}</div>`;
-  }
+  const n = entrega.paradasAntes;
+  if (entrega.estado === 'en-ruta' && n > 0) texto += ` · Faltan ${n} entrega${n === 1 ? '' : 's'} antes de la tuya`;
+  const html = `<div class="estado-banner ${clase}">${texto}</div>`;
+  if (bannerEl.innerHTML !== html) bannerEl.innerHTML = html; // sin repetir el aviso del lector en cada consulta
 
   if (entrega.estado === 'entregado' && pollTimer) { clearInterval(pollTimer); pollTimer = null; }
 }
@@ -485,7 +424,7 @@ async function exigirLogin() {
   if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
   const ok = await pedirLoginComprador();
   esperandoLogin = false;
-  if (ok) { cargar(); pollTimer = setInterval(() => !document.hidden && cargar(), 15000); return; }
+  if (ok) { cargar(); pollTimer = setInterval(tick, 15000); return; }
   wrap.innerHTML = '<div class="track-error">Para ver el seguimiento de tu pedido necesitas iniciar sesión.<br><br><button type="button" class="btn-pagar" id="btn-login-seg">Iniciar sesión</button></div>';
   document.getElementById('btn-login-seg').addEventListener('click', () => location.reload());
 }
@@ -502,6 +441,7 @@ async function cargar() {
     if (resp.requiereLogin) { await exigirLogin(); return; }
     if (!resp.ok) { renderError('No se encontró esta entrega. Puede que el link haya caducado.'); return; }
     const e = resp.entrega;
+    ultimaCarga = Date.now(); esSiguiente = ['siguiente', 'cerca'].includes(e.estado);
     tituloEl.textContent = 'Seguimiento de tu pedido';
     subEl.textContent = e.vendedorNombre ? `De ${e.vendedorNombre}` : '';
     actualizarBanner(e);
@@ -518,7 +458,7 @@ if (!liveId || !compradorKey) {
   renderError('Este link no es válido.');
 } else {
   cargar();
-  pollTimer = setInterval(() => !document.hidden && cargar(), 15000);
+  pollTimer = setInterval(tick, 15000);
 }
 </script>
 <script>if('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js', { scope: '/' });</script>

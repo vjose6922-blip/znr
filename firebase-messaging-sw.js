@@ -27,6 +27,7 @@ messaging.onBackgroundMessage((payload) => {
     image: (payload.notification && payload.notification.image) || (payload.data && payload.data.image) || undefined, // mientras siga instalado en algún celular
     vibrate: [200, 100, 200],
     data: { url: url },
+    ...(payload.data && payload.data.tag && { tag: payload.data.tag, renotify: true }), // avisos de una entrega: el nuevo reemplaza al anterior
     actions: [
       { action: "open", title: "Ver ahora" },
       { action: "close", title: "Cerrar" }
