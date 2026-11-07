@@ -189,6 +189,12 @@
   #toast.show{display:flex}#toast button{background:none;border:none;color:#fbbf24;font-weight:800;font-size:14px;cursor:pointer}
   .cod-input{width:100%;box-sizing:border-box;margin-top:10px;padding:12px;border-radius:var(--radius-md);border:2px solid var(--color-border-subtle);font-size:22px;letter-spacing:.5em;text-align:center;background:var(--color-surface);color:inherit}
   .cod-input::placeholder{letter-spacing:normal;font-size:15px}
+  .modal-sig{position:fixed;inset:0;z-index:400;background:rgba(0,0,0,.8);display:flex;align-items:center;justify-content:center;padding:16px}
+  .ms-caja{width:100%;max-width:420px;background:#fff;color:#111;border-radius:18px;padding:22px 18px;display:flex;flex-direction:column;gap:10px;text-align:center}
+  .ms-caja p{margin:0} .ms-ok{font-size:17px;font-weight:800;color:#15803d} .ms-lbl{font-size:13px;color:#444;text-transform:uppercase;letter-spacing:.04em}
+  .ms-nombre{font-size:24px;font-weight:800} .ms-dir{font-size:15px;color:#333}
+  .ms-ir{display:flex;align-items:center;justify-content:center;gap:8px;min-height:64px;border-radius:14px;background:#15803d;color:#fff;font-size:20px;font-weight:800;text-decoration:none;margin-top:6px}
+  .ms-cerrar{min-height:52px;border-radius:14px;border:2px solid #111;background:#fff;color:#111;font-size:17px;font-weight:700;cursor:pointer}
   .contacto{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:10px 0}
   .contacto a{display:flex;flex-direction:column;align-items:center;gap:2px;padding:10px 4px;border-radius:var(--radius-md);background:var(--color-surface-2);color:var(--color-text-primary);text-decoration:none;font-size:12.5px;font-weight:600}
   .estado-actions .btn-entregado{flex:1 1 100%;font-size:16px}
@@ -437,7 +443,7 @@
         fallo: () => alternar(contactando),
         avisar: btn => avisarLlegada(key, btn),
         'toggle-ruta': () => { dejar(key); toggleEstado(key, 'pendiente'); }, // quitar de la ruta
-        'confirmar-fallo': () => { contactando.delete(key); dejar(key); toggleEstado(key, 'no-entregado'); },
+        'confirmar-fallo': async () => { contactando.delete(key); dejar(key); await toggleEstado(key, 'no-entregado'); if (grupoDe(key).estado === 'no-entregado') avisoSiguiente('Marcado como no entregado'); },
         entregado: () => {
           const inp = card.querySelector('.cod-input');
           if (!inp) return entregar(key);
@@ -595,11 +601,22 @@
   }
 
   // Entregado: es terminal, así que se confirma 5 s después y mientras tanto se puede deshacer
+  // Aviso grande tras entregar: la siguiente parada y un botón directo a Google Maps (ruta con lo que queda).
+  function avisoSiguiente(titulo) {
+    const sig = gruposOrdenados().find(g => EN_CAMINO.includes(g.estado)), u = sig && enlacesRuta()[0], m = document.createElement('div');
+    m.className = 'modal-sig'; m.setAttribute('role', 'dialog'); m.setAttribute('aria-modal', 'true');
+    m.innerHTML = `<div class="ms-caja"><p class="ms-ok">${esc(titulo)}</p>${sig ? `<p class="ms-lbl">Siguiente parada</p><p class="ms-nombre">${esc(sig.compradorNombre)}</p>
+      <p class="ms-dir">${esc(sig.compradorDireccion || '')}</p>${u ? `<a class="ms-ir" href="${esc(u)}" target="_blank" rel="noopener">${Icon('map-pin')} Abrir en Google Maps</a>` : ''}`
+      : '<p class="ms-nombre">¡Ruta terminada! 🎉</p>'}<button class="ms-cerrar">Cerrar</button></div>`;
+    m.querySelectorAll('.ms-ir, .ms-cerrar').forEach(b => b.addEventListener('click', () => m.remove()));
+    document.body.appendChild(m); m.querySelector('a, button').focus();
+  }
+
   async function entregar(key, codigo) {
     const g = grupoDe(key), prev = g.estado;
     if (codigo !== undefined) { // el código del cliente ya es la confirmación: sin espera ni deshacer
       await toggleEstado(key, 'entregado', codigo);
-      if (grupoDe(key).estado === 'entregado') dejar(key);
+      if (grupoDe(key).estado === 'entregado') { dejar(key); avisoSiguiente(`✅ Entregado a ${g.compradorNombre}`); }
       return;
     }
     dejar(key); g.estado = 'entregado'; render();
