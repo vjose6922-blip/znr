@@ -16,9 +16,9 @@
   // WHATSAPP_NUMBER = Master (Plan Plus, outfits, legales) · _waAdmin = admin de la ciudad del comprador (si no hay, el Master).
   window.WHATSAPP_NUMBER = window._waAdmin = '';
   window.waActualizar = async () => {
-    // Si App Check aún no tenía token (401 en la primera carga), se reintenta una vez a los 3 s; un error nunca se toma como número.
-    const leer = (k, otra = true) => fetch(`https://znr-live-default-rtdb.firebaseio.com/contacto_admin/${encodeURIComponent(k)}.json`)
-      .then(r => r.ok ? r.json() : otra ? new Promise(ok => setTimeout(ok, 3000)).then(() => leer(k, false)) : null).catch(() => null);
+    // Espera a que App Check tenga token (al abrir la página tarda unos segundos); un error nunca se toma como número.
+    const leer = k => Promise.resolve(window.znrAppCheckListo).then(() => fetch(`https://znr-live-default-rtdb.firebaseio.com/contacto_admin/${encodeURIComponent(k)}.json`))
+      .then(r => r.ok ? r.json() : null).catch(() => null);
     const c = localStorage.getItem('buyer_ciudad'), num = t => t ? '52' + String(t).slice(-10) : '';
     const [m, a] = await Promise.all([leer('_master'), c ? leer(c) : null]);
     window.WHATSAPP_NUMBER = num(m);

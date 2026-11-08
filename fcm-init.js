@@ -59,12 +59,12 @@ async function registrarTokenFCM(ownerType, ownerId, token) {
  * documento nada más — así no se desconecta el push de otros
  * dispositivos donde la sesión siga abierta.
  */
-async function eliminarTokenFCM(ownerType, ownerId) {
+async function eliminarTokenFCM(ownerType, ownerId, tokenConocido) {
   if (!ownerType || !ownerId || !messaging) return false;
   try {
     if (Notification.permission !== "granted") return false;
-    const registration = await navigator.serviceWorker.getRegistration("/firebase-messaging-sw.js");
-    const token = await getToken(messaging, {
+    const registration = tokenConocido ? null : await navigator.serviceWorker.getRegistration("/firebase-messaging-sw.js");
+    const token = tokenConocido || await getToken(messaging, {
       vapidKey: VAPID_KEY,
       serviceWorkerRegistration: registration
     });
@@ -110,6 +110,12 @@ async function solicitarPermisoNotificacionesSiFalta(ownerType, ownerId) {
 
     if (ownerType && ownerId) {
       await registrarTokenFCM(ownerType, ownerId, token); // 🔥 Esto ahora se ejecuta siempre
+      // Solo la cuenta activa recibe avisos en este celular: al activar una (vendedor o cliente), se quita la anterior.
+      try {
+        const prev = JSON.parse(localStorage.getItem("znr_push_dueno") || "null");
+        if (prev && (prev.t !== ownerType || prev.id !== String(ownerId))) await eliminarTokenFCM(prev.t, prev.id, token);
+        localStorage.setItem("znr_push_dueno", JSON.stringify({ t: ownerType, id: String(ownerId) }));
+      } catch (_) { /* sin storage: se queda como antes */ }
     }
 
     return token;
