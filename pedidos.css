@@ -30,7 +30,9 @@ html, body { height: 100%; margin: 0; overflow: hidden; overscroll-behavior: non
 /* ---- Resumen colapsable ---- */
 .pp-strip { display: flex; align-items: center; justify-content: space-between; gap: 8px; width: 100%; box-sizing: border-box; border: 0; border-bottom: 1px solid var(--color-border-subtle, #e5e7eb); background: var(--color-surface-2, #f9fafb); color: inherit; padding: 7px 12px; font-size: 12.5px; text-align: left; cursor: pointer; }
 .pp-strip .t { font-weight: 600; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.pp-strip .chev { font-size: 12px; opacity: .55; white-space: nowrap; flex-shrink: 0; }
+.pp-strip .chev { font-size: 12px; font-weight: 700; color: var(--color-accent-solid, #8b5cf6); white-space: nowrap; flex-shrink: 0; }
+.pp-recargar { width: 32px; height: 32px; flex-shrink: 0; border: 0; border-radius: 50%; background: transparent; color: inherit; font-size: 19px; line-height: 1; opacity: .6; cursor: pointer; }
+.pp-recargar:active { opacity: 1; }
 .pp-detail { padding: 8px 12px 10px; border-bottom: 1px solid var(--color-border-subtle, #e5e7eb); background: var(--color-surface-2, #f9fafb); max-height: 44dvh; overflow-y: auto; font-size: 12.5px; }
 .pp-d-ref { display: flex; gap: 8px; align-items: center; margin-bottom: 6px; }
 .pp-d-ref img { width: 38px; height: 38px; border-radius: 8px; object-fit: cover; background: var(--color-surface-3, #e5e7eb); flex-shrink: 0; }
