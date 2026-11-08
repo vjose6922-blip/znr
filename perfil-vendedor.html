@@ -1004,7 +1004,7 @@
             data = await res.json();
           }
           if (data.ok && data.total > 0) {
-            slot.innerHTML = `<button type="button" style="background:none;border:0;padding:0;font:inherit;color:inherit;cursor:pointer;"><span style="color:#f59e0b;">${Icon('star')} ${data.promedio}</span> · ${data.total} calificación${data.total === 1 ? '' : 'es'} · <u>Ver reseñas</u></button>`;
+            slot.innerHTML = `<button type="button" style="background:none;border:0;padding:0;font:inherit;color:inherit;cursor:pointer;"><span style="color:#f59e0b;">${Icon('star')} ${data.promedio}</span> · <u>Ver reseñas</u></button>`;
             slot.firstElementChild.onclick = () => window.verResenasVendedor(data, 'Reseñas' + (nombre ? ' de ' + nombre : ''));
           }
         } catch (e) { /* silencioso */ }
@@ -1151,7 +1151,6 @@ async function cargarBeneficiariosAprobados() {
 
 
         const isPlus = (v.plan || 'free') === 'plus';
-        const planBadgeHtml = isPlus ? `<span class="profile-plan-badge">${Icon('check')}</span>` : '';
         const confiableBadgeHtml = v.confiable ? `<span class="profile-plan-badge" style="background:#eff6ff;color:#2563eb;" title="Vendedor confiable">${Icon('hand-heart')} Confiable</span>` : '';
         // Iconos (mismo lenguaje visual que el resto de la app: stroke, sin relleno)
         const icoPhone = `<svg viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>`;
@@ -1225,10 +1224,12 @@ const infoBits = [
 
             <div class="profile-name-row">
              <h1 class="profile-name">${esc(v.nombre || 'Vendedor')}${window.znrInsignia ? window.znrInsignia(v.planNivel, v.planVence) : ''}</h1>
-              ${planBadgeHtml}
               ${confiableBadgeHtml}
             </div>
-            <div id="profile-rating-slot" style="margin:2px 0 6px;font-size:13px;color:#888;"></div>
+            <div style="display:flex;align-items:center;gap:14px;margin:2px 0 6px;font-size:13px;color:#888;">
+              <span id="profile-rating-slot"></span>
+              <button type="button" id="profile-report-vendor-btn" style="background:none;border:none;padding:0;color:inherit;font:inherit;cursor:pointer;display:inline-flex;align-items:center;gap:4px;">${Icon('flag', { size: 14 })} Reportar</button>
+            </div>
             ${isPlus && window.znrLiveNotif ? znrLiveNotif.boton('vendedor', v.uid, 'Avisarme cuando transmita') : ''}
 
             <div class="profile-accordion">
@@ -1244,9 +1245,6 @@ const infoBits = [
               </div>
             </div>
 
-            <div style="text-align:center;margin:2px 0 14px;">
-              <button type="button" id="profile-report-vendor-btn" style="background:none;border:none;padding:6px 8px;color:var(--color-text-muted,#888);font-size:12px;cursor:pointer;text-decoration:underline;display:inline-flex;align-items:center;gap:4px;">${Icon('flag')} Reportar a este vendedor</button>
-            </div>
 
             <div class="profile-products">
             ${productToolbarHtml}

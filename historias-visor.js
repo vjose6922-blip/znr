@@ -25,6 +25,14 @@
 
   const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const ico = (n, size) => (typeof window.Icon === 'function' ? window.Icon(n, { size }) : '');
+  // Vistas (una por dispositivo, sin contar las del propio vendedor) y toques de etiquetas, para las estadísticas del vendedor.
+  function contar(h, toque) {
+    let yo = ''; try { yo = JSON.parse(localStorage.getItem('vendor_session') || '{}').uid || ''; } catch (_) {}
+    const vistas = leerSet('znr_historias_vistas');
+    if (!h.id || yo === h.vendedorUid || (!toque && vistas.has(h.id))) return;
+    if (!toque) { vistas.add(h.id); guardarSet('znr_historias_vistas', vistas); }
+    fetch(API, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'registrarVista', historiaId: h.id, toque: toque ? 1 : 0 }) }).catch(() => {});
+  }
   function leerSet(k) { try { return new Set(JSON.parse(localStorage.getItem(k)) || []); } catch (_) { return new Set(); } }
   function guardarSet(k, s) { try { localStorage.setItem(k, JSON.stringify([...s].slice(-300))); } catch (_) {} }
 
@@ -67,7 +75,8 @@
       .zhv-sheet button.c{display:block;width:100%;padding:10px;border:none;background:none;color:inherit;opacity:.7;font:700 .85rem inherit;font-family:inherit;cursor:pointer}
       .zhv-aviso{margin:0;padding:18px 0 6px;text-align:center;font-weight:700;font-size:.9rem}
       .zhv-tags{position:absolute;z-index:4;pointer-events:none}
-      .zhv-tag{position:absolute;pointer-events:auto;background:none;border:none;cursor:pointer;border-radius:999px;-webkit-tap-highlight-color:rgba(255,255,255,.25)}
+      .zhv-tag{position:absolute;pointer-events:auto;background:none;border:none;cursor:pointer;border-radius:999px;-webkit-tap-highlight-color:rgba(255,255,255,.25);animation:zhv-tag 1.6s ease 2}
+      @keyframes zhv-tag{50%{box-shadow:0 0 0 3px rgba(255,255,255,.85),0 0 18px rgba(255,255,255,.6)}}
     `;
     document.head.appendChild(st);
   }
@@ -170,6 +179,7 @@
       media.innerHTML = `<img src="${esc(h.url)}" alt="">`;
     }
     etiquetas(h);
+    contar(h);
     raf = requestAnimationFrame(tick);
   }
 
@@ -187,6 +197,7 @@
       b.href = e.tipo === 'mencion' ? 'perfil-vendedor.html?vendedor=' + encodeURIComponent(e.uid)
         : 'perfil-vendedor.html?vendedor=' + encodeURIComponent(h.vendedorUid || '') + '#producto-' + encodeURIComponent(e.productoId);
       b.setAttribute('aria-label', e.tipo === 'mencion' ? 'Ver el perfil de ' + (e.nombre || 'este vendedor') : 'Ver este producto');
+      b.addEventListener('click', () => contar(h, true));
       Object.assign(b.style, { left: e.x * 100 + '%', top: e.y * 100 + '%', width: e.w * 100 + '%', height: e.h * 100 + '%' });
       capa.appendChild(b);
     });
