@@ -42,6 +42,9 @@
     try {
       const r = await (await fetch(`${API}?${new URLSearchParams({ action: 'obtenerHistorias', vendedorUid: uid })}`)).json();
       historias = r.ok ? (r.historias || []).slice().reverse() : [];
+      // Enlace de la notificación de mención (?historia=ID): abre esa historia directo.
+      const i = historias.findIndex(h => h.id === new URLSearchParams(location.search).get('historia'));
+      if (i >= 0) setTimeout(() => abrirVisor(i), 300);
     } catch (_) {
       historias = [];
     }

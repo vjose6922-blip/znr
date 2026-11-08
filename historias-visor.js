@@ -26,8 +26,9 @@
   const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const ico = (n, size) => (typeof window.Icon === 'function' ? window.Icon(n, { size }) : '');
   // Vistas (una por dispositivo, sin contar las del propio vendedor) y toques de etiquetas, para las estadísticas del vendedor.
+  const sesion = () => { try { return JSON.parse(localStorage.getItem('vendor_session') || '{}') || {}; } catch (_) { return {}; } };
   function contar(h, toque) {
-    let yo = ''; try { yo = JSON.parse(localStorage.getItem('vendor_session') || '{}').uid || ''; } catch (_) {}
+    const yo = sesion().uid || '';
     const vistas = leerSet('znr_historias_vistas');
     if (!h.id || yo === h.vendedorUid || (!toque && vistas.has(h.id))) return;
     if (!toque) { vistas.add(h.id); guardarSet('znr_historias_vistas', vistas); }
@@ -50,7 +51,7 @@
     st.textContent = `
       .zhv{position:fixed;inset:0;z-index:10003;background:rgba(0,0,0,.92);display:flex;align-items:center;justify-content:center}
       .zhv[hidden]{display:none}
-      .zhv-box{position:relative;width:100%;max-width:460px;height:100%;max-height:880px;background:#000;overflow:hidden}
+      .zhv-box{container-type:size;position:relative;width:100%;max-width:460px;height:100%;max-height:880px;background:#000;overflow:hidden}
       .zhv-bars{position:absolute;top:calc(env(safe-area-inset-top,0px) + 8px);left:10px;right:10px;z-index:4;display:flex;gap:4px}
       .zhv-bar{flex:1;height:3px;border-radius:2px;background:rgba(255,255,255,.3);overflow:hidden}
       .zhv-bar>i{display:block;height:100%;width:0;background:#fff}
@@ -74,7 +75,9 @@
       .zhv-sheet button.m{display:block;width:100%;text-align:left;margin-bottom:8px;padding:11px 12px;border-radius:10px;border:1px solid rgba(128,128,128,.3);background:rgba(128,128,128,.08);color:inherit;font:600 .88rem inherit;font-family:inherit;cursor:pointer}
       .zhv-sheet button.c{display:block;width:100%;padding:10px;border:none;background:none;color:inherit;opacity:.7;font:700 .85rem inherit;font-family:inherit;cursor:pointer}
       .zhv-aviso{margin:0;padding:18px 0 6px;text-align:center;font-weight:700;font-size:.9rem}
-      .zhv-tags{position:absolute;z-index:4;pointer-events:none}
+      .zhv-tags{position:absolute;z-index:4;pointer-events:none;left:50%;top:50%;transform:translate(-50%,-50%);width:min(100cqw,56.25cqh);height:min(100cqh,177.78cqw)}
+      .zhv-tag::before{content:'';position:absolute;inset:-12px -6px}
+      .zhv-quitar{position:absolute;z-index:5;left:50%;bottom:calc(env(safe-area-inset-bottom,0px) + 16px);transform:translateX(-50%);padding:8px 14px;border:none;border-radius:999px;background:rgba(0,0,0,.6);color:#fff;font:600 .78rem inherit;font-family:inherit;white-space:nowrap;cursor:pointer}
       .zhv-tag{position:absolute;pointer-events:auto;background:none;border:none;cursor:pointer;border-radius:999px;-webkit-tap-highlight-color:rgba(255,255,255,.25);animation:zhv-tag 1.6s ease 2}
       @keyframes zhv-tag{50%{box-shadow:0 0 0 3px rgba(255,255,255,.85),0 0 18px rgba(255,255,255,.6)}}
     `;
@@ -99,6 +102,7 @@
           <button type="button" class="zhv-btn" id="zhv-report" aria-label="Reportar historia">${ico('flag', 18) || '⚑'}</button>
           <button type="button" class="zhv-btn" id="zhv-close" aria-label="Cerrar">${ico('x', 18) || '✕'}</button>
         </div>
+        <button type="button" class="zhv-quitar" id="zhv-quitar" hidden>Te etiquetaron · Quitar mi mención</button>
         <div class="zhv-sheet" id="zhv-sheet" hidden></div>
       </div>`;
     document.body.appendChild(el);
@@ -106,6 +110,7 @@
     el.querySelector('#zhv-prev').addEventListener('click', anterior);
     el.querySelector('#zhv-close').addEventListener('click', cerrar);
     el.querySelector('#zhv-report').addEventListener('click', abrirReporte);
+    el.querySelector('#zhv-quitar').addEventListener('click', quitarMencion);
     el.addEventListener('click', (e) => { if (e.target === el) cerrar(); });
     document.addEventListener('keydown', (e) => {
       if (!abierto) return;
@@ -114,7 +119,6 @@
       else if (e.key === 'ArrowLeft') anterior();
     });
     document.addEventListener('visibilitychange', () => { document.hidden ? pausar() : reanudar(); });
-    window.addEventListener('resize', () => { if (abierto) etiquetas(lista[idx]); });
   }
 
   function cabecera() {
@@ -185,12 +189,9 @@
 
   // Las etiquetas vienen en proporciones del cuadro 9:16 de la historia; el cuadro se ve centrado ("contain") en la caja.
   function etiquetas(h) {
-    const capa = el.querySelector('#zhv-tags'), caja = el.querySelector('#zhv-media').getBoundingClientRect(), box = el.querySelector('.zhv-box').getBoundingClientRect();
-    const lista_ = h.etiquetas || [];
+    const capa = el.querySelector('#zhv-tags'), lista_ = h.etiquetas || [];
     capa.innerHTML = '';
-    if (!lista_.length) return;
-    const cw = Math.min(caja.width, caja.height * 9 / 16), ch = cw * 16 / 9;
-    Object.assign(capa.style, { left: (caja.left - box.left + (caja.width - cw) / 2) + 'px', top: (caja.top - box.top + (caja.height - ch) / 2) + 'px', width: cw + 'px', height: ch + 'px' });
+    el.querySelector('#zhv-quitar').hidden = !lista_.some((e) => e.tipo === 'mencion' && e.uid === sesion().uid);
     lista_.forEach((e) => {
       const b = document.createElement('a');
       b.className = 'zhv-tag';
@@ -227,6 +228,27 @@
   function anterior() { if (idx > 0) idx--; mostrar(); }
 
   // ── Reportar ──
+  // El vendedor etiquetado puede quitar su @mención: el texto sigue en la imagen, pero ya no lleva a su perfil.
+  async function quitarMencion() {
+    const h = lista[idx], s = sesion();
+    pausar();
+    const si = await new Promise((ok) => {
+      if (!window.showCustomConfirm) return ok(confirm('¿Quitar tu mención de esta historia?'));
+      window.showCustomConfirm({ title: 'Quitar mi mención', message: 'Tu nombre seguirá en la imagen, pero ya no llevará a tu perfil. ¿Continuar?', confirmText: 'Quitar', onConfirm: () => ok(true), onCancel: () => ok(false) });
+      document.querySelectorAll('.custom-alert-modal').forEach((m) => { m.style.zIndex = 10010; }); // encima del visor
+    });
+    if (si) {
+      try {
+        const idToken = await window.znrFirestore?.getIdToken?.('vendedor', s.uid, s.token);
+        const r = await (await fetch(API, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'quitarMencion', historiaId: h.id, idToken }) })).json();
+        if (!r.ok) throw new Error(r.error);
+        h.etiquetas = (h.etiquetas || []).filter((e) => !(e.tipo === 'mencion' && e.uid === s.uid));
+        etiquetas(h);
+      } catch (e) { alert(e.message || 'No se pudo quitar la mención.'); }
+    }
+    reanudar();
+  }
+
   function abrirReporte() {
     const h = lista[idx];
     const sheet = el.querySelector('#zhv-sheet');
