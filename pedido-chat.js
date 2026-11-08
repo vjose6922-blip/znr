@@ -241,9 +241,11 @@ function construir() {
   ui.btnMenu = h("button", { class: "icon-button", type: "button", title: "Más opciones", "aria-label": "Más opciones" });
   ui.btnMenu.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>';
   ui.btnMenu.addEventListener("click", abrirMenu);
+  // Recargar: el chat bloquea "jalar para recargar" (para que no brinque con el teclado); este botón discreto lo sustituye.
+  const recargar = h("button", { class: "pp-recargar", type: "button", title: "Actualizar", "aria-label": "Actualizar", text: "↻", onclick: () => location.reload() });
   const cab = h("header", { class: "app-header" },
     h("div", { class: "header-left" }, volver, h("div", { class: "header-text" }, ui.titulo, ui.sub)),
-    h("div", { class: "header-right" }, ui.badge, ui.btnMenu));
+    h("div", { class: "header-right" }, ui.badge, recargar, ui.btnMenu));
   app.replaceChildren(cab, ui.prog, ui.strip, ui.detalle, ui.msgs, ui.barra, ui.rapidas, ui.comp);
 
   ui.strip.addEventListener("click", () => { detalleAbierto = !detalleAbierto; renderResumen(); });
@@ -328,7 +330,7 @@ function renderResumen() {
   } else {
     txt = "Desde " + dinero(pedido.precioDesde) + (pedido.tiempoElaboracionDias ? " · " + pedido.tiempoElaboracionDias + " días" : "");
   }
-  ui.strip.replaceChildren(h("span", { class: "t", text: txt }), h("span", { class: "chev", text: detalleAbierto ? "▴" : "▾" }));
+  ui.strip.replaceChildren(h("span", { class: "t", text: txt }), h("span", { class: "chev", text: detalleAbierto ? "Ocultar ▴" : "Ver detalle ▾" }));
   ui.strip.setAttribute("aria-expanded", String(detalleAbierto));
   ui.strip.setAttribute("aria-label", detalleAbierto ? "Ocultar detalles del pedido" : "Ver detalles del pedido");
   ui.detalle.style.display = detalleAbierto ? "" : "none";

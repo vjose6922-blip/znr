@@ -282,6 +282,8 @@ self.addEventListener('push', event => {
       image:   notif.image || payload.data?.image, // foto grande (avisos de temporada); iPhone la ignora
       vibrate: [200, 100, 200],
       data:    { url: url },
+      // Avisos de un mismo pedido llevan el mismo tag (live-api): el nuevo reemplaza al anterior en el celular.
+      ...(payload.data?.tag ? { tag: payload.data.tag, renotify: true } : {}),
       actions: [{ action: 'open', title: 'Ver ahora' }, { action: 'close', title: 'Cerrar' }]
     });
     // Antes lo hacía firebase-messaging-sw.js (un SW aparte, peleando por
@@ -303,14 +305,18 @@ self.addEventListener('notificationclick', event => {
   // excepto cuando se toca explícitamente "Cerrar".
   if (event.action === 'close') return;
   const url = event.notification.data?.url || '/';
-  event.waitUntil(
-    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(clients => {
-      for (const c of clients) {
-        if (c.url === url && 'focus' in c) return c.focus();
-      }
-      return self.clients.openWindow?.(url);
-    })
-  );
+  // Si la app ya está abierta, se lleva ESA ventana a la página del aviso (antes se abría otra ventana y en Android
+  // salía como pestaña aparte, con la franja negra arriba). Solo si no hay ninguna abierta se abre una nueva.
+  event.waitUntil((async () => {
+    const lista = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+    const misma = lista.find(c => c.url === url);
+    if (misma) return misma.focus();
+    const app = lista.find(c => 'navigate' in c && new URL(c.url).origin === self.location.origin);
+    if (app) {
+      try { await app.focus(); return await app.navigate(url); } catch (_) { /* no la controla este SW: se abre aparte */ }
+    }
+    return self.clients.openWindow?.(url);
+  })());
 });
 
 self.addEventListener('sync', event => {
