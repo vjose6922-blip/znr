@@ -12,7 +12,7 @@
 (function () {
   'use strict';
   if (window.znrEditorHistoria) return;
-  const W = 720, H = 1280, MAX_SEG = 10, BPS = 2000000; // bits por segundo del video final (+128 kb/s de audio)
+  const W = 720, H = 1280, MAX_SEG = 10, SEG_FOTO = 5, BPS = 2000000; // bits por segundo del video final (+128 kb/s de audio)
   const FILTROS = [['Normal', 'none'], ['Cálido', 'sepia(.25) saturate(1.35) hue-rotate(-10deg)'], ['Frío', 'saturate(1.1) hue-rotate(15deg) brightness(1.04)'],
     ['B/N', 'grayscale(1) contrast(1.1)'], ['Vintage', 'sepia(.55) contrast(.9) brightness(1.06)'], ['Brillo', 'brightness(1.2)'],
     ['Contraste', 'contrast(1.35) saturate(1.15)'], ['Vivo', 'saturate(1.7)']];
@@ -129,7 +129,8 @@
             <div class="zhe-tl"><div class="in"><div class="tr"></div><div class="sel"></div><div class="cab"></div></div>
               <input type="range" data-r="ini" min="0" step="0.1" value="0" aria-label="Inicio del tramo"><input type="range" data-r="fin" min="0" step="0.1" aria-label="Fin del tramo"></div>
             <p class="zhe-hint" data-r="txt"></p></div>` : ''}
-          <p class="zhe-hint zhe-mus" hidden></p>
+          <div class="zhe-mus" hidden><p class="zhe-hint" data-m="txt"></p>
+            <div class="zhe-tl"><div class="in"><div class="tr"></div><div class="sel" data-m="sel"></div></div><input type="range" data-m="ini" min="0" step="0.1" value="0" aria-label="Parte de la canción"></div></div>
           <button type="button" class="zhe-b ok" data-a="listo" style="width:100%">Siguiente</button>
         </div>`;
       document.body.appendChild(ov);
@@ -179,7 +180,7 @@
             else { b = Math.max(b, 1); a = Math.max(Math.min(a, b - 1), b - MAX_SEG); }
             ri.value = st.ini = a; rf.value = b; st.dur = b - a;
             media.currentTime = inicio ? a : Math.max(a, b - 1.5); // al mover el final se ven sus últimos 1.5 s
-            txt();
+            txt(); pintarMus();
           };
           ri.oninput = () => mover(true); rf.oninput = () => mover(false);
           txt();
@@ -302,22 +303,26 @@
         },
         musica: () => {
           const sh = hoja('Música de ZNR (libre de derechos)', `${musicaLista.map((m, i) => `<button type="button" class="zhe-op" data-i="${i}">🎵 <span>${esc(m.titulo)}<br><small style="opacity:.6">${esc(m.artista || '')}</small></span></button>`).join('')}
-            <label class="zhe-hint" style="display:flex;gap:8px;align-items:center;justify-content:flex-start;margin-top:10px"><input type="checkbox" data-q ${st.quitarOriginal ? 'checked' : ''}> Quitar sonido original del video</label>
+            <label class="zhe-hint" style="display:${esVideo ? 'flex' : 'none'};gap:8px;align-items:center;justify-content:flex-start;margin-top:10px"><input type="checkbox" data-q ${st.quitarOriginal ? 'checked' : ''}> Quitar sonido original del video</label>
             ${st.musica ? '<button type="button" class="zhe-b" data-sin style="width:100%;margin-top:8px">Quitar música</button>' : ''}`);
           sh.querySelector('[data-q]').onchange = (e) => { st.quitarOriginal = e.target.checked; media.muted = true; };
           sh.querySelectorAll('.zhe-op').forEach(b => b.onclick = () => {
             const m = musicaLista[+b.dataset.i]; sh.remove();
             if (audio) audio.pause();
             st.musica = m; st.quitarOriginal = true;
-            audio = new Audio('musica/' + encodeURIComponent(m.archivo)); audio.loop = true;
+            audio = new Audio('musica/' + encodeURIComponent(m.archivo));
             audio.currentTime = st.musOffset = Number(m.inicio) || 0;
+            // Suena solo la parte elegida, en bucle (mismo largo que el video recortado, o 5 s en una foto).
+            audio.ontimeupdate = () => { if (audio.currentTime >= st.musOffset + ventana() || audio.currentTime < st.musOffset - 0.5) audio.currentTime = st.musOffset; };
+            audio.onloadedmetadata = pintarMus;
             audio.play().catch(() => {});
-            const p = $('.zhe-mus'); p.hidden = false; p.textContent = `🎵 ${m.titulo}${m.artista ? ' · ' + m.artista : ''} (sin sonido original)`;
+            $('.zhe-mus').hidden = false; pintarMus();
           });
           const sin = sh.querySelector('[data-sin]');
           if (sin) sin.onclick = () => { sh.remove(); if (audio) audio.pause(); audio = null; st.musica = null; st.quitarOriginal = false; $('.zhe-mus').hidden = true; };
         },
         listo: () => exportar().then((r) => {
+          if (audio) audio.pause();
           if (r && r.esVideo && opciones.maxBytes && r.blob.size > opciones.maxBytes) throw new Error(`El video quedó de ${(r.blob.size / 1048576).toFixed(1)} MB y el máximo es ${(opciones.maxBytes / 1048576).toFixed(0)} MB. Elige un tramo más corto.`);
           if (r) cerrar(r);
         }).catch((e) => {
@@ -335,7 +340,20 @@
         ov.querySelectorAll('.zhe-filtros .zhe-chip').forEach(x => x.classList.toggle('on', x === b));
       });
       // Música: solo en videos (una foto no tiene sonido) y solo si ya hay canciones en la biblioteca.
-      if (esVideo) cargarMusica().then((l) => { if (l.length && !cerrado) $('[data-a=musica]').hidden = false; });
+      cargarMusica().then((l) => { if (l.length && !cerrado) $('[data-a=musica]').hidden = false; });
+      // Barra de la canción: se arrastra para elegir qué parte suena.
+      const ventana = () => (esVideo ? st.dur : SEG_FOTO);
+      const mmss = (t) => Math.floor(t / 60) + ':' + String(Math.floor(t % 60)).padStart(2, '0');
+      function pintarMus() {
+        if (!st.musica || !audio) return;
+        const total = audio.duration || ventana(), ri = $('[data-m=ini]');
+        ri.max = Math.max(0, total - ventana()).toFixed(1);
+        if (audio.duration) st.musOffset = Math.min(st.musOffset, +ri.max); // hasta saber cuánto dura, no se recorta el inicio
+        ri.value = st.musOffset;
+        Object.assign($('[data-m=sel]').style, { left: st.musOffset / total * 100 + '%', width: Math.min(1, ventana() / total) * 100 + '%' });
+        $('[data-m=txt]').textContent = `🎵 ${st.musica.titulo}${st.musica.artista ? ' · ' + st.musica.artista : ''} · suena de ${mmss(st.musOffset)} a ${mmss(st.musOffset + ventana())}${esVideo && st.quitarOriginal ? ' (sin sonido original)' : ''} · arrastra para elegir la parte`;
+      }
+      $('[data-m=ini]').oninput = (e) => { st.musOffset = +e.target.value; if (audio) audio.currentTime = st.musOffset; pintarMus(); };
 
       // ── Archivo final ──
       function componer(c, w, h) { // dibuja cuadro + filtro + elementos; devuelve las etiquetas tocables
@@ -356,7 +374,8 @@
           c.width = 1080; c.height = 1920;
           const etiquetas = componer(c, 1080, 1920);
           const blob = await new Promise(ok => c.toBlob(ok, 'image/jpeg', 0.88));
-          return { blob, esVideo: false, etiquetas };
+          // La foto sigue siendo imagen: la canción solo se anota y el visor la reproduce encima.
+          return { blob, esVideo: false, etiquetas, musica: st.musica ? { archivo: st.musica.archivo, titulo: st.musica.titulo, inicio: +st.musOffset.toFixed(1) } : null };
         }
         const editado = st.items.length || st.filtro !== 'none' || st.musica || st.quitarOriginal || st.ini > 0.05 || st.dur < st.total - 0.05;
         // H.264 primero: es lo que reproducen todos los celulares (incluidos iPhone viejos); luego WebM.

@@ -23,7 +23,7 @@
   const MOTIVOS = ['Contenido inapropiado', 'Violencia o desnudez', 'Spam o publicidad engañosa', 'Posible estafa', 'Usa música o contenido con derechos de autor', 'Otro motivo'];
 
   let el = null, cfg = {}, lista = [], idx = 0;
-  let raf = 0, last = 0, elapsed = 0, video = null, pausado = false, abierto = false;
+  let raf = 0, last = 0, elapsed = 0, video = null, musica = null, pausado = false, abierto = false;
 
   const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const ico = (n, size) => (typeof window.Icon === 'function' ? window.Icon(n, { size }) : '');
@@ -165,6 +165,7 @@
   function detener() {
     cancelAnimationFrame(raf);
     if (video) { video.pause(); video = null; }
+    if (musica) { musica.pause(); musica = null; }
   }
 
   function cerrar() {
@@ -194,6 +195,12 @@
       if (pr && pr.catch) pr.catch(() => { video.muted = true; const p2 = video.play(); if (p2 && p2.catch) p2.catch(() => {}); });
     } else {
       media.innerHTML = `<img src="${esc(h.url)}" alt="">`;
+      // Foto con canción de la biblioteca de ZNR: suena la parte elegida mientras se ve.
+      if (h.musica && h.musica.archivo && !window.znrAhorroDatos?.()) {
+        musica = new Audio('musica/' + encodeURIComponent(h.musica.archivo));
+        musica.currentTime = Number(h.musica.inicio) || 0;
+        musica.play().catch(() => {});
+      }
     }
     etiquetas(h);
     contar(h);
@@ -230,11 +237,12 @@
     raf = requestAnimationFrame(tick);
   }
 
-  function pausar() { pausado = true; if (video) video.pause(); }
+  function pausar() { pausado = true; if (video) video.pause(); if (musica) musica.pause(); }
   function reanudar() {
     if (!abierto || !el.querySelector('#zhv-sheet').hidden) return;
     pausado = false;
     if (video) { const pr = video.play(); if (pr && pr.catch) pr.catch(() => {}); }
+    if (musica) musica.play().catch(() => {});
   }
 
   // cfg.alTerminar(1 | -1): pasar al siguiente/anterior grupo (feed de actividad); si devuelve false, se cierra.

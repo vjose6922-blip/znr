@@ -220,8 +220,10 @@
     document.body.style.overflow = '';
   }
 
+  let prevAudio = null;        // canción de una foto, sonando en la vista previa
   function liberarPrev() {
     if (prevUrl) { URL.revokeObjectURL(prevUrl); prevUrl = null; }
+    if (prevAudio) { prevAudio.pause(); prevAudio = null; }
     $('zhm-c-media').innerHTML = '';
   }
 
@@ -280,6 +282,11 @@
     media.src = prevUrl;
     if (r.esVideo) { media.controls = true; media.loop = true; media.autoplay = true; media.playsInline = true; }
     else media.alt = 'Vista previa de tu historia';
+    if (r.musica && !r.esVideo) {
+      prevAudio = new Audio('musica/' + encodeURIComponent(r.musica.archivo)); prevAudio.currentTime = r.musica.inicio;
+      prevAudio.ontimeupdate = () => { if (prevAudio && prevAudio.currentTime >= r.musica.inicio + 5) prevAudio.currentTime = r.musica.inicio; };
+      prevAudio.play().catch(() => {});
+    }
 
     const quedan = cupo.max - cupo.usadas - 1;
     confirmar({
@@ -288,6 +295,7 @@
       texto: `Revisa que se vea como quieres.<br>
         Se verá <b>24 horas</b> en Actividad reciente y en tu perfil.<br>
         ${r.etiquetas.some((e) => e.tipo === 'mencion') ? 'Les avisaremos a los vendedores que etiquetaste.<br>' : ''}
+        ${r.musica ? `🎵 Con música: ${esc(r.musica.titulo)}<br>` : ''}
         <span style="opacity:.7">${quedan <= 0 ? `Con esta completas tus ${cupo.max} historias.` : (quedan === 1 ? 'Te quedará 1 espacio' : 'Te quedarán ' + quedan + ' espacios') + ` de ${cupo.max}.`}</span>`,
       ok: 'Sí, publicar',
       alt: 'Editar otra vez',
@@ -304,7 +312,7 @@
     ok.textContent = 'Publicando…';
     let exito = false;
     try {
-      const res = await llamar({ action: 'subirHistoria', data: await aBase64(r.blob), etiquetas: JSON.stringify(r.etiquetas) });
+      const res = await llamar({ action: 'subirHistoria', data: await aBase64(r.blob), etiquetas: JSON.stringify(r.etiquetas), musica: r.musica ? JSON.stringify(r.musica) : '' });
       if (!res.ok) throw new Error(res.error || 'No se pudo publicar la historia.');
       exito = true;
     } catch (e) {
