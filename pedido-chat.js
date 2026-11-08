@@ -218,6 +218,7 @@ async function hacer(btn, action, extra) {
 
 const ui = {};
 let detalleAbierto = false;
+let logoVend = "";       // foto del vendedor (perfil público) para sus mensajes, vista del cliente
 let insigniaVend = null; // HTML de la insignia Plus/Pro del vendedor (null = aún no se pide)
 let rapidasAbiertas = false;
 let comentarioCalificar = "";
@@ -290,7 +291,12 @@ function renderEncabezado() {
     if (insigniaVend === null) {
       insigniaVend = "";
       fetch("https://znr-live-default-rtdb.firebaseio.com/perfiles/" + encodeURIComponent(pedido.vendedorUid) + ".json").then((r) => r.json())
-        .then((pf) => { insigniaVend = pf && window.znrInsignia ? window.znrInsignia(pf.planNivel, pf.planVence) : ""; if (insigniaVend) renderEncabezado(); }).catch(() => {});
+        .then((pf) => {
+          insigniaVend = pf && window.znrInsignia ? window.znrInsignia(pf.planNivel, pf.planVence) : "";
+          logoVend = pf && /^https?:\/\//.test(pf.logo || "") ? pf.logo : "";
+          if (insigniaVend) renderEncabezado();
+          if (logoVend) renderMensajes();
+        }).catch(() => {});
     } else if (insigniaVend) ui.sub.insertAdjacentHTML("beforeend", insigniaVend);
   }
 
@@ -523,7 +529,12 @@ function renderMensajes() {
     }
     if (m.contenido) burbuja.appendChild(document.createTextNode(m.contenido));
     if (t) burbuja.appendChild(h("time", { text: hora(t) }));
-    ui.msgs.appendChild(burbuja);
+    if (mio || !window.znrAvatar) { ui.msgs.appendChild(burbuja); continue; }
+    // Mensaje de la otra persona: su foto (logo del vendedor) o su inicial a un lado, como en Messenger.
+    const fila = h("div", { class: "pp-fila" });
+    fila.innerHTML = window.znrAvatar(contraparte(), identidad.rol === "comprador" ? logoVend : "", 26);
+    fila.appendChild(burbuja);
+    ui.msgs.appendChild(fila);
   }
   if (primeraVez || cerca) { ui.msgs.scrollTop = ui.msgs.scrollHeight; }
   primeraVez = false;

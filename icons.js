@@ -260,6 +260,14 @@ window.Icon = Icon;
 // Insignia Plus / Pro junto al nombre del vendedor. La dibuja ZNR (SVG, no un carácter que alguien pueda escribir
 // en su nombre) y solo si el plan está vigente. nivel: 'plus' | 'pro'; vence: ms o ISO (vacío = no se revisa).
 // Devuelve HTML ('' si no aplica). Es más pequeña que el texto (0.85em) y de distinto color por plan.
+// Foto de perfil pequeña para los chats: la foto si hay (vendedores), si no la inicial sobre un color fijo por nombre.
+window.znrAvatar = function (nombre, foto, px) {
+  const n = String(nombre || '?').trim(), s = px || 24;
+  let h = 0; for (const c of n) h = (h * 31 + c.charCodeAt(0)) % 360;
+  const fondo = /^https?:\/\//.test(foto || '') ? `url('${String(foto).replace(/["'\\<>]/g, '')}') center/cover` : `hsl(${h},60%,48%)`;
+  return `<span class="znr-av" aria-hidden="true" style="display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;width:${s}px;height:${s}px;border-radius:50%;background:${fondo};color:#fff;font:700 ${Math.round(s * 0.45)}px/1 system-ui,sans-serif;vertical-align:middle;margin-right:6px">${/^https?:/.test(foto || '') ? '' : n.charAt(0).toUpperCase().replace(/[<>&"']/g, '')}</span>`;
+};
+
 window.znrInsignia = function (nivel, vence) {
   const n = nivel === 'pro' ? 'pro' : nivel === 'plus' ? 'plus' : '';
   const t = typeof vence === 'number' ? vence : Date.parse(vence || '');

@@ -383,6 +383,7 @@ const wrap = document.getElementById('live-wrap');
 const params = new URLSearchParams(location.search);
 const liveId = params.get('id');
 let sesion = null;
+let logoVendLive = null; // foto del vendedor para sus mensajes del chat (null = aún no se pide)
 let productosMap = {};
 let viaRtdb = false; // si ya llegó el producto por RTDB, el polling no lo pisa
 let identity = null;
@@ -1418,19 +1419,28 @@ function setupChat() {
     if (Object.values(snap.val() || {}).some(m => m.vendido)) asegurarContactoLive();
   });
   // En pantalla, los últimos 100: quien entra tarde no descarga las 2 h de chat.
-  onValue(query(mensajes, limitToLast(100)), (snapshot) => {
+  // Foto del vendedor para sus mensajes (perfil público en RTDB); al llegar se vuelve a pintar el chat.
+  if (logoVendLive === null && sesion && sesion.vendedor_id) {
+    logoVendLive = '';
+    fetch('https://znr-live-default-rtdb.firebaseio.com/perfiles/' + encodeURIComponent(sesion.vendedor_id) + '/logo.json').then(r => r.json())
+      .then(l => { if (typeof l === 'string' && /^https?:/.test(l)) { logoVendLive = l; if (ultimoChat) pintarChat(ultimoChat); } }).catch(() => {});
+  }
+  let ultimoChat = null;
+  const pintarChat = (snapshot) => {
+    ultimoChat = snapshot;
     const data = snapshot.val();
     if (!data) { messagesEl.innerHTML = '<div class="chat-empty">Sé el primero en comentar 👋</div>'; return; }
     const msgs = Object.values(data).sort((a, b) => (a.ts || 0) - (b.ts || 0));
     messagesEl.innerHTML = msgs.map(m => `
       <div class="chat-msg ${identity && m.author === identity.nombre ? 'mine' : ''}${m.faq ? ' faq' : ''}">
-        <span class="author">${esc(m.author)}${m.isVendor ? ' ' + Icon('shopping-bag') : ''}:</span>
+        ${window.znrAvatar ? znrAvatar(m.author, m.isVendor ? logoVendLive : '', 20) : ''}<span class="author">${esc(m.author)}${m.isVendor ? ' ' + Icon('shopping-bag') : ''}:</span>
         <span class="text">${esc(m.text)}</span>
         ${m.vendido ? '<span class="vendido-tag">' + Icon('check') + ' Vendido</span>' : ''}
       </div>
     `).join('');
     messagesEl.scrollTop = messagesEl.scrollHeight;
-  }, (err) => {
+  };
+  onValue(query(mensajes, limitToLast(100)), pintarChat, (err) => {
     messagesEl.innerHTML = `<div class="chat-empty">No se pudo cargar el chat: ${esc(err.message)}</div>`;
   });
 }
