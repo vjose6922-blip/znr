@@ -20,6 +20,7 @@
   const P = parent.SIM, real = window.fetch.bind(window);
   window.fetch = async (input, init = {}) => {
     const url = String(input && input.url || input);
+    if (/\.firebaseio\.com/.test(url)) return new Response('null', { headers: { 'Content-Type': 'application/json' } }); // RTDB (p. ej. WhatsApp del admin): sin datos ni 401 sin App Check
     if (!/\.run\.app/.test(url)) return real(input, init); // mapas, librerías y archivos de la página: reales
     const p = Object.fromEntries(new URLSearchParams(url.split('?')[1] || ''));
     if (typeof init.body === 'string') new URLSearchParams(init.body).forEach((v, k) => { p[k] = v; });
