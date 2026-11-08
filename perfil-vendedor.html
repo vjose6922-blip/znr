@@ -1315,7 +1315,7 @@ const infoBits = [
           const img = p.imagen1 || 'https://placehold.co/200x200/3b1f5f/white?text=Sin+Imagen';
           const allImages = [p.imagen1, p.imagen2, p.imagen3].filter(Boolean);
           const stock = Number(p.stock || 0);
-          const esPersonal = p.tipoVenta === 'personalizado';
+          const esPersonal = p.tipoVenta === 'personalizado', esRenta = p.tipoVenta === 'renta';
           const diasElab = Number(p.tiempoElaboracionDias) || 0;
           const hasStock = esPersonal ? true : stock > 0;
           const talla = p.talla || '';
@@ -1336,7 +1336,7 @@ const infoBits = [
             : `<img ${imgAttr} alt="${esc(p.nombre)}" onerror="this.src='https://placehold.co/400x400/3b1f5f/white?text=Error'">`;
           const stockLineHtml = `
             <div class="profile-product-stockline">
-              ${esPersonal ? `<span class="profile-stock-ok" style="color:#a855f7;">Bajo pedido${diasElab ? ' · ' + diasElab + (diasElab === 1 ? ' día' : ' días') : ''}</span>` : hasStock ? `<span class="profile-stock-ok">Stock: ${stock}</span>` : `<span class="profile-stock-out">Sin stock</span>`}
+              ${esRenta ? `<span class="profile-stock-ok" style="color:#a855f7;">Renta · ${stock} unidad${stock === 1 ? '' : 'es'}</span>` : esPersonal ? `<span class="profile-stock-ok" style="color:#a855f7;">Bajo pedido${diasElab ? ' · ' + diasElab + (diasElab === 1 ? ' día' : ' días') : ''}</span>` : hasStock ? `<span class="profile-stock-ok">Stock: ${stock}</span>` : `<span class="profile-stock-out">Sin stock</span>`}
               ${categoria ? `<span class="profile-product-cat">· ${esc(categoria)}</span>` : ''}
             </div>`;
           return `
@@ -1350,13 +1350,13 @@ const infoBits = [
               <div class="profile-product-info">
                 <div class="profile-product-name" title="${esc(p.nombre)}">${esc(p.nombre)}</div>
                 ${tieneDescuento ? `<div class="profile-product-price-original">${formatCurrency(precioOriginal)}</div>` : ''}
-                <div class="profile-product-price">${esPersonal ? '<span style="font-size:10px;font-weight:600;opacity:.7;">Desde </span>' : ''}${formatCurrency(p.precio)}${tieneDescuento ? ` <span class="profile-product-pct">-${pctDescuento}%</span>` : ''}</div>
+                <div class="profile-product-price">${esPersonal ? '<span style="font-size:10px;font-weight:600;opacity:.7;">Desde </span>' : ''}${formatCurrency(p.precio)}${esRenta ? '<span style="font-size:10px;font-weight:600;opacity:.7;"> /día</span>' : ''}${tieneDescuento ? ` <span class="profile-product-pct">-${pctDescuento}%</span>` : ''}</div>
                 ${entregaHtml}
                 ${talla ? `<div class="profile-product-talla">Info: ${esc(talla)}</div>` : ''}
                 ${stockLineHtml}
                 <div class="profile-product-actions">
-                  <button class="profile-product-add" data-id="${esc(p.id)}" data-nombre="${esc(p.nombre)}" data-precio="${p.precio}" data-img="${esc(p.imagen1 || '')}" data-talla="${esc(p.talla || '')}" data-donado="${esDonativo}" data-benid="${esDonativo ? esc(p.beneficiario_id || '') : ''}" data-personalizado="${esPersonal}" data-dias="${diasElab}" data-opciones="${esc(p.opcionesPersonalizacion || '')}" ${!hasStock ? 'disabled' : ''}>
-                    ${hasStock ? (esPersonal ? 'Personalizar' : 'Añadir') : 'Sin stock'}
+                  <button class="profile-product-add" data-id="${esc(p.id)}" data-nombre="${esc(p.nombre)}" data-precio="${p.precio}" data-img="${esc(p.imagen1 || '')}" data-talla="${esc(p.talla || '')}" data-donado="${esDonativo}" data-benid="${esDonativo ? esc(p.beneficiario_id || '') : ''}" data-personalizado="${esPersonal}" data-renta="${esRenta}" data-dias="${diasElab}" data-opciones="${esc(p.opcionesPersonalizacion || '')}" ${!hasStock ? 'disabled' : ''}>
+                    ${hasStock ? (esPersonal ? 'Personalizar' : esRenta ? 'Rentar' : 'Añadir') : 'Sin stock'}
                   </button>
                   <button type="button" class="profile-product-icon-btn profile-product-report" data-id="${esc(p.id)}" title="Reportar">${Icon('flag')}</button>
                   <button type="button" class="profile-product-icon-btn profile-product-share" data-id="${esc(p.id)}" data-nombre="${esc(p.nombre)}" data-precio="${p.precio}" title="Compartir">${Icon('share')}</button>
@@ -1558,6 +1558,7 @@ const infoBits = [
               const esDonado = this.dataset.donado === 'true';
               const benId = this.dataset.benid || '';
 
+              if (this.dataset.renta === 'true') { window.znrRentar?.({ ID: id, Nombre: nombre, Imagen1: img }); return; }
               // Artículos "bajo pedido": no van al carrito, abren la solicitud + chat.
               if (this.dataset.personalizado === 'true') {
                 if (typeof window.znrPersonalizar === 'function') {

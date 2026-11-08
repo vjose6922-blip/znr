@@ -146,3 +146,8 @@ html, body { height: 100%; margin: 0; overflow: hidden; overscroll-behavior: non
 .pp-card small { display: block; font-size: 12px; opacity: .7; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .pp-card .meta { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; flex-shrink: 0; }
 .pp-card .turno { position: absolute; top: 7px; right: 7px; width: 9px; height: 9px; border-radius: 50%; background: #ef4444; }
+
+/* Renta: contrato (vista previa o firmado) y casilla "Acepto" */
+.pp-contrato{white-space:pre-wrap;font:13px/1.5 system-ui,-apple-system,sans-serif;max-height:45vh;overflow:auto;background:var(--color-surface-2,#f3f4f6);padding:10px 12px;border-radius:10px;margin:0 0 8px}
+.pp-box label.pp-acepto{display:flex;gap:8px;align-items:center;font-weight:600;margin-top:10px}
+.pp-box label.pp-acepto input{width:auto;margin:0}

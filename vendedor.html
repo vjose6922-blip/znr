@@ -434,12 +434,27 @@ h3 {
  <select id="pTipoVenta" onchange="window.aplicarTipoVenta && window.aplicarTipoVenta()">
  <option value="stock">Con stock (listo para entregar)</option>
  <option value="personalizado">Personalizado (bajo pedido)</option>
+ <option value="renta">Renta (por día)</option>
  </select>
  <p id="tipo-venta-hint" style="margin:2px 0 0;font-size:.73rem;color:#aaa;display:none;">El cliente te escribe en el chat, tú le envías una cotización y lo elaboras a su medida. Este artículo sirve de referencia.</p>
  </div>
  <div id="pers-fields" style="display:none">
  <div class="field-group"><label>Tiempo de elaboración (días) *</label><input type="number" id="pTiempoDias" placeholder="7" min="1" max="120"></div>
  <div class="field-group"><label>¿Qué se puede personalizar? *</label><input type="text" id="pOpciones" maxlength="400" placeholder="Ej: color, tamaño, nombre grabado"></div>
+ </div>
+ <div id="renta-fields" style="display:none">
+ <div class="field-group"><label for="pEntregaRenta">Entrega *</label><select id="pEntregaRenta">
+ <option value="ambos">Yo lo llevo y recojo, o el cliente pasa por él (que elija)</option>
+ <option value="domicilio">Yo lo llevo y lo recojo</option>
+ <option value="recoleccion">El cliente pasa por él y lo devuelve</option>
+ </select></div>
+ <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+ <div class="field-group"><label for="pDepositoRenta">Depósito en garantía (MXN)</label><input type="number" id="pDepositoRenta" placeholder="0" min="0" max="99999"></div>
+ <div class="field-group"><label for="pFleteRenta">Flete a domicilio (MXN)</label><input type="number" id="pFleteRenta" placeholder="0" min="0" max="99999"></div>
+ </div>
+ <div class="field-group"><label for="pReglasRenta">Reglas de este artículo <span style="color:#aaa;">(opcional)</span></label>
+ <textarea id="pReglasRenta" maxlength="1500" rows="3" placeholder="Ej: se entrega armado; no se moja; máximo 6 niños a la vez"></textarea>
+ <p style="margin:2px 0 0;font-size:.73rem;color:#aaa;">En el contrato se suman a tus reglas generales de renta (Ajustes → Reglas de renta).</p></div>
  </div>
  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
  <div class="field-group"><label id="lbl-precio">Precio (MXN) *</label><input type="number" id="pPrecio" placeholder="350" min="0" max="99999"></div>
@@ -813,6 +828,13 @@ document.addEventListener('DOMContentLoaded', () => {
             <div class="cuerpo">
               <div class="pref"><span>$</span><input id="settings-monto-minimo-envio" type="number" min="0" step="1" placeholder="Monto mínimo. Ej. 500"></div>
               <p class="ayuda" style="font-size:.73rem;color:#aaa;">Desde este monto se le pide su dirección al comprador. Vacío: siempre recogen en tu punto de entrega.</p>
+            </div>
+          </details>
+          <details name="perfil">
+            <summary>Reglas de renta <small id="res-reglas-renta">—</small></summary>
+            <div class="cuerpo">
+              <textarea id="settings-reglas-renta" maxlength="3000" rows="5" placeholder="Ej: Cargo de $50 por silla manchada o rota. Retraso en la devolución: $100 por hora. Se entrega limpio y se devuelve limpio."></textarea>
+              <p class="ayuda" style="font-size:.73rem;color:#aaa;">Van en el contrato de todas tus rentas. En cada artículo puedes agregar reglas extra.</p>
             </div>
           </details>
           <details name="perfil">

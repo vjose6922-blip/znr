@@ -415,6 +415,7 @@ instagram: res.instagram || '',
 tiktok: res.tiktok || '',
 horario: res.horario || '',
 puntoEntrega: res.puntoEntrega || '',
+reglasRenta: res.reglasRenta || '',
 puntoEntregaLat: (res.puntoEntregaLat === null || res.puntoEntregaLat === undefined) ? null : res.puntoEntregaLat,
 puntoEntregaLng: (res.puntoEntregaLng === null || res.puntoEntregaLng === undefined) ? null : res.puntoEntregaLng,
 montoMinimoEnvio: (res.montoMinimoEnvio === null || res.montoMinimoEnvio === undefined) ? null : res.montoMinimoEnvio,
@@ -1030,6 +1031,8 @@ function createVendorProductCard(product) {
   if (esPersonalizado) {
     const d = Number(product.tiempoElaboracionDias) || 0;
     stockEl.textContent = ` Bajo pedido${d ? ' · ' + d + (d === 1 ? ' día' : ' días') : ''}`;
+  } else if (product.tipoVenta === 'renta') {
+    stockEl.textContent = ` Renta · ${stockNum} unidad${stockNum === 1 ? '' : 'es'}`;
   } else if (isOutOfStock) {
     stockEl.classList.add("out-of-stock");
     stockEl.textContent = " Sin stock";
@@ -1341,14 +1344,21 @@ window.aplicarTemporada = function() {
 };
 
 window.aplicarTipoVenta = function() {
-  const sel = document.getElementById('pTipoVenta');
-  const pers = !!sel && sel.value === 'personalizado';
+  const tipo = document.getElementById('pTipoVenta')?.value || 'stock';
+  const pers = tipo === 'personalizado', renta = tipo === 'renta';
   const show = (id, on) => { const el = document.getElementById(id); if (el) el.style.display = on ? '' : 'none'; };
   show('pers-fields', pers);
-  show('tipo-venta-hint', pers);
+  show('renta-fields', renta);
+  show('tipo-venta-hint', pers || renta);
   show('stock-group', !pers);
+  const hint = document.getElementById('tipo-venta-hint');
+  if (hint) hint.textContent = renta
+    ? 'El cliente elige fechas, horas y cantidad; tú confirmas y él acepta el contrato con tus reglas. ZNR no deja rentar más unidades de las que tienes en las mismas fechas.'
+    : 'El cliente te escribe en el chat, tú le envías una cotización y lo elaboras a su medida. Este artículo sirve de referencia.';
   const lbl = document.getElementById('lbl-precio');
-  if (lbl) lbl.textContent = pers ? 'Precio desde (MXN) *' : 'Precio (MXN) *';
+  if (lbl) lbl.textContent = pers ? 'Precio desde (MXN) *' : renta ? 'Precio por día, por unidad (MXN) *' : 'Precio (MXN) *';
+  const lblStock = document.querySelector('#stock-group label');
+  if (lblStock) lblStock.textContent = renta ? 'Unidades para rentar *' : 'Stock *';
 };
 
 // ═══════════════════════════════════════════════════════════════════
@@ -1401,10 +1411,12 @@ window.editProduct = async function(id) {
   document.getElementById('pPrecio').value = p.precio || '';
   document.getElementById('pPrecioOriginal').value = p.precio_original || '';
   document.getElementById('pStock').value = p.tipoVenta === 'personalizado' ? '' : (p.stock || '');
+  [['pEntregaRenta', p.entregaRenta || 'ambos'], ['pDepositoRenta', p.depositoRenta || ''], ['pFleteRenta', p.fleteRenta || ''], ['pReglasRenta', p.reglasRenta || '']]
+    .forEach(([id, v]) => { const el = document.getElementById(id); if (el) el.value = v; });
   {
     // El tipo de venta no se cambia al editar (hay pedidos abiertos que dependen de él).
     const selTipo = document.getElementById('pTipoVenta');
-    if (selTipo) { selTipo.value = p.tipoVenta === 'personalizado' ? 'personalizado' : 'stock'; selTipo.disabled = true; }
+    if (selTipo) { selTipo.value = ['personalizado', 'renta'].includes(p.tipoVenta) ? p.tipoVenta : 'stock'; selTipo.disabled = true; }
     const dias = document.getElementById('pTiempoDias');
     if (dias) dias.value = p.tiempoElaboracionDias || '';
     const ops = document.getElementById('pOpciones');
@@ -1499,7 +1511,7 @@ switchTab('products');
 window.cancelEdit = cancelEdit;
 
 function resetForm() {
-['pNombre','pPrecio','pPrecioOriginal','pStock','pTalla','pDescripcion','pTiempoDias','pOpciones'].forEach(id => {
+['pNombre','pPrecio','pPrecioOriginal','pStock','pTalla','pDescripcion','pTiempoDias','pOpciones','pDepositoRenta','pFleteRenta','pReglasRenta'].forEach(id => {
 const el = document.getElementById(id);
 if (el) el.value = '';
 });
@@ -1728,7 +1740,8 @@ return;
 const nombre = document.getElementById('pNombre')?.value.trim();
 const precio = Number(document.getElementById('pPrecio')?.value);
 const stock  = Number(document.getElementById('pStock')?.value);
-const esPersonalizado = document.getElementById('pTipoVenta')?.value === 'personalizado';
+const tipoVenta = document.getElementById('pTipoVenta')?.value || 'stock';
+const esPersonalizado = tipoVenta === 'personalizado', esRenta = tipoVenta === 'renta';
 const tiempoDias = Number(document.getElementById('pTiempoDias')?.value);
 const opcionesPers = document.getElementById('pOpciones')?.value.trim() || '';
 if (!nombre || isNaN(precio) || precio < 0) {
@@ -1747,6 +1760,7 @@ if (!precio) { showTemporaryMessage(' Indica el precio "desde" del artículo', '
 if (!tiempoDias || tiempoDias < 1 || tiempoDias > 120) { showTemporaryMessage(' Indica el tiempo de elaboración (1 a 120 días)', 'error'); return; }
 if (opcionesPers.length < 3) { showTemporaryMessage(' Indica qué se puede personalizar', 'error'); return; }
 }
+if (esRenta && !(stock >= 1)) { showTemporaryMessage(' Indica cuántas unidades tienes para rentar', 'error'); return; }
 showLoader('Subiendo imágenes...');
 const btn = document.getElementById('submit-product-btn');
 if (btn) btn.disabled = true;
@@ -1766,7 +1780,9 @@ Nombre: document.getElementById('pNombre')?.value.trim(),
 Precio: Number(document.getElementById('pPrecio')?.value),
 PrecioOriginal: Number(document.getElementById('pPrecioOriginal')?.value) || 0,
 Stock: esPersonalizado ? 0 : Number(document.getElementById('pStock')?.value),
-TipoVenta: esPersonalizado ? 'personalizado' : 'stock',
+TipoVenta: tipoVenta,
+...(esRenta && { EntregaRenta: document.getElementById('pEntregaRenta')?.value || 'ambos', DepositoRenta: document.getElementById('pDepositoRenta')?.value || 0,
+  FleteRenta: document.getElementById('pFleteRenta')?.value || 0, ReglasRenta: document.getElementById('pReglasRenta')?.value.trim() || '' }),
 TiempoElaboracionDias: esPersonalizado ? tiempoDias : 0,
 OpcionesPersonalizacion: esPersonalizado ? opcionesPers : '',
 Descripcion: document.getElementById('pDescripcion')?.value.trim() || '',
@@ -2065,6 +2081,8 @@ function openSettingsModal(expandirPlan) {
   if (puntoLatInput) puntoLatInput.value = (vendorSession.puntoEntregaLat === null || vendorSession.puntoEntregaLat === undefined) ? '' : vendorSession.puntoEntregaLat;
   if (puntoLngInput) puntoLngInput.value = (vendorSession.puntoEntregaLng === null || vendorSession.puntoEntregaLng === undefined) ? '' : vendorSession.puntoEntregaLng;
   _actualizarPreviewMapsPuntoEntrega();
+  const reglasRentaInput = document.getElementById('settings-reglas-renta');
+  if (reglasRentaInput) reglasRentaInput.value = vendorSession.reglasRenta || '';
   const montoMinInput = document.getElementById('settings-monto-minimo-envio');
   if (montoMinInput) montoMinInput.value = (vendorSession.montoMinimoEnvio === null || vendorSession.montoMinimoEnvio === undefined) ? '' : vendorSession.montoMinimoEnvio;
 
@@ -2499,6 +2517,7 @@ async function guardarPerfil() {
   const tiktok    = document.getElementById('settings-tiktok').value.trim();
   const puntoEntrega     = document.getElementById('settings-punto-entrega').value.trim();
   const montoMinimoEnvio = document.getElementById('settings-monto-minimo-envio').value.trim();
+  const reglasRenta = document.getElementById('settings-reglas-renta')?.value.trim() || '';
   const puntoEntregaLat  = document.getElementById('settings-punto-entrega-lat')?.value.trim() || '';
   const puntoEntregaLng  = document.getElementById('settings-punto-entrega-lng')?.value.trim() || '';
 
@@ -2529,6 +2548,7 @@ async function guardarPerfil() {
       tiktok,
       puntoEntrega,
       montoMinimoEnvio,
+      reglasRenta,
       puntoEntregaLat,
       puntoEntregaLng
     });
@@ -2550,6 +2570,7 @@ async function guardarPerfil() {
     vendorSession.tiktok      = tiktok;
     vendorSession.puntoEntrega     = puntoEntrega;
     vendorSession.montoMinimoEnvio = montoMinimoEnvio === '' ? null : Number(montoMinimoEnvio);
+    vendorSession.reglasRenta = reglasRenta;
     vendorSession.puntoEntregaLat  = puntoEntregaLat === '' ? null : Number(puntoEntregaLat);
     vendorSession.puntoEntregaLng  = puntoEntregaLng === '' ? null : Number(puntoEntregaLng);
     try { localStorage.setItem('vendor_session', JSON.stringify(vendorSession)); } catch(e) {}
@@ -2812,6 +2833,7 @@ window._resumenFilas = function() {
   const redes = ['settings-facebook', 'settings-twitter', 'settings-instagram', 'settings-tiktok'].filter(v).length;
   pon('res-negocio', v('settings-nombre') || 'Agregar', !v('settings-nombre'));
   pon('res-punto', v('settings-punto-entrega') ? 'Listo' : 'Falta', !v('settings-punto-entrega'));
+  pon('res-reglas-renta', v('settings-reglas-renta') ? 'Escritas' : 'Sin reglas');
   pon('res-domicilio', v('settings-monto-minimo-envio') ? `Desde $${Number(v('settings-monto-minimo-envio')).toLocaleString('es-MX')}` : 'No ofrezco');
   pon('res-redes', redes ? `${redes} de 4` : 'Agregar');
   pon('res-whatsapp', v('settings-whatsapp') || 'Agregar');
@@ -3148,7 +3170,7 @@ window.verMisEstadisticas = async function(forceRefresh) {
         total: all.length,
         aprobados: all.filter(p => p.estado === 'aprobado').length,
         pendientes: all.filter(p => p.estado === 'pendiente').length,
-        valorInventario: all.filter(p => p.estado === 'aprobado' && p.tipoVenta !== 'personalizado')
+        valorInventario: all.filter(p => p.estado === 'aprobado' && !['personalizado', 'renta'].includes(p.tipoVenta))
           .reduce((s, p) => s + (Number(p.precio) || 0) * (Number(p.stock) || 0), 0)
       };
     } catch (err) {
