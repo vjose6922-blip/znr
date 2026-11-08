@@ -234,12 +234,13 @@
   }
 
   function resolverAvatar(c) {
-    if (rolDe(c) !== 'comprador') return;                  // si la otra parte es el comprador no hay foto
+    var m = metaDe(c.notifs[0]);
+    var directa = m.vendedorLogo || m.logo || m.foto || '';  // el aviso del chat ya trae la foto de quien escribe
+    if (urlValida(directa)) { if (avatares[c.id] !== directa) { guardarAvatar(c.id, directa); render(); } return; }
+    if (rolDe(c) !== 'comprador') return;                  // si la otra parte es el comprador (sin tienda) no hay foto
     if (c.id in avatares || resolviendo[c.id]) return;
     resolviendo[c.id] = true;
     var identity = getIdentity();
-    var m = metaDe(c.notifs[0]);
-    var directa = m.vendedorLogo || m.logo || m.foto || '';
     var uidMeta = m.vendedorUid || m.vendedor_uid || '';
 
     function buscarPerfil(uid) {
