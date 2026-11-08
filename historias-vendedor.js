@@ -208,7 +208,7 @@
           : `<img src="${esc(h.url)}" alt="" loading="lazy">`}
         ${h.oculta ? '<span class="zhm-tag red">Oculta</span>' : ''}
         ${cupo.nivel === 'pro' ? `<button type="button" class="zhm-star" data-dest="${esc(h.id)}" aria-label="Destacar en tu perfil">⭐ Destacar</button>` : ''}
-        <div class="zhm-foot"><span>${esc(restante(h.expiraEn))}<br>${ico('eye', 12)} ${h.vistas || 0}${h.etiquetas && h.etiquetas.length ? ' · Toques: ' + (h.toques || 0) : ''}</span>
+        <div class="zhm-foot"><span>${esc(restante(h.expiraEn))}<br>${ico('eye', 12)} ${h.vistas || 0}${h.etiquetas && h.etiquetas.length ? ' · Toques: ' + (h.toques || 0) : ''}${h.encuesta ? `<br>📊 ${esc(h.encuesta.opciones[0])} ${pct(h.votos, 0)} · ${esc(h.encuesta.opciones[1])} ${pct(h.votos, 1)}` : ''}</span>
           <button type="button" class="zhm-del" data-del="${esc(h.id)}" aria-label="Eliminar historia">${ico('trash', 14)}</button>
         </div>
       </div>`).join('') : '<p class="zhm-empty">Todavía no tienes historias activas.</p>';
@@ -263,6 +263,8 @@
     if (!r.ok) return msg(r.error || 'No se pudo quitar.', 'error');
     destacadas = r.grupos; pintarDestacadas();
   }
+
+  const pct = (v, i) => { const t = (v[0] || 0) + (v[1] || 0); return t ? Math.round((v[i] || 0) * 100 / t) + '%' : '0'; };
 
   function verHistoria(i) {
     if (!window.znrHistoriasVisor) return;
@@ -389,7 +391,7 @@
     cerrarConfirm(); $('zhm-main').hidden = true; document.body.style.overflow = '';
     aviso('<span class="zhm-spin"></span>Publicando tu historia…');
     try {
-      const res = await llamar({ action: 'subirHistoria', data: await aBase64(r.blob), etiquetas: JSON.stringify(r.etiquetas), musica: r.musica ? JSON.stringify(r.musica) : '' });
+      const res = await llamar({ action: 'subirHistoria', data: await aBase64(r.blob), etiquetas: JSON.stringify(r.etiquetas), musica: r.musica ? JSON.stringify(r.musica) : '', encuesta: r.encuesta ? JSON.stringify(r.encuesta) : '' });
       if (!res.ok) throw new Error(res.error || 'No se pudo publicar la historia.');
       ocupado = false;
       aviso('✓ Historia publicada', 'ok', 3500);

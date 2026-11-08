@@ -88,6 +88,11 @@
       .zhv-resp input::placeholder{color:rgba(255,255,255,.85)}
       .zhv-resp button{flex-shrink:0;border:none;border-radius:999px;padding:0 16px;background:#fff;color:#111;font:700 .85rem system-ui,sans-serif;cursor:pointer}
       .zhv-nota{margin:0;padding:6px 12px;border-radius:999px;background:rgba(0,0,0,.6);color:#fff;font-size:.8rem}.zhv-nota a{color:#fff;font-weight:700}
+      .zhv-enc{position:absolute;pointer-events:auto;display:flex;gap:4%;padding:0 4.6% 4.6%;box-sizing:border-box}
+      .zhv-enc button{flex:1;border:none;border-radius:999px;background:transparent;cursor:pointer;position:relative;overflow:hidden;color:#fff;font:800 clamp(.7rem,3.4vw,1rem) system-ui,sans-serif}
+      .zhv-enc.res button{background:rgba(255,255,255,.88);color:#111}
+      .zhv-enc.res button i{position:absolute;inset:0 auto 0 0;background:rgba(124,58,237,.35)}.zhv-enc.res button+button i{background:rgba(236,72,153,.35)}
+      .zhv-enc.res button span{position:relative}.zhv-enc.res button.mio{box-shadow:inset 0 0 0 3px #111}
       .zhv-quitar{padding:8px 14px;border:none;border-radius:999px;background:rgba(0,0,0,.6);color:#fff;font:600 .78rem inherit;font-family:inherit;white-space:nowrap;cursor:pointer}
       .zhv-tag{position:absolute;pointer-events:auto;background:none;border:none;cursor:pointer;border-radius:999px;-webkit-tap-highlight-color:rgba(255,255,255,.25);animation:zhv-tag 1.6s ease 2}
       @keyframes zhv-tag{50%{box-shadow:0 0 0 3px rgba(255,255,255,.85),0 0 18px rgba(255,255,255,.6)}}
@@ -225,6 +230,7 @@
     el.querySelector('#zhv-quitar').hidden = !lista_.some((e) => e.tipo === 'mencion' && e.uid === sesion().uid);
     // Responder: no en la vista propia (Mis historias) ni a tus propias historias.
     el.querySelector('#zhv-resp').style.display = cfg.reportar === false || sesion().uid === h.vendedorUid ? 'none' : '';
+    if (h.encuesta) capa.appendChild(encuesta(h));
     lista_.forEach((e) => {
       const b = document.createElement('a');
       b.className = 'zhv-tag';
@@ -263,6 +269,43 @@
   function anterior() { if (idx > 0) idx--; else if (cfg.alTerminar?.(-1)) return; mostrar(); }
 
   // ── Reportar ──
+  // Encuesta: dos botones sobre las opciones dibujadas. Al votar (o si ya votaste en este dispositivo) se ven los porcentajes.
+  const VOTOS_KEY = 'znr_historias_votos';
+  function encuesta(h) {
+    const e = h.encuesta, box = document.createElement('div');
+    box.className = 'zhv-enc';
+    Object.assign(box.style, { left: e.x * 100 + '%', top: (e.y + e.h * e.oy) * 100 + '%', width: e.w * 100 + '%', height: e.h * (1 - e.oy) * 100 + '%' });
+    const pintar = (votos, mio) => {
+      const t = (votos[0] || 0) + (votos[1] || 0);
+      box.classList.toggle('res', mio !== undefined);
+      box.innerHTML = e.opciones.map((o, i) => {
+        if (mio === undefined) return `<button type="button" data-o="${i}" aria-label="Votar por ${esc(o)}"></button>`;
+        const p = t ? Math.round((votos[i] || 0) * 100 / t) : 0;
+        return `<button type="button" class="${mio === i ? 'mio' : ''}" disabled><i style="width:${p}%"></i><span>${esc(o)} · ${p}%</span></button>`;
+      }).join('');
+    };
+    let guardados = {}; try { guardados = JSON.parse(localStorage.getItem(VOTOS_KEY) || '{}'); } catch (_) {}
+    pintar(h.votos || [0, 0], guardados[h.id]);
+    box.addEventListener('click', async (ev) => {
+      const b = ev.target.closest('[data-o]');
+      if (!b) return;
+      pausar();
+      const s = sesion(), tel = (localStorage.getItem('client_phone') || '').replace(/\D/g, ''), tok = localStorage.getItem('comprador_token');
+      let idToken = null;
+      if (s.uid && s.token && window.znrFirestore?.getIdToken) idToken = await window.znrFirestore.getIdToken('vendedor', s.uid, s.token).catch(() => null);
+      if (!idToken && (tel.length !== 10 || !tok)) { nota('Inicia sesión para votar.'); return reanudar(); }
+      const r = await (await fetch(API, { method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'votarEncuesta', historiaId: h.id, opcion: +b.dataset.o, ...(idToken ? { idToken } : { telefono: tel, compradorToken: tok }) }) })).json().catch(() => ({ ok: false }));
+      if (r.ok) {
+        h.votos = r.votos; guardados[h.id] = r.mio;
+        try { localStorage.setItem(VOTOS_KEY, JSON.stringify(Object.fromEntries(Object.entries(guardados).slice(-300)))); } catch (_) {}
+        pintar(r.votos, r.mio);
+      } else nota(esc(r.error || 'No se pudo votar.'));
+      setTimeout(reanudar, 1200);
+    });
+    return box;
+  }
+
   function nota(html) {
     const n = el.querySelector('#zhv-nota');
     n.innerHTML = html; n.hidden = false; clearTimeout(n._t); n._t = setTimeout(() => { n.hidden = true; }, 6000);
