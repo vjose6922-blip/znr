@@ -12,7 +12,7 @@
 (function () {
   'use strict';
   if (window.znrEditorHistoria) return;
-  const W = 720, H = 1280, MAX_SEG = 10;
+  const W = 720, H = 1280, MAX_SEG = 10, BPS = 2000000; // bits por segundo del video final (+128 kb/s de audio)
   const FILTROS = [['Normal', 'none'], ['Cálido', 'sepia(.25) saturate(1.35) hue-rotate(-10deg)'], ['Frío', 'saturate(1.1) hue-rotate(15deg) brightness(1.04)'],
     ['B/N', 'grayscale(1) contrast(1.1)'], ['Vintage', 'sepia(.55) contrast(.9) brightness(1.06)'], ['Brillo', 'brightness(1.2)'],
     ['Contraste', 'contrast(1.35) saturate(1.15)'], ['Vivo', 'saturate(1.7)']];
@@ -45,8 +45,15 @@
       .zhe-row{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none}
       .zhe-chip{flex-shrink:0;padding:7px 12px;border-radius:999px;border:1px solid rgba(255,255,255,.3);background:none;color:#fff;font:600 13px inherit;font-family:inherit;cursor:pointer}
       .zhe-chip.on{background:#fff;color:#111}
-      .zhe-rec label{display:flex;align-items:center;gap:8px;font-size:12px}
-      .zhe-rec input{flex:1}
+      .zhe-tl{position:relative;height:40px}
+      .zhe-tl .in{position:absolute;left:12px;right:12px;top:0;bottom:0;pointer-events:none}
+      .zhe-tl .tr{position:absolute;left:0;right:0;top:15px;height:10px;border-radius:5px;background:rgba(255,255,255,.2)}
+      .zhe-tl .sel{position:absolute;top:11px;height:18px;border-radius:5px;background:rgba(236,72,153,.5);box-shadow:inset 0 0 0 2px #fff}
+      .zhe-tl .cab{position:absolute;top:5px;width:3px;height:30px;margin-left:-1px;border-radius:2px;background:#facc15}
+      .zhe-tl input{position:absolute;inset:0;width:100%;height:40px;margin:0;background:none;pointer-events:none;-webkit-appearance:none;appearance:none}
+      .zhe-tl input::-webkit-slider-runnable-track{background:none;height:40px}
+      .zhe-tl input::-webkit-slider-thumb{pointer-events:auto;-webkit-appearance:none;width:24px;height:40px;border-radius:7px;background:#fff;box-shadow:0 1px 5px rgba(0,0,0,.6);cursor:ew-resize}
+      .zhe-tl input::-moz-range-thumb{pointer-events:auto;width:24px;height:40px;border:none;border-radius:7px;background:#fff;cursor:ew-resize}
       .zhe-hint{font-size:12px;opacity:.75;text-align:center;margin:0}
       .zhe-sheet{position:fixed;left:0;right:0;bottom:0;z-index:10005;background:#1c1c22;color:#fff;border-radius:18px 18px 0 0;padding:14px 14px calc(env(safe-area-inset-bottom,0px) + 14px);max-height:70vh;overflow-y:auto}
       .zhe-sheet h4{margin:0 0 10px;font-size:15px}
@@ -118,8 +125,10 @@
         <div class="zhe-bot">
           <div class="zhe-sel zhe-row" hidden></div>
           <div class="zhe-row zhe-filtros">${FILTROS.map(([n, f], i) => `<button type="button" class="zhe-chip${i ? '' : ' on'}" data-f="${esc(f)}">${n}</button>`).join('')}</div>
-          ${esVideo ? `<div class="zhe-rec"><label>Inicio <input type="range" data-r="ini" min="0" step="0.1" value="0"></label>
-            <label>Dura <input type="range" data-r="dur" min="1" step="0.1"></label><p class="zhe-hint" data-r="txt"></p></div>` : ''}
+          ${esVideo ? `<div class="zhe-rec"><p class="zhe-hint">Arrastra las orillas blancas para elegir el tramo (máx. ${MAX_SEG} s)</p>
+            <div class="zhe-tl"><div class="in"><div class="tr"></div><div class="sel"></div><div class="cab"></div></div>
+              <input type="range" data-r="ini" min="0" step="0.1" value="0" aria-label="Inicio del tramo"><input type="range" data-r="fin" min="0" step="0.1" aria-label="Fin del tramo"></div>
+            <p class="zhe-hint" data-r="txt"></p></div>` : ''}
           <p class="zhe-hint zhe-mus" hidden></p>
           <button type="button" class="zhe-b ok" data-a="listo" style="width:100%">Siguiente</button>
         </div>`;
@@ -132,6 +141,7 @@
         if (cerrado) return; cerrado = true;
         cancelAnimationFrame(raf);
         if (media && media.pause) media.pause();
+        media?._ac?.close().catch(() => {});
         if (audio) audio.pause();
         URL.revokeObjectURL(url);
         ov.remove(); document.querySelectorAll('.zhe-sheet,.zhe-prog').forEach(e => e.remove());
@@ -145,6 +155,7 @@
         if (esVideo) {
           if (media.ended || media.currentTime >= st.ini + st.dur || media.currentTime < st.ini - 0.3) { media.currentTime = st.ini; if (audio) audio.currentTime = st.musOffset; }
           if (media.paused && !media.seeking) media.play().catch(() => {});
+          const cab = $('.zhe-tl .cab'); if (cab && st.total) cab.style.left = (media.currentTime / st.total * 100) + '%';
           raf = requestAnimationFrame(pintar);
         }
       };
@@ -154,11 +165,23 @@
         media.playsInline = true; media.muted = true; media.preload = 'auto'; media.src = url;
         media.onloadedmetadata = () => {
           st.total = media.duration; st.dur = Math.min(MAX_SEG, st.total);
-          const ri = $('[data-r=ini]'), rd = $('[data-r=dur]');
-          ri.max = Math.max(0, st.total - 1).toFixed(1); rd.max = Math.min(MAX_SEG, st.total).toFixed(1); rd.value = st.dur;
-          const txt = () => { $('[data-r=txt]').textContent = `Del ${st.ini.toFixed(1)} s al ${(st.ini + st.dur).toFixed(1)} s · ${st.dur.toFixed(1)} s de ${MAX_SEG} máx.`; };
-          ri.oninput = () => { st.ini = Math.min(+ri.value, st.total - 1); st.dur = Math.min(st.dur, st.total - st.ini, MAX_SEG); rd.value = st.dur; media.currentTime = st.ini; txt(); };
-          rd.oninput = () => { st.dur = Math.min(+rd.value, st.total - st.ini); media.currentTime = st.ini; txt(); };
+          const ri = $('[data-r=ini]'), rf = $('[data-r=fin]'), sel = $('.zhe-tl .sel'), maxMB = (opciones.maxBytes || 6291456) / 1048576;
+          ri.max = rf.max = st.total.toFixed(1); rf.value = st.dur;
+          const txt = () => {
+            Object.assign(sel.style, { left: st.ini / st.total * 100 + '%', width: st.dur / st.total * 100 + '%' });
+            const mb = (BPS + 128000) * st.dur / 8 / 1048576;
+            $('[data-r=txt]').textContent = `${st.ini.toFixed(1)} s → ${(st.ini + st.dur).toFixed(1)} s · dura ${st.dur.toFixed(1)} s · pesará ≈ ${mb.toFixed(1)} MB de ${maxMB} MB`;
+          };
+          // Mover una orilla empuja a la otra si el tramo pasa de 10 s o queda en menos de 1 s.
+          const mover = (inicio) => {
+            let a = +ri.value, b = +rf.value;
+            if (inicio) { a = Math.min(a, st.total - 1); b = Math.min(Math.max(b, a + 1), a + MAX_SEG); }
+            else { b = Math.max(b, 1); a = Math.max(Math.min(a, b - 1), b - MAX_SEG); }
+            ri.value = st.ini = a; rf.value = b; st.dur = b - a;
+            media.currentTime = inicio ? a : Math.max(a, b - 1.5); // al mover el final se ven sus últimos 1.5 s
+            txt();
+          };
+          ri.oninput = () => mover(true); rf.oninput = () => mover(false);
           txt();
           media.play().catch(() => {}); pintar();
         };
@@ -294,7 +317,15 @@
           const sin = sh.querySelector('[data-sin]');
           if (sin) sin.onclick = () => { sh.remove(); if (audio) audio.pause(); audio = null; st.musica = null; st.quitarOriginal = false; $('.zhe-mus').hidden = true; };
         },
-        listo: () => exportar().then((r) => r && cerrar(r)).catch((e) => { document.querySelectorAll('.zhe-prog').forEach(x => x.remove()); alert(e.message || 'No se pudo preparar la historia.'); }),
+        listo: () => exportar().then((r) => {
+          if (r && r.esVideo && opciones.maxBytes && r.blob.size > opciones.maxBytes) throw new Error(`El video quedó de ${(r.blob.size / 1048576).toFixed(1)} MB y el máximo es ${(opciones.maxBytes / 1048576).toFixed(0)} MB. Elige un tramo más corto.`);
+          if (r) cerrar(r);
+        }).catch((e) => {
+          // Si algo falla, lo editado se queda: se avisa y la vista previa sigue.
+          document.querySelectorAll('.zhe-prog').forEach(x => x.remove());
+          alert(e.message || 'No se pudo preparar la historia.');
+          if (esVideo) { media.onseeked = null; media.muted = true; media.currentTime = st.ini; cancelAnimationFrame(raf); pintar(); if (audio) audio.play().catch(() => {}); }
+        }),
       };
       ov.querySelector('.zhe-top').addEventListener('click', (e) => { const b = e.target.closest('[data-a]'); if (b) acciones[b.dataset.a](); });
       $('[data-a=listo]').addEventListener('click', acciones.listo);
@@ -337,9 +368,10 @@
         }
         c.width = W; c.height = H;
         // Audio: sonido original (si no se quitó) + canción, mezclados en WebAudio y grabados junto al canvas.
-        const AC = window.AudioContext || window.webkitAudioContext, ac = AC ? new AC() : null;
+        // Un solo AudioContext por video: un elemento solo se puede conectar a uno (y así se puede reintentar).
+        const AC = window.AudioContext || window.webkitAudioContext, ac = media._ac || (AC ? (media._ac = new AC()) : null);
         const destino = ac && ac.createMediaStreamDestination();
-        if (ac && !st.quitarOriginal) { media.muted = false; media._fuente = media._fuente || ac.createMediaElementSource(media); media._fuente.connect(destino); }
+        if (ac && !st.quitarOriginal) { media.muted = false; media._fuente = media._fuente || ac.createMediaElementSource(media); media._fuente.disconnect(); media._fuente.connect(destino); }
         let musica = null;
         if (ac && st.musica) {
           musica = new Audio('musica/' + encodeURIComponent(st.musica.archivo)); musica.currentTime = st.musOffset;
@@ -347,7 +379,7 @@
         }
         if (audio) audio.pause();
         const pistas = [...c.captureStream(30).getVideoTracks(), ...(destino ? destino.stream.getAudioTracks() : [])];
-        const rec = new MediaRecorder(new MediaStream(pistas), { mimeType: mime, videoBitsPerSecond: 2500000 });
+        const rec = new MediaRecorder(new MediaStream(pistas), { mimeType: mime, videoBitsPerSecond: BPS });
         const partes = []; rec.ondataavailable = (e) => { if (e.data.size) partes.push(e.data); };
         const prog = document.createElement('div'); prog.className = 'zhe-prog';
         prog.innerHTML = '<div>Preparando tu video…</div><div data-p></div>'; document.body.appendChild(prog);
@@ -356,7 +388,11 @@
           media.currentTime = st.ini; media.loop = false;
           media.onseeked = async () => {
             media.onseeked = null;
-            try { await ac?.resume(); await media.play(); if (musica) await musica.play(); } catch (e) { return fallo(new Error('No se pudo reproducir el video para prepararlo.')); }
+            try {
+              await ac?.resume();
+              await media.play().catch(() => { media.muted = true; return media.play(); }); // sin permiso de sonido: se graba sin el audio original
+              if (musica) await musica.play();
+            } catch (e) { return fallo(new Error('No se pudo reproducir el video para prepararlo. Intenta de nuevo.')); }
             rec.onstop = listo; rec.start(250);
             const fin = st.ini + st.dur;
             const cuadro = () => {
@@ -370,7 +406,6 @@
         });
         prog.remove();
         const blob = new Blob(partes, { type: mime.split(';')[0] });
-        if (ac) ac.close().catch(() => {});
         return { blob, esVideo: true, etiquetas };
       }
     });

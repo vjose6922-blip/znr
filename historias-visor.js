@@ -1,6 +1,8 @@
 /**
  * historias-visor.js — Visor de historias (modal tipo Facebook) para UN vendedor.
- * Lo usan perfil-vendedor.html (comprador) y vendedor.html (vista previa propia).
+ * Lo usan perfil-vendedor.html, vendedor.html (vista propia) y feed-actividad.html
+ * (un grupo por vendedor: `alTerminar(dir)` abre el grupo siguiente/anterior; `pie` = HTML abajo).
+ * Tocar a la derecha/izquierda: siguiente/anterior · mantener presionado: pausa.
  *
  *   znrHistoriasVisor.abrir(historias, {
  *     indice: 0,            // con cuál empezar
@@ -77,7 +79,10 @@
       .zhv-aviso{margin:0;padding:18px 0 6px;text-align:center;font-weight:700;font-size:.9rem}
       .zhv-tags{position:absolute;z-index:4;pointer-events:none;left:50%;top:50%;transform:translate(-50%,-50%);width:min(100cqw,56.25cqh);height:min(100cqh,177.78cqw)}
       .zhv-tag::before{content:'';position:absolute;inset:-12px -6px}
-      .zhv-quitar{position:absolute;z-index:5;left:50%;bottom:calc(env(safe-area-inset-bottom,0px) + 16px);transform:translateX(-50%);padding:8px 14px;border:none;border-radius:999px;background:rgba(0,0,0,.6);color:#fff;font:600 .78rem inherit;font-family:inherit;white-space:nowrap;cursor:pointer}
+      .zhv-box{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+      .zhv-pie{position:absolute;z-index:5;left:0;right:0;bottom:0;display:flex;flex-direction:column;align-items:center;gap:8px;padding:0 14px calc(env(safe-area-inset-bottom,0px) + 16px);pointer-events:none}
+      .zhv-pie>*{pointer-events:auto}.zhv-pie .bell-live{margin:0}
+      .zhv-quitar{padding:8px 14px;border:none;border-radius:999px;background:rgba(0,0,0,.6);color:#fff;font:600 .78rem inherit;font-family:inherit;white-space:nowrap;cursor:pointer}
       .zhv-tag{position:absolute;pointer-events:auto;background:none;border:none;cursor:pointer;border-radius:999px;-webkit-tap-highlight-color:rgba(255,255,255,.25);animation:zhv-tag 1.6s ease 2}
       @keyframes zhv-tag{50%{box-shadow:0 0 0 3px rgba(255,255,255,.85),0 0 18px rgba(255,255,255,.6)}}
     `;
@@ -102,12 +107,19 @@
           <button type="button" class="zhv-btn" id="zhv-report" aria-label="Reportar historia">${ico('flag', 18) || '⚑'}</button>
           <button type="button" class="zhv-btn" id="zhv-close" aria-label="Cerrar">${ico('x', 18) || '✕'}</button>
         </div>
-        <button type="button" class="zhv-quitar" id="zhv-quitar" hidden>Te etiquetaron · Quitar mi mención</button>
+        <div class="zhv-pie"><button type="button" class="zhv-quitar" id="zhv-quitar" hidden>Te etiquetaron · Quitar mi mención</button><div id="zhv-extra"></div></div>
         <div class="zhv-sheet" id="zhv-sheet" hidden></div>
       </div>`;
     document.body.appendChild(el);
-    el.querySelector('#zhv-next').addEventListener('click', siguiente);
-    el.querySelector('#zhv-prev').addEventListener('click', anterior);
+    // Tocar: siguiente/anterior. Mantener presionado: pausa hasta soltar.
+    let presion = 0, sostenido = false;
+    [['#zhv-next', siguiente], ['#zhv-prev', anterior]].forEach(([sel, fn]) => {
+      const b = el.querySelector(sel);
+      b.addEventListener('pointerdown', () => { sostenido = false; clearTimeout(presion); presion = setTimeout(() => { sostenido = true; pausar(); }, 220); });
+      ['pointerup', 'pointercancel', 'pointerleave'].forEach((t) => b.addEventListener(t, () => { clearTimeout(presion); if (sostenido) reanudar(); }));
+      b.addEventListener('contextmenu', (e) => e.preventDefault());
+      b.addEventListener('click', () => { if (sostenido) sostenido = false; else fn(); });
+    });
     el.querySelector('#zhv-close').addEventListener('click', cerrar);
     el.querySelector('#zhv-report').addEventListener('click', abrirReporte);
     el.querySelector('#zhv-quitar').addEventListener('click', quitarMencion);
@@ -133,6 +145,7 @@
     nuevo.innerHTML = av + txt;
     cont.replaceWith(nuevo);
     el.querySelector('#zhv-report').style.display = cfg.reportar === false ? 'none' : '';
+    el.querySelector('#zhv-extra').innerHTML = cfg.pie || '';
   }
 
   function abrir(historias, opciones) {
@@ -224,8 +237,9 @@
     if (video) { const pr = video.play(); if (pr && pr.catch) pr.catch(() => {}); }
   }
 
-  function siguiente() { if (idx < lista.length - 1) { idx++; mostrar(); } else cerrar(); }
-  function anterior() { if (idx > 0) idx--; mostrar(); }
+  // cfg.alTerminar(1 | -1): pasar al siguiente/anterior grupo (feed de actividad); si devuelve false, se cierra.
+  function siguiente() { if (idx < lista.length - 1) { idx++; mostrar(); } else if (!cfg.alTerminar?.(1)) cerrar(); }
+  function anterior() { if (idx > 0) idx--; else if (cfg.alTerminar?.(-1)) return; mostrar(); }
 
   // ── Reportar ──
   // El vendedor etiquetado puede quitar su @mención: el texto sigue en la imagen, pero ya no lleva a su perfil.
