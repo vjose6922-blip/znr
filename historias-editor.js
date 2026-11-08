@@ -143,7 +143,8 @@
         ctx.fillStyle = '#000'; ctx.fillRect(0, 0, W, H);
         cubrir(ctx, media, W, H);
         if (esVideo) {
-          if (media.currentTime >= st.ini + st.dur || media.currentTime < st.ini - 0.3) { media.currentTime = st.ini; if (audio) audio.currentTime = st.musOffset; }
+          if (media.ended || media.currentTime >= st.ini + st.dur || media.currentTime < st.ini - 0.3) { media.currentTime = st.ini; if (audio) audio.currentTime = st.musOffset; }
+          if (media.paused && !media.seeking) media.play().catch(() => {});
           raf = requestAnimationFrame(pintar);
         }
       };
@@ -157,7 +158,7 @@
           ri.max = Math.max(0, st.total - 1).toFixed(1); rd.max = Math.min(MAX_SEG, st.total).toFixed(1); rd.value = st.dur;
           const txt = () => { $('[data-r=txt]').textContent = `Del ${st.ini.toFixed(1)} s al ${(st.ini + st.dur).toFixed(1)} s · ${st.dur.toFixed(1)} s de ${MAX_SEG} máx.`; };
           ri.oninput = () => { st.ini = Math.min(+ri.value, st.total - 1); st.dur = Math.min(st.dur, st.total - st.ini, MAX_SEG); rd.value = st.dur; media.currentTime = st.ini; txt(); };
-          rd.oninput = () => { st.dur = Math.min(+rd.value, st.total - st.ini); txt(); };
+          rd.oninput = () => { st.dur = Math.min(+rd.value, st.total - st.ini); media.currentTime = st.ini; txt(); };
           txt();
           media.play().catch(() => {}); pintar();
         };
