@@ -162,6 +162,7 @@
       if (!r.ok) throw new Error(r.error || 'Error');
       cupo = r.cupo || cupo; historias = r.historias || [];
       pintar();
+      window.dispatchEvent(new Event('znr-historias-cambio')); // el feed de actividad se refresca
     } catch (e) {
       msg(e.message || 'No se pudieron cargar tus historias.', 'error');
     }
@@ -266,10 +267,12 @@
 
     const r = await window.znrEditorHistoria.abrir(file, {
       buscarVendedores: (q) => llamar({ action: 'buscarVendedores', q }).then((x) => (x.ok ? x.vendedores : [])),
-      productos: async () => (window._vendorProducts || []).filter((p) => p.estado === 'aprobado')
+      // Fuera del panel (feed de actividad) no están cargados sus productos: se piden al catálogo.
+      productos: async () => (window._vendorProducts || await fetch('https://catalogo-api-1038143238323.us-central1.run.app?' + new URLSearchParams({ action: 'productosPorVendedor', vendedor_uid: window.vendorSession.uid, limit: '200' }))
+        .then((x) => x.json()).then((d) => d.products || []).catch(() => [])).filter((p) => p.estado === 'aprobado'),
+      maxBytes: MAX_VIDEO_BYTES // el editor no deja continuar si el video pesa más (así no se pierde lo editado)
     });
     if (!r) return;
-    if (r.esVideo && r.blob.size > MAX_VIDEO_BYTES) { msg('El video quedó muy pesado. Elige un tramo más corto.', 'error'); return; }
 
     liberarPrev();
     prevUrl = URL.createObjectURL(r.blob);
@@ -305,13 +308,12 @@
       if (!res.ok) throw new Error(res.error || 'No se pudo publicar la historia.');
       exito = true;
     } catch (e) {
-      msg(e.message || 'No se pudo publicar la historia.', 'error');
+      ok.disabled = false; ok.textContent = 'Reintentar'; $('zhm-c-cancel').disabled = false;
+      $('zhm-c-text').innerHTML = `<b style="color:#dc2626">${esc(e.message || 'No se pudo publicar la historia.')}</b><br>Tu edición sigue aquí: toca Reintentar.`;
     } finally {
       ocupado = false;
       $('zhm-c-alt').disabled = false;
-      cerrarConfirm();
-      await cargar();
-      if (exito) msg('Historia publicada. Ya se ve en Actividad reciente y en tu perfil.', 'ok');
+      if (exito) { cerrarConfirm(); await cargar(); msg('Historia publicada. Ya se ve en Actividad reciente y en tu perfil.', 'ok'); }
     }
   }
 
