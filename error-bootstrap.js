@@ -272,6 +272,15 @@
     }
   }, true);
 
+  // Transición entre páginas (motion.css): si la otra página no la activa, Chrome la aborta y rechaza sus promesas
+  // ("Transition was aborted… ViewTransition opt-in disabled"). No es un error de la página: se marcan como atendidas.
+  ['pageswap', 'pagereveal'].forEach(function (tipo) {
+    window.addEventListener(tipo, function (ev) {
+      var v = ev.viewTransition;
+      if (v) [v.ready, v.finished, v.updateCallbackDone].forEach(function (p) { if (p && p.catch) p.catch(function () {}); });
+    });
+  });
+
   window.addEventListener('unhandledrejection', function (e) {
     const reason = e.reason;
     window.__zrEarlyHandler('rejection', {
