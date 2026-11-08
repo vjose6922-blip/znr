@@ -186,7 +186,7 @@
           ? `<video src="${esc(h.url)}#t=0.1" muted playsinline preload="metadata"></video><span class="zhm-tag">VIDEO</span>`
           : `<img src="${esc(h.url)}" alt="" loading="lazy">`}
         ${h.oculta ? '<span class="zhm-tag red">Oculta</span>' : ''}
-        <div class="zhm-foot"><span>${esc(restante(h.expiraEn))}</span>
+        <div class="zhm-foot"><span>${esc(restante(h.expiraEn))}<br>${ico('eye', 12)} ${h.vistas || 0}${h.etiquetas && h.etiquetas.length ? ' · Toques: ' + (h.toques || 0) : ''}</span>
           <button type="button" class="zhm-del" data-del="${esc(h.id)}" aria-label="Eliminar historia">${ico('trash', 14)}</button>
         </div>
       </div>`).join('') : '<p class="zhm-empty">Todavía no tienes historias activas.</p>';

@@ -863,14 +863,13 @@
  });
  const elegidos = [...porVendedor].sort(() => Math.random() - 0.5).slice(0, 5);
  if (!elegidos.length) { box.classList.remove('is-on'); box.innerHTML = ''; return; }
- const check = '<svg width="16" height="16" viewBox="0 0 24 24" role="img" aria-label="Verificado"><circle cx="12" cy="12" r="11" fill="currentColor"/><path d="M7 12.5l3.2 3.2L17 9" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>';
  box.innerHTML = '<div class="fs-track">' + elegidos.map(([uid, prods]) => {
  const p = prods[0], nombre = String(p.vendedor_nombre), url = 'perfil-vendedor.html?vendedor=' + encodeURIComponent(uid);
  const iniciales = nombre.trim().split(/\s+/).map(w => w[0]).slice(0, 2).join('').toUpperCase();
  const fotos = prods.map(x => x.imagen1).filter(Boolean).slice(0, 4);
  return `<article class="fs-card" data-uid="${esc(uid)}">
  <div class="fs-top"><span class="fs-avatar">${esc(iniciales)}${p.vendedor_logo ? `<img src="${esc(p.vendedor_logo)}" alt="" loading="lazy">` : ''}</span>
- <div class="fs-body"><p class="fs-kicker">Vendedor destacado</p><div class="fs-name"><span>${esc(nombre)}</span>${check}</div><p class="fs-desc">Vendedor verificado de tu ciudad.</p></div></div>
+ <div class="fs-body"><p class="fs-kicker">Vendedor destacado</p><div class="fs-name"><span>${esc(nombre)}${window.znrInsignia ? window.znrInsignia(p.vendedor_nivel || 'plus', p.vendedor_plan_vence) : ''}</span></div><p class="fs-desc">Vendedor ${p.vendedor_nivel === 'pro' ? 'Pro' : 'Plus'} de tu ciudad.</p></div></div>
  ${fotos.length ? `<a class="fs-prods" href="${url}" aria-label="Productos de ${esc(nombre)}">${fotos.map(f => `<img src="${esc(f)}" alt="" loading="lazy">`).join('')}</a>` : ''}
  <a class="fs-btn" href="${url}">Ver tienda <span aria-hidden="true">&rsaquo;</span></a></article>`;
  }).join('') + '</div><div class="m-hero-dots" aria-hidden="true"></div>';
