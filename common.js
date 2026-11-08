@@ -737,6 +737,7 @@ bottomBadge.style.display = totalQty > 0 ? '' : 'none';
 }
 }
 function addToCart(product) {
+if (product && (product.tipoVenta === 'renta' || product.TipoVenta === 'renta')) { window.znrRentar?.(product); return; }
 if (product && (product._personalizado === true || product.tipoVenta === 'personalizado' || product.TipoVenta === 'personalizado')) {
 if (typeof window.znrPersonalizar === 'function') window.znrPersonalizar(product);
 return;
@@ -993,6 +994,7 @@ function _completarVentaPersonalizada(productData, productId) {
     if (!id) return p;
     const pool = [].concat(window.communityRandomOrder || [], window.allCommunityProductsIndexed || []);
     const fila = pool.find(x => x && String(x.id || x.ID) === id);
+    if (fila && fila.tipoVenta === 'renta') return { ...p, TipoVenta: 'renta', Stock: Number(fila.stock) || 0 };
     if (!fila || fila.tipoVenta !== 'personalizado') return p;
     return { ...p, TipoVenta: 'personalizado', TiempoElaboracionDias: Number(fila.tiempoElaboracionDias) || 0,
       OpcionesPersonalizacion: fila.opcionesPersonalizacion || '', Stock: -1 };
@@ -1056,7 +1058,7 @@ const precio  = p.Precio  || p.precio  || 0;
 const talla  = p.Talla  || p.talla  || '';
 const desc  = p.Descripcion || p.descripcion || '';
 const categoria = p.Categoria || p.categoria || '';
-const esPersonal = (p.TipoVenta || p.tipoVenta) === 'personalizado';
+const esPersonal = (p.TipoVenta || p.tipoVenta) === 'personalizado', esRenta = (p.TipoVenta || p.tipoVenta) === 'renta';
 const diasElab = Number(p.TiempoElaboracionDias || p.tiempoElaboracionDias || 0);
 const opcionesPers = String(p.OpcionesPersonalizacion || p.opcionesPersonalizacion || '');
 const stock  = esPersonal ? -1 : Number(p.Stock ?? p.stock ?? -1);
@@ -1068,7 +1070,7 @@ const montoMinEnvio = Number(p._montoMinimoEnvio ?? p.vendedor_monto_minimo_envi
 const califica_entrega = montoMinEnvio > 0 && Number(precio) >= montoMinEnvio;
 const fmt = v => typeof formatCurrency === 'function' ? formatCurrency(v) : `$${Number(v).toLocaleString()}`;
 const fmtPrecio = fmt(precio);
-const stockHtml = esPersonal ? `<span class="im-info-stock ok">Bajo pedido${diasElab ? ' · ' + diasElab + (diasElab === 1 ? ' día' : ' días') + ' de elaboración' : ''}</span>` : stock < 0 ? '' :
+const stockHtml = esRenta ? `<span class="im-info-stock ok">Renta por día · ${stock} unidad${stock === 1 ? '' : 'es'}</span>` : esPersonal ? `<span class="im-info-stock ok">Bajo pedido${diasElab ? ' · ' + diasElab + (diasElab === 1 ? ' día' : ' días') + ' de elaboración' : ''}</span>` : stock < 0 ? '' :
 stock === 0
 ? `<span class="im-info-stock out">Sin stock</span>`
 : `<span class="im-info-stock ok"> ${stock} disponibles</span>`;
@@ -1082,6 +1084,8 @@ const entregaHtml = califica_entrega ? `<div class="im-info-entrega"><svg xmlns=
 const sinStock = stock === 0;
 const buyBtnHtml = p._modoVendedorPropio
 ? `<button class="im-buy-btn" id="im-buy-btn">${Icon('edit', { size: 16 })} Editar</button>`
+: esRenta
+? `<button class="im-buy-btn" id="im-buy-btn">${Icon('calendar', { size: 16 })} Rentar</button>`
 : esPersonal
 ? `<button class="im-buy-btn" id="im-buy-btn">${Icon('edit', { size: 16 })} Personalizar pedido</button>`
 : `
@@ -1096,7 +1100,7 @@ el.innerHTML = `
 <div class="im-info-name">${escapeHtml(nombre)}</div>
 <div style="text-align:right;">
 ${tieneDescuento ? `<div class="im-info-price-original">${fmt(precioOriginal)}</div>` : ''}
-<div class="im-info-price">${esPersonal ? '<small style="font-size:11px;font-weight:600;opacity:.7;">Desde </small>' : ''}${fmtPrecio}${tieneDescuento ? ` <span class="im-info-pct">-${pctDescuento}%</span>` : ''}</div>
+<div class="im-info-price">${esPersonal ? '<small style="font-size:11px;font-weight:600;opacity:.7;">Desde </small>' : ''}${fmtPrecio}${esRenta ? '<small style="font-size:11px;font-weight:600;opacity:.7;"> /día</small>' : ''}${tieneDescuento ? ` <span class="im-info-pct">-${pctDescuento}%</span>` : ''}</div>
 </div>
 </div>
 ${entregaHtml}
@@ -1153,6 +1157,7 @@ return beneficiario;
 };
 
 async function _handleModalBuyClick(p) {
+if ((p.TipoVenta || p.tipoVenta) === 'renta') { window.znrRentar?.(p); return; }
 if ((p.TipoVenta || p.tipoVenta) === 'personalizado') {
 if (typeof window.znrPersonalizar === 'function') window.znrPersonalizar(p);
 return;
@@ -1255,7 +1260,7 @@ function _renderMagazinePanel(modal) {
     _beneficiarioId: p.beneficiario_id || p._beneficiarioId || '',
     _precioOriginal: p.precio_original || p.PrecioOriginal || 0,
     _montoMinimoEnvio: p.vendedor_monto_minimo_envio || p._montoMinimoEnvio || 0,
-    _tipoVenta: (p.tipoVenta || p.TipoVenta) === 'personalizado' ? 'personalizado' : 'stock',
+    _tipoVenta: ['personalizado', 'renta'].includes(p.tipoVenta || p.TipoVenta) ? (p.tipoVenta || p.TipoVenta) : 'stock',
     _tiempoElaboracionDias: Number(p.tiempoElaboracionDias || p.TiempoElaboracionDias || 0),
     _opcionesPersonalizacion: p.opcionesPersonalizacion || p.OpcionesPersonalizacion || '',
   }));
@@ -1293,7 +1298,7 @@ function _renderMagazinePanel(modal) {
       const esPers = p._tipoVenta === 'personalizado';
       const price = (esPers ? 'Desde ' : '') + (typeof formatCurrency === 'function'
         ? formatCurrency(p._precio)
-        : `$${p._precio}`);
+        : `$${p._precio}`) + (p._tipoVenta === 'renta' ? ' /día' : '');
       const safeImg     = thumbImg ? escapeAttr(thumbImg) : 'https://placehold.co/200x200/3b1f5f/white?text=Z%26R';
       const safeFullImg = fullImg  ? escapeAttr(fullImg)  : safeImg;
       const safeName  = typeof escapeHtml === 'function' ? escapeHtml(name) : name;
@@ -2513,6 +2518,94 @@ ok.disabled = false; ok.textContent = 'Enviar solicitud';
 });
 }
 window.znrPersonalizar = znrPersonalizar;
+
+// Rentas: el cliente elige fechas, horas, cantidad y entrega; pedidos-api valida unidades libres y abre el chat,
+// donde el vendedor confirma y el cliente acepta el contrato. Precio, depósito y reglas vienen del servidor (infoRenta).
+async function znrRentar(p) {
+const productoId = String((p && (p.ID || p.id)) || '');
+if (!productoId || !window.PEDIDOS_API_URL) return;
+const telefono = await asegurarComprador('Para rentar este artículo');
+if (!telefono) return;
+window.solicitarPermisoNotificacionesSiFalta?.('cliente', telefono);
+const esc = window.escapeHtml || (x => String(x).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])));
+const fmt = v => typeof formatCurrency === 'function' ? formatCurrency(v) : '$' + Number(v).toLocaleString('es-MX');
+const api = data => fetch(window.PEDIDOS_API_URL, { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams(data).toString() }).then(r => r.json());
+const hoy = new Date(Date.now() - new Date().getTimezoneOffset() * 6e4).toISOString().slice(0, 10);
+_znrPersonalizarEstilos();
+const ov = document.createElement('div');
+ov.className = 'zp-ov';
+ov.innerHTML = `<div class="zp-box" role="dialog" aria-modal="true" aria-label="Rentar"><h3>Rentar</h3>
+<div class="zp-prod">${p.Imagen1 || p.imagen1 ? `<img src="${esc(p.Imagen1 || p.imagen1)}" alt="" loading="lazy">` : ''}<div><b>${esc(p.Nombre || p.nombre || '')}</b><span id="zr-precio">Cargando…</span></div></div>
+<div id="zr-form" hidden>
+<div class="zr-dos"><div><label for="zr-desde">Desde</label><input id="zr-desde" type="date" min="${hoy}"></div><div><label for="zr-hora1">Hora de entrega</label><input id="zr-hora1" type="time" value="09:00"></div></div>
+<div class="zr-dos"><div><label for="zr-hasta">Hasta</label><input id="zr-hasta" type="date" min="${hoy}"></div><div><label for="zr-hora2">Hora de recolección</label><input id="zr-hora2" type="time" value="20:00"></div></div>
+<label for="zr-cant">Cantidad</label><input id="zr-cant" type="number" inputmode="numeric" min="1" value="1">
+<div id="zr-modo-box"><label>Entrega</label><div class="zr-modos"><label><input type="radio" name="zr-modo" value="domicilio" checked> <span id="zr-modo-dom">Me lo llevan y lo recogen</span></label><label><input type="radio" name="zr-modo" value="recoleccion"> Paso por él y lo devuelvo</label></div></div>
+<div id="zr-dir-box"><label for="zr-dir">Dirección de entrega</label><textarea id="zr-dir" maxlength="250" style="min-height:60px"></textarea></div>
+<label for="zr-nombre">Tu nombre</label><input id="zr-nombre" maxlength="60" autocomplete="name">
+<label for="zr-nota">Nota para el vendedor (opcional)</label><textarea id="zr-nota" maxlength="500" style="min-height:60px" placeholder="Ej: es para una fiesta en el patio"></textarea>
+<div class="zr-total" id="zr-total" aria-live="polite"></div>
+<details class="zr-reglas"><summary>Reglas del vendedor (van en el contrato)</summary><div id="zr-reglas"></div></details>
+</div>
+<div class="zp-err" id="zr-err"></div>
+<div class="zp-row"><button type="button" class="zp-cancel">Cancelar</button><button type="button" class="zp-ok" disabled>Enviar solicitud</button></div></div>`;
+if (!document.getElementById('zr-style')) document.head.insertAdjacentHTML('beforeend', `<style id="zr-style">.zr-dos{display:grid;grid-template-columns:1fr 1fr;gap:8px}.zr-modos label{display:flex;gap:8px;align-items:center;font-weight:500;margin:6px 0}.zr-modos input{width:auto}
+.zr-total{margin-top:12px;padding:10px;border-radius:10px;background:var(--color-surface-2,#f3f4f6);font-size:13px;line-height:1.5}.zr-reglas{margin-top:10px;font-size:13px}.zr-reglas summary{cursor:pointer;font-weight:600}.zr-reglas div{white-space:pre-wrap;margin-top:6px;opacity:.85}</style>`);
+document.body.appendChild(ov);
+const $ = s => ov.querySelector(s), err = $('#zr-err'), ok = $('.zp-ok');
+const cerrar = () => ov.remove();
+$('.zp-cancel').addEventListener('click', cerrar);
+ov.addEventListener('click', e => { if (e.target === ov) cerrar(); });
+try { $('#zr-nombre').value = localStorage.getItem('client_name') || ''; $('#zr-dir').value = localStorage.getItem('client_address') || ''; } catch (_) {}
+const info = await api({ action: 'infoRenta', productoId }).catch(() => ({ ok: false, error: 'Sin conexión. Intenta de nuevo.' }));
+if (!info.ok) { $('#zr-precio').textContent = ''; err.textContent = info.error || 'No se pudo cargar la renta.'; return; }
+$('#zr-precio').textContent = `${fmt(info.precioDia)} por día · ${info.unidades} disponible${info.unidades === 1 ? '' : 's'}`;
+$('#zr-cant').max = info.unidades;
+$('#zr-modo-box').hidden = info.entrega !== 'ambos';
+if (info.flete) $('#zr-modo-dom').textContent += ` (+${fmt(info.flete)} de flete)`;
+const reglas = [info.reglasVendedor, info.reglasProducto].filter(Boolean).join('\n\n');
+$('#zr-reglas').textContent = reglas || 'El vendedor no agregó reglas. El contrato incluye las condiciones generales de Z&R.';
+$('#zr-form').hidden = false; ok.disabled = false;
+const modo = () => info.entrega === 'ambos' ? (ov.querySelector('[name="zr-modo"]:checked') || {}).value : info.entrega;
+let libres = null, consulta = 0;
+const pintar = () => {
+  const d1 = $('#zr-desde').value, d2 = $('#zr-hasta').value, cant = Math.max(1, Number($('#zr-cant').value) || 1);
+  $('#zr-dir-box').hidden = modo() !== 'domicilio';
+  if (!d1 || !d2 || d2 < d1) { $('#zr-total').textContent = 'Elige las fechas para ver el total.'; return; }
+  const dias = Math.round((Date.parse(d2) - Date.parse(d1)) / 864e5) + 1, flete = modo() === 'domicilio' ? info.flete : 0;
+  $('#zr-total').innerHTML = `${fmt(info.precioDia)} × ${dias} día${dias === 1 ? '' : 's'} × ${cant}${flete ? ` + flete ${fmt(flete)}` : ''} = <b>${fmt(info.precioDia * dias * cant + flete)}</b> (estimado; el vendedor lo confirma)`
+    + (info.deposito ? `<br>Depósito en garantía: ${fmt(info.deposito)} (se devuelve si regresa todo bien)` : '')
+    + (libres === null ? '' : `<br>${libres ? `Quedan ${libres} disponible${libres === 1 ? '' : 's'} en esas fechas` : '<b>No hay unidades disponibles en esas fechas</b>'}`);
+};
+const revisar = async () => {
+  libres = null; pintar();
+  const d1 = $('#zr-desde').value, d2 = $('#zr-hasta').value, n = ++consulta;
+  if (!d1 || !d2 || d2 < d1) return;
+  const r = await api({ action: 'infoRenta', productoId, desde: d1, hasta: d2 }).catch(() => null);
+  if (n === consulta && r && r.ok) { libres = r.disponibles; pintar(); }
+};
+$('#zr-desde').addEventListener('change', () => { if (!$('#zr-hasta').value || $('#zr-hasta').value < $('#zr-desde').value) $('#zr-hasta').value = $('#zr-desde').value; $('#zr-hasta').min = $('#zr-desde').value || hoy; revisar(); });
+$('#zr-hasta').addEventListener('change', revisar);
+['#zr-cant', '#zr-dir'].forEach(s => $(s).addEventListener('input', pintar));
+ov.querySelectorAll('[name="zr-modo"]').forEach(r => r.addEventListener('change', pintar));
+pintar();
+ok.addEventListener('click', async () => {
+  err.textContent = '';
+  const nombre = $('#zr-nombre').value.trim();
+  if (!$('#zr-desde').value || !$('#zr-hasta').value) { err.textContent = 'Elige las fechas.'; return; }
+  if (nombre.length < 2) { err.textContent = 'Escribe tu nombre.'; return; }
+  ok.disabled = true; ok.textContent = 'Enviando…';
+  try {
+    try { localStorage.setItem('client_name', nombre); if (modo() === 'domicilio') localStorage.setItem('client_address', $('#zr-dir').value.trim()); } catch (_) {}
+    const data = await api({ action: 'crearPedidoPersonalizado', telefono, compradorToken: localStorage.getItem('comprador_token') || '', productoId, nombre,
+      desde: $('#zr-desde').value, hasta: $('#zr-hasta').value, horaEntrega: $('#zr-hora1').value, horaRecoleccion: $('#zr-hora2').value,
+      cantidad: $('#zr-cant').value, modo: modo() || '', direccion: $('#zr-dir').value.trim(), nota: $('#zr-nota').value.trim() });
+    if (!data.ok) throw new Error(data.error || 'No se pudo enviar la solicitud');
+    location.href = 'pedido-chat.html?pedido=' + encodeURIComponent(data.pedidoId);
+  } catch (e) { err.textContent = e.message || 'No se pudo enviar. Intenta de nuevo.'; ok.disabled = false; ok.textContent = 'Enviar solicitud'; }
+});
+}
+window.znrRentar = znrRentar;
 window.olvidarComprador = olvidarComprador;
 async function _checkoutZNR(znrItems, allItems) {
 const clientPhone = await asegurarComprador("Para procesar tu compra");

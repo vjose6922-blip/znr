@@ -38,7 +38,21 @@ const TEXTO_ESTADO = {
   en_elaboracion: "En elaboración", listo: "Listo para entregar", entregado: "Entregado",
   rechazado: "Rechazada", cancelado: "Cancelado", expirado: "Expirada"
 };
-const CERRADOS = ["entregado", "rechazado", "cancelado", "expirado"];
+const CERRADOS = ["entregado", "devuelto", "rechazado", "cancelado", "expirado"];
+
+// Renta (pedido.tipo === "renta"): mismo flujo con fechas y contrato; termina en "en_renta" → "devuelto".
+const esRenta = () => pedido && pedido.tipo === "renta";
+const ETAPAS_RENTA = [
+  ["solicitado", "Solicitud"], ["cotizado", "Confirmación"], ["aceptado", "Contrato"], ["en_elaboracion", "Preparando"],
+  ["listo", "Lista"], ["en_renta", "En renta"], ["devuelto", "Devuelta"]
+];
+const TEXTO_RENTA = {
+  solicitado: "Esperando confirmación", cotizado: "Contrato por aceptar", aceptado: "Contrato firmado", en_elaboracion: "Preparando",
+  listo: "Lista para entregar", en_renta: "En renta", devuelto: "Devuelta"
+};
+const etapas = () => (esRenta() ? ETAPAS_RENTA : ETAPAS);
+const textoEstado = (e) => (esRenta() && TEXTO_RENTA[e]) || TEXTO_ESTADO[e] || e;
+const TERMINADO = ["entregado", "devuelto"];
 
 // Chat de un pedido normal (Comunidad / live): pedido.tipo === "venta". Sin cotización, pagos ni etapas: solo la
 // conversación, el resumen del pedido y WhatsApp de respaldo. Se borra solo 30 días después de entregado.
@@ -272,20 +286,20 @@ function renderEncabezado() {
     return;
   }
   const act = pagoActivo();
-  const porCalificar = !soyVendedor && e === "entregado" && !pedido.calificacion;
+  const porCalificar = !soyVendedor && TERMINADO.includes(e) && !pedido.calificacion;
   const miTurno = soyVendedor
     ? e === "solicitado" || (act && act.pago.estado === "por_confirmar")
     : e === "cotizado" || (act && act.pago.estado === "pendiente") || porCalificar;
-  ui.badge.textContent = porCalificar ? "Califica" : miTurno ? "Tu turno" : (TEXTO_ESTADO[e] || e);
-  ui.badge.className = "pp-badge" + (miTurno ? " warn" : e === "entregado" ? " ok" : ["rechazado", "cancelado", "expirado"].includes(e) ? " bad" : "");
+  ui.badge.textContent = porCalificar ? "Califica" : miTurno ? "Tu turno" : textoEstado(e);
+  ui.badge.className = "pp-badge" + (miTurno ? " warn" : TERMINADO.includes(e) ? " ok" : ["rechazado", "cancelado", "expirado"].includes(e) ? " bad" : "");
 
   // Progreso: una barra delgada de 6 tramos (el estado en palabras ya está en la etiqueta de arriba).
-  const idx = ETAPAS.findIndex(([k]) => k === e);
+  const ET = etapas(), idx = ET.findIndex(([k]) => k === e);
   ui.prog.replaceChildren();
   if (idx >= 0) {
     ui.prog.style.display = "";
-    ui.prog.setAttribute("aria-valuenow", String(idx + 1)); ui.prog.setAttribute("aria-valuemax", String(ETAPAS.length));
-    ETAPAS.forEach(([k, txt], i) => ui.prog.appendChild(h("i", { class: i <= idx ? "on" : "", title: txt })));
+    ui.prog.setAttribute("aria-valuenow", String(idx + 1)); ui.prog.setAttribute("aria-valuemax", String(ET.length));
+    ET.forEach(([k, txt], i) => ui.prog.appendChild(h("i", { class: i <= idx ? "on" : "", title: txt })));
   } else ui.prog.style.display = "none";
 }
 
@@ -302,6 +316,10 @@ function renderResumen() {
   if (esVenta()) {
     const n = (pedido.items || []).reduce((t, it) => t + (Number(it.cantidad) || 1), 0);
     txt = dinero(pedido.total) + " · " + n + (n === 1 ? " artículo" : " artículos");
+  } else if (esRenta()) {
+    const r = pedido.renta;
+    txt = [c && c.precio ? dinero(c.precio) : dinero(pedido.precioDesde) + " estimado", fechaCorta(r.desde) + (r.hasta !== r.desde ? " – " + fechaCorta(r.hasta) : ""),
+      pedido.cotizacionAceptada ? textoPagosCorto() : "", pedido.calificacion ? "★" + pedido.calificacion.estrellas : ""].filter(Boolean).join(" · ");
   } else if (c && c.precio) {
     txt = [dinero(c.precio) + " · " + fechaCorta(c.fechaEntrega), pedido.cotizacionAceptada ? textoPagosCorto() : "", pedido.calificacion ? "★" + pedido.calificacion.estrellas : ""].filter(Boolean).join(" · ");
   } else {
@@ -342,12 +360,22 @@ function renderDetalle() {
   ui.detalle.appendChild(h("div", { class: "pp-d-ref" },
     pedido.productoImagen ? h("img", { src: pedido.productoImagen, alt: "", loading: "lazy" }) : null,
     h("div", {}, h("b", { text: pedido.productoNombre || "" }),
-      h("span", { text: "Artículo de referencia · desde " + dinero(pedido.precioDesde) + (pedido.tiempoElaboracionDias ? " · " + pedido.tiempoElaboracionDias + " días" : "") }))));
+      h("span", { text: esRenta() ? "Renta · " + dinero(pedido.renta.precioDia) + " por día" : "Artículo de referencia · desde " + dinero(pedido.precioDesde) + (pedido.tiempoElaboracionDias ? " · " + pedido.tiempoElaboracionDias + " días" : "") }))));
 
   const filas = [];
+  if (esRenta()) {
+    const r = pedido.renta;
+    filas.push(["Fechas", fechaCorta(r.desde) + " " + r.horaEntrega + " → " + fechaCorta(r.hasta) + " " + r.horaRecoleccion + " (" + r.dias + (r.dias === 1 ? " día)" : " días)")]);
+    filas.push(["Cantidad", String(r.cantidad)]);
+    filas.push(["Entrega", r.modo === "domicilio" ? "Se lleva y recoge en " + r.direccion : "El cliente pasa por ella y la devuelve"]);
+    const dep = c && c.deposito !== undefined ? c.deposito : r.deposito;
+    if (dep > 0) filas.push(["Depósito", dinero(dep) + " (se devuelve si regresa todo bien)"]);
+    const dv = pedido.devolucion;
+    if (dv && dv.deposito > 0) filas.push(["Depósito devuelto", dinero(dv.devuelto) + (dv.descuento ? " · descontado " + dinero(dv.descuento) + ": " + dv.motivo : " (completo)")]);
+  }
   if (c && c.precio) {
     filas.push([pedido.cotizacionAceptada ? "Acordado" : "Cotización", dinero(c.precio)]);
-    filas.push(["Entrega", fechaCorta(c.fechaEntrega)]);
+    if (!esRenta()) filas.push(["Entrega", fechaCorta(c.fechaEntrega)]);
     if (c.anticipo > 0) filas.push(["Anticipo", dinero(c.anticipo)]);
     if (c.anticipo > 0 && c.precio > c.anticipo) filas.push(["Al entregar", dinero(c.precio - c.anticipo)]);
     if (c.detalles) filas.push(["Incluye", c.detalles]);
@@ -359,7 +387,7 @@ function renderDetalle() {
     filas.push(["Pago " + nom.toLowerCase(), dinero(pg.monto) + " · " + (ESTADO_PAGO_FILA[pg.estado] || pg.estado), pg.comprobante]);
   });
   if (pedido.calificacion) filas.push([identidad.rol === "comprador" ? "Tu calificación" : "Calificación del cliente", estrellasTxt(pedido.calificacion.estrellas) + (pedido.calificacion.comentario ? " · " + pedido.calificacion.comentario : "")]);
-  else if (e === "entregado" && identidad.rol === "vendedor") filas.push(["Calificación", "Aún no hay calificación del cliente"]);
+  else if (TERMINADO.includes(e) && identidad.rol === "vendedor") filas.push(["Calificación", "Aún no hay calificación del cliente"]);
 
   const dl = h("dl", { class: "pp-d-dl" });
   filas.forEach(([k, v, thumb]) => {
@@ -367,6 +395,7 @@ function renderDetalle() {
     dl.appendChild(h("dd", {}, v, thumb ? miniaturaComprobante(thumb) : null));
   });
   ui.detalle.appendChild(dl);
+  if (esRenta() && (pedido.contrato || pedido.cotizacion)) ui.detalle.appendChild(h("button", { class: "pp-btn sm", type: "button", text: pedido.contrato ? "📄 Ver contrato firmado" : "📄 Ver contrato", onclick: () => abrirContrato() }));
   if (pedido.bloqueadoPor === identidad.rol) {
     ui.detalle.appendChild(h("p", { class: "pp-hint", text: "Bloqueaste a esta persona: no podrá abrir pedidos nuevos contigo. Puedes quitarlo desde ⋯." }));
   }
@@ -382,7 +411,7 @@ function miniaturaComprobante(url) {
 // Cada hecho importante (aceptar, pagar, empezar, entregar…) se muestra como un mensaje de quien lo hizo, alineado a su lado.
 const ICONO_EVENTO = {
   cotizacion_aceptada: "✅", cotizacion_rechazada: "↩️", solicitud_cancelada: "🚫", pedido_rechazado: "🚫", pedido_cancelado: "🚫",
-  elaboracion: "🔨", listo: "📦", entregado: "🎉", calificacion: "⭐", pago_confirmado: "✅", pago_no_recibido: "⚠️",
+  elaboracion: "🔨", listo: "📦", entregado: "🎉", en_renta: "🎪", devuelto: "↩️", calificacion: "⭐", pago_confirmado: "✅", pago_no_recibido: "⚠️",
   pedido_enviado: "🛍️", stock_confirmado: "✅", sin_stock: "🚫", recoger: "🕒" // chat de pedidos normales (pedidos-api eventoChatVenta)
 };
 
@@ -402,7 +431,7 @@ function chipCotizacion(m, e) {
   return h("div", { class: "pp-chip cot" + (vigente ? " vivo" : "") + (m.autorUid === identidad.authUid ? " me" : "") },
     h("div", { class: "l1" },
       h("b", { text: "💲 " + dinero(c.precio) + (c.version > 1 ? " (#" + c.version + ")" : "") }),
-      h("span", { text: " · entrega " + fechaCorta(c.fechaEntrega) + (c.anticipo > 0 ? " · anticipo " + dinero(c.anticipo) : "") }),
+      h("span", { text: (esRenta() ? " · renta " + fechaCorta(pedido.renta.desde) + (c.deposito > 0 ? " · depósito " + dinero(c.deposito) : "") : " · entrega " + fechaCorta(c.fechaEntrega)) + (c.anticipo > 0 ? " · anticipo " + dinero(c.anticipo) : "") }),
       h("em", { text: etiqueta })),
     m.contenido ? h("div", { class: "l2", text: m.contenido }) : null);
 }
@@ -483,10 +512,11 @@ function configBarra(e, vend) {
   if (e === "rechazado") return { info: "El vendedor no pudo tomar este pedido.", tono: "bad", botones: [] };
   if (e === "cancelado") return { info: "Este pedido fue cancelado.", tono: "bad", botones: [] };
 
-  if (e === "entregado") {
+  if (TERMINADO.includes(e)) {
     if (pedido.calificacion) return null;
     return vend ? null : { nodo: nodoCalificar() };
   }
+  if (esRenta()) { const cfg = configRenta(e, vend, cot, a, r); if (cfg !== undefined) return cfg; }
 
   if (vend) {
     if (e === "solicitado") return { info: "Esperando tu cotización", botones: [["Enviar cotización", "primary", abrirCotizar]] };
@@ -524,6 +554,78 @@ function configBarra(e, vend) {
     return { info: "Listo para entregar", botones: [] };
   }
   return null;
+}
+
+// Pasos propios de la renta; undefined = el paso es igual al de un pedido personalizado (pagos del anticipo y del restante).
+function configRenta(e, vend, cot, a, r) {
+  const rn = pedido.renta, regreso = fechaCorta(rn.hasta) + " a las " + rn.horaRecoleccion;
+  if (vend) {
+    if (e === "solicitado") return { info: "Revisa fechas y cantidad, y confirma la renta", botones: [["Confirmar renta", "primary", abrirCotizar]] };
+    if (e === "cotizado") return { info: "Confirmada en " + dinero(cot && cot.precio) + " · esperando que el cliente acepte el contrato", botones: [["Cambiar", "", abrirCotizar]] };
+    if (e === "aceptado" && !(a && PAGANDO.includes(a.estado))) return { info: "Contrato firmado" + (a ? " · anticipo confirmado" : ""), botones: [["Preparar renta", "primary", (b) => cambiarEstado("en_elaboracion", b)]] };
+    if (e === "en_elaboracion") return { info: "Preparando la renta", botones: [["Marcar lista", "primary", (b) => cambiarEstado("listo", b)]] };
+    if (e === "listo" && !(r && PAGANDO.includes(r.estado))) return { info: "Lista para entregar", botones: [["Ya la entregué", "primary", (b) => cambiarEstado("en_renta", b)]] };
+    if (e === "en_renta") return { info: "En renta · regresa el " + regreso, botones: [["Me la devolvieron", "primary", abrirDevolucion]] };
+    return undefined;
+  }
+  if (e === "solicitado") return { info: "Esperando que el vendedor confirme tu renta", botones: [] };
+  if (e === "cotizado" && cot) return { info: "Renta confirmada: " + dinero(cot.precio) + (cot.deposito > 0 ? " · depósito " + dinero(cot.deposito) : "") + (cot.anticipo > 0 ? " · anticipo " + dinero(cot.anticipo) : ""),
+    botones: [["Ver contrato y aceptar", "primary", () => abrirContrato()], ["Rechazar", "", (b) => responderCotizacion("rechazar", cot, b)]] };
+  if (e === "en_elaboracion") return { info: "El vendedor está preparando tu renta", botones: [] };
+  if (e === "en_renta") return { info: "Tienes la renta · devuélvela el " + regreso, botones: [] };
+  return undefined;
+}
+
+// Contrato: vista previa (y aceptarlo con "Acepto" + nombre completo) o la copia firmada. "Descargar" abre la impresión (guardar como PDF).
+async function abrirContrato() {
+  const r = await hacer(null, "contratoRenta");
+  if (!r) return;
+  const texto = h("pre", { class: "pp-contrato", text: r.texto });
+  const puedeFirmar = !r.firmado && identidad.rol === "comprador" && estadoEfectivo() === "cotizado" && pedido.cotizacion;
+  const acepto = h("input", { type: "checkbox", id: "pp-acepto" });
+  const nombre = h("input", { type: "text", maxlength: "80", autocomplete: "name", placeholder: "Nombre y apellido" });
+  const err = h("div", { class: "err" });
+  const cuerpo = h("div", {}, texto, puedeFirmar ? h("div", {},
+    h("label", { class: "pp-acepto" }, acepto, " Leí el contrato y acepto sus reglas"),
+    h("label", { text: "Tu nombre completo (es tu firma)" }), nombre, err) : null);
+  const descargar = () => {
+    const w = window.open("", "_blank");
+    if (!w) { toast("Permite las ventanas emergentes para descargarlo"); return; }
+    w.document.title = "Contrato de renta " + pedido.id;
+    w.document.body.appendChild(Object.assign(w.document.createElement("pre"), { textContent: r.texto, style: "white-space:pre-wrap;font:14px/1.5 system-ui,sans-serif;max-width:720px;margin:24px auto" }));
+    w.print();
+  };
+  const botones = [["Cerrar", "", (b, cerrar) => cerrar()], ["Descargar", "", () => descargar()]];
+  if (puedeFirmar) botones.push(["Aceptar contrato", "primary", async (b, cerrar) => {
+    err.textContent = "";
+    if (!acepto.checked) { err.textContent = "Marca la casilla para aceptar."; return; }
+    if (nombre.value.trim().split(/\s+/).length < 2) { err.textContent = "Escribe tu nombre completo (nombre y apellido)."; return; }
+    const res = await hacer(b, "responderCotizacion", { accion: "aceptar", version: pedido.cotizacion.version, acepto: "1", nombreCompleto: nombre.value.trim() });
+    if (res) { cerrar(); toast("Contrato aceptado. ¡Tu renta quedó apartada!"); }
+  }]);
+  ventana(r.firmado ? "Contrato firmado" : "Contrato de renta", cuerpo, botones);
+}
+
+// Fin de la renta: cuánto del depósito se devuelve y, si se descuenta algo, por qué.
+function abrirDevolucion() {
+  const dep = Number((pedido.cotizacionAceptada || {}).deposito) || 0;
+  const devuelto = h("input", { type: "number", inputmode: "decimal", min: "0", max: String(dep), step: "0.01", value: String(dep) });
+  const motivo = h("textarea", { maxlength: "300", placeholder: "Solo si descuentas algo: qué pasó (daño, faltante, retraso…)" });
+  const err = h("div", { class: "err" });
+  const cuerpo = dep > 0
+    ? h("div", {}, h("p", { class: "pp-hint", text: "Depósito en garantía: " + dinero(dep) + ". Escribe cuánto le devuelves; si descuentas algo, explica por qué (se queda en el chat)." }),
+      h("label", { text: "Depósito que devuelves (MXN)" }), devuelto, h("label", { text: "Motivo del descuento" }), motivo, err)
+    : h("div", {}, h("p", { class: "pp-hint", text: "¿Confirmas que te devolvieron todo lo rentado? La renta quedará terminada." }), err);
+  ventana("Me la devolvieron", cuerpo, [
+    ["Volver", "", (b, cerrar) => cerrar()],
+    ["Terminar renta", "primary", async (b, cerrar) => {
+      const v = dep > 0 ? Number(devuelto.value) : 0;
+      if (dep > 0 && !(v >= 0 && v <= dep)) { err.textContent = "Escribe un monto de $0 a " + dinero(dep) + "."; return; }
+      if (v < dep && motivo.value.trim().length < 3) { err.textContent = "Explica por qué descuentas parte del depósito."; return; }
+      const res = await hacer(b, "cambiarEstadoPedido", { estado: "devuelto", depositoDevuelto: dep > 0 ? v : "", motivo: motivo.value.trim() });
+      if (res) cerrar();
+    }]
+  ]);
 }
 
 function nodoCalificar() {
@@ -674,7 +776,7 @@ function noRecibido(tipo) {
 }
 
 async function confirmarRecibido(tipo, metodo, btn) {
-  const nom = tipo === "anticipo" ? "el anticipo" : "el restante (el pedido pasará a entregado)";
+  const nom = tipo === "anticipo" ? "el anticipo" : esRenta() ? "el restante (la renta pasará a «en renta»)" : "el restante (el pedido pasará a entregado)";
   const via = metodo === "efectivo" ? "en efectivo" : "por transferencia";
   if (!(await confirmar("Confirmar pago", "¿Confirmas que recibiste " + nom + " " + via + "?", "Sí, lo recibí", "primary"))) return;
   await hacer(btn, "confirmarPago", { tipo, accion: "confirmar", metodo });
@@ -760,7 +862,32 @@ function ventana(titulo, contenido, botones) {
   return ov;
 }
 
+function abrirConfirmarRenta() {
+  const previa = pedido.cotizacion || {}, rn = pedido.renta;
+  const precio = h("input", { type: "number", inputmode: "decimal", min: "1", step: "0.01", value: previa.precio || pedido.precioDesde || "" });
+  const anticipo = h("input", { type: "number", inputmode: "decimal", min: "0", step: "0.01", placeholder: "Opcional", value: previa.anticipo || "" });
+  const deposito = h("input", { type: "number", inputmode: "decimal", min: "0", step: "0.01", value: previa.deposito !== undefined ? previa.deposito : rn.deposito || 0 });
+  const detalles = h("textarea", { maxlength: "600", placeholder: "Opcional: algo que deba saber el cliente (se agrega al contrato)" });
+  detalles.value = previa.detalles || "";
+  const err = h("div", { class: "err" });
+  ventana("Confirmar renta", h("div", {},
+    h("p", { class: "pp-hint", text: rn.cantidad + " × " + dinero(rn.precioDia) + " × " + rn.dias + (rn.dias === 1 ? " día" : " días") + (rn.flete ? " + flete " + dinero(rn.flete) : "") + " = " + dinero(pedido.precioDesde) + ". Puedes ajustarlo." }),
+    h("label", { text: "Precio total (MXN)" }), precio, h("label", { text: "Anticipo para apartar (MXN)" }), anticipo,
+    h("label", { text: "Depósito en garantía (MXN)" }), deposito, h("label", { text: "Notas" }), detalles, err), [
+    ["Cancelar", "", (b, cerrar) => cerrar()],
+    ["Confirmar", "primary", async (b, cerrar) => {
+      const p = Number(precio.value), a = Number(anticipo.value || 0), d = Number(deposito.value || 0);
+      if (!p || p <= 0) { err.textContent = "Escribe el precio total."; return; }
+      if (a < 0 || a > p) { err.textContent = "El anticipo no puede ser mayor al precio."; return; }
+      if (d < 0) { err.textContent = "El depósito no puede ser negativo."; return; }
+      const r = await hacer(b, "cotizarPedido", { precio: p, anticipo: a, deposito: d, detalles: detalles.value.trim() });
+      if (r) { cerrar(); if (r.aviso) setTimeout(() => toast(r.aviso), 300); }
+    }]
+  ]);
+}
+
 function abrirCotizar() {
+  if (esRenta()) return abrirConfirmarRenta();
   const dias = Number(pedido.tiempoElaboracionDias) || 7;
   const sug = new Date(Date.now() + dias * 86400000);
   const iso = (d) => d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
@@ -839,7 +966,9 @@ async function responderCotizacion(accion, c, btn) {
 }
 
 async function cambiarEstado(estado, btn) {
-  const txt = { en_elaboracion: "¿Empiezas a elaborar este pedido?", listo: "¿Tu pedido ya está listo para entregar?", entregado: "¿Confirmas que el pedido ya fue entregado?" }[estado];
+  const txt = (esRenta()
+    ? { en_elaboracion: "¿Empiezas a preparar esta renta?", listo: "¿La renta ya está lista para entregar?", en_renta: "¿Confirmas que ya entregaste lo rentado al cliente?" }
+    : { en_elaboracion: "¿Empiezas a elaborar este pedido?", listo: "¿Tu pedido ya está listo para entregar?", entregado: "¿Confirmas que el pedido ya fue entregado?" })[estado];
   if (!(await confirmar("Confirmar", txt, "Sí", "primary"))) return;
   await hacer(btn, "cambiarEstadoPedido", { estado });
 }

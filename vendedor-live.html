@@ -1136,7 +1136,7 @@ async function fetchAllProducts() {
       estado: 'aprobado',
       limit: 200
     }, 'GET');
-    if (resp.ok && resp.products) allProducts = resp.products;
+    if (resp.ok && resp.products) allProducts = resp.products.filter(p => p.tipoVenta !== 'renta'); // lo de renta se aparta por fechas, no se vende en vivo
   } catch (err) {
     // se reintenta la próxima vez que se necesite
   }

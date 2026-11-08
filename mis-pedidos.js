@@ -15,13 +15,13 @@ const params = new URLSearchParams(location.search);
 const FILTROS = [
   ["todos", "Todos", () => true],
   ["tuturno", "Tu turno", null],
-  ["proceso", "En proceso", (e) => ["aceptado", "en_elaboracion", "listo"].includes(e)],
-  ["entregados", "Entregados", (e) => e === "entregado"],
+  ["proceso", "En proceso", (e) => ["aceptado", "en_elaboracion", "listo", "en_renta"].includes(e)],
+  ["entregados", "Entregados", (e) => e === "entregado" || e === "devuelto"],
   ["cerrados", "Cerrados", (e) => ["rechazado", "cancelado", "expirado"].includes(e)]
 ];
 const TEXTO_ESTADO = {
   solicitado: "Esperando cotización", cotizado: "Cotización enviada", aceptado: "Aceptado",
-  en_elaboracion: "En elaboración", listo: "Listo", entregado: "Entregado",
+  en_elaboracion: "En elaboración", listo: "Listo", entregado: "Entregado", en_renta: "En renta", devuelto: "Renta terminada",
   rechazado: "Rechazada", cancelado: "Cancelado", expirado: "Expirada"
 };
 // Chats de pedidos normales (tipo "venta", ver pedido-chat.js): se listan junto a los personalizados.
@@ -135,7 +135,7 @@ function render() {
       esMiTurno(p, rolActual) ? h("span", { class: "turno", "aria-label": "Te toca responder" }) : null,
       p.productoImagen ? h("img", { src: p.productoImagen, alt: "", loading: "lazy" }) : h("div", { style: "width:54px;height:54px;border-radius:10px;background:var(--color-surface-3,#e5e7eb);flex-shrink:0" }),
       h("div", { class: "info" }, h("b", { text: p.productoNombre || "Pedido" }), h("small", { text: otro }), h("small", { text: ult ? quien + ult.texto : "" })),
-      h("div", { class: "meta" }, h("span", { class: "pp-badge" + clase, text: p.tipo === "venta" ? "Chat · " + (TEXTO_VENTA[p.estadoVenta] || "Pedido") : TEXTO_ESTADO[e] || e }), h("small", { text: fechaCorta(ms(p.actualizadoEn)) }))));
+      h("div", { class: "meta" }, h("span", { class: "pp-badge" + clase, text: p.tipo === "venta" ? "Chat · " + (TEXTO_VENTA[p.estadoVenta] || "Pedido") : (p.tipo === "renta" ? "Renta · " : "") + (TEXTO_ESTADO[e] || e) }), h("small", { text: fechaCorta(ms(p.actualizadoEn)) }))));
   });
   partes.push(cont);
   app.replaceChildren(...partes);
