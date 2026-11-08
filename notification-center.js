@@ -611,7 +611,7 @@ const PICKUP_HORAS = ['9:00 AM','10:00 AM','11:00 AM','12:00 PM','1:00 PM','2:00
       let urlEspecifica = '';
       try { if (n.url && new URL(n.url).search) urlEspecifica = n.url; } catch (_) {}
       let abrirBtn = urlEspecifica
-        ? `<a class="nc-maps-btn" href="${urlEspecifica}" target="_blank" rel="noopener" onclick="event.stopPropagation()">${Icon('link')} Abrir</a>`
+        ? `<a class="nc-maps-btn" href="${urlEspecifica}" ${urlEspecifica.startsWith(location.origin) ? '' : 'target="_blank" rel="noopener"'} onclick="event.stopPropagation()">${Icon('link')} Abrir</a>`
         : '';
       // El informe semanal siempre abre el informe (vendedor.html?informe=1), también las
       // notificaciones viejas cuya URL era solo vendedor.html y no mostraban ningún botón.
