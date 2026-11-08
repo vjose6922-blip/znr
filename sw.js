@@ -100,6 +100,10 @@ function getCacheStrategy(request) {
   // de Android). Con CACHE_FIRST se quedaba para siempre la primera copia y la app instalada
   // nunca recibía los colores nuevos.
   if (request.destination === 'manifest' || url.pathname.endsWith('/manifest.json')) return 'NETWORK_FIRST_FRESH';
+  // Música de historias: la lista siempre fresca (si no, se quedaba la primera copia vacía y no salía el botón 🎵);
+  // las canciones por red (el navegador pide pedazos con Range y esas respuestas no se pueden guardar).
+  if (url.pathname.endsWith('/musica/lista.json')) return 'NETWORK_FIRST_FRESH';
+  if (request.destination === 'audio' || url.pathname.includes('/musica/')) return 'NETWORK_ONLY';
   // La lista de ciudades pesa bastante y casi nunca cambia: se baja una vez y se actualiza en segundo plano
   // (al cambiarla, la versión nueva se ve en la siguiente visita). Sin esto se descargaría completa en cada página.
   if (/\/ciudades(-extra)?\.js$/.test(url.pathname)) return 'STALE_WHILE_REVALIDATE';
