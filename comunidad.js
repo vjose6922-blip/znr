@@ -866,7 +866,7 @@ function crearMiniCardComunidad(p, badgeHtml) {
       temporada: p.temporada || '', multicolor: p.multicolor === true || p.multicolor === 'true',
       Badge: p.badge || '', Imagen1: p.imagen1 || '', Imagen2: p.imagen2 || '', Imagen3: p.imagen3 || '',
       _comunidad: true, _vendedorNombre: p.vendedor_nombre || '', _vendedorUid: p.vendedor_uid || '',
-      _vendedorLogo: p.vendedor_logo || '', _vendedorPlan: p.vendedor_plan || '',
+      _vendedorLogo: p.vendedor_logo || '', _vendedorPlan: p.vendedor_plan || '', _vendedorNivel: p.vendedor_nivel || '', _vendedorPlanVence: p.vendedor_plan_vence || 0,
       _donado: !!p.donado, _beneficiarioId: p.beneficiario_id || '',
       precio_original: p.precio_original || 0, _montoMinimoEnvio: p.vendedor_monto_minimo_envio || 0,
     });
@@ -1228,7 +1228,7 @@ function handleInitialHashComunidad(intentos = 0) {
     _vendedorNombre: product.vendedor_nombre || '',
     _vendedorUid: product.vendedor_uid || '',
     _vendedorLogo: product.vendedor_logo || '',
-    _vendedorPlan: product.vendedor_plan || '',
+    _vendedorPlan: product.vendedor_plan || '', _vendedorNivel: product.vendedor_nivel || '', _vendedorPlanVence: product.vendedor_plan_vence || 0,
     _donado: product.donado === true || product.donado === 'TRUE' || product.donado === 'true',
     _beneficiarioId: product.beneficiario_id || '',
     precio_original: product.precio_original || 0,
@@ -1425,7 +1425,7 @@ ${califica_entrega ? `<div style="display:flex;align-items:center;gap:4px;font-s
 ${vendorName ? `<div style="font-size:11px;color:var(--color-text-muted,#888);margin-top:2px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:4px;">
 <span style="display:flex;align-items:center;gap:5px;">
   ${vendorAvatarHtml}
-  <a href="${(product.es_znr || product.vendedor_uid === 'znr_oficial') ? 'catalogo.html' : ('perfil-vendedor.html?vendedor=' + esc(product.vendedor_uid))}" style="color:var(--color-text-main);font-weight:600;text-decoration:none;cursor:pointer;hover:underline;">${esc(vendorName)}</a>
+  <a href="${(product.es_znr || product.vendedor_uid === 'znr_oficial') ? 'catalogo.html' : ('perfil-vendedor.html?vendedor=' + esc(product.vendedor_uid))}" style="color:var(--color-text-main);font-weight:600;text-decoration:none;cursor:pointer;hover:underline;">${esc(vendorName)}${window.znrInsignia ? window.znrInsignia(product.vendedor_nivel, product.vendedor_plan_vence) : ''}</a>
 </span>
 ${esDonativo && product.beneficiario_id ? `<button class="btn-ver-beneficiario" data-ben-id="${esc(safeString(product.beneficiario_id))}" style="background:none;border:none;padding:0;color:#f97316;font-weight:600;font-size:11px;cursor:pointer;text-decoration:underline;">Ver beneficiario</button>` : ''}
 </div>` : ''}
@@ -1487,7 +1487,7 @@ _comunidad:  true,
 _vendedorNombre: vendorName || '',
 _vendedorUid: product.vendedor_uid || '',
 _vendedorLogo: vendorLogo || '',
-_vendedorPlan: product.vendedor_plan || '',
+_vendedorPlan: product.vendedor_plan || '', _vendedorNivel: product.vendedor_nivel || '', _vendedorPlanVence: product.vendedor_plan_vence || 0,
 _donado: esDonativo,
 _beneficiarioId: product.beneficiario_id || '',
 precio_original: product.precio_original || 0,

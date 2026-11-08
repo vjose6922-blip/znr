@@ -1210,7 +1210,7 @@ const vendorAvatarHtml = (vendorPlan === 'plus' && vendorLogo)
 ? `<img src="${escapeAttr(vendorLogo)}" alt="" style="width:16px;height:16px;border-radius:50%;object-fit:cover;flex-shrink:0;" onerror="this.style.display='none'">`
 : `<span style="width:16px;height:16px;border-radius:50%;background:rgba(255,255,255,.2);font-size:8px;font-weight:800;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;">${escapeHtml(vendorInitials)}</span>`;
 const vendorPillHtml = esComunidad && vendorName
-? `<a href="perfil-vendedor.html?vendedor=${escapeAttr(vendorUid)}" class="im-vendor-pill">${vendorAvatarHtml}<span>${escapeHtml(vendorName)}</span></a>`
+? `<a href="perfil-vendedor.html?vendedor=${escapeAttr(vendorUid)}" class="im-vendor-pill">${vendorAvatarHtml}<span>${escapeHtml(vendorName)}${window.znrInsignia ? window.znrInsignia(p._vendedorNivel || p.vendedor_nivel, p._vendedorPlanVence || p.vendedor_plan_vence) : ''}</span></a>`
 : `<span class="im-vendor-pill im-vendor-pill-znr">Z&amp;R</span>`;
 const donationHtml = donado
 ? `<span class="im-donation-badge"> Donativo</span>${beneficiarioId && typeof window.openBeneficiarioModal === 'function' ? `<button class="im-ver-beneficiario-btn" data-ben-id="${escapeAttr(beneficiarioId)}"> Ver beneficiario</button>` : ''}`
@@ -1255,7 +1255,7 @@ function _renderMagazinePanel(modal) {
     _vendedorNombre: p.vendedor_nombre || p._vendedorNombre || '',
     _vendedorUid: p.vendedor_uid || p._vendedorUid || '',
     _vendedorLogo: p.vendedor_logo || p._vendedorLogo || '',
-    _vendedorPlan: p.vendedor_plan || p._vendedorPlan || '',
+    _vendedorPlan: p.vendedor_plan || p._vendedorPlan || '', _vendedorNivel: p.vendedor_nivel || '', _vendedorPlanVence: p.vendedor_plan_vence || 0,
     _donado: p.donado === true || p.donado === 'TRUE' || p.donado === 'true',
     _beneficiarioId: p.beneficiario_id || p._beneficiarioId || '',
     _precioOriginal: p.precio_original || p.PrecioOriginal || 0,

@@ -18,7 +18,7 @@
   const API = 'https://historias-api-1038143238323.us-central1.run.app';
   const SEG_IMAGEN = 5000;
   const REPORTADAS_KEY = 'znr_historias_reportadas';
-  const MOTIVOS = ['Contenido inapropiado', 'Violencia o desnudez', 'Spam o publicidad engañosa', 'Posible estafa', 'Otro motivo'];
+  const MOTIVOS = ['Contenido inapropiado', 'Violencia o desnudez', 'Spam o publicidad engañosa', 'Posible estafa', 'Usa música o contenido con derechos de autor', 'Otro motivo'];
 
   let el = null, cfg = {}, lista = [], idx = 0;
   let raf = 0, last = 0, elapsed = 0, video = null, pausado = false, abierto = false;
@@ -66,6 +66,8 @@
       .zhv-sheet button.m{display:block;width:100%;text-align:left;margin-bottom:8px;padding:11px 12px;border-radius:10px;border:1px solid rgba(128,128,128,.3);background:rgba(128,128,128,.08);color:inherit;font:600 .88rem inherit;font-family:inherit;cursor:pointer}
       .zhv-sheet button.c{display:block;width:100%;padding:10px;border:none;background:none;color:inherit;opacity:.7;font:700 .85rem inherit;font-family:inherit;cursor:pointer}
       .zhv-aviso{margin:0;padding:18px 0 6px;text-align:center;font-weight:700;font-size:.9rem}
+      .zhv-tags{position:absolute;z-index:4;pointer-events:none}
+      .zhv-tag{position:absolute;pointer-events:auto;background:none;border:none;cursor:pointer;border-radius:999px;-webkit-tap-highlight-color:rgba(255,255,255,.25)}
     `;
     document.head.appendChild(st);
   }
@@ -80,6 +82,7 @@
       <div class="zhv-box">
         <div class="zhv-bars" id="zhv-bars"></div>
         <div class="zhv-media" id="zhv-media"></div>
+        <div class="zhv-tags" id="zhv-tags"></div>
         <button type="button" class="zhv-nav prev" id="zhv-prev" aria-label="Anterior"></button>
         <button type="button" class="zhv-nav next" id="zhv-next" aria-label="Siguiente"></button>
         <div class="zhv-head">
@@ -102,12 +105,14 @@
       else if (e.key === 'ArrowLeft') anterior();
     });
     document.addEventListener('visibilitychange', () => { document.hidden ? pausar() : reanudar(); });
+    window.addEventListener('resize', () => { if (abierto) etiquetas(lista[idx]); });
   }
 
   function cabecera() {
     const inicial = esc((cfg.nombre || '?').trim().charAt(0).toUpperCase());
     const av = `<span class="zhv-av">${inicial}${cfg.logo ? `<img src="${esc(cfg.logo)}" alt="" referrerpolicy="no-referrer" onerror="this.remove()">` : ''}</span>`;
-    const txt = `<span style="min-width:0"><b>${esc(cfg.nombre || 'Vendedor')}</b><small id="zhv-time"></small></span>`;
+    const nivel = cfg.nivel || (lista[0] && lista[0].nivel) || '';
+    const txt = `<span style="min-width:0"><b>${esc(cfg.nombre || 'Vendedor')}${window.znrInsignia ? window.znrInsignia(nivel) : ''}</b><small id="zhv-time"></small></span>`;
     const cont = el.querySelector('#zhv-user');
     const nuevo = document.createElement(cfg.perfilUrl ? 'a' : 'span');
     nuevo.className = 'zhv-user'; nuevo.id = 'zhv-user';
@@ -139,7 +144,7 @@
   function cerrar() {
     detener();
     abierto = false;
-    if (el) { el.hidden = true; el.querySelector('#zhv-media').innerHTML = ''; el.querySelector('#zhv-sheet').hidden = true; }
+    if (el) { el.hidden = true; el.querySelector('#zhv-media').innerHTML = ''; el.querySelector('#zhv-tags').innerHTML = ''; el.querySelector('#zhv-sheet').hidden = true; }
     document.body.style.overflow = '';
     if (typeof cfg.onCerrar === 'function') cfg.onCerrar();
   }
@@ -164,7 +169,27 @@
     } else {
       media.innerHTML = `<img src="${esc(h.url)}" alt="">`;
     }
+    etiquetas(h);
     raf = requestAnimationFrame(tick);
+  }
+
+  // Las etiquetas vienen en proporciones del cuadro 9:16 de la historia; el cuadro se ve centrado ("contain") en la caja.
+  function etiquetas(h) {
+    const capa = el.querySelector('#zhv-tags'), caja = el.querySelector('#zhv-media').getBoundingClientRect(), box = el.querySelector('.zhv-box').getBoundingClientRect();
+    const lista_ = h.etiquetas || [];
+    capa.innerHTML = '';
+    if (!lista_.length) return;
+    const cw = Math.min(caja.width, caja.height * 9 / 16), ch = cw * 16 / 9;
+    Object.assign(capa.style, { left: (caja.left - box.left + (caja.width - cw) / 2) + 'px', top: (caja.top - box.top + (caja.height - ch) / 2) + 'px', width: cw + 'px', height: ch + 'px' });
+    lista_.forEach((e) => {
+      const b = document.createElement('a');
+      b.className = 'zhv-tag';
+      b.href = e.tipo === 'mencion' ? 'perfil-vendedor.html?vendedor=' + encodeURIComponent(e.uid)
+        : 'perfil-vendedor.html?vendedor=' + encodeURIComponent(h.vendedorUid || '') + '#producto-' + encodeURIComponent(e.productoId);
+      b.setAttribute('aria-label', e.tipo === 'mencion' ? 'Ver el perfil de ' + (e.nombre || 'este vendedor') : 'Ver este producto');
+      Object.assign(b.style, { left: e.x * 100 + '%', top: e.y * 100 + '%', width: e.w * 100 + '%', height: e.h * 100 + '%' });
+      capa.appendChild(b);
+    });
   }
 
   function tick(ts) {

@@ -256,3 +256,16 @@ function Icon(name, opts) {
 window.ZR_ICONS = ZR_ICONS;
 window.ZR_ICON_NAMES = Object.keys(ZR_ICONS);
 window.Icon = Icon;
+
+// Insignia Plus / Pro junto al nombre del vendedor. La dibuja ZNR (SVG, no un carácter que alguien pueda escribir
+// en su nombre) y solo si el plan está vigente. nivel: 'plus' | 'pro'; vence: ms o ISO (vacío = no se revisa).
+// Devuelve HTML ('' si no aplica). Es más pequeña que el texto (0.85em) y de distinto color por plan.
+window.znrInsignia = function (nivel, vence) {
+  const n = nivel === 'pro' ? 'pro' : nivel === 'plus' ? 'plus' : '';
+  const t = typeof vence === 'number' ? vence : Date.parse(vence || '');
+  if (!n || (vence && t && t < Date.now())) return '';
+  const color = n === 'pro' ? '#d97706' : '#7c3aed', nombre = n === 'pro' ? 'Vendedor Pro' : 'Vendedor Plus';
+  return '<svg class="znr-insignia" width="0.85em" height="0.85em" viewBox="0 0 24 24" role="img" aria-label="' + nombre + '" style="vertical-align:-0.1em;margin-left:0.25em;flex-shrink:0">'
+    + '<title>' + nombre + '</title><path fill="' + color + '" d="M12 1.5l2.6 1.9 3.2-.2.9 3.1 2.6 1.9-1.1 3 1.1 3-2.6 1.9-.9 3.1-3.2-.2L12 22.5l-2.6-1.9-3.2.2-.9-3.1L2.7 15.8l1.1-3-1.1-3 2.6-1.9.9-3.1 3.2.2z"/>'
+    + '<path fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" d="M7.5 12.3l3 3 6-6.3"/></svg>';
+};

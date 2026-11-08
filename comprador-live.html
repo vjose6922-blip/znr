@@ -1297,7 +1297,7 @@ function renderLive() {
         <span class="viewer-badge">${Icon('eye')} <span id="viewer-count">0</span></span>
         <h1>${esc(sesion.titulo)}</h1>
         ${sesion.descripcion ? `<p class="desc">${esc(sesion.descripcion)}</p>` : ''}
-        <p class="vendor">Por ${esc(sesion.vendedor_nombre)}</p>
+        <p class="vendor">Por ${esc(sesion.vendedor_nombre)}${window.znrInsignia ? window.znrInsignia(sesion.vendedor_nivel, sesion.vendedor_plan_vence) : ''}</p>
       </div>
       <div id="producto-slot"></div>
       <div class="chat-section">

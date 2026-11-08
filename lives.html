@@ -150,7 +150,7 @@ const cuando = (iso) => new Date(iso).toLocaleString('es-MX', { weekday: 'short'
 const plural = (n, a, b) => `${n} ${n === 1 ? a : b}`;
 
 const thumb = (l, extra) => `<div class="thumb-wrap"><div class="thumb-placeholder">${Icon('tv', { size: 36 })}</div>${l.miniatura_url ? `<img src="${esc(l.miniatura_url)}" alt="" loading="lazy" onerror="this.remove()">` : ''}${extra}</div>`;
-const info = (l, extra = '') => `<div class="info"><h2>${esc(l.titulo)}</h2><p class="vendor">Por ${esc(l.vendedor_nombre)}</p>${extra}</div>`;
+const info = (l, extra = '') => `<div class="info"><h2>${esc(l.titulo)}</h2><p class="vendor">Por ${esc(l.vendedor_nombre)}${window.znrInsignia ? window.znrInsignia(l.vendedor_nivel, l.vendedor_plan_vence) : ''}</p>${extra}</div>`;
 
 const cardVivo = (l) => `<a class="live-card" href="comprador-live.html?id=${esc(l.id)}">${thumb(l,
   `<span class="status-badge"><span class="status-dot"></span> EN VIVO</span><span class="viewer-mini" data-viewers="${esc(l.id)}">${Icon('eye', { size: 14 })} <span class="n">${conteos[l.id] || 0}</span></span>`)}${info(l)}</a>`;
