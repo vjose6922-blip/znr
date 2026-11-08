@@ -52,6 +52,7 @@
     plus_cobro_fallido:     { grupo: 'cuenta',  icono: Icon('credit-card') },
     plus_recordatorio:      { grupo: 'cuenta',  icono: Icon('star') },
     tips_bienvenida:        { grupo: 'cuenta',  icono: Icon('lightbulb') },
+    historia_mencion:       { grupo: 'cuenta',  icono: Icon('bell') },
     // Ya caían en Pedidos (el grupo por defecto), pero sin icono propio
     codigo_entrega:         { grupo: 'conversaciones', icono: Icon('lock') },
     devolucion:             { grupo: 'conversaciones', icono: Icon('refresh') },

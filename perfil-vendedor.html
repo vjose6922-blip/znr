@@ -1224,7 +1224,7 @@ const infoBits = [
           <div class="profile-info">
 
             <div class="profile-name-row">
-             <h1 class="profile-name">${esc(v.nombre || 'Vendedor')}</h1>
+             <h1 class="profile-name">${esc(v.nombre || 'Vendedor')}${window.znrInsignia ? window.znrInsignia(v.planNivel, v.planVence) : ''}</h1>
               ${planBadgeHtml}
               ${confiableBadgeHtml}
             </div>
@@ -1654,7 +1654,7 @@ Badge: p.badge || '',
                 _vendedorNombre: v.nombre || '',
                 _vendedorUid: getVendorUid() || '',
                 _vendedorLogo: v.logo || '',
-                _vendedorPlan: v.plan || '',
+                _vendedorPlan: v.plan || '', _vendedorNivel: v.planNivel || '', _vendedorPlanVence: v.planVence || '',
                 _donado: esDonado,
                 _beneficiarioId: p.beneficiario_id || '',
               };
@@ -1817,7 +1817,7 @@ Badge: p.badge || '',
             _vendedorNombre: v.nombre || '',
             _vendedorUid: getVendorUid() || '',
             _vendedorLogo: v.logo || '',
-            _vendedorPlan: v.plan || '',
+            _vendedorPlan: v.plan || '', _vendedorNivel: v.planNivel || '', _vendedorPlanVence: v.planVence || '',
             _donado: esDonado,
             _beneficiarioId: p.beneficiario_id || '',
           });

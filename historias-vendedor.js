@@ -6,19 +6,16 @@
  * eliminar). Antes de publicar SIEMPRE se muestra un modal de confirmación
  * con la vista previa, para no subir la imagen equivocada.
  *
- * Reglas (las valida historias-api): máx. 3 activas a la vez, solo 1 video
- * (~4 s), duran 24 h y luego se borran para siempre.
+ * Reglas (las valida historias-api): solo vendedores Plus y Pro. Plus: 3 activas (1 video); Pro: 6 (3 videos).
+ * Videos de hasta 10 s (se recortan en el editor, historias-editor.js). Duran 24 h y luego se borran para siempre.
  */
 (function () {
   'use strict';
 
   const API = 'https://historias-api-1038143238323.us-central1.run.app';
-  const MAX_HISTORIAS = 3;
-  const MAX_VIDEO_SEG = 5;                  // "~4 segundos" + margen
   const MAX_VIDEO_BYTES = 6 * 1024 * 1024;  // mismo tope que el servidor
-  const IMG_LADO_MAX = 1080;
 
-  let cupo = { usadas: 0, max: MAX_HISTORIAS, videoUsado: false };
+  let cupo = { usadas: 0, max: 0, videos: 0, maxVideos: 0, nivel: null }; // nivel null = aún no se sabe
   let historias = [];          // activas, de la más nueva a la más vieja
   let ocupado = false;
   let prevUrl = null;          // URL temporal de la vista previa (se libera al cerrar)
@@ -88,11 +85,16 @@
           <strong>Cómo funcionan</strong>
           <ul>
             <li>Se ven <b>24 horas</b> en Actividad reciente y en tu perfil. Después se borran para siempre.</li>
-            <li>Máximo <b>3 a la vez</b>, y solo una puede ser un <b>video corto</b> (~4 segundos).</li>
-            <li>No se pueden editar: si te equivocas, elimínala y sube otra.</li>
+            <li><b>Plus:</b> 3 a la vez (1 video). <b>Pro:</b> 6 a la vez (3 videos). Videos de hasta <b>10 segundos</b>: si el tuyo es más largo, eliges qué parte usar.</li>
+            <li>Antes de publicar puedes agregar texto, emojis, filtros, música, etiquetar a otros vendedores (@) y uno de tus productos.</li>
+            <li>Ya publicada no se puede cambiar: si te equivocas, elimínala y sube otra.</li>
           </ul>
         </div>
         <p class="zhm-cupo" id="zhm-cupo"></p>
+        <div class="zhm-info" id="zhm-plus" hidden style="margin-top:10px;background:rgba(217,119,6,.08);border-color:rgba(217,119,6,.35)">
+          <strong>Las historias son para vendedores Plus y Pro</strong>
+          Activa tu plan para publicar historias y aparecer en Actividad reciente. <a href="plan-plus.html" style="font-weight:700">Ver planes</a>
+        </div>
         <input type="file" id="zhm-file" accept="image/*,video/mp4,video/quicktime,video/webm" hidden>
         <button type="button" class="zhm-main" id="zhm-subir">${ico('camera', 18)} Subir foto o video</button>
         <p class="zhm-msg" id="zhm-msg" role="status"></p>
@@ -158,7 +160,7 @@
     try {
       const r = await llamar({ action: 'misHistorias' });
       if (!r.ok) throw new Error(r.error || 'Error');
-      cupo = r.cupo; historias = r.historias;
+      cupo = r.cupo || cupo; historias = r.historias || [];
       pintar();
     } catch (e) {
       msg(e.message || 'No se pudieron cargar tus historias.', 'error');
@@ -171,9 +173,12 @@
   }
 
   function pintar() {
-    $('zhm-cupo').textContent = `Activas: ${cupo.usadas}/${cupo.max} · Video: ${cupo.videoUsado ? 1 : 0}/1`;
-    const lleno = cupo.usadas >= cupo.max;
-    $('zhm-subir').disabled = lleno || ocupado;
+    const sinPlan = cupo.nivel === '';
+    $('zhm-plus').hidden = !sinPlan;
+    $('zhm-subir').style.display = sinPlan ? 'none' : ''; // .zhm-main es display:flex: el atributo hidden no lo oculta
+    $('zhm-cupo').textContent = cupo.nivel ? `Plan ${cupo.nivel === 'pro' ? 'Pro' : 'Plus'} · Activas: ${cupo.usadas}/${cupo.max} · Videos: ${cupo.videos || 0}/${cupo.maxVideos}` : '';
+    const lleno = !!cupo.nivel && cupo.usadas >= cupo.max;
+    $('zhm-subir').disabled = lleno || ocupado || cupo.nivel === null;
     if (lleno && !$('zhm-msg').textContent) msg(`Ya tienes ${cupo.max} historias activas. Se libera un espacio al cumplir 24 horas o si eliminas una.`);
     $('zhm-grid').innerHTML = historias.length ? historias.map((h, i) => `
       <div class="zhm-item" data-ver="${i}" role="button" tabindex="0" aria-label="Ver historia">
@@ -194,7 +199,7 @@
     const orden = historias.slice().reverse();
     window.znrHistoriasVisor.abrir(orden, {
       indice: orden.findIndex(h => h.id === historias[i].id),
-      nombre: s.nombre, logo: s.logo, reportar: false
+      nombre: s.nombre, logo: s.logo, nivel: cupo.nivel, reportar: false
     });
   }
 
@@ -249,78 +254,46 @@
     });
   }
 
-  function comprimirImagen(file) {
-    return new Promise((resolve, reject) => {
-      const url = URL.createObjectURL(file);
-      const img = new Image();
-      img.onload = () => {
-        URL.revokeObjectURL(url);
-        let { width: w, height: h } = img;
-        const k = Math.min(1, IMG_LADO_MAX / Math.max(w, h));
-        w = Math.round(w * k); h = Math.round(h * k);
-        const c = document.createElement('canvas');
-        c.width = w; c.height = h;
-        c.getContext('2d').drawImage(img, 0, 0, w, h);
-        const mime = c.toDataURL('image/webp').startsWith('data:image/webp') ? 'image/webp' : 'image/jpeg';
-        c.toBlob(b => b ? resolve(b) : reject(new Error('No se pudo procesar la imagen.')), mime, 0.85);
-      };
-      img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('No se pudo leer la imagen.')); };
-      img.src = url;
-    });
-  }
-
-  function duracionVideo(file) {
-    return new Promise((resolve, reject) => {
-      const v = document.createElement('video');
-      const url = URL.createObjectURL(file);
-      v.preload = 'metadata';
-      v.onloadedmetadata = () => { URL.revokeObjectURL(url); resolve(v.duration); };
-      v.onerror = () => { URL.revokeObjectURL(url); reject(new Error('No se pudo leer el video.')); };
-      v.src = url;
-    });
-  }
-
-  /** Valida el archivo elegido y abre la confirmación con vista previa. */
+  /** Abre el editor con el archivo elegido y, al terminar, la confirmación con la vista previa del resultado. */
   async function onArchivo(file) {
     if (ocupado) return;
     msg('');
     const esVideo = file.type.startsWith('video/');
-    if (!esVideo && !file.type.startsWith('image/')) { msg('Elige una foto o un video corto.', 'error'); return; }
+    if (!esVideo && !file.type.startsWith('image/')) { msg('Elige una foto o un video.', 'error'); return; }
     if (cupo.usadas >= cupo.max) { msg(`Ya tienes ${cupo.max} historias activas.`, 'error'); return; }
-    if (esVideo && cupo.videoUsado) { msg('Solo puedes tener un video activo. Sube una foto o elimina tu video.', 'error'); return; }
+    if (esVideo && (cupo.videos || 0) >= cupo.maxVideos) { msg(cupo.maxVideos === 1 ? 'Solo puedes tener un video activo. Sube una foto o elimina tu video.' : `Ya tienes ${cupo.maxVideos} videos activos. Sube una foto o elimina un video.`, 'error'); return; }
+    if (!window.znrEditorHistoria) { msg('No se pudo abrir el editor. Recarga la página.', 'error'); return; }
 
-    let seg = 0;
-    try {
-      if (esVideo) {
-        seg = await duracionVideo(file);
-        if (!isFinite(seg) || seg > MAX_VIDEO_SEG) throw new Error(`El video debe durar unos 4 segundos (máx. ${MAX_VIDEO_SEG} s).`);
-        if (file.size > MAX_VIDEO_BYTES) throw new Error('El video pesa más de 6 MB. Graba uno de ~4 segundos en calidad 720p.');
-      }
-    } catch (e) { msg(e.message, 'error'); return; }
+    const r = await window.znrEditorHistoria.abrir(file, {
+      buscarVendedores: (q) => llamar({ action: 'buscarVendedores', q }).then((x) => (x.ok ? x.vendedores : [])),
+      productos: async () => (window._vendorProducts || []).filter((p) => p.estado === 'aprobado')
+    });
+    if (!r) return;
+    if (r.esVideo && r.blob.size > MAX_VIDEO_BYTES) { msg('El video quedó muy pesado. Elige un tramo más corto.', 'error'); return; }
 
     liberarPrev();
-    prevUrl = URL.createObjectURL(file);
-    const media = document.createElement(esVideo ? 'video' : 'img');
+    prevUrl = URL.createObjectURL(r.blob);
+    const media = document.createElement(r.esVideo ? 'video' : 'img');
     media.src = prevUrl;
-    if (esVideo) { media.controls = true; media.muted = true; media.loop = true; media.autoplay = true; media.playsInline = true; }
+    if (r.esVideo) { media.controls = true; media.loop = true; media.autoplay = true; media.playsInline = true; }
     else media.alt = 'Vista previa de tu historia';
 
     const quedan = cupo.max - cupo.usadas - 1;
     confirmar({
       titulo: '¿Publicar esta historia?',
       media,
-      texto: `Revisa que sea la correcta${esVideo ? ` (video de ${seg.toFixed(1)} s)` : ''}.<br>
+      texto: `Revisa que se vea como quieres.<br>
         Se verá <b>24 horas</b> en Actividad reciente y en tu perfil.<br>
-        Después de publicarla no se puede editar, solo eliminar.<br>
+        ${r.etiquetas.some((e) => e.tipo === 'mencion') ? 'Les avisaremos a los vendedores que etiquetaste.<br>' : ''}
         <span style="opacity:.7">${quedan <= 0 ? `Con esta completas tus ${cupo.max} historias.` : (quedan === 1 ? 'Te quedará 1 espacio' : 'Te quedarán ' + quedan + ' espacios') + ` de ${cupo.max}.`}</span>`,
       ok: 'Sí, publicar',
-      alt: 'Elegir otra',
-      onOk: () => publicar(file, esVideo),
-      onAlt: () => { cerrarConfirm(); $('zhm-file').click(); }
+      alt: 'Editar otra vez',
+      onOk: () => publicar(r),
+      onAlt: () => { cerrarConfirm(); onArchivo(file); }
     });
   }
 
-  async function publicar(file, esVideo) {
+  async function publicar(r) {
     if (ocupado) return;
     ocupado = true;
     const ok = $('zhm-c-ok');
@@ -328,9 +301,8 @@
     ok.textContent = 'Publicando…';
     let exito = false;
     try {
-      const blob = esVideo ? file : await comprimirImagen(file);
-      const r = await llamar({ action: 'subirHistoria', data: await aBase64(blob) });
-      if (!r.ok) throw new Error(r.error || 'No se pudo publicar la historia.');
+      const res = await llamar({ action: 'subirHistoria', data: await aBase64(r.blob), etiquetas: JSON.stringify(r.etiquetas) });
+      if (!res.ok) throw new Error(res.error || 'No se pudo publicar la historia.');
       exito = true;
     } catch (e) {
       msg(e.message || 'No se pudo publicar la historia.', 'error');

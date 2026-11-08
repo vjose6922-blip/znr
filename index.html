@@ -756,7 +756,7 @@
  <h3 class="product-name" style="font-size:14px;">${esc(p.nombre)}</h3>
  <div class="product-price" style="font-size:16px;">${esPersonal ? '<span style="font-size:10px;font-weight:600;opacity:.7;">Desde </span>' : ''}${price}${esRenta ? '<span style="font-size:10px;font-weight:600;opacity:.7;"> /día</span>' : ''}</div>
  </div>
- ${p.vendedor_nombre ? `<div style="font-size:11px;color:var(--color-text-muted);margin-top:2px;"> ${esc(p.vendedor_nombre)}</div>` : ''}
+ ${p.vendedor_nombre ? `<div style="font-size:11px;color:var(--color-text-muted);margin-top:2px;"> ${esc(p.vendedor_nombre)}${window.znrInsignia ? window.znrInsignia(p.vendedor_nivel, p.vendedor_plan_vence) : ''}</div>` : ''}
  ${p.talla ? `<div style="font-size:11px;color:var(--color-text-muted);margin-top:2px;">Info: ${esc(p.talla)}</div>` : ''}
  ${window.ZNR_TEMPORADAS ? window.ZNR_TEMPORADAS.chipsHTML(p) : ''}
  <div style="display:flex;align-items:center;gap:6px;margin-top:6px;">
@@ -809,7 +809,7 @@
  _vendedorNombre: p.vendedor_nombre || '',
  _vendedorUid: p.vendedor_uid || '',
  _vendedorLogo: p.vendedor_logo || '',
- _vendedorPlan: p.vendedor_plan || '',
+ _vendedorPlan: p.vendedor_plan || '', _vendedorNivel: p.vendedor_nivel || '', _vendedorPlanVence: p.vendedor_plan_vence || 0,
  _donado: p.donado === true || p.donado === 'TRUE' || p.donado === 'true',
  _beneficiarioId: p.beneficiario_id || '',
  };

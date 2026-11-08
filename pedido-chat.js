@@ -216,6 +216,7 @@ async function hacer(btn, action, extra) {
 
 const ui = {};
 let detalleAbierto = false;
+let insigniaVend = null; // HTML de la insignia Plus/Pro del vendedor (null = aún no se pide)
 let rapidasAbiertas = false;
 let comentarioCalificar = "";
 
@@ -282,6 +283,14 @@ function renderEncabezado() {
   const soyVendedor = identidad.rol === "vendedor";
   ui.titulo.textContent = pedido.productoNombre || "Pedido personalizado";
   ui.sub.textContent = contraparte();
+  // Insignia Plus/Pro del vendedor (para el cliente): se pide una vez al perfil público.
+  if (identidad.rol === "comprador" && pedido.vendedorUid) {
+    if (insigniaVend === null) {
+      insigniaVend = "";
+      fetch("https://znr-live-default-rtdb.firebaseio.com/perfiles/" + encodeURIComponent(pedido.vendedorUid) + ".json").then((r) => r.json())
+        .then((pf) => { insigniaVend = pf && window.znrInsignia ? window.znrInsignia(pf.planNivel, pf.planVence) : ""; if (insigniaVend) renderEncabezado(); }).catch(() => {});
+    } else if (insigniaVend) ui.sub.insertAdjacentHTML("beforeend", insigniaVend);
+  }
 
   if (esVenta()) {
     const ev = pedido.estadoVenta || "pendiente";
