@@ -15,8 +15,10 @@
       appId: '1:1038143238323:web:5171b9dd8823628086c0c6'
     }), { provider: new c.ReCaptchaEnterpriseProvider(CLAVE), isTokenAutoRefreshEnabled: true }) })).catch(() => null);
   // Máx. 5 s: si reCAPTCHA no responde, la petición sale sin token en vez de quedarse esperando para siempre.
-  const token = () => Promise.race([Promise.resolve(base).then((b) => b ? b.c.getToken(b.ac) : null).then((t) => t?.token || '', () => ''),
-    new Promise((ok) => setTimeout(ok, 5000, ''))]);
+  // ms: cuánto se espera el token. Si falla, el motivo queda en window.znrAppCheckError (para el panel de errores).
+  const token = (ms = 5000) => Promise.race([Promise.resolve(base).then((b) => b ? b.c.getToken(b.ac) : null)
+    .then((t) => t?.token || '', (e) => { window.znrAppCheckError = String((e && (e.code || e.message)) || e); return ''; }),
+    new Promise((ok) => setTimeout(ok, ms, ''))]);
   // Se cumple cuando ya hay token (o a los 15 s): lo que se pide al abrir la página y no corre prisa (ej. el WhatsApp
   // del admin en api-config.js) lo espera, en vez de salir sin token y recibir 401 "Missing appcheck token".
   window.znrAppCheckListo = Promise.race([Promise.resolve(base).then((b) => b && b.c.getToken(b.ac)).catch(() => null), new Promise((ok) => setTimeout(ok, 15000))]);
@@ -33,11 +35,21 @@
   window.fetch = async (input, init) => {
     const url = typeof input === 'string' ? input : input instanceof URL ? input.href : '';
     const api = url.includes('.run.app'), rtdb = url.includes('.firebaseio.com');
-    const t = (api || rtdb) && await token();
-    if (!t) return f(input, init);
-    if (api) return f(url + (url.includes('?') ? '&' : '?') + '_ac=' + encodeURIComponent(t), init);
-    const headers = new Headers(init && init.headers);
-    headers.set('X-Firebase-AppCheck', t);
-    return f(url, { ...init, headers });
+    if (!api && !rtdb) return f(input, init);
+    // RTDB rechaza sin token (401 "Missing appcheck token"): al abrir la página reCAPTCHA puede tardar más de 5 s,
+    // así que estas lecturas esperan hasta 15 s (como hacen los SDK de Firebase) y, si aun así llega 401, se reintenta una vez.
+    const t = await token(rtdb ? 15000 : 5000);
+    if (api) return t ? f(url + (url.includes('?') ? '&' : '?') + '_ac=' + encodeURIComponent(t), init) : f(input, init);
+    const pedir = (tk) => {
+      if (!tk) return f(input, init);
+      const headers = new Headers(init && init.headers);
+      headers.set('X-Firebase-AppCheck', tk);
+      return f(url, { ...init, headers });
+    };
+    const r = await pedir(t);
+    if (r.status !== 401) return r;
+    await new Promise((ok) => setTimeout(ok, 1500));
+    const t2 = await token(15000);
+    return t2 ? pedir(t2) : r;
   };
 })();
