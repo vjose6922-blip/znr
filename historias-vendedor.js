@@ -31,6 +31,11 @@
     const st = document.createElement('style');
     st.id = 'zhm-css';
     st.textContent = `
+      .zhm-toast{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom,0px) + 86px);transform:translateX(-50%);z-index:10002;display:flex;align-items:center;gap:10px;max-width:92vw;padding:10px 16px;border-radius:999px;background:#1f2937;color:#fff;font:600 .84rem/1.3 system-ui,sans-serif;box-shadow:0 8px 24px rgba(0,0,0,.3)}
+      .zhm-toast[hidden]{display:none}.zhm-toast.ok{background:#15803d}.zhm-toast.error{background:#b91c1c}
+      .zhm-toast button{flex-shrink:0;border:none;border-radius:999px;padding:5px 12px;background:#fff;color:#b91c1c;font:700 .8rem inherit;cursor:pointer}
+      .zhm-spin{flex-shrink:0;width:14px;height:14px;border:2px solid rgba(255,255,255,.35);border-top-color:#fff;border-radius:50%;animation:zhm-spin .8s linear infinite}
+      @keyframes zhm-spin{to{transform:rotate(360deg)}}
       .zhm-overlay{position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,.65);display:flex;align-items:flex-end;justify-content:center}
       .zhm-overlay[hidden]{display:none}
       .zhm-overlay.top{z-index:10002;align-items:center;padding:16px}
@@ -215,7 +220,6 @@
   }
 
   function cerrarPrincipal() {
-    if (ocupado) return;
     $('zhm-main').hidden = true;
     document.body.style.overflow = '';
   }
@@ -259,7 +263,7 @@
 
   /** Abre el editor con el archivo elegido y, al terminar, la confirmación con la vista previa del resultado. */
   async function onArchivo(file) {
-    if (ocupado) return;
+    if (ocupado) { msg('Espera a que termine de publicarse tu historia.', 'error'); return; }
     msg('');
     const esVideo = file.type.startsWith('video/');
     if (!esVideo && !file.type.startsWith('image/')) { msg('Elige una foto o un video.', 'error'); return; }
@@ -304,26 +308,34 @@
     });
   }
 
+  // Aviso pequeño abajo (la publicación sigue en segundo plano y se puede usar el resto de la página).
+  function aviso(html, tipo, ms) {
+    let t = $('zhm-toast');
+    if (!t) { t = document.createElement('div'); t.id = 'zhm-toast'; t.setAttribute('role', 'status'); document.body.appendChild(t); }
+    t.className = 'zhm-toast ' + (tipo || ''); t.innerHTML = html; t.hidden = false;
+    clearTimeout(t._t); if (ms) t._t = setTimeout(() => { t.hidden = true; }, ms);
+    return t;
+  }
+
   async function publicar(r) {
     if (ocupado) return;
     ocupado = true;
-    const ok = $('zhm-c-ok');
-    ok.disabled = true; $('zhm-c-alt').disabled = true; $('zhm-c-cancel').disabled = true;
-    ok.textContent = 'Publicando…';
-    let exito = false;
+    cerrarConfirm(); $('zhm-main').hidden = true; document.body.style.overflow = '';
+    aviso('<span class="zhm-spin"></span>Publicando tu historia…');
     try {
       const res = await llamar({ action: 'subirHistoria', data: await aBase64(r.blob), etiquetas: JSON.stringify(r.etiquetas), musica: r.musica ? JSON.stringify(r.musica) : '' });
       if (!res.ok) throw new Error(res.error || 'No se pudo publicar la historia.');
-      exito = true;
-    } catch (e) {
-      ok.disabled = false; ok.textContent = 'Reintentar'; $('zhm-c-cancel').disabled = false;
-      $('zhm-c-text').innerHTML = `<b style="color:#dc2626">${esc(e.message || 'No se pudo publicar la historia.')}</b><br>Tu edición sigue aquí: toca Reintentar.`;
-    } finally {
       ocupado = false;
-      $('zhm-c-alt').disabled = false;
-      if (exito) { cerrarConfirm(); await cargar(); msg('Historia publicada. Ya se ve en Actividad reciente y en tu perfil.', 'ok'); }
+      aviso('✓ Historia publicada', 'ok', 3500);
+      cargar();
+    } catch (e) {
+      // Lo editado se conserva: "Reintentar" vuelve a subir lo mismo.
+      ocupado = false;
+      aviso(`<span>${esc(e.message || 'No se pudo publicar la historia.')}</span><button type="button">Reintentar</button>`, 'error')
+        .querySelector('button').onclick = () => publicar(r);
     }
   }
+  window.addEventListener('beforeunload', (e) => { if (ocupado) { e.preventDefault(); e.returnValue = ''; } }); // no salir a media subida
 
   function pedirEliminar(id) {
     const h = historias.find(x => x.id === id);
