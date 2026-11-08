@@ -2541,7 +2541,7 @@ ov.innerHTML = `<div class="zp-box" role="dialog" aria-modal="true" aria-label="
 <div class="zr-dos"><div><label for="zr-hasta">Hasta</label><input id="zr-hasta" type="date" min="${hoy}"></div><div><label for="zr-hora2">Hora de recolección</label><input id="zr-hora2" type="time" value="20:00"></div></div>
 <label for="zr-cant">Cantidad</label><input id="zr-cant" type="number" inputmode="numeric" min="1" value="1">
 <div id="zr-modo-box"><label>Entrega</label><div class="zr-modos"><label><input type="radio" name="zr-modo" value="domicilio" checked> <span id="zr-modo-dom">Me lo llevan y lo recogen</span></label><label><input type="radio" name="zr-modo" value="recoleccion"> Paso por él y lo devuelvo</label></div></div>
-<div id="zr-dir-box"><label for="zr-dir">Dirección de entrega</label><textarea id="zr-dir" maxlength="250" style="min-height:60px"></textarea></div>
+<div id="zr-dir-box"><label for="zr-dir">Dirección de entrega</label><button type="button" id="zr-gps" class="zr-gps">📍 Usar mi ubicación</button><textarea id="zr-dir" maxlength="250" style="min-height:60px" placeholder="Calle, número, colonia"></textarea></div>
 <label for="zr-nombre">Tu nombre</label><input id="zr-nombre" maxlength="60" autocomplete="name">
 <label for="zr-nota">Nota para el vendedor (opcional)</label><textarea id="zr-nota" maxlength="500" style="min-height:60px" placeholder="Ej: es para una fiesta en el patio"></textarea>
 <div class="zr-total" id="zr-total" aria-live="polite"></div>
@@ -2550,6 +2550,7 @@ ov.innerHTML = `<div class="zp-box" role="dialog" aria-modal="true" aria-label="
 <div class="zp-err" id="zr-err"></div>
 <div class="zp-row"><button type="button" class="zp-cancel">Cancelar</button><button type="button" class="zp-ok" disabled>Enviar solicitud</button></div></div>`;
 if (!document.getElementById('zr-style')) document.head.insertAdjacentHTML('beforeend', `<style id="zr-style">.zr-dos{display:grid;grid-template-columns:1fr 1fr;gap:8px}.zr-modos label{display:flex;gap:8px;align-items:center;font-weight:500;margin:6px 0}.zr-modos input{width:auto}
+.zr-gps{width:100%;margin:0 0 6px;padding:10px;border-radius:10px;border:1px solid var(--color-border-subtle,#d1d5db);background:var(--color-surface-2,#f3f4f6);color:inherit;font:inherit;font-weight:600;cursor:pointer}
 .zr-total{margin-top:12px;padding:10px;border-radius:10px;background:var(--color-surface-2,#f3f4f6);font-size:13px;line-height:1.5}.zr-reglas{margin-top:10px;font-size:13px}.zr-reglas summary{cursor:pointer;font-weight:600}.zr-reglas div{white-space:pre-wrap;margin-top:6px;opacity:.85}</style>`);
 document.body.appendChild(ov);
 const $ = s => ov.querySelector(s), err = $('#zr-err'), ok = $('.zp-ok');
@@ -2587,6 +2588,20 @@ const revisar = async () => {
 $('#zr-desde').addEventListener('change', () => { if (!$('#zr-hasta').value || $('#zr-hasta').value < $('#zr-desde').value) $('#zr-hasta').value = $('#zr-desde').value; $('#zr-hasta').min = $('#zr-desde').value || hoy; revisar(); });
 $('#zr-hasta').addEventListener('change', revisar);
 ['#zr-cant', '#zr-dir'].forEach(s => $(s).addEventListener('input', pintar));
+// "Usar mi ubicación": llena la dirección (Nominatim, como el resto del sitio) y guarda las coordenadas para el vendedor.
+let gps = null;
+$('#zr-dir').addEventListener('input', () => { gps = null; }); // si la edita a mano, ya no se manda el punto viejo
+$('#zr-gps').addEventListener('click', () => {
+  const b = $('#zr-gps');
+  if (!navigator.geolocation) { b.textContent = '⚠️ Tu navegador no tiene GPS'; return; }
+  b.disabled = true; b.textContent = '⏳ Obteniendo ubicación…';
+  navigator.geolocation.getCurrentPosition(async ({ coords: { latitude: lat, longitude: lng } }) => {
+    let dir = `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+    try { const d = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&accept-language=es`).then(r => r.json()); if (d.display_name) dir = d.display_name; } catch (_) {}
+    $('#zr-dir').value = dir.slice(0, 250); gps = { lat, lng };
+    b.disabled = false; b.textContent = '✅ Ubicación agregada · tócalo para actualizarla'; pintar();
+  }, () => { b.disabled = false; b.textContent = '❌ Sin permiso de ubicación · escríbela'; }, { enableHighAccuracy: true, timeout: 10000 });
+});
 ov.querySelectorAll('[name="zr-modo"]').forEach(r => r.addEventListener('change', pintar));
 pintar();
 ok.addEventListener('click', async () => {
@@ -2599,7 +2614,8 @@ ok.addEventListener('click', async () => {
     try { localStorage.setItem('client_name', nombre); if (modo() === 'domicilio') localStorage.setItem('client_address', $('#zr-dir').value.trim()); } catch (_) {}
     const data = await api({ action: 'crearPedidoPersonalizado', telefono, compradorToken: localStorage.getItem('comprador_token') || '', productoId, nombre,
       desde: $('#zr-desde').value, hasta: $('#zr-hasta').value, horaEntrega: $('#zr-hora1').value, horaRecoleccion: $('#zr-hora2').value,
-      cantidad: $('#zr-cant').value, modo: modo() || '', direccion: $('#zr-dir').value.trim(), nota: $('#zr-nota').value.trim() });
+      cantidad: $('#zr-cant').value, modo: modo() || '', direccion: $('#zr-dir').value.trim(), nota: $('#zr-nota').value.trim(),
+      ...(gps && modo() === 'domicilio' ? { lat: gps.lat, lng: gps.lng } : {}) });
     if (!data.ok) throw new Error(data.error || 'No se pudo enviar la solicitud');
     location.href = 'pedido-chat.html?pedido=' + encodeURIComponent(data.pedidoId);
   } catch (e) { err.textContent = e.message || 'No se pudo enviar. Intenta de nuevo.'; ok.disabled = false; ok.textContent = 'Enviar solicitud'; }

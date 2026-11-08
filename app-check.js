@@ -17,6 +17,9 @@
   // Máx. 5 s: si reCAPTCHA no responde, la petición sale sin token en vez de quedarse esperando para siempre.
   const token = () => Promise.race([Promise.resolve(base).then((b) => b ? b.c.getToken(b.ac) : null).then((t) => t?.token || '', () => ''),
     new Promise((ok) => setTimeout(ok, 5000, ''))]);
+  // Se cumple cuando ya hay token (o a los 15 s): lo que se pide al abrir la página y no corre prisa (ej. el WhatsApp
+  // del admin en api-config.js) lo espera, en vez de salir sin token y recibir 401 "Missing appcheck token".
+  window.znrAppCheckListo = Promise.race([Promise.resolve(base).then((b) => b && b.c.getToken(b.ac)).catch(() => null), new Promise((ok) => setTimeout(ok, 15000))]);
 
   // Cada módulo que crea una app de Firebase hace `await window.znrAppCheck(app, versión)` antes de usarla.
   // Las apps con nombre (lives, chat) reutilizan el token de la principal.

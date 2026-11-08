@@ -14,7 +14,13 @@
   if (window.__znrBurbujasMsg) return;
   window.__znrBurbujasMsg = true;
 
-  var TIPO = 'pedido_personalizado_mensaje';
+  // Todo lo que pide respuesta abre burbuja: mensajes, solicitudes nuevas (personalizadas y de renta), confirmación,
+  // contrato, pagos y estados; y en pedidos normales, el pedido nuevo, el pago y la confirmación de stock.
+  var TIPOS = {
+    pedido_personalizado_mensaje: 1, pedido_personalizado_nuevo: 1, pedido_personalizado_cotizacion: 1, pedido_personalizado_aceptado: 1,
+    pedido_personalizado_cotizacion_rechazada: 1, pedido_personalizado_estado: 1, pedido_personalizado_pago: 1, pedido_personalizado_recordatorio: 1,
+    solicitud_comprador: 1, pago_confirmado: 1, confirmacion_vendedor: 1
+  };
   var MAX_EXTRAS = 3;
   var API_URL = 'https://vendedores-api-1038143238323.us-central1.run.app';
   var POS_KEY = 'znr_burbuja_top';
@@ -53,9 +59,18 @@
     try { return JSON.parse(n.meta) || {}; } catch (_) { return {}; }
   }
 
+  function ventaDe(n) {
+    var m = metaDe(n), yo = getIdentity();
+    if (m.pedidoId || !m.requestId) return null;
+    var vend = n.ownerType === 'vendedor' ? (yo && yo.type === 'vendedor' ? yo.id : '') : m.vendedor_uid;
+    return vend ? { vend: String(vend), req: String(m.requestId) } : null;
+  }
+
   function pedidoIdDe(n) {
     var m = metaDe(n);
     if (m.pedidoId) return String(m.pedidoId);
+    var v = ventaDe(n);
+    if (v) return 'PV_' + v.vend + '_' + v.req;
     try { return new URL(n.url, location.href).searchParams.get('pedido') || ''; } catch (_) { return ''; }
   }
 
@@ -68,12 +83,12 @@
     var map = {};
     var orden = [];
     items.forEach(function (n) {
-      if (!n || n.tipo !== TIPO || n.leida) return;
+      if (!n || !TIPOS[n.tipo] || n.leida) return;
       var id = pedidoIdDe(n);
       if (!id) return;
       var c = map[id];
       if (!c) {
-        c = map[id] = { id: id, notifs: [], ownerType: n.ownerType };
+        c = map[id] = { id: id, notifs: [], ownerType: n.ownerType, venta: ventaDe(n) };
         orden.push(c);
       }
       c.notifs.push(n);
@@ -399,7 +414,11 @@
       Promise.race([
         marcarConversacion(c),
         new Promise(function (ok) { setTimeout(ok, 1200); })
-      ]).then(function () { location.href = destino; });
+      ]).then(function () {
+        // Pedido normal: el chat puede no existir aún; znrAbrirChatVenta lo crea y abre.
+        if (c.venta && typeof window.znrAbrirChatVenta === 'function') window.znrAbrirChatVenta(c.venta.vend, c.venta.req, rolDe(c));
+        else location.href = destino;
+      });
     });
     var visto = el('button', 'znb-dismiss', 'Marcar leído');
     visto.type = 'button';

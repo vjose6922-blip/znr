@@ -498,11 +498,7 @@ enableNotifBtn.textContent = 'Activando…';
 const token = window.solicitarPermisoNotificacionesSiFalta
 ? await window.solicitarPermisoNotificacionesSiFalta(primaryType, primaryId)
 : null;
-// Si además tiene teléfono de comprador guardado, registramos el mismo
-// token también como cliente (no vuelve a pedir permiso al navegador).
-if (token && vendorUid && clientPhone && window.registrarTokenFCM) {
-await window.registrarTokenFCM('cliente', clientPhone, token);
-}
+// Solo la cuenta activa recibe avisos en este celular (ver fcm-init.js): ya no se registra también como cliente.
 const statusEl = document.getElementById('up-notif-status');
 if (token) {
 if (statusEl) statusEl.textContent = _upNotifStatusText();

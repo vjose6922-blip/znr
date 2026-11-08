@@ -162,13 +162,13 @@ function pagoActivo() {
 
 // ---------------------------------------------------------------- identidad + API
 
-async function identificar() {
+async function identificar(preferido) {
   const cand = [];
   const tel = (localStorage.getItem("client_phone") || "").replace(/\D/g, "");
   if (tel.length === 10 && localStorage.getItem("comprador_token")) cand.push({ rol: "comprador", tel, authUid: "cliente_" + tel });
   const vs = leerSesionVendedor();
   if (vs) cand.push({ rol: "vendedor", token: vs.token, authUid: "vendedor_" + vs.uid });
-  if (ROL_HINT === "vendedor") cand.reverse();
+  if ((preferido || ROL_HINT) === "vendedor") cand.reverse();
 
   for (const c of cand) {
     const uid = await window.znrFirestore.signIn(c.rol === "vendedor" ? "vendedor" : "cliente", c.rol === "vendedor" ? c.token : c.tel);
@@ -200,6 +200,9 @@ async function hacer(btn, action, extra) {
   try {
     const r = await api(action, extra);
     if (!r.ok) { toast(r.error || "No se pudo completar la acción"); return null; }
+    // Si la pantalla no se actualiza sola en 2.5 s (p. ej. otra pestaña cambió la sesión de Firebase), se reconecta.
+    const t = Date.now();
+    setTimeout(() => { if (ultimaVista < t) reconectar(); }, 2500);
     return r;
   } catch (_) {
     toast("Sin conexión. Intenta de nuevo.");
@@ -367,7 +370,8 @@ function renderDetalle() {
     const r = pedido.renta;
     filas.push(["Fechas", fechaCorta(r.desde) + " " + r.horaEntrega + " → " + fechaCorta(r.hasta) + " " + r.horaRecoleccion + " (" + r.dias + (r.dias === 1 ? " día)" : " días)")]);
     filas.push(["Cantidad", String(r.cantidad)]);
-    filas.push(["Entrega", r.modo === "domicilio" ? "Se lleva y recoge en " + r.direccion : "El cliente pasa por ella y la devuelve"]);
+    filas.push(["Entrega", r.modo === "domicilio" ? "Se lleva y recoge en " + r.direccion : "El cliente pasa por ella y la devuelve",
+      null, typeof r.lat === "number" ? "https://www.google.com/maps/dir/?api=1&destination=" + r.lat + "," + r.lng : ""]);
     const dep = c && c.deposito !== undefined ? c.deposito : r.deposito;
     if (dep > 0) filas.push(["Depósito", dinero(dep) + " (se devuelve si regresa todo bien)"]);
     const dv = pedido.devolucion;
@@ -390,9 +394,9 @@ function renderDetalle() {
   else if (TERMINADO.includes(e) && identidad.rol === "vendedor") filas.push(["Calificación", "Aún no hay calificación del cliente"]);
 
   const dl = h("dl", { class: "pp-d-dl" });
-  filas.forEach(([k, v, thumb]) => {
+  filas.forEach(([k, v, thumb, mapa]) => {
     dl.appendChild(h("dt", { text: k }));
-    dl.appendChild(h("dd", {}, v, thumb ? miniaturaComprobante(thumb) : null));
+    dl.appendChild(h("dd", {}, v, thumb ? miniaturaComprobante(thumb) : null, mapa ? h("a", { href: mapa, target: "_blank", rel: "noopener", text: " 📍 Abrir en Google Maps" }) : null));
   });
   ui.detalle.appendChild(dl);
   if (esRenta() && (pedido.contrato || pedido.cotizacion)) ui.detalle.appendChild(h("button", { class: "pp-btn sm", type: "button", text: pedido.contrato ? "📄 Ver contrato firmado" : "📄 Ver contrato", onclick: () => abrirContrato() }));
@@ -1023,21 +1027,34 @@ async function enviarFoto(ev) {
 
 const mapDoc = (d) => ({ id: d.id, ...d.data() });
 
+// Si se cae la lectura en vivo (p. ej. en el mismo celular se entró con la otra cuenta y Firebase cambió de sesión),
+// se vuelve a entrar con el rol de esta conversación y se reabren los listeners.
+let ultimaVista = 0, reconectando = false;
+async function reconectar() {
+  if (reconectando || !identidad) return;
+  reconectando = true;
+  try {
+    const id = await identificar(identidad.rol);
+    if (id) { identidad = id; suscribir(); } else toast("Se perdió la conexión con el pedido. Recarga la página.");
+  } finally { reconectando = false; }
+}
+
 function suscribir() {
   desuscribir();
   const ref = doc(db, "pedidos_personalizados", PEDIDO_ID);
   unsubPedido = onSnapshot(ref, (snap) => {
     if (!snap.exists()) { app.replaceChildren(h("div", { class: "pp-state", text: "Este pedido ya no existe." })); return; }
     pedido = { id: snap.id, ...snap.data() };
+    ultimaVista = Date.now();
     renderTodo();
-  }, () => toast("Se perdió la conexión con el pedido"));
+  }, () => reconectar());
 
   const q = query(collection(ref, "mensajes"), orderBy("creadoEn", "desc"), limit(PAGINA));
   unsubMsgs = onSnapshot(q, (snap) => {
     vivos = snap.docs.map(mapDoc);
     if (!anteriores.length) { cursor = snap.docs[snap.docs.length - 1] || null; hayMas = snap.docs.length >= PAGINA; }
     renderTodo();
-  }, () => toast("Se perdió la conexión con el chat"));
+  }, () => reconectar());
 }
 
 function desuscribir() {
