@@ -31,6 +31,11 @@
     const st = document.createElement('style');
     st.id = 'zhm-css';
     st.textContent = `
+      .zhm-toast{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom,0px) + 86px);transform:translateX(-50%);z-index:10002;display:flex;align-items:center;gap:10px;max-width:92vw;padding:10px 16px;border-radius:999px;background:#1f2937;color:#fff;font:600 .84rem/1.3 system-ui,sans-serif;box-shadow:0 8px 24px rgba(0,0,0,.3)}
+      .zhm-toast[hidden]{display:none}.zhm-toast.ok{background:#15803d}.zhm-toast.error{background:#b91c1c}
+      .zhm-toast button{flex-shrink:0;border:none;border-radius:999px;padding:5px 12px;background:#fff;color:#b91c1c;font:700 .8rem inherit;cursor:pointer}
+      .zhm-spin{flex-shrink:0;width:14px;height:14px;border:2px solid rgba(255,255,255,.35);border-top-color:#fff;border-radius:50%;animation:zhm-spin .8s linear infinite}
+      @keyframes zhm-spin{to{transform:rotate(360deg)}}
       .zhm-overlay{position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,.65);display:flex;align-items:flex-end;justify-content:center}
       .zhm-overlay[hidden]{display:none}
       .zhm-overlay.top{z-index:10002;align-items:center;padding:16px}
@@ -53,6 +58,17 @@
       .zhm-tag.red{left:auto;right:6px;background:#dc2626}
       .zhm-foot{position:absolute;left:0;right:0;bottom:0;padding:16px 6px 5px;background:linear-gradient(transparent,rgba(0,0,0,.78));display:flex;align-items:center;justify-content:space-between;gap:4px}
       .zhm-foot span{color:#fff;font-size:.62rem}
+      .zhm-star{position:absolute;top:6px;right:6px;border:none;border-radius:999px;padding:3px 8px;background:rgba(255,255,255,.92);color:#b45309;font-size:.7rem;font-weight:800;cursor:pointer}
+      .zhm-dest{margin-top:16px}.zhm-dest h4{margin:0 0 4px;font-size:.92rem}.zhm-dest p{margin:0 0 8px;font-size:.75rem;opacity:.7}
+      .zhm-dg{margin-bottom:10px}.zhm-dg b{font-size:.82rem}
+      .zhm-dr{display:flex;gap:6px;overflow-x:auto;padding:4px 0}
+      .zhm-di{position:relative;flex-shrink:0;width:60px;aspect-ratio:9/16;border-radius:8px;overflow:hidden;background:#222}
+      .zhm-di img,.zhm-di video{width:100%;height:100%;object-fit:cover}
+      .zhm-di button{position:absolute;top:2px;right:2px;width:20px;height:20px;border:none;border-radius:50%;background:rgba(0,0,0,.65);color:#fff;font-size:.7rem;cursor:pointer}
+      .zhm-chips{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin:8px 0}
+      .zhm-chips button{border:1px solid #d97706;background:none;color:#b45309;border-radius:999px;padding:6px 12px;font-weight:700;cursor:pointer}
+      .zhm-chips button.on{background:#d97706;color:#fff}
+      .zhm-c-text input{width:100%;box-sizing:border-box;padding:9px 12px;border-radius:10px;border:1px solid #ccc;font:inherit}
       .zhm-del{background:rgba(255,255,255,.92);border:none;border-radius:50%;width:26px;height:26px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#dc2626}
       .zhm-empty{grid-column:1/-1;text-align:center;font-size:.82rem;opacity:.6;padding:18px 0}
       .zhm-c-title{margin:0 0 10px;font-size:1.05rem;text-align:center}
@@ -99,6 +115,7 @@
         <button type="button" class="zhm-main" id="zhm-subir">${ico('camera', 18)} Subir foto o video</button>
         <p class="zhm-msg" id="zhm-msg" role="status"></p>
         <div class="zhm-grid" id="zhm-grid"></div>
+        <div class="zhm-dest" id="zhm-dest" hidden></div>
       </div>`;
     const conf = document.createElement('div');
     conf.className = 'zhm-overlay top'; conf.id = 'zhm-confirm'; conf.hidden = true;
@@ -120,7 +137,10 @@
     $('zhm-file').addEventListener('change', () => { const f = $('zhm-file').files && $('zhm-file').files[0]; $('zhm-file').value = ''; if (f) onArchivo(f); });
     $('zhm-c-cancel').addEventListener('click', cerrarConfirm);
     conf.addEventListener('click', (e) => { if (e.target === conf && !ocupado) cerrarConfirm(); });
+    $('zhm-dest').addEventListener('click', (e) => { const b = e.target.closest('[data-qd]'); if (b) quitarDestacada(...b.dataset.qd.split('|')); });
     $('zhm-grid').addEventListener('click', (e) => {
+      const st = e.target.closest('[data-dest]');
+      if (st) { e.stopPropagation(); pedirDestacar(st.dataset.dest); return; }
       const del = e.target.closest('[data-del]');
       if (del) { e.stopPropagation(); pedirEliminar(del.dataset.del); return; }
       const it = e.target.closest('[data-ver]');
@@ -160,7 +180,7 @@
     try {
       const r = await llamar({ action: 'misHistorias' });
       if (!r.ok) throw new Error(r.error || 'Error');
-      cupo = r.cupo || cupo; historias = r.historias || [];
+      cupo = r.cupo || cupo; historias = r.historias || []; destacadas = r.destacadas || destacadas;
       pintar();
       window.dispatchEvent(new Event('znr-historias-cambio')); // el feed de actividad se refresca
     } catch (e) {
@@ -187,11 +207,64 @@
           ? `<video src="${esc(h.url)}#t=0.1" muted playsinline preload="metadata"></video><span class="zhm-tag">VIDEO</span>`
           : `<img src="${esc(h.url)}" alt="" loading="lazy">`}
         ${h.oculta ? '<span class="zhm-tag red">Oculta</span>' : ''}
-        <div class="zhm-foot"><span>${esc(restante(h.expiraEn))}<br>${ico('eye', 12)} ${h.vistas || 0}${h.etiquetas && h.etiquetas.length ? ' · Toques: ' + (h.toques || 0) : ''}</span>
+        ${cupo.nivel === 'pro' ? `<button type="button" class="zhm-star" data-dest="${esc(h.id)}" aria-label="Destacar en tu perfil">⭐ Destacar</button>` : ''}
+        <div class="zhm-foot"><span>${esc(restante(h.expiraEn))}<br>${ico('eye', 12)} ${h.vistas || 0}${h.etiquetas && h.etiquetas.length ? ' · Toques: ' + (h.toques || 0) : ''}${h.encuesta ? `<br>📊 ${esc(h.encuesta.opciones[0])} ${pct(h.votos, 0)} · ${esc(h.encuesta.opciones[1])} ${pct(h.votos, 1)}` : ''}</span>
           <button type="button" class="zhm-del" data-del="${esc(h.id)}" aria-label="Eliminar historia">${ico('trash', 14)}</button>
         </div>
       </div>`).join('') : '<p class="zhm-empty">Todavía no tienes historias activas.</p>';
+    pintarDestacadas();
   }
+
+  // ── Destacadas (Pro): se quedan en tu perfil después de las 24 h. 3 grupos de hasta 10. ──
+  let destacadas = [];
+  function pintarDestacadas() {
+    const box = $('zhm-dest');
+    box.hidden = cupo.nivel !== 'pro';
+    if (box.hidden) return;
+    const mini = (it) => it.tipo === 'video' ? `<video src="${esc(it.url)}#t=0.1" muted playsinline preload="metadata"></video>` : `<img src="${esc(it.url)}" alt="" loading="lazy">`;
+    box.innerHTML = `<h4>⭐ Destacadas en tu perfil</h4><p>Toca «Destacar» en una historia para que se quede en tu perfil. Hasta 3 grupos de 10.</p>` +
+      (destacadas.length ? destacadas.map((g) => `<div class="zhm-dg"><b>${esc(g.nombre)}</b> · ${g.items.length}/10<div class="zhm-dr">${g.items.map((it) =>
+        `<div class="zhm-di">${mini(it)}<button type="button" data-qd="${esc(g.id)}|${esc(it.id)}" aria-label="Quitar de destacadas">✕</button></div>`).join('')}</div></div>`).join('')
+        : '<p class="zhm-empty" style="padding:4px 0">Aún no tienes destacadas.</p>');
+  }
+
+  function pedirDestacar(historiaId) {
+    const h = historias.find((x) => x.id === historiaId);
+    if (!h) return;
+    const media = document.createElement(h.tipo === 'video' ? 'video' : 'img');
+    media.src = h.url + (h.tipo === 'video' ? '#t=0.1' : '');
+    let elegido = destacadas[0] ? destacadas[0].nombre : '';
+    confirmar({
+      titulo: 'Destacar en tu perfil', media,
+      texto: `${!destacadas.length ? 'Ponle nombre a tu primer grupo:' : 'Elige el grupo' + (destacadas.length < 3 ? ' o crea uno nuevo' : '') + ':'}
+        <span class="zhm-chips">${destacadas.map((g, i) => `<button type="button" class="${i ? '' : 'on'}" data-g="${esc(g.nombre)}">${esc(g.nombre)}</button>`).join('')}</span>
+        ${destacadas.length < 3 ? '<input type="text" id="zhm-g-nuevo" maxlength="20" placeholder="Nuevo grupo (ej. Novedades)">' : ''}`,
+      ok: 'Destacar',
+      onOk: async () => {
+        const nuevo = ($('zhm-g-nuevo') || {}).value?.trim();
+        const grupo = nuevo || elegido;
+        if (!grupo) { $('zhm-g-nuevo')?.focus(); return; }
+        $('zhm-c-ok').disabled = true;
+        const r = await llamar({ action: 'destacarHistoria', historiaId, grupo }).catch((e) => ({ ok: false, error: e.message }));
+        cerrarConfirm();
+        if (!r.ok) return msg(r.error || 'No se pudo destacar.', 'error');
+        destacadas = r.grupos; pintarDestacadas(); msg(`Destacada en «${grupo}». Ya se ve en tu perfil.`, 'ok');
+      }
+    });
+    $('zhm-c-text').querySelectorAll('[data-g]').forEach((b) => b.onclick = () => {
+      elegido = b.dataset.g; if ($('zhm-g-nuevo')) $('zhm-g-nuevo').value = '';
+      $('zhm-c-text').querySelectorAll('[data-g]').forEach((x) => x.classList.toggle('on', x === b));
+    });
+  }
+
+  async function quitarDestacada(grupoId, itemId) {
+    if (!confirm('¿Quitar esta historia de tus destacadas? Se borra de tu perfil.')) return;
+    const r = await llamar({ action: 'quitarDestacada', grupoId, itemId }).catch((e) => ({ ok: false, error: e.message }));
+    if (!r.ok) return msg(r.error || 'No se pudo quitar.', 'error');
+    destacadas = r.grupos; pintarDestacadas();
+  }
+
+  const pct = (v, i) => { const t = (v[0] || 0) + (v[1] || 0); return t ? Math.round((v[i] || 0) * 100 / t) + '%' : '0'; };
 
   function verHistoria(i) {
     if (!window.znrHistoriasVisor) return;
@@ -215,7 +288,6 @@
   }
 
   function cerrarPrincipal() {
-    if (ocupado) return;
     $('zhm-main').hidden = true;
     document.body.style.overflow = '';
   }
@@ -259,7 +331,7 @@
 
   /** Abre el editor con el archivo elegido y, al terminar, la confirmación con la vista previa del resultado. */
   async function onArchivo(file) {
-    if (ocupado) return;
+    if (ocupado) { msg('Espera a que termine de publicarse tu historia.', 'error'); return; }
     msg('');
     const esVideo = file.type.startsWith('video/');
     if (!esVideo && !file.type.startsWith('image/')) { msg('Elige una foto o un video.', 'error'); return; }
@@ -304,26 +376,34 @@
     });
   }
 
+  // Aviso pequeño abajo (la publicación sigue en segundo plano y se puede usar el resto de la página).
+  function aviso(html, tipo, ms) {
+    let t = $('zhm-toast');
+    if (!t) { t = document.createElement('div'); t.id = 'zhm-toast'; t.setAttribute('role', 'status'); document.body.appendChild(t); }
+    t.className = 'zhm-toast ' + (tipo || ''); t.innerHTML = html; t.hidden = false;
+    clearTimeout(t._t); if (ms) t._t = setTimeout(() => { t.hidden = true; }, ms);
+    return t;
+  }
+
   async function publicar(r) {
     if (ocupado) return;
     ocupado = true;
-    const ok = $('zhm-c-ok');
-    ok.disabled = true; $('zhm-c-alt').disabled = true; $('zhm-c-cancel').disabled = true;
-    ok.textContent = 'Publicando…';
-    let exito = false;
+    cerrarConfirm(); $('zhm-main').hidden = true; document.body.style.overflow = '';
+    aviso('<span class="zhm-spin"></span>Publicando tu historia…');
     try {
-      const res = await llamar({ action: 'subirHistoria', data: await aBase64(r.blob), etiquetas: JSON.stringify(r.etiquetas), musica: r.musica ? JSON.stringify(r.musica) : '' });
+      const res = await llamar({ action: 'subirHistoria', data: await aBase64(r.blob), etiquetas: JSON.stringify(r.etiquetas), musica: r.musica ? JSON.stringify(r.musica) : '', encuesta: r.encuesta ? JSON.stringify(r.encuesta) : '' });
       if (!res.ok) throw new Error(res.error || 'No se pudo publicar la historia.');
-      exito = true;
-    } catch (e) {
-      ok.disabled = false; ok.textContent = 'Reintentar'; $('zhm-c-cancel').disabled = false;
-      $('zhm-c-text').innerHTML = `<b style="color:#dc2626">${esc(e.message || 'No se pudo publicar la historia.')}</b><br>Tu edición sigue aquí: toca Reintentar.`;
-    } finally {
       ocupado = false;
-      $('zhm-c-alt').disabled = false;
-      if (exito) { cerrarConfirm(); await cargar(); msg('Historia publicada. Ya se ve en Actividad reciente y en tu perfil.', 'ok'); }
+      aviso('✓ Historia publicada', 'ok', 3500);
+      cargar();
+    } catch (e) {
+      // Lo editado se conserva: "Reintentar" vuelve a subir lo mismo.
+      ocupado = false;
+      aviso(`<span>${esc(e.message || 'No se pudo publicar la historia.')}</span><button type="button">Reintentar</button>`, 'error')
+        .querySelector('button').onclick = () => publicar(r);
     }
   }
+  window.addEventListener('beforeunload', (e) => { if (ocupado) { e.preventDefault(); e.returnValue = ''; } }); // no salir a media subida
 
   function pedirEliminar(id) {
     const h = historias.find(x => x.id === id);

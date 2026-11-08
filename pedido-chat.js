@@ -57,6 +57,8 @@ const TERMINADO = ["entregado", "devuelto"];
 // Chat de un pedido normal (Comunidad / live): pedido.tipo === "venta". Sin cotización, pagos ni etapas: solo la
 // conversación, el resumen del pedido y WhatsApp de respaldo. Se borra solo 30 días después de entregado.
 const esVenta = () => pedido && pedido.tipo === "venta";
+// Chat de consulta (pedido.tipo === "consulta"): alguien respondió a una historia. Solo mensajes; se borra 30 días después del último.
+const esConsulta = () => pedido && pedido.tipo === "consulta";
 const TEXTO_VENTA = { pendiente: "Por confirmar", confirmada: "Confirmado", entregado: "Entregado", sin_stock: "Sin stock" };
 const RESPUESTAS_VENTA = [
   "¡Hola! Ya vi tu pedido.",
@@ -292,6 +294,7 @@ function renderEncabezado() {
     } else if (insigniaVend) ui.sub.insertAdjacentHTML("beforeend", insigniaVend);
   }
 
+  if (esConsulta()) { ui.badge.textContent = "Consulta"; ui.badge.className = "pp-badge"; ui.prog.style.display = "none"; return; }
   if (esVenta()) {
     const ev = pedido.estadoVenta || "pendiente";
     ui.badge.textContent = TEXTO_VENTA[ev] || "Pedido";
@@ -327,7 +330,8 @@ function textoPagosCorto() {
 function renderResumen() {
   const c = acordado();
   let txt;
-  if (esVenta()) {
+  if (esConsulta()) txt = "Respuesta a una historia";
+  else if (esVenta()) {
     const n = (pedido.items || []).reduce((t, it) => t + (Number(it.cantidad) || 1), 0);
     txt = dinero(pedido.total) + " · " + n + (n === 1 ? " artículo" : " artículos");
   } else if (esRenta()) {
@@ -364,6 +368,11 @@ function renderDetalleVenta() {
 
 function renderDetalle() {
   ui.detalle.replaceChildren();
+  if (esConsulta()) {
+    ui.detalle.appendChild(h("div", { class: "pp-d-ref" }, pedido.productoImagen ? h("img", { src: pedido.productoImagen, alt: "", loading: "lazy", onerror: function () { this.remove(); } }) : null,
+      h("div", {}, h("b", { text: "Consulta por una historia" }), h("span", { text: "Este chat se borra 30 días después del último mensaje" }))));
+    return;
+  }
   if (esVenta()) {
     renderDetalleVenta();
     if (pedido.bloqueadoPor === identidad.rol) ui.detalle.appendChild(h("p", { class: "pp-hint", text: "Bloqueaste a esta persona. Puedes quitarlo desde ⋯." }));
@@ -507,6 +516,11 @@ function renderMensajes() {
       img.addEventListener("click", () => verFoto(m.foto));
       burbuja.appendChild(img);
     }
+    if (m.historia) { // respuesta a una historia: miniatura (la historia se borra en 24 h; si ya no está, solo el texto)
+      const ref = h("div", { class: "pp-hist", style: "display:flex;flex-direction:column;gap:4px;margin-bottom:6px;opacity:.85" }, h("small", { text: mio ? "Respondiste a su historia" : "Respondió a tu historia" }));
+      if (m.historia.tipo === "imagen") ref.appendChild(h("img", { src: m.historia.url, alt: "Historia", loading: "lazy", style: "width:90px;aspect-ratio:9/16;object-fit:cover;border-radius:10px", onerror: function () { this.remove(); } }));
+      burbuja.appendChild(ref);
+    }
     if (m.contenido) burbuja.appendChild(document.createTextNode(m.contenido));
     if (t) burbuja.appendChild(h("time", { text: hora(t) }));
     ui.msgs.appendChild(burbuja);
@@ -521,6 +535,7 @@ function configBarra(e, vend) {
   const a = pedido.pagoAnticipo, r = pedido.pagoRestante;
   const cot = pedido.cotizacion;
   const btnPago = (tipo) => [["Datos de pago", "", () => abrirDatosPago(tipo)], ["Ya pagué", "primary", (b) => subirComprobante(tipo, b)]];
+  if (esConsulta()) return null;
   if (esVenta()) return { info: "¿Sin respuesta? También por WhatsApp", botones: [["WhatsApp", "", abrirWhatsApp]] };
 
   if (e === "expirado") return { info: "Esta solicitud expiró sin respuesta." + (vend ? "" : " Puedes hacer un pedido nuevo desde el artículo."), tono: "bad", botones: [] };
@@ -679,7 +694,7 @@ function renderBarra() {
   const hayRapidas = vend && !cerrado;
   ui.btnRapidas.style.display = hayRapidas ? "" : "none";
   if (hayRapidas) {
-    (esVenta() ? RESPUESTAS_VENTA : RESPUESTAS_RAPIDAS).forEach((txt) => {
+    (esVenta() || esConsulta() ? RESPUESTAS_VENTA : RESPUESTAS_RAPIDAS).forEach((txt) => {
       const b = h("button", { type: "button", text: txt.length > 34 ? txt.slice(0, 32) + "…" : txt, title: txt });
       b.addEventListener("click", () => { ui.ta.value = txt; ui.ta.dispatchEvent(new Event("input")); rapidasAbiertas = false; ui.rapidas.style.display = "none"; ui.ta.focus(); });
       ui.rapidas.appendChild(b);

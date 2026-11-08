@@ -18,7 +18,7 @@
     ['Contraste', 'contrast(1.35) saturate(1.15)'], ['Vivo', 'saturate(1.7)']];
   const EMOJIS = ['😍', '🔥', '✨', '🎉', '💖', '👗', '👠', '👜', '🛍️', '💸', '🤑', '⭐', '🌸', '🌈', '😎', '🥳', '👏', '💯', '🆕', '⚡', '🎁', '❤️', '😂', '🙌', '👀', '📦', '🚚', '🏷️', '💐', '☀️', '🌙', '🎂', '🪑', '🎈', '🍰', '💍'];
   const COLORES = ['#ffffff', '#111111', '#ec4899', '#f59e0b', '#22c55e', '#3b82f6', '#a855f7'];
-  const BASE = { texto: 56, emoji: 110, mencion: 40, producto: 38 }; // px de letra en un cuadro de 720 de ancho
+  const BASE = { texto: 56, emoji: 110, mencion: 40, producto: 38, encuesta: 34 }; // px de letra en un cuadro de 720 de ancho
   const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   let musicaLista = null; // biblioteca de ZNR (musica/lista.json); [] = sin canciones → no se muestra el botón
 
@@ -40,6 +40,10 @@
       .zhe-it.texto{text-shadow:0 2px 6px rgba(0,0,0,.6)}
       .zhe-it.mencion,.zhe-it.producto{background:#fff;color:#111;border-radius:999px;padding:.3em .7em}
       .zhe-it.producto{border-radius:.6em}
+      .zhe-it.encuesta{background:#fff;color:#111;border-radius:.8em;padding:.7em;width:15.3em;white-space:normal;box-sizing:border-box}
+      .zhe-it.encuesta b{display:block;font-size:1.12em;margin-bottom:.5em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+      .zhe-it.encuesta span{display:flex;gap:.7em}.zhe-it.encuesta i{flex:1;font-style:normal;border-radius:999px;padding:.6em .3em;color:#fff;background:#7c3aed;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+      .zhe-it.encuesta i+i{background:#ec4899}
       .zhe-it.sel{outline:2px dashed #fff;outline-offset:6px}
       .zhe-bot{padding:8px 10px calc(env(safe-area-inset-bottom,0px) + 10px);display:flex;flex-direction:column;gap:8px}
       .zhe-row{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none}
@@ -80,6 +84,7 @@
 
   // Dibuja un elemento (texto, emoji, mención o producto) en el canvas final y devuelve su caja en proporciones.
   function dibujarItem(ctx, it, w) {
+    if (it.tipo === 'encuesta') return dibujarEncuesta(ctx, it, w);
     const k = w / W, fs = BASE[it.tipo] * it.s * k, cx = it.x * w, cy = it.y * (w * 16 / 9);
     ctx.font = `800 ${fs}px system-ui,-apple-system,sans-serif`;
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
@@ -102,6 +107,22 @@
     return { x: Math.max(0, (cx - bw / 2) / w), y: Math.max(0, (cy - bh / 2) / h), w: Math.min(1, bw / w), h: Math.min(1, bh / h) };
   }
 
+  // Tarjeta de encuesta: pregunta arriba y dos opciones (morada y rosa). Devuelve su caja y dónde empiezan las opciones (oy).
+  function dibujarEncuesta(ctx, it, w) {
+    const k = (w / W) * it.s, h = w * 16 / 9, cx = it.x * w, cy = it.y * h, bw = 520 * k, pad = 24 * k, fq = 38 * k, oh = 78 * k;
+    const bh = pad * 2 + (it.pregunta ? fq * 1.3 + pad * 0.6 : 0) + oh, x0 = cx - bw / 2, y0 = cy - bh / 2, oy = y0 + bh - pad - oh, ow = (bw - pad * 3) / 2;
+    const caja = (x, y, cw, ch, r, color) => { ctx.fillStyle = color; ctx.beginPath(); ctx.roundRect ? ctx.roundRect(x, y, cw, ch, r) : ctx.rect(x, y, cw, ch); ctx.fill(); };
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    caja(x0, y0, bw, bh, 28 * k, '#fff');
+    if (it.pregunta) { ctx.fillStyle = '#111'; ctx.font = `800 ${fq}px system-ui,-apple-system,sans-serif`; ctx.fillText(it.pregunta, cx, y0 + pad + fq * 0.65, bw - pad * 2); }
+    [it.a, it.b].forEach((t, i) => {
+      const ox = x0 + pad + i * (ow + pad);
+      caja(ox, oy, ow, oh, oh / 2, i ? '#ec4899' : '#7c3aed');
+      ctx.fillStyle = '#fff'; ctx.font = `800 ${34 * k}px system-ui,-apple-system,sans-serif`; ctx.fillText(t, ox + ow / 2, oy + oh / 2, ow - 20 * k);
+    });
+    return { x: x0 / w, y: y0 / h, w: bw / w, h: bh / h, oy: (oy - y0) / bh };
+  }
+
   function abrir(file, opciones) {
     opciones = opciones || {};
     css();
@@ -119,6 +140,7 @@
           <button type="button" class="zhe-b" data-a="emoji" aria-label="Agregar emoji">😊</button>
           <button type="button" class="zhe-b" data-a="mencion" aria-label="Etiquetar a un vendedor">@</button>
           <button type="button" class="zhe-b" data-a="producto" aria-label="Agregar un producto">🏷️</button>
+          <button type="button" class="zhe-b" data-a="encuesta" aria-label="Agregar encuesta">📊</button>
           <button type="button" class="zhe-b" data-a="musica" aria-label="Agregar música" hidden>🎵</button>
         </div>
         <div class="zhe-stage-wrap"><div class="zhe-stage"><canvas width="${W}" height="${H}"></canvas><div class="zhe-capa"></div></div></div>
@@ -200,7 +222,8 @@
         st.items.forEach((it, i) => {
           const d = document.createElement('div');
           d.className = 'zhe-it ' + it.tipo + (st.sel === it ? ' sel' : '');
-          d.textContent = it.texto;
+          if (it.tipo === 'encuesta') d.innerHTML = `${it.pregunta ? `<b>${esc(it.pregunta)}</b>` : ''}<span><i>${esc(it.a)}</i><i>${esc(it.b)}</i></span>`;
+          else d.textContent = it.texto;
           d.style.cssText = `left:${it.x * 100}%;top:${it.y * 100}%;font-size:${BASE[it.tipo] * it.s * k}px;${it.tipo === 'texto' ? 'color:' + it.color : ''}`;
           d.dataset.i = i;
           capa.appendChild(d);
@@ -209,7 +232,7 @@
         barra.hidden = !st.sel;
         if (st.sel) {
           barra.innerHTML = `<button type="button" class="zhe-chip" data-s="-">A−</button><button type="button" class="zhe-chip" data-s="+">A+</button>
-            ${st.sel.tipo === 'texto' ? '<button type="button" class="zhe-chip" data-s="editar">Editar</button>' : ''}
+            ${st.sel.tipo === 'texto' || st.sel.tipo === 'encuesta' ? '<button type="button" class="zhe-chip" data-s="editar">Editar</button>' : ''}
             <button type="button" class="zhe-chip" data-s="borrar">🗑 Quitar</button><button type="button" class="zhe-chip" data-s="ok">Listo</button>`;
         }
       };
@@ -221,7 +244,7 @@
         if (s === '+') st.sel.s = Math.min(4, st.sel.s * 1.15);
         else if (s === '-') st.sel.s = Math.max(0.4, st.sel.s / 1.15);
         else if (s === 'borrar') { st.items.splice(st.items.indexOf(st.sel), 1); st.sel = null; }
-        else if (s === 'editar') return hojaTexto(st.sel);
+        else if (s === 'editar') return st.sel.tipo === 'encuesta' ? acciones.encuesta() : hojaTexto(st.sel);
         else st.sel = null;
         pintarItems();
       });
@@ -269,6 +292,23 @@
       const acciones = {
         cancelar: () => cerrar(null),
         texto: () => hojaTexto(null),
+        // Una encuesta por historia: pregunta opcional y dos opciones cortas.
+        encuesta: () => {
+          const it = st.items.find((x) => x.tipo === 'encuesta');
+          const sh = hoja('Encuesta · ¿Cuál prefieres?', `<input type="text" data-q maxlength="40" placeholder="Pregunta (opcional)">
+            <div style="display:flex;gap:8px;margin-top:8px"><input type="text" data-a maxlength="16" placeholder="Opción A"><input type="text" data-b maxlength="16" placeholder="Opción B"></div>
+            <p class="zhe-hint" style="text-align:left;margin-top:8px">Votan compradores y vendedores con sesión, una vez. Tú ves los resultados en Mis historias.</p>
+            <button type="button" class="zhe-b ok" data-ok style="width:100%;margin-top:6px">${it ? 'Guardar' : 'Agregar encuesta'}</button>`);
+          const q = sh.querySelector('[data-q]'), a = sh.querySelector('[data-a]'), b = sh.querySelector('[data-b]');
+          if (it) { q.value = it.pregunta; a.value = it.a; b.value = it.b; }
+          setTimeout(() => (it ? q : a).focus(), 50);
+          sh.querySelector('[data-ok]').onclick = () => {
+            const d = { pregunta: q.value.trim(), a: a.value.trim(), b: b.value.trim() };
+            if (!d.a || !d.b) return (d.a ? b : a).focus();
+            sh.remove();
+            if (it) { Object.assign(it, d); pintarItems(); } else agregar({ tipo: 'encuesta', ...d, y: 0.62 });
+          };
+        },
         emoji: () => {
           const sh = hoja('Emojis', `<div class="zhe-emojis">${EMOJIS.map(e => `<button type="button">${e}</button>`).join('')}</div>`);
           sh.querySelectorAll('.zhe-emojis button').forEach(b => b.onclick = () => { sh.remove(); agregar({ tipo: 'emoji', texto: b.textContent }); });
@@ -324,7 +364,8 @@
         listo: () => exportar().then((r) => {
           if (audio) audio.pause();
           if (r && r.esVideo && opciones.maxBytes && r.blob.size > opciones.maxBytes) throw new Error(`El video quedó de ${(r.blob.size / 1048576).toFixed(1)} MB y el máximo es ${(opciones.maxBytes / 1048576).toFixed(0)} MB. Elige un tramo más corto.`);
-          if (r) cerrar(r);
+          // La encuesta va aparte de las etiquetas tocables (el visor la pinta encima para votar).
+          if (r) { r.encuesta = r.etiquetas.find((e) => e.tipo === 'encuesta') || null; r.etiquetas = r.etiquetas.filter((e) => e.tipo !== 'encuesta'); cerrar(r); }
         }).catch((e) => {
           // Si algo falla, lo editado se queda: se avisa y la vista previa sigue.
           document.querySelectorAll('.zhe-prog').forEach(x => x.remove());
@@ -364,7 +405,8 @@
         if ('filter' in cx) cx.filter = 'none';
         return st.items.map(it => {
           const caja = dibujarItem(cx, it, w);
-          return it.tipo === 'mencion' ? { tipo: 'mencion', uid: it.uid, ...caja } : it.tipo === 'producto' ? { tipo: 'producto', productoId: it.productoId, ...caja } : null;
+          return it.tipo === 'mencion' ? { tipo: 'mencion', uid: it.uid, ...caja } : it.tipo === 'producto' ? { tipo: 'producto', productoId: it.productoId, ...caja }
+            : it.tipo === 'encuesta' ? { tipo: 'encuesta', pregunta: it.pregunta, opciones: [it.a, it.b], ...caja } : null;
         }).filter(Boolean);
       }
       async function exportar() {
