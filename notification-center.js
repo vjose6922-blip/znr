@@ -675,7 +675,7 @@ const PICKUP_HORAS = ['9:00 AM','10:00 AM','11:00 AM','12:00 PM','1:00 PM','2:00
         : '';
       return `
         <div class="nc-item ${n.leida ? '' : 'unread'}" data-id="${esc(n.id)}" data-url="${esc(n.url || '')}">
-          <div class="nc-icon">${info.icono}</div>
+          <div class="nc-icon"${/^https:\/\//.test(meta.foto || '') ? ` style="background:url('${String(meta.foto).replace(/["'\\<>]/g, '')}') center/cover;border-radius:50%"` : ''}>${/^https:\/\//.test(meta.foto || '') ? '' : info.icono}</div>
           <div class="nc-body">
             <p class="nc-item-title">
               ${n.tipo === 'pedido_personalizado_mensaje' ? esc(n.titulo) : (n.titulo || '')}
