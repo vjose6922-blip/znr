@@ -1834,7 +1834,7 @@ checkPendingRatings();
   }
 
   const n = lives.length;
-  const nombres = lives.slice(0, 2).map(l => l.vendedor_nombre || 'Vendedor').join(', ');
+  const nombres = lives.slice(0, 2).map(l => escapeHtml(l.vendedor_nombre || 'Vendedor')).join(', '); // lo escribe el vendedor: siempre escapado
   slot.innerHTML = `
     <a href="lives.html" style="text-decoration:none; display:block; margin:0 0 4px;
       background:linear-gradient(135deg, rgba(239,68,68,.16), rgba(244,114,182,.10));
