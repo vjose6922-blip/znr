@@ -83,13 +83,13 @@
       .zhv-box{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
       .zhv-pie{position:absolute;z-index:5;left:0;right:0;bottom:0;display:flex;flex-direction:column;align-items:center;gap:8px;padding:0 14px calc(env(safe-area-inset-bottom,0px) + 16px);pointer-events:none}
       .zhv-pie>*{pointer-events:auto}.zhv-pie .bell-live{margin:0}
-      .zhv-resp{display:flex;gap:8px;width:100%;max-width:440px}
-      .zhv-resp input{flex:1;min-width:0;padding:10px 14px;border-radius:999px;border:1px solid rgba(255,255,255,.6);background:rgba(0,0,0,.35);color:#fff;font:15px system-ui,sans-serif}
-      .zhv-resp input::placeholder{color:rgba(255,255,255,.85)}
-      .zhv-resp button{flex-shrink:0;border:none;border-radius:999px;padding:0 16px;background:#fff;color:#111;font:700 .85rem system-ui,sans-serif;cursor:pointer}
+      .zhv-resp{display:flex;align-items:flex-end;gap:8px;width:100%;max-width:440px}
+      .zhv-resp textarea{flex:1;min-width:0;resize:none;max-height:6.5em;line-height:1.3;padding:10px 14px;border-radius:20px;border:1px solid rgba(255,255,255,.6);background:rgba(0,0,0,.35);color:#fff;font:15px system-ui,sans-serif}
+      .zhv-resp textarea::placeholder{color:rgba(255,255,255,.85)}
+      .zhv-resp button{flex-shrink:0;height:42px;border:none;border-radius:999px;padding:0 16px;background:#fff;color:#111;font:700 .85rem system-ui,sans-serif;cursor:pointer}
       .zhv-nota{margin:0;padding:6px 12px;border-radius:999px;background:rgba(0,0,0,.6);color:#fff;font-size:.8rem}.zhv-nota a{color:#fff;font-weight:700}
       .zhv-enc{position:absolute;pointer-events:auto;display:flex;gap:4%;padding:0 4.6% 4.6%;box-sizing:border-box}
-      .zhv-enc button{flex:1;border:none;border-radius:999px;background:transparent;cursor:pointer;position:relative;overflow:hidden;color:#fff;font:800 clamp(.7rem,3.4vw,1rem) system-ui,sans-serif}
+      .zhv-enc button{flex:1;min-width:0;border:none;border-radius:1.2em;white-space:normal;line-height:1.1;padding:0 .4em;overflow-wrap:anywhere;background:transparent;cursor:pointer;position:relative;overflow:hidden;color:#fff;font:800 clamp(.7rem,3.4vw,1rem) system-ui,sans-serif}
       .zhv-enc.res button{background:rgba(255,255,255,.88);color:#111}
       .zhv-enc.res button i{position:absolute;inset:0 auto 0 0;background:rgba(124,58,237,.35)}.zhv-enc.res button+button i{background:rgba(236,72,153,.35)}
       .zhv-enc.res button span{position:relative}.zhv-enc.res button.mio{box-shadow:inset 0 0 0 3px #111}
@@ -118,7 +118,7 @@
           <button type="button" class="zhv-btn" id="zhv-report" aria-label="Reportar historia">${ico('flag', 18) || '⚑'}</button>
           <button type="button" class="zhv-btn" id="zhv-close" aria-label="Cerrar">${ico('x', 18) || '✕'}</button>
         </div>
-        <div class="zhv-pie"><button type="button" class="zhv-quitar" id="zhv-quitar" hidden>Te etiquetaron · Quitar mi mención</button><p class="zhv-nota" id="zhv-nota" hidden></p><form class="zhv-resp" id="zhv-resp"><input type="text" maxlength="500" placeholder="Enviar mensaje…" enterkeyhint="send" aria-label="Responder a la historia"><button type="submit">Enviar</button></form><div id="zhv-extra"></div></div>
+        <div class="zhv-pie"><button type="button" class="zhv-quitar" id="zhv-quitar" hidden>Te etiquetaron · Quitar mi mención</button><p class="zhv-nota" id="zhv-nota" hidden></p><form class="zhv-resp" id="zhv-resp"><textarea rows="1" maxlength="500" placeholder="Enviar mensaje…" enterkeyhint="send" aria-label="Responder a la historia"></textarea><button type="submit">Enviar</button></form><div id="zhv-extra"></div></div>
         <div class="zhv-sheet" id="zhv-sheet" hidden></div>
       </div>`;
     document.body.appendChild(el);
@@ -134,8 +134,11 @@
     el.querySelector('#zhv-close').addEventListener('click', cerrar);
     el.querySelector('#zhv-report').addEventListener('click', abrirReporte);
     el.querySelector('#zhv-quitar').addEventListener('click', quitarMencion);
-    const resp = el.querySelector('#zhv-resp'), inp = resp.querySelector('input');
+    const resp = el.querySelector('#zhv-resp'), inp = resp.querySelector('textarea');
     resp.addEventListener('submit', responder);
+    // El mensaje largo crece hasta 5 renglones (luego se desplaza); Enter envía, Shift+Enter hace un salto de línea.
+    inp.addEventListener('input', () => { inp.style.height = 'auto'; inp.style.height = inp.scrollHeight + 'px'; });
+    inp.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); resp.requestSubmit(); } });
     inp.addEventListener('focus', pausar);
     inp.addEventListener('blur', () => { if (!inp.value.trim()) reanudar(); });
     el.addEventListener('click', (e) => { if (e.target === el) cerrar(); });
@@ -314,7 +317,7 @@
   // Responder a la historia: abre (o sigue) un chat de consulta con el vendedor (pedido-chat.html). Pide sesión de comprador.
   async function responder(ev) {
     ev.preventDefault();
-    const inp = el.querySelector('#zhv-resp input'), btn = el.querySelector('#zhv-resp button'), txt = inp.value.trim(), h = lista[idx];
+    const inp = el.querySelector('#zhv-resp textarea'), btn = el.querySelector('#zhv-resp button'), txt = inp.value.trim(), h = lista[idx];
     if (!txt) return;
     let tel = (localStorage.getItem('client_phone') || '').replace(/\D/g, ''), tok = localStorage.getItem('comprador_token');
     if (tel.length !== 10 || !tok) {
@@ -330,7 +333,7 @@
       const r = await (await fetch(PEDIDOS_API, { method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'responderHistoria', telefono: tel, compradorToken: tok, nombre: localStorage.getItem('client_name') || '', historiaId: h.id, contenido: txt }) })).json();
       if (!r.ok) throw new Error(r.error || 'No se pudo enviar.');
-      inp.value = ''; inp.blur();
+      inp.value = ''; inp.style.height = ''; inp.blur();
       nota(`Mensaje enviado · <a href="pedido-chat.html?pedido=${encodeURIComponent(r.pedidoId)}&rol=comprador">Ver chat</a>`);
     } catch (e) { nota(esc(e.message || 'No se pudo enviar.')); }
     btn.disabled = false;

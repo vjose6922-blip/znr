@@ -282,7 +282,7 @@ self.addEventListener('push', event => {
   event.waitUntil((async () => {
     await self.registration.showNotification(title, {
       body:    body,
-      icon:    '/logo.svg',
+      icon:    /^https:\/\//.test(payload.data?.icon || '') ? payload.data.icon : '/logo.svg', // foto de quien escribe (chats)
       image:   notif.image || payload.data?.image, // foto grande (avisos de temporada); iPhone la ignora
       vibrate: [200, 100, 200],
       data:    { url: url },

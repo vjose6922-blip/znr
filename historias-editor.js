@@ -36,13 +36,13 @@
       .zhe-stage{position:relative;height:100%;max-height:100%;aspect-ratio:9/16;max-width:100%;border-radius:14px;overflow:hidden;background:#111}
       .zhe-stage canvas{width:100%;height:100%;display:block}
       .zhe-capa{position:absolute;inset:0}
-      .zhe-it{position:absolute;transform:translate(-50%,-50%);white-space:pre;cursor:grab;line-height:1.15;font-weight:800;text-align:center;user-select:none;-webkit-user-select:none}
+      .zhe-it{position:absolute;transform:translate(-50%,-50%);white-space:pre-wrap;overflow-wrap:anywhere;width:max-content;max-width:90%;box-sizing:border-box;cursor:grab;line-height:1.15;font-weight:800;text-align:center;user-select:none;-webkit-user-select:none}
       .zhe-it.texto{text-shadow:0 2px 6px rgba(0,0,0,.6)}
       .zhe-it.mencion,.zhe-it.producto{background:#fff;color:#111;border-radius:999px;padding:.3em .7em}
       .zhe-it.producto{border-radius:.6em}
       .zhe-it.encuesta{background:#fff;color:#111;border-radius:.8em;padding:.7em;width:15.3em;white-space:normal;box-sizing:border-box}
-      .zhe-it.encuesta b{display:block;font-size:1.12em;margin-bottom:.5em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-      .zhe-it.encuesta span{display:flex;gap:.7em}.zhe-it.encuesta i{flex:1;font-style:normal;border-radius:999px;padding:.6em .3em;color:#fff;background:#7c3aed;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+      .zhe-it.encuesta b{display:block;font-size:1.12em;margin-bottom:.5em}
+      .zhe-it.encuesta span{display:flex;gap:.7em}.zhe-it.encuesta i{flex:1;min-width:0;font-style:normal;border-radius:1.2em;padding:.6em .3em;color:#fff;background:#7c3aed;display:flex;align-items:center;justify-content:center}
       .zhe-it.encuesta i+i{background:#ec4899}
       .zhe-it.sel{outline:2px dashed #fff;outline-offset:6px}
       .zhe-bot{padding:8px 10px calc(env(safe-area-inset-bottom,0px) + 10px);display:flex;flex-direction:column;gap:8px}
@@ -82,16 +82,36 @@
     ctx.drawImage(src, (w - sw * k) / 2, (h - sh * k) / 2, sw * k, sh * k);
   }
 
+  // Parte el texto en renglones que quepan en `max` px (respeta los saltos que escribió el usuario).
+  function envolver(ctx, texto, max) {
+    const out = [];
+    String(texto).split('\n').forEach((parrafo) => {
+      let linea = '';
+      parrafo.split(' ').forEach((pal) => {
+        while (ctx.measureText(pal).width > max && pal.length > 1) { // palabra más ancha que el cuadro: se corta
+          let n = pal.length; while (n > 1 && ctx.measureText(pal.slice(0, n)).width > max) n--;
+          if (linea) { out.push(linea); linea = ''; }
+          out.push(pal.slice(0, n)); pal = pal.slice(n);
+        }
+        const prueba = linea ? linea + ' ' + pal : pal;
+        if (linea && ctx.measureText(prueba).width > max) { out.push(linea); linea = pal; } else linea = prueba;
+      });
+      out.push(linea);
+    });
+    return out;
+  }
+
   // Dibuja un elemento (texto, emoji, mención o producto) en el canvas final y devuelve su caja en proporciones.
   function dibujarItem(ctx, it, w) {
     if (it.tipo === 'encuesta') return dibujarEncuesta(ctx, it, w);
     const k = w / W, fs = BASE[it.tipo] * it.s * k, cx = it.x * w, cy = it.y * (w * 16 / 9);
     ctx.font = `800 ${fs}px system-ui,-apple-system,sans-serif`;
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    const lineas = String(it.texto).split('\n'), lh = fs * 1.15;
+    const pill = it.tipo === 'mencion' || it.tipo === 'producto';
+    const lineas = envolver(ctx, it.texto, w * 0.9 - (pill ? fs * 1.4 : 0)), lh = fs * 1.15; // máx. 90% del ancho, como en la vista previa
     const ancho = Math.max(...lineas.map(l => ctx.measureText(l).width)), alto = lh * lineas.length;
     let bw = ancho, bh = alto;
-    if (it.tipo === 'mencion' || it.tipo === 'producto') {
+    if (pill) {
       const px = fs * 0.7, py = fs * 0.3; bw = ancho + px * 2; bh = alto + py * 2;
       const r = it.tipo === 'mencion' ? bh / 2 : fs * 0.6;
       ctx.fillStyle = '#fff';
@@ -110,15 +130,22 @@
   // Tarjeta de encuesta: pregunta arriba y dos opciones (morada y rosa). Devuelve su caja y dónde empiezan las opciones (oy).
   function dibujarEncuesta(ctx, it, w) {
     const k = (w / W) * it.s, h = w * 16 / 9, cx = it.x * w, cy = it.y * h, bw = 520 * k, pad = 24 * k, fq = 38 * k, oh = 78 * k;
-    const bh = pad * 2 + (it.pregunta ? fq * 1.3 + pad * 0.6 : 0) + oh, x0 = cx - bw / 2, y0 = cy - bh / 2, oy = y0 + bh - pad - oh, ow = (bw - pad * 3) / 2;
+    const fo = 34 * k, ow = (bw - pad * 3) / 2, fuente = (px) => `800 ${px}px system-ui,-apple-system,sans-serif`;
+    ctx.font = fuente(fq); const q = it.pregunta ? envolver(ctx, it.pregunta, bw - pad * 2) : [];
+    ctx.font = fuente(fo); const ops = [it.a, it.b].map((t) => envolver(ctx, t, ow - 20 * k));
+    const alto = Math.max(oh, Math.max(...ops.map((l) => l.length)) * fo * 1.15 + 30 * k); // las opciones largas crecen hacia abajo
+    const bh = pad * 2 + (q.length ? q.length * fq * 1.2 + pad * 0.6 : 0) + alto, x0 = cx - bw / 2, y0 = cy - bh / 2, oy = y0 + bh - pad - alto;
     const caja = (x, y, cw, ch, r, color) => { ctx.fillStyle = color; ctx.beginPath(); ctx.roundRect ? ctx.roundRect(x, y, cw, ch, r) : ctx.rect(x, y, cw, ch); ctx.fill(); };
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     caja(x0, y0, bw, bh, 28 * k, '#fff');
-    if (it.pregunta) { ctx.fillStyle = '#111'; ctx.font = `800 ${fq}px system-ui,-apple-system,sans-serif`; ctx.fillText(it.pregunta, cx, y0 + pad + fq * 0.65, bw - pad * 2); }
-    [it.a, it.b].forEach((t, i) => {
+    ctx.fillStyle = '#111'; ctx.font = fuente(fq);
+    q.forEach((l, i) => ctx.fillText(l, cx, y0 + pad + fq * 1.2 * (i + 0.5)));
+    ctx.font = fuente(fo);
+    ops.forEach((lineas, i) => {
       const ox = x0 + pad + i * (ow + pad);
-      caja(ox, oy, ow, oh, oh / 2, i ? '#ec4899' : '#7c3aed');
-      ctx.fillStyle = '#fff'; ctx.font = `800 ${34 * k}px system-ui,-apple-system,sans-serif`; ctx.fillText(t, ox + ow / 2, oy + oh / 2, ow - 20 * k);
+      caja(ox, oy, ow, alto, Math.min(alto / 2, 40 * k), i ? '#ec4899' : '#7c3aed');
+      ctx.fillStyle = '#fff';
+      lineas.forEach((l, j) => ctx.fillText(l, ox + ow / 2, oy + alto / 2 + fo * 1.15 * (j - (lineas.length - 1) / 2)));
     });
     return { x: x0 / w, y: y0 / h, w: bw / w, h: bh / h, oy: (oy - y0) / bh };
   }
@@ -295,8 +322,8 @@
         // Una encuesta por historia: pregunta opcional y dos opciones cortas.
         encuesta: () => {
           const it = st.items.find((x) => x.tipo === 'encuesta');
-          const sh = hoja('Encuesta · ¿Cuál prefieres?', `<input type="text" data-q maxlength="40" placeholder="Pregunta (opcional)">
-            <div style="display:flex;gap:8px;margin-top:8px"><input type="text" data-a maxlength="16" placeholder="Opción A"><input type="text" data-b maxlength="16" placeholder="Opción B"></div>
+          const sh = hoja('Encuesta · ¿Cuál prefieres?', `<input type="text" data-q maxlength="80" placeholder="Pregunta (opcional)">
+            <div style="display:flex;gap:8px;margin-top:8px"><input type="text" data-a maxlength="30" placeholder="Opción A"><input type="text" data-b maxlength="30" placeholder="Opción B"></div>
             <p class="zhe-hint" style="text-align:left;margin-top:8px">Votan compradores y vendedores con sesión, una vez. Tú ves los resultados en Mis historias.</p>
             <button type="button" class="zhe-b ok" data-ok style="width:100%;margin-top:6px">${it ? 'Guardar' : 'Agregar encuesta'}</button>`);
           const q = sh.querySelector('[data-q]'), a = sh.querySelector('[data-a]'), b = sh.querySelector('[data-b]');
