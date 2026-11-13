@@ -78,7 +78,7 @@ async function fetchZNRCatalogo({ page = 1, limit = 10, filters = {} } = {}) {
     const start = (page - 1) * limit;
     return { ok: true, products: list.slice(start, start + limit), page, totalPages, total };
   }
-  console.error('fetchZNRCatalogo: Firestore no disponible');
+  console.error('fetchZNRCatalogo: no se pudieron leer los productos (' + (window.znrFirestore ? 'Firestore' : 'Firestore no cargó') + ')');
   return { ok: false, products: [], page, totalPages: 1, total: 0 };
 }
 let localCart = {};
@@ -3160,6 +3160,7 @@ async function loadProductsUnified({ onProducts, onError, force = false, page = 
   const hasPagination = page > 1 || limit !== 10 || Object.keys(filters).length > 0;
 
   const deliver = (products, fromCache, meta) => {
+    window.productosListos = true; // ya cargó: una lista vacía es "no hay productos", no "cargando"
     buildProductIndex(products);
     window.allProducts = products;
     onProducts(products, fromCache, meta || null);
@@ -3173,6 +3174,7 @@ async function loadProductsUnified({ onProducts, onError, force = false, page = 
       if (navigator.onLine) {
         fetchZNRCatalogo({ page, limit, filters })
           .then(data => {
+            if (data.ok === false) return; // falló: se quedan los guardados (antes los reemplazaba por una lista vacía)
             const fresh = data.products || [];
             const meta = { page: data.page || 1, totalPages: data.totalPages || 1, total: data.total || fresh.length };
             if (JSON.stringify(fresh) !== JSON.stringify(cached)) {
@@ -3204,6 +3206,7 @@ async function loadProductsUnified({ onProducts, onError, force = false, page = 
   try {
     showLoader('Cargando productos...');
     const data = await fetchZNRCatalogo({ page, limit, filters });
+    if (data.ok === false) throw new Error('No se pudieron cargar los productos');
     const products = data.products || [];
     const meta = {
       page: data.page || page,
@@ -3365,7 +3368,6 @@ if (!('serviceWorker' in navigator)) {
 return false;
 }
 try {
-const teniaControllerPrevio = !!navigator.serviceWorker.controller;
 const registration = await navigator.serviceWorker.register('/sw.js', {
 scope: '/'
 });
@@ -3375,19 +3377,6 @@ navigator.serviceWorker.addEventListener('message', event => {
 if (event.data.type === 'CONNECTION_STATUS') {
 }
 });
-// Si ya había un SW controlando esta pestaña y entra uno nuevo (versión
-// recién desplegada), recarga automático — evita que el usuario tenga
-// que forzar la recarga a mano para ver los cambios. En la primera
-// visita (sin controller previo) no recarga, para no interrumpir la
-// primera carga.
-if (teniaControllerPrevio) {
-  let yaRecargando = false;
-  navigator.serviceWorker.addEventListener('controllerchange', () => {
-    if (yaRecargando) return;
-    yaRecargando = true;
-    window.location.reload();
-  });
-}
 return true;
 } catch (error) {
 console.error(' Error registrando SW:', error);
@@ -4137,15 +4126,7 @@ window.uploadSingleImage = async function(file, slotIndex) {
     throw new Error('uploadSingleImage no está implementada. Debes asignarla en el panel de vendedor.');
 };
 
-if ('serviceWorker' in navigator) {
-    if (!sessionStorage.getItem('sw_reloaded')) {
-        navigator.serviceWorker.addEventListener('controllerchange', () => {
-            sessionStorage.setItem('sw_reloaded', 'true');
-            try { showTemporaryMessage('Actualizando a la última versión…', 'info'); } catch {}
-            setTimeout(() => window.location.reload(), 800);
-        });
-    }
-}
+
 
 
 

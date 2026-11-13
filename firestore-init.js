@@ -380,12 +380,13 @@ window.znrFirestore.getProductosZNR = async function () {
     // por esta función), así que filtrar aquí cubre a cualquier página sin
     // duplicar el filtro en cada una.
     if (typeof obtenerCiudadComprador === 'function') {
-      products = products.filter(p => p.ciudad === miCiudad);
+      const norm = (c) => (window.normalizarCiudad ? window.normalizarCiudad(c) : c);
+      products = products.filter(p => p.ciudad === miCiudad || norm(p.ciudad) === norm(miCiudad));
     }
     return { ok: true, products };
   } catch (err) {
     console.warn('Firestore productos_znr falló:', err);
-    return { ok: false, error: String(err) };
+    return { ok: false, error: String((err && (err.code || err.message)) || err) };
   }
 };
 
