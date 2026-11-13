@@ -13,7 +13,7 @@ const OFFLINE_URL   = '/offline.html';
 // TODAS al instalar, ~1.6 MB aunque nunca se abrieran).
 const STATIC_ASSETS = [
   '/', '/index.html', '/offline.html', '/styles.css',
-  '/app-check.js', '/api-config.js', '/common.js', '/home.js', '/icons.js',
+  '/app-check.js', '/api-config.js', '/common.js', '/home.js', '/icons.js', '/nav-bottom.js',
   '/cache-manager.js', '/manifest.json', '/placeholder.svg',
 ];
 

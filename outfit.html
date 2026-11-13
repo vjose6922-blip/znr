@@ -80,38 +80,6 @@
   <div id="weather-widget" class="weather-widget loading"></div>
 </div>
 
-<nav class="bottom-nav">
- <button class="bottom-nav-item" data-page="inicio" id="nav-inicio">
- <span class="nav-icon"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" aria-hidden="true"><use href="#ic-home"/></svg></span>
- <span>Inicio</span>
- </button>
- 
- <button class="bottom-nav-item" data-page="catalogo" id="nav-catalogo">
- <span class="nav-icon"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" aria-hidden="true"><use href="#ic-catalog"/></svg></span>
- <span>Catálogo</span>
- </button>
- 
- <button class="bottom-nav-item" data-page="comunidad" id="nav-comunidad">
- <span class="nav-icon"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" aria-hidden="true"><use href="#ic-community"/></svg></span>
- <span>Comunidad</span>
- </button>
- 
- <button class="bottom-nav-item" id="nav-cart">
- <div class="badge-wrapper">
- <span class="nav-icon"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" aria-hidden="true"><use href="#ic-cart"/></svg></span>
- <span class="bottom-nav-badge" id="bottom-cart-count">0</span>
- </div>
- <span>Carrito</span>
- </button>
- 
- <button class="bottom-nav-item" id="nav-wishlist">
- <div class="badge-wrapper">
- <span class="nav-icon"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" aria-hidden="true"><use href="#ic-heart"/></svg></span>
- <span class="bottom-nav-badge" id="bottom-wishlist-count">0</span>
- </div>
- <span>Favoritos</span>
- </button>
-</nav>
 
  <a href="armar-outfit.html" style="display:flex;align-items:center;gap:12px;margin:12px 16px;padding:14px 16px;border-radius:18px;background:var(--color-surface);border:1px solid var(--card-border);box-shadow:var(--shadow-soft);text-decoration:none;">
  <span style="font-size:22px;line-height:1;"></span>
@@ -278,41 +246,6 @@ document.addEventListener('DOMContentLoaded', function() {
  updateWishlistBadge();
  }
 
- const navCatalogo = document.getElementById('nav-catalogo');
- const navInicio = document.getElementById('nav-inicio');
- const navCart = document.getElementById('nav-cart');
- const navWishlist = document.getElementById('nav-wishlist');
- 
- if (navCatalogo) {
- navCatalogo.addEventListener('click', () => {
- window.location.href = 'catalogo.html';
- });
- }
- 
- if (navInicio) {
- navInicio.addEventListener('click', () => {
- window.location.href = 'index.html';
- });
- }
- 
- const navComunidad = document.getElementById('nav-comunidad');
- if (navComunidad) navComunidad.addEventListener('click', () => { window.location.href = 'comunidad.html'; });
- 
- if (navCart && typeof openCartDrawer === 'function') {
- navCart.addEventListener('click', (e) => {
- e.preventDefault();
- openCartDrawer();
- });
- }
- 
-
- if (navWishlist) {
- navWishlist.addEventListener('click', (e) => {
- e.preventDefault();
- openWishlistDrawer();
- });
- }
- 
 
  window.addEventListener('cartUpdated', updateBottomBadges);
  window.addEventListener('storage', updateBottomBadges);
@@ -340,5 +273,6 @@ document.addEventListener('DOMContentLoaded', function() {
  </div>
  </footer>
 
+<script src="nav-bottom.js" defer></script>
 </body>
 </html>

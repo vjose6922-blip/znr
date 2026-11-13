@@ -525,10 +525,6 @@ if (panelDiv) panelDiv.style.display = 'none';
 const logoutBtn = document.getElementById('logout-btn');
 if (logoutBtn) logoutBtn.style.display = 'none';
 
-const navGuest = document.getElementById('bottom-nav-guest');
-const navVendor = document.getElementById('bottom-nav-vendor');
-if (navVendor) navVendor.style.display = 'none';
-if (navGuest) navGuest.style.display = '';
 
 closeSettingsModal();
 }
@@ -567,10 +563,7 @@ nameHeader.textContent = vendorSession.nombre;
 
 updateVendorAvatar();
 
-const navGuest = document.getElementById('bottom-nav-guest');
-const navVendor = document.getElementById('bottom-nav-vendor');
-if (navGuest) navGuest.style.display = 'none';
-if (navVendor) navVendor.style.display = '';
+document.documentElement.setAttribute('data-vsess', '1'); // nav-bottom.js muestra "Ver más" con sesión
 
 const cardName = document.getElementById('vendor-card-name');
 if (cardName && vendorSession) cardName.textContent = vendorSession.nombre;
@@ -1831,9 +1824,6 @@ if (productsTab) productsTab.style.display = tab === 'products' ? 'block' : 'non
 if (formTab) formTab.style.display = tab === 'form' ? 'block' : 'none';
 document.querySelectorAll('.vendor-tab').forEach((el, i) => {
 el.classList.toggle('active', (tab === 'products' && i === 0) || (tab === 'form' && i === 1));
-});
-document.querySelectorAll('#bottom-nav-vendor .bottom-nav-item[data-vendor-page]').forEach(el => {
-el.classList.toggle('active', el.dataset.vendorPage === tab);
 });
 };
 

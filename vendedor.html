@@ -68,8 +68,6 @@
     .vp-l1{height:13px;width:70%;margin-bottom:8px}
     .vp-l2{height:11px;width:45%;margin-bottom:8px}
     .vp-l3{height:22px;width:80px;border-radius:20px}
- html[data-vsess] #bottom-nav-guest { display: none !important; }
- html[data-vsess] #bottom-nav-vendor { display: flex !important; }
  
   /* Tema: la tarjeta de plan y los filtros se arman en vendedor-unificado.js con colores fijos (#f8f8fc, #000) */
   [style*="background:#f8f8fc"] { background: var(--color-surface-2) !important; color: var(--color-text-main) !important; }
@@ -668,67 +666,9 @@ document.addEventListener('DOMContentLoaded', () => {
 </script>
 
 
- <nav class="bottom-nav" id="bottom-nav-guest">
- <button class="bottom-nav-item" data-page="inicio" id="nav-inicio">
- <span class="nav-icon"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" aria-hidden="true"><use href="#ic-home"/></svg></span>
- <span>Inicio</span>
- </button>
- <button class="bottom-nav-item" data-page="catalogo" id="nav-catalogo">
- <span class="nav-icon"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" aria-hidden="true"><use href="#ic-catalog"/></svg></span>
- <span>Catálogo</span>
- </button>
- <button class="bottom-nav-item" data-page="outfit" id="nav-outfit">
- <span class="nav-icon"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" aria-hidden="true"><use href="#ic-outfit"/></svg></span>
- <span>Outfit</span>
- </button>
-
- <button class="bottom-nav-item" data-page="comunidad" id="nav-comunidad">
- <span class="nav-icon"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" aria-hidden="true"><use href="#ic-community"/></svg></span>
- <span>Comunidad</span>
- </button>
- </nav>
  
- <nav class="bottom-nav" id="bottom-nav-vendor" style="display:none">
 
- <button class="bottom-nav-item" id="nav-v-inicio">
- <span class="nav-icon"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" aria-hidden="true"><use href="#ic-home"/></svg></span>
- <span>Inicio</span>
- </button>
- <button class="bottom-nav-item" data-page="comunidad" id="nav-v-comunidad">
- <span class="nav-icon"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" aria-hidden="true"><use href="#ic-community"/></svg></span>
- <span>Comunidad</span>
- </button>
- <button class="bottom-nav-item" id="nav-v-actividad">
- <span class="nav-icon"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" aria-hidden="true"><use href="#ic-fire"/></svg></span>
- <span>Actividad</span>
- </button>
- <button class="bottom-nav-item active" id="nav-v-productos" data-vendor-page="products">
- <span class="nav-icon"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" aria-hidden="true"><use href="#ic-grid"/></svg></span>
- <span>Productos</span>
- </button>
 
- <button class="bottom-nav-item" id="nav-v-ajustes">
- <span class="nav-icon"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" aria-hidden="true"><use href="#ic-more"/></svg></span>
- <span>Ver mas</span>
- </button>
- </nav>
-
- <style>
- #bottom-nav-vendor .bottom-nav-item.active{ color: #7c3aed; }
- </style>
-
- <script>
- document.getElementById('nav-inicio')?.addEventListener('click', () => { window.location.href = 'index.html'; });
- document.getElementById('nav-catalogo')?.addEventListener('click', () => { window.location.href = 'catalogo.html'; });
- document.getElementById('nav-outfit')?.addEventListener('click', () => { window.location.href = 'outfit.html'; });
- document.getElementById('nav-comunidad')?.addEventListener('click', () => { window.location.href = 'comunidad.html'; });
-
- document.getElementById('nav-v-comunidad')?.addEventListener('click', () => { window.location.href = 'comunidad.html'; });
- document.getElementById('nav-v-actividad')?.addEventListener('click', () => { window.location.href = 'feed-actividad.html'; });
- document.getElementById('nav-v-productos')?.addEventListener('click', () => { window.switchTab && window.switchTab('products'); });
- document.getElementById('nav-v-inicio')?.addEventListener('click', () => { window.location.href = 'index.html'; });
- document.getElementById('nav-v-ajustes')?.addEventListener('click', () => { window.openSettingsModal && window.openSettingsModal(); });
- </script>
 
 <div id="settings-modal" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.65);align-items:flex-end;justify-content:center;">
   <div style="background:#fff;width:100%;height:95%;overflow-y:auto;padding:0 0 32px;">
@@ -1186,5 +1126,6 @@ document.addEventListener('DOMContentLoaded', () => {
  </div>
  </footer>
  
+<script src="nav-bottom.js" defer></script>
 </body>
 </html>

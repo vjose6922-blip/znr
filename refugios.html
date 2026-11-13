@@ -73,8 +73,6 @@
  .community-hero .m-hero { margin: 0 0 4px; }
  .com-tiles { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; overscroll-behavior-x: contain; scrollbar-width: none; }
  .com-tiles::-webkit-scrollbar { display: none; }
- .bottom-nav-item { flex: 1 1 0; min-width: 0; padding: 8px 2px; }
- .bottom-nav-item span:not(.nav-icon) { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
  /* Búsqueda + botón de filtros (abre la hoja, igual que en Comunidad) */
  .ref-buscar { display: flex; gap: 8px; padding: 8px 16px; scroll-margin-top: 12px; position: relative; }
  .ref-buscar > svg { position: absolute; left: 30px; top: 20px; color: var(--color-text-muted); pointer-events: none; }
@@ -264,41 +262,6 @@
 
  <div class="overlay" id="overlay"></div>
  <div class="image-modal" id="image-modal"></div>
- <nav class="bottom-nav">
-
- <button class="bottom-nav-item" data-page="inicio" id="nav-inicio">
- <span class="nav-icon"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" aria-hidden="true"><use href="#ic-home"/></svg></span>
- <span>Inicio</span>
- </button>
- 
- <button class="bottom-nav-item" data-page="catalogo" id="nav-catalogo">
- <span class="nav-icon"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" aria-hidden="true"><use href="#ic-catalog"/></svg></span>
- <span>Catalogo</span>
- </button>
-
- <button class="bottom-nav-item" data-page="outfit" id="nav-outfit">
- <span class="nav-icon"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" aria-hidden="true"><use href="#ic-outfit"/></svg></span>
- <span>Outfits</span>
- </button>
- 
- <button class="bottom-nav-item" id="nav-comunidad">
- <span class="nav-icon"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" aria-hidden="true"><use href="#ic-community"/></svg></span>
- <span>Comunidad</span>
- </button>
-
- <button class="bottom-nav-item" data-page="vendedor" id="nav-vendedor">
- <span class="nav-icon"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" aria-hidden="true"><use href="#ic-vendor"/></svg></span>
- <span>Vendedor</span>
- </button>
- 
- <button class="bottom-nav-item" id="nav-cart">
- <div class="badge-wrapper">
- <span class="nav-icon"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" aria-hidden="true"><use href="#ic-cart"/></svg></span>
- <span class="bottom-nav-badge" id="bottom-cart-count">0</span>
- </div>
- <span>Carrito</span>
- </button>
- </nav>
 
  <script src="api-config.js" defer></script>
  <script type="module" src="fcm-init.js"></script>
@@ -315,14 +278,7 @@
  <script src="refugios.js" defer></script>
  <script>
  if ('serviceWorker' in navigator) window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(() => {}));
- const ir = { 'nav-inicio': 'index.html', 'nav-catalogo': 'catalogo.html', 'nav-outfit': 'outfit.html', 'nav-vendedor': 'vendedor.html', 'nav-comunidad': 'comunidad.html' };
- Object.entries(ir).forEach(([id, url]) => document.getElementById(id)?.addEventListener('click', () => { location.href = url; }));
- document.getElementById('nav-cart')?.addEventListener('click', () => window.openCartDrawer?.());
- window.addEventListener('cartUpdated', () => {
- const count = Object.values(window.localCart || {}).reduce((s, i) => s + i.quantity, 0);
- const badge = document.getElementById('bottom-cart-count');
- if (badge) { badge.textContent = count; badge.style.display = count > 0 ? 'flex' : 'none'; }
- });
  </script>
+<script src="nav-bottom.js" defer></script>
 </body>
 </html>
