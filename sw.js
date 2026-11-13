@@ -109,7 +109,7 @@ function getCacheStrategy(request) {
   if (/\/ciudades(-extra)?\.js$/.test(url.pathname)) return 'STALE_WHILE_REVALIDATE';
   // El CSS propio también: con STALE_WHILE_REVALIDATE la primera visita tras un deploy mezclaba HTML nuevo con
   // styles.css viejo (p.ej. el header quedaba bajo la Dynamic Island). Con ETag cada visita solo cuesta un 304.
-  if (['document','script','style'].includes(request.destination) && url.origin === self.location.origin) return 'NETWORK_FIRST_FRESH';
+  if (['document','script','style'].includes(request.destination) && url.origin === self.location.origin) return 'NETWORK_FIRST_RAPIDO';
   if (request.destination === 'style') return 'STALE_WHILE_REVALIDATE';
   return 'CACHE_FIRST';
 }
@@ -133,6 +133,7 @@ self.addEventListener('fetch', event => {
     NETWORK_ONLY:           networkOnly,
     NETWORK_FIRST:          networkFirst,
     NETWORK_FIRST_FRESH:    networkFirstFresh,
+    NETWORK_FIRST_RAPIDO:   networkFirstRapido,
     STALE_WHILE_REVALIDATE: staleWhileRevalidate,
   };
   event.respondWith((handlers[strategy] || networkFirst)(event.request));
@@ -210,6 +211,24 @@ async function networkFirstFresh(request) {
     if (request.mode === 'navigate') return caches.match(OFFLINE_URL);
     throw new Error('Offline');
   }
+}
+
+// HTML/JS/CSS propio. Antes iba con networkFirstFresh: cada archivo, en cada visita, se saltaba el CDN de GitHub Pages
+// (parámetro distinto + no-store) y llegaba hasta el origen; en celular con datos eran ~20 viajes lentos por página, y
+// tras un despliegue todos completos. Ahora va por el CDN con revalidación (si no cambió, el servidor más cercano
+// responde 304 al instante) y, si la red tarda más de 1.5 s y hay copia, se sirve la copia: la respuesta de la red
+// termina de guardarse para la siguiente visita. Tras un despliegue el CDN puede tardar unos minutos en dar lo nuevo.
+async function networkFirstRapido(request) {
+  const cached = await caches.match(request);
+  // Con copia, la petición lleva su ETag: si no cambió, el CDN responde 304 sin volver a mandar el archivo.
+  const headers = cached?.headers.get('ETag') ? { 'If-None-Match': cached.headers.get('ETag') } : {};
+  const red = fetch(request.url, { cache: 'no-cache', credentials: 'same-origin', headers }).then(async (net) => {
+    if (net.status === 304 && cached) return cached;
+    if (net.ok) await (await caches.open(CACHE_NAME)).put(request, net.clone());
+    return net;
+  });
+  if (!cached) return red.catch(async () => (request.mode === 'navigate' && await caches.match(OFFLINE_URL)) || Response.error());
+  return Promise.race([red.catch(() => cached), new Promise((ok) => setTimeout(ok, 1500, cached))]);
 }
 
 async function networkFirst(request) {

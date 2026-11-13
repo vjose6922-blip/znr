@@ -1,7 +1,7 @@
 (function() {
 const COMUNIDAD_CACHE_KEY = 'zr_comunidad_data';
 const COMUNIDAD_CACHE_TTL_SESSION = 5 * 60 * 1000;
-const COMUNIDAD_CACHE_TTL_LOCAL   = 30 * 60 * 1000;
+const COMUNIDAD_CACHE_TTL_LOCAL   = 7 * 24 * 60 * 60 * 1000; // se muestra al instante y se actualiza en segundo plano (antes 30 min)
 
 // ── Servicios de Cloud Run que usa este archivo (modo inspector y acciones de comunidad) ──
 const CATALOGO_API_URL_INSPECTOR =

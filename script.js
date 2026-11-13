@@ -147,7 +147,7 @@ let fullCatalogSig = null;              // firma del ultimo catalogo (evita re-s
 let fullCatalogCache = null;            // catálogo completo en memoria
 let catalogFilterOptionsSynced = false; // 🆕 evita re-narrar los selects en cada fetch
 const FULL_CATALOG_KEY = 'zr_full_catalog_v1';
-const FULL_CATALOG_TTL = 5 * 60 * 1000; // 5 minutos
+const FULL_CATALOG_TTL = 7 * 24 * 60 * 60 * 1000; // se muestra al instante y se actualiza en segundo plano (antes 5 min)
 
 function getFullCatalogFromStorage() {
   try {

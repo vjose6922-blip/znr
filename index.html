@@ -954,18 +954,25 @@
 
 
 
- async function loadHomeComunidad() {
+ // El catálogo de Comunidad se lee de Realtime Database, que exige el token de App Check (reCAPTCHA). En celular ese
+ // token puede tardar: si falla se reintenta una vez ya con token, y si aun así no hay datos se muestra la última copia
+ // buena de la ciudad (guardada en el teléfono) en vez del error. El motivo del fallo va al monitor de errores.
+ async function loadHomeComunidad(reintento) {
  const grid = document.getElementById('home-comunidad-grid');
  if (!grid) return;
+ let miCiudad = null, estado = '';
+ const guardada = () => { try { return JSON.parse(localStorage.getItem('home_comunidad_' + miCiudad) || 'null'); } catch (_) { return null; } };
  try {
- const miCiudad = typeof obtenerCiudadComprador === 'function' ? await obtenerCiudadComprador() : null;
+ miCiudad = typeof obtenerCiudadComprador === 'function' ? await obtenerCiudadComprador() : null;
+ const previa = !reintento && guardada();
+ if (previa && previa.length) { homeComunidadLista = window.allCommunityProductsIndexed = previa; pintarHomeComunidad(); } // al instante; abajo se actualiza
  // Feed de la ciudad del comprador; si no existe todavía, el global (se filtra por ciudad abajo).
  let data = null;
  for (const u of [window.urlSnapshotCatalogo ? window.urlSnapshotCatalogo(miCiudad) : '', 'https://znr-live-default-rtdb.firebaseio.com/catalogo/snapshot.json']) {
- data = u ? await fetch(u).then(r => r.json()).catch(() => null) : null;
+ data = u ? await fetch(u).then(r => { estado = r.status; return r.json(); }).catch((e) => { estado = String(e && e.message || e); return null; }) : null;
  if (data && data.ok && data.products) break;
  }
- if (!data || !data.ok || !data.products) throw new Error('Sin datos');
+ if (!data || !data.ok || !data.products) throw new Error('Sin datos (' + estado + ')');
  if (window.cargarStockVivo) await window.cargarStockVivo(miCiudad);
  // Home: solo vendedores de Comunidad, sin productos propios de Z&R,
  // y solo de la ciudad del comprador — el snapshot trae TODAS las
@@ -975,6 +982,7 @@
  const soloComunidad = (window.ordenarCatalogoComunidad ? window.ordenarCatalogoComunidad(data.products) : data.products).filter(p => !p.es_znr && Number(stockVivo(p) || 0) > 0 && (!miCiudad || p.ciudad === miCiudad));
  window.allCommunityProductsIndexed = soloComunidad;
  homeComunidadLista = soloComunidad;
+ try { localStorage.setItem('home_comunidad_' + miCiudad, JSON.stringify(soloComunidad.slice(0, 60))); } catch (_) {}
  pintarVendedorDestacado(soloComunidad);
  bannersIni.vende = azar(soloComunidad.map(p => p.imagen1).filter(Boolean)); pintarBannersInicio();
  if (!pintarHomeComunidad()) return;
@@ -984,7 +992,11 @@
  else grid.classList.remove('layout-grid');
 
  } catch(e) {
- grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:24px;color:var(--color-text-muted)">No se pudo cargar la comunidad.</div>';
+ console.error('Comunidad del inicio no cargó: ' + (e && e.message) + (window.znrAppCheckError ? ' · App Check: ' + window.znrAppCheckError : ''));
+ if (!reintento) { await window.znrAppCheckListo; return loadHomeComunidad(true); }
+ const copia = guardada();
+ if (copia && copia.length) { homeComunidadLista = window.allCommunityProductsIndexed = copia; pintarVendedorDestacado(copia); pintarHomeComunidad(); return; }
+ grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:24px;color:var(--color-text-muted)">No se pudo cargar la comunidad.<br><button type="button" onclick="loadHomeComunidad()" style="margin-top:10px;padding:8px 20px;border-radius:999px;border:none;background:var(--color-accent-solid);color:#fff;font-weight:700;cursor:pointer">Reintentar</button></div>';
  }
  }
 
