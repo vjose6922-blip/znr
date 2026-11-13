@@ -2335,6 +2335,10 @@ const tel = (localStorage.getItem('client_phone') || '').replace(/\D/g, '');
 const compradorToken = localStorage.getItem('comprador_token');
 localStorage.removeItem('client_phone');
 localStorage.removeItem('comprador_token');
+// Datos de envío solo de ESTE navegador (en un equipo compartido no deben quedar a la vista). La dirección, días, horario
+// y nota siguen guardados en el servidor (guardarPerfilComprador) y rellenan el formulario al volver a iniciar sesión.
+['client_address', 'client_schedule', 'client_note', 'client_days', 'client_hour_from', 'client_hour_to', 'client_gps_lat', 'client_gps_lng', 'client_name']
+  .forEach((k) => localStorage.removeItem(k));
 if (tel && typeof window.eliminarTokenFCM === 'function') window.eliminarTokenFCM('cliente', tel).catch(() => {});
 if (compradorToken) compradorApi({ action: 'cerrarSesionComprador', compradorToken }).catch(() => {});
 window.znrNotifCentro && window.znrNotifCentro.cambioCuenta(); // la campana y las burbujas dejan ya lo de la cuenta anterior
