@@ -430,7 +430,7 @@ window.znrFirestore.getLivesActivos = async function () {
  */
 window.znrFirestore.getFeedActividad = async function () {
   try {
-    const q = query(collection(db, 'feed_actividad'), orderBy('fecha', 'desc'), limit(40));
+    const q = query(collection(db, 'feed_actividad'), orderBy('fecha', 'desc'), limit(100)); // Actividad filtra por ciudad en el navegador
     const snap = await _fsConReintentos(() => getDocs(q));
     const ahora = Date.now();
     const items = snap.docs
@@ -442,6 +442,9 @@ window.znrFirestore.getFeedActividad = async function () {
           vendedorUid: data.vendedorUid || '',
           producto: data.producto || '',
           imagen: data.imagen || '',
+          productId: data.productId || '',
+          precio: Number(data.precio) || 0,
+          ciudad: data.ciudad || '',
           stockRestante: data.stockRestante ?? null,
           fecha: data.fecha ? data.fecha.toDate().toISOString() : '',
           expiraEn: data.expiraEn ? data.expiraEn.toDate().getTime() : null,

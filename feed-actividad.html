@@ -148,7 +148,46 @@
     .fa-story-crear-plus { position: absolute; left: 50%; top: 66%; transform: translate(-50%, -50%); z-index: 2; width: 34px; height: 34px; border-radius: 50%; background: var(--gradient-accent); color: #fff; border: 3px solid var(--color-surface); display: flex; align-items: center; justify-content: center; }
     .fa-story-crear-txt { position: absolute; left: 6px; right: 6px; bottom: 9px; z-index: 2; text-align: center; color: var(--color-text-primary); font-size: .72rem; font-weight: 800; line-height: 1.15; }
 
+    /* ── Secciones nuevas: En vivo / Próximos, Resumen del día, Últimas piezas, píldora de ventas nuevas ── */
+    .fa-sec { padding: 14px 16px 2px; }
+    .fa-sec-title { font-size: .78rem; font-weight: 700; color: var(--color-text-soft); margin: 0 0 10px; display: flex; align-items: center; gap: 6px; }
+    .fa-scroll { display: flex; gap: 10px; overflow-x: auto; padding: 2px 2px 6px; scrollbar-width: none; }
+    .fa-scroll::-webkit-scrollbar { display: none; }
 
+    .fa-live { position: relative; display: block; flex-shrink: 0; width: min(86vw, 340px); aspect-ratio: 16/9; border-radius: var(--radius-lg); overflow: hidden; text-decoration: none; color: #fff; background: var(--gradient-accent); box-shadow: 0 6px 18px rgba(0,0,0,.18); }
+    .fa-live img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+    .fa-live::after { content: ''; position: absolute; inset: 0; background: linear-gradient(rgba(0,0,0,.35), transparent 40%, rgba(0,0,0,.75)); }
+    .fa-live-top { position: absolute; top: 10px; left: 10px; right: 10px; z-index: 1; display: flex; justify-content: space-between; align-items: center; }
+    .fa-live-badge { background: #ef4444; font-size: .68rem; font-weight: 800; padding: 3px 9px; border-radius: 999px; letter-spacing: .4px; animation: fa-pulse 1.6s ease infinite; }
+    .fa-live-viendo { background: rgba(0,0,0,.45); font-size: .7rem; font-weight: 700; padding: 3px 9px; border-radius: 999px; }
+    .fa-live-info { position: absolute; left: 12px; right: 12px; bottom: 10px; z-index: 1; display: flex; align-items: flex-end; gap: 10px; }
+    .fa-live-info div { flex: 1; min-width: 0; }
+    .fa-live-info b { display: block; font-size: .95rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .fa-live-info small { display: block; font-size: .75rem; opacity: .9; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .fa-live-entrar { flex-shrink: 0; background: #fff; color: #ef4444; font-weight: 800; font-size: .78rem; padding: 7px 14px; border-radius: 999px; }
+
+    .fa-prox { flex-shrink: 0; width: 210px; display: flex; gap: 10px; align-items: center; padding: 10px; border-radius: var(--radius-lg); background: var(--color-surface); border: 1px solid var(--color-border-subtle); box-shadow: var(--shadow-soft); }
+    .fa-prox img, .fa-prox .fa-prox-ph { width: 54px; height: 54px; border-radius: var(--radius-md); object-fit: cover; flex-shrink: 0; background: var(--gradient-accent); }
+    .fa-prox div { min-width: 0; flex: 1; }
+    .fa-prox b { display: block; font-size: .8rem; color: var(--color-text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .fa-prox small { display: block; font-size: .7rem; color: var(--color-accent-solid); font-weight: 700; margin: 2px 0 5px; }
+    .fa-prox .bell-live { font-size: .7rem; padding: 4px 9px; }
+
+    .fa-resumen { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+    .fa-resumen div { text-align: center; padding: 10px 4px; border-radius: var(--radius-lg); background: var(--color-surface); border: 1px solid var(--color-border-subtle); }
+    .fa-resumen b { display: block; font-size: 1.25rem; color: var(--color-accent-solid); }
+    .fa-resumen span { font-size: .7rem; color: var(--color-text-soft); font-weight: 600; }
+
+    .fa-pieza { flex-shrink: 0; width: 128px; text-decoration: none; color: inherit; border-radius: var(--radius-lg); overflow: hidden; background: var(--color-surface); border: 1px solid var(--color-border-subtle); box-shadow: var(--shadow-soft); }
+    .fa-pieza img { display: block; width: 100%; aspect-ratio: 1; object-fit: cover; background: var(--color-bg); }
+    .fa-pieza div { padding: 7px 9px 9px; }
+    .fa-pieza b { display: block; font-size: .76rem; color: var(--color-text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .fa-pieza span { font-size: .8rem; font-weight: 800; color: var(--color-accent-solid); }
+    .fa-pieza .fa-badge-stock { margin-top: 4px; }
+
+    a.fa-card { text-decoration: none; color: inherit; }
+    .fa-card-precio { font-size: .9rem; font-weight: 800; color: var(--color-accent-solid); margin-left: auto; flex-shrink: 0; }
+    .fa-pill { position: sticky; top: 8px; z-index: 5; display: none; margin: 0 auto 4px; width: fit-content; border: none; cursor: pointer; padding: 7px 16px; border-radius: 999px; background: var(--gradient-accent); color: #fff; font-weight: 800; font-size: .78rem; box-shadow: 0 6px 16px rgba(0,0,0,.18); }
   </style>
 </head>
 <body>
@@ -158,20 +197,23 @@
       <button class="icon-button" id="fa-back-btn" aria-label="Volver"></button>
       <div class="header-text">
         <h1 class="app-title">Actividad reciente</h1>
-        <p class="app-subtitle">Ventas confirmadas en Comunidad, últimos 7 días</p>
+        <p class="app-subtitle">Lives, ventas y últimas piezas de tu ciudad</p>
       </div>
     </div>
   </header>
 
+  <div id="fa-live-wrap"></div>
   <div id="fa-stories-wrap"></div>
-
-  <div id="fa-reco-wrap"></div>
-
+  <div id="fa-resumen"></div>
+  <div id="fa-ultimas"></div>
+  <div class="fa-sec"><p class="fa-sec-title" id="fa-vendiendo-title">Se está vendiendo</p></div>
+  <button type="button" class="fa-pill" id="fa-pill"></button>
   <div class="fa-list" id="fa-list">
     <div class="fa-skeleton"><div class="sk-img"></div><div class="sk-line"></div></div>
     <div class="fa-skeleton"><div class="sk-img"></div><div class="sk-line"></div></div>
     <div class="fa-skeleton"><div class="sk-img"></div><div class="sk-line"></div></div>
   </div>
+  <div id="fa-reco-wrap"></div>
 
 
 
@@ -202,57 +244,137 @@
       return 'hace ' + diffD + (diffD === 1 ? ' día' : ' días');
     }
 
+    // ════════════════════════════════════════════════════════════
+    //  Actividad de MI ciudad: En vivo / Próximos, Resumen del día, Últimas piezas y lo que se está vendiendo
+    // ════════════════════════════════════════════════════════════
+    const LIVE_API = 'https://live-api-1038143238323.us-central1.run.app';
+    const RTDB = 'https://znr-live-default-rtdb.firebaseio.com/';
+    const rtdb = (ruta) => fetch(RTDB + ruta + '.json').then(r => r.ok ? r.json() : null).catch(() => null);
+    const claveCiudad = (c) => String(c || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
+    const miniatura = (url) => String(url || '').replace(/_m(\.\w+\?alt=media)$/, '_t$1');
+    const precio = (n) => '$' + Number(n || 0).toLocaleString('es-MX');
+    const hoy = (iso) => iso && new Date(iso).toDateString() === new Date().toDateString();
+    const urlProducto = (uid, id) => `perfil-vendedor.html?vendedor=${encodeURIComponent(uid)}${id ? '#producto-' + encodeURIComponent(id) : ''}`;
+    const fallbackImg = (icono) => `this.outerHTML='<div class=&quot;fa-card-thumb-fallback&quot;>${Icon(icono, { size: 26 }).replace(/"/g, '&quot;')}</div>'`;
+    let ciudad = null, lives = { activos: [], programados: [], terminados: [] }, ventas = [], mostradas = new Set();
+
+    // Las ventas anteriores a este cambio no traen ciudad: se toma la del perfil público del vendedor (una vez por vendedor).
+    const ciudadVendedor = {};
+    async function conCiudad(items) {
+      const faltan = [...new Set(items.filter(it => !it.ciudad && it.vendedorUid && !(it.vendedorUid in ciudadVendedor)).map(it => it.vendedorUid))];
+      await Promise.all(faltan.map(async uid => { ciudadVendedor[uid] = (await rtdb('perfiles/' + encodeURIComponent(uid) + '/ciudad')) || ''; }));
+      return items.map(it => ({ ...it, ciudad: it.ciudad || ciudadVendedor[it.vendedorUid] || '' }));
+    }
+
+    // ── 🔴 En vivo ahora y próximos lives (con "Avísame") ──
+    async function cargarLives() {
+      const r = await fetch(`${LIVE_API}?${new URLSearchParams({ action: 'obtenerLivesPublicos' })}`).then(x => x.json()).catch(() => ({}));
+      const mia = (l) => l.ciudad === ciudad;
+      lives = { activos: (r.activos || []).filter(mia), programados: (r.programados || []).filter(mia), terminados: (r.terminados || []).filter(mia) };
+      const viendo = await Promise.all(lives.activos.map(l => rtdb('live_espectadores/' + encodeURIComponent(l.id))));
+      const cuando = (iso) => { const m = Math.round((new Date(iso) - Date.now()) / 60000);
+        return m <= 0 ? 'Por empezar' : m < 60 ? `Empieza en ${m} min` : hoy(iso) ? `Hoy ${new Date(iso).toLocaleTimeString('es-MX', { hour: 'numeric', minute: '2-digit' })}`
+          : new Date(iso).toLocaleDateString('es-MX', { weekday: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }); };
+      const vivo = lives.activos.map((l, i) => `
+        <a class="fa-live" href="comprador-live.html?id=${esc(l.id)}">
+          ${l.miniatura_url ? `<img src="${esc(l.miniatura_url)}" alt="" loading="lazy" onerror="this.remove()">` : ''}
+          <span class="fa-live-top"><span class="fa-live-badge">● EN VIVO</span>${viendo[i] ? `<span class="fa-live-viendo">${Icon('eye', { size: 12 })} ${viendo[i]} viendo</span>` : ''}</span>
+          <span class="fa-live-info"><div><b>${esc(l.vendedor_nombre || 'Vendedor')}</b><small>${esc(l.titulo || 'Transmisión en vivo')}</small></div><span class="fa-live-entrar">Entrar</span></span>
+        </a>`).join('');
+      const prox = lives.programados.map(l => `
+        <div class="fa-prox">
+          ${l.miniatura_url ? `<img src="${esc(l.miniatura_url)}" alt="" loading="lazy" onerror="this.outerHTML='<span class=&quot;fa-prox-ph&quot;></span>'">` : '<span class="fa-prox-ph"></span>'}
+          <div><b>${esc(l.vendedor_nombre || 'Vendedor')}</b><b style="font-weight:600;color:var(--color-text-muted)">${esc(l.titulo || '')}</b>
+            <small>${cuando(l.fecha_programada)}</small>${window.znrLiveNotif ? znrLiveNotif.boton('live', l.id, 'Avísame') : ''}</div>
+        </div>`).join('');
+      document.getElementById('fa-live-wrap').innerHTML =
+        (vivo ? `<div class="fa-sec"><p class="fa-sec-title">${Icon('signal', { size: 14 })} En vivo ahora</p><div class="fa-scroll">${vivo}</div></div>` : '')
+        + (prox ? `<div class="fa-sec"><p class="fa-sec-title">${Icon('calendar', { size: 14 })} Próximos lives</p><div class="fa-scroll">${prox}</div></div>` : '');
+    }
+
+    // ── 📊 Resumen del día ──
+    function renderResumen() {
+      const v = ventas.filter(it => hoy(it.fecha));
+      const nLives = [...lives.activos, ...lives.terminados.filter(l => hoy(l.fecha_fin)), ...lives.programados.filter(l => hoy(l.fecha_programada))].length;
+      const vendedores = new Set([...v.map(it => it.vendedorUid), ...lives.activos.map(l => l.vendedor_id)]).size;
+      const dato = (n, t) => `<div><b>${n}</b><span>${t}</span></div>`;
+      document.getElementById('fa-resumen').innerHTML = !ciudad ? '' : `<div class="fa-sec"><p class="fa-sec-title">${Icon('stats', { size: 14 })} Hoy en ${esc(ciudad.split(',')[0])}</p>
+        <div class="fa-resumen">${dato(v.length, v.length === 1 ? 'venta' : 'ventas')}${dato(nLives, nLives === 1 ? 'live' : 'lives')}${dato(vendedores, vendedores === 1 ? 'vendedor activo' : 'vendedores activos')}</div></div>`;
+    }
+
+    // ── 🔥 Últimas piezas: productos de mi ciudad con 5 o menos (catálogo de la ciudad + stock en vivo) ──
+    async function cargarUltimas() {
+      const k = claveCiudad(ciudad);
+      if (!k) return;
+      const [snap, stock] = await Promise.all([rtdb('catalogo/snapshot_ciudad/' + k + '/products'), rtdb('catalogo/stock/' + k)]);
+      const piezas = Object.values(snap || {}).filter(p => p && !p.es_znr && p.vendedor_uid)
+        .map(p => ({ ...p, stock: stock && p.id in stock ? stock[p.id] : Number(p.stock) }))
+        .filter(p => p.stock >= 1 && p.stock <= 5).sort((a, b) => a.stock - b.stock).slice(0, 12);
+      document.getElementById('fa-ultimas').innerHTML = !piezas.length ? '' : `<div class="fa-sec"><p class="fa-sec-title">${Icon('fire', { size: 14 })} Últimas piezas</p><div class="fa-scroll">
+        ${piezas.map(p => `<a class="fa-pieza" href="${urlProducto(p.vendedor_uid, p.id)}">
+          <img src="${esc(miniatura(p.imagen1))}" alt="" loading="lazy" onerror="this.style.visibility='hidden'">
+          <div><b>${esc(p.nombre)}</b><span>${precio(p.precio)}</span><br><span class="fa-badge-stock">${p.stock === 1 ? '¡Última pieza!' : `Solo quedan ${p.stock}`}</span></div></a>`).join('')}
+      </div></div>`;
+    }
+
+    // ── 🛍️ Se está vendiendo (y lives que ya terminaron) ──
     function duracion(ini, fin) {
       const m = Math.max(1, Math.round((new Date(fin) - new Date(ini)) / 60000));
       return m < 60 ? m + ' min' : Math.floor(m / 60) + ' h' + (m % 60 ? ' ' + (m % 60) + ' min' : '');
     }
-
-    function renderFeed(items) {
-      const list = document.getElementById('fa-list');
+    function itemsFeed() {
+      const terminados = lives.terminados.map(l => ({ id: 'live_' + l.id, tipo: 'live', vendedor: l.vendedor_nombre, vendedorUid: l.vendedor_id, producto: l.titulo, imagen: l.miniatura_url, inicio: l.fecha_inicio, fecha: l.fecha_fin }));
+      return [...ventas, ...terminados].sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
+    }
+    function renderFeed() {
+      const items = itemsFeed(), list = document.getElementById('fa-list');
+      mostradas = new Set(items.map(it => it.id));
+      document.getElementById('fa-pill').style.display = 'none';
       if (!items.length) {
-        list.innerHTML = `<div class="fa-empty">${Icon('box', { size: 34 })}<span>Todavía no hay actividad reciente que mostrar.</span></div>`;
+        list.innerHTML = `<div class="fa-empty">${Icon('box', { size: 34 })}<span>Todavía no hay ventas recientes en tu ciudad.<br>¡Sé de los primeros en comprar en Comunidad!</span></div>`;
         return;
       }
       const ahora = Date.now();
       list.innerHTML = items.map((it, i) => {
-        const live = it.tipo === 'live';
-        const fallback = Icon(live ? 'tv' : 'shopping-bag', { size: 26 });
-        const imagenHtml = it.imagen
-          ? `<img src="${esc(it.imagen)}" alt="" loading="lazy" onerror="this.outerHTML='<div class=&quot;fa-card-thumb-fallback&quot;>${fallback.replace(/"/g, '&quot;')}</div>'">`
-          : `<div class="fa-card-thumb-fallback">${fallback}</div>`;
+        const live = it.tipo === 'live', agotado = it.stockRestante === 0;
+        const img = it.imagen ? `<img src="${esc(miniatura(it.imagen))}" alt="" loading="lazy" onerror="${fallbackImg(live ? 'tv' : 'shopping-bag')}">`
+          : `<div class="fa-card-thumb-fallback">${Icon(live ? 'tv' : 'shopping-bag', { size: 26 })}</div>`;
         const badges = live
           ? `<span class="fa-badge-stock">${Icon('tv', { size: 11 })} Live · ${duracion(it.inicio, it.fecha)}</span>`
-          : (Math.floor((ahora - new Date(it.fecha).getTime()) / 60000) < 10 ? `<span class="fa-badge-fresh">${Icon('fire', { size: 11 })}Recién vendido</span>` : '')
-            + (it.stockRestante === 0 ? '<span class="fa-badge-stock fa-badge-stock-out">Se agotó</span>' : '')
+          : ((ahora - new Date(it.fecha).getTime()) / 60000 < 10 ? `<span class="fa-badge-fresh">${Icon('fire', { size: 11 })}Recién vendido</span>` : '')
+            + (agotado ? '<span class="fa-badge-stock fa-badge-stock-out">Se agotó · ver más de la tienda</span>' : '')
             + (it.stockRestante > 0 && it.stockRestante <= 5 ? `<span class="fa-badge-stock">Solo quedan ${it.stockRestante}</span>` : '');
+        const href = it.vendedorUid ? urlProducto(it.vendedorUid, !live && !agotado ? it.productId : '') : '';
         return `
-        <div class="fa-card" style="animation-delay:${Math.min(i, 8) * 0.05}s">
-          ${imagenHtml}
+        <${href ? `a href="${href}"` : 'div'} class="fa-card" style="animation-delay:${Math.min(i, 8) * 0.05}s">
+          ${img}
           <div class="fa-card-text">
-            ${it.vendedorUid
-              ? `<a href="perfil-vendedor.html?vendedor=${esc(it.vendedorUid)}" class="fa-card-vendor">${esc(it.vendedor || 'Un vendedor')}</a>`
-              : `<p class="fa-card-vendor" style="cursor:default;">${esc(it.vendedor || 'Un vendedor')}</p>`}
-            <p class="fa-card-product">${live ? `terminó su live «${esc(it.producto)}»` : `vendió ${esc(it.producto || 'un producto')}`}</p>
-            <div class="fa-card-footer">
-              <span class="fa-card-time">${tiempoRelativo(it.fecha)}</span>${badges}
-            </div>
+            <p class="fa-card-product" style="color:var(--color-text-primary);font-weight:800;font-size:.9rem">${live ? `Live: ${esc(it.producto || '')}` : esc(it.producto || 'Un producto')}</p>
+            <p class="fa-card-product">${live ? 'transmitió' : 'vendido por'} <b>${esc(it.vendedor || 'un vendedor')}</b></p>
+            <div class="fa-card-footer"><span class="fa-card-time">${tiempoRelativo(it.fecha)}</span>${badges}</div>
           </div>
-        </div>`;
+          ${!live && it.precio ? `<span class="fa-card-precio">${precio(it.precio)}</span>` : ''}
+        </${href ? 'a' : 'div'}>`;
       }).join('');
     }
 
-    const LIVE_API = 'https://live-api-1038143238323.us-central1.run.app';
-
-    // Lives terminados en las últimas 48 h: solo informativos, no se puede entrar a ellos.
-    async function cargarLivesTerminados() {
+    // Al refrescar no se mueve la lista: si llegaron ventas nuevas aparece la píldora "↑ N ventas nuevas".
+    async function cargarFeed(inicial) {
       try {
-        const r = await (await fetch(`${LIVE_API}?${new URLSearchParams({ action: 'obtenerLivesPublicos' })}`)).json();
-        const ciudad = typeof obtenerCiudadComprador === 'function' ? await obtenerCiudadComprador() : null;
-        return (r.terminados || []).filter(l => !ciudad || l.ciudad === ciudad).map(l => ({
-          tipo: 'live', vendedor: l.vendedor_nombre, vendedorUid: l.vendedor_id, producto: l.titulo,
-          imagen: l.miniatura_url, inicio: l.fecha_inicio, fecha: l.fecha_fin
-        }));
-      } catch (e) { return []; }
+        const data = window.znrFirestore ? await window.znrFirestore.getFeedActividad() : { ok: false };
+        if (!data.ok) throw new Error(data.error || 'Error del servidor');
+        ventas = (await conCiudad(data.items || [])).filter(it => it.ciudad === ciudad);
+        renderResumen();
+        const nuevas = itemsFeed().filter(it => !mostradas.has(it.id)).length;
+        if (inicial || !mostradas.size) return renderFeed();
+        const pill = document.getElementById('fa-pill');
+        pill.textContent = `↑ ${nuevas} ${nuevas === 1 ? 'novedad' : 'novedades'}`;
+        pill.style.display = nuevas ? 'block' : 'none';
+      } catch (err) {
+        console.error('Error cargando feed de actividad:', err);
+        if (inicial) document.getElementById('fa-list').innerHTML =
+          `<div class="fa-error">${Icon('error', { size: 30 })}<span>No se pudo cargar la actividad reciente. Intenta de nuevo más tarde.</span></div>`;
+      }
     }
 
     const BENEFICIARIOS_API = 'https://beneficiarios-api-1038143238323.us-central1.run.app';
@@ -284,22 +406,6 @@
         console.warn('No se pudo cargar el ranking de donadores:', err);
       }
     }
-
-    async function cargarFeed() {
-      try {
-        const [data, lives] = await Promise.all([
-          window.znrFirestore ? window.znrFirestore.getFeedActividad() : { ok: false },
-          cargarLivesTerminados()
-        ]);
-        if (!data.ok) throw new Error(data.error || 'Error del servidor');
-        renderFeed([...(data.items || []), ...lives].sort((a, b) => new Date(b.fecha) - new Date(a.fecha)));
-      } catch (err) {
-        console.error('Error cargando feed de actividad:', err);
-        document.getElementById('fa-list').innerHTML =
-          `<div class="fa-error">${Icon('error', { size: 30 })}<span>No se pudo cargar la actividad reciente. Intenta de nuevo más tarde.</span></div>`;
-      }
-    }
-
 
     // ════════════════════════════════════════════════════════════
     //  Historias de vendedores (duran 24 h, las borra historias-api)
@@ -424,14 +530,21 @@
         else window.location.href = 'vendedor.html';
       });
 
+      document.getElementById('fa-vendiendo-title').insertAdjacentHTML('afterbegin', Icon('shopping-bag', { size: 14 }));
+      document.getElementById('fa-pill').addEventListener('click', () => { renderFeed(); document.getElementById('fa-vendiendo-title').scrollIntoView({ behavior: 'smooth' }); });
       cargarHistorias();
-      cargarFeed();
       cargarRankingDonadores();
-      // Se siente "vivo": refresca sola cada minuto, sin que el usuario tenga que jalar/recargar.
-      // Con la pestaña oculta no se consulta; al volver se actualiza al instante.
-      const refrescar = () => { if (!document.hidden) { cargarFeed(); cargarHistorias(); } };
-      setInterval(refrescar, 60000);
-      document.addEventListener('visibilitychange', refrescar);
+      // Todo es de la ciudad del comprador: primero se resuelve la ciudad y los lives (el resumen y la lista los usan).
+      (async () => {
+        ciudad = typeof obtenerCiudadComprador === 'function' ? await obtenerCiudadComprador() : null;
+        await cargarLives();
+        cargarFeed(true);
+        cargarUltimas();
+        // Se siente "vivo": refresca sola cada minuto. Con la pestaña oculta no se consulta; al volver se actualiza.
+        const refrescar = () => { if (!document.hidden) { cargarLives().then(() => cargarFeed()); cargarHistorias(); } };
+        setInterval(refrescar, 60000);
+        document.addEventListener('visibilitychange', refrescar);
+      })();
     });
   </script>
 
