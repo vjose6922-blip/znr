@@ -156,6 +156,7 @@ window.apiFetch = async function(data, method = 'POST') {
        parsed.error.toLowerCase().includes('unauthorized'))) {
     // Sesión vencida: este equipo deja de recibir los avisos de esta cuenta (si no, le llegarían al siguiente que entre).
     if (vendorSession && vendorSession.uid && typeof window.eliminarTokenFCM === 'function') window.eliminarTokenFCM('vendedor', vendorSession.uid).catch(() => {});
+    window.olvidarComprador?.(); // y la de comprador que se abrió con ella
     localStorage.removeItem('vendor_session');
     sessionStorage.removeItem('vendor_session');
     vendorSession = null;
@@ -510,6 +511,7 @@ function vendorLogout() {
 if (vendorSession && vendorSession.uid && typeof window.eliminarTokenFCM === 'function') {
   window.eliminarTokenFCM('vendedor', vendorSession.uid).catch(() => {});
 }
+window.olvidarComprador?.(); // también la sesión de comprador que se abrió con la de vendedor (conversaciones, burbujas y avisos)
 localStorage.removeItem('vendor_session');
 sessionStorage.removeItem('admin_token');
 vendorSession = null;
