@@ -6,21 +6,22 @@
   let currentTab = 'pedidos';
   let cache = { items: [], loaded: false };
 
+  // Conversaciones: solo mensajes que alguien escribió en el chat. Los avisos de estado (stock, pago, entrega…) van en Pedidos.
   const TIPO_INFO = {
-    confirmacion_stock:     { grupo: 'conversaciones', icono: Icon('box') },
-    pago_pendiente:         { grupo: 'conversaciones', icono: Icon('credit-card') },
-    pago_confirmado:        { grupo: 'conversaciones', icono: Icon('check') },
-    sin_stock:              { grupo: 'conversaciones', icono: Icon('x') },
+    confirmacion_stock:     { grupo: 'pedidos', icono: Icon('box') },
+    pago_pendiente:         { grupo: 'pedidos', icono: Icon('credit-card') },
+    pago_confirmado:        { grupo: 'pedidos', icono: Icon('check') },
+    sin_stock:              { grupo: 'pedidos', icono: Icon('x') },
     solicitud_comprador:    { grupo: 'pedidos', icono: Icon('shopping-bag') },
     pedido_enviado_vendedor:{ grupo: 'pedidos', icono: Icon('send') },
-    confirmacion_vendedor:  { grupo: 'conversaciones', icono: Icon('check') },
-    sin_stock_vendedor:     { grupo: 'conversaciones', icono: Icon('x') },
-    pedido_en_camino:       { grupo: 'conversaciones', icono: Icon('truck') },
-    pedido_en_ruta:         { grupo: 'conversaciones', icono: Icon('truck') },
+    confirmacion_vendedor:  { grupo: 'pedidos', icono: Icon('check') },
+    sin_stock_vendedor:     { grupo: 'pedidos', icono: Icon('x') },
+    pedido_en_camino:       { grupo: 'pedidos', icono: Icon('truck') },
+    pedido_en_ruta:         { grupo: 'pedidos', icono: Icon('truck') },
     compra_live:            { grupo: 'pedidos', icono: Icon('shopping-bag') },
-    entrega_live_completada:{ grupo: 'conversaciones', icono: Icon('check') },
-    pago_duplicado:         { grupo: 'conversaciones', icono: Icon('flag') },
-    pedido_entregado:       { grupo: 'conversaciones', icono: Icon('mail') },
+    entrega_live_completada:{ grupo: 'pedidos', icono: Icon('check') },
+    pago_duplicado:         { grupo: 'pedidos', icono: Icon('flag') },
+    pedido_entregado:       { grupo: 'pedidos', icono: Icon('mail') },
     pedido_personalizado_mensaje: { grupo: 'conversaciones', icono: Icon('chat-bubble') },
     cuenta_aprobada:        { grupo: 'cuenta',  icono: Icon('sparkles') },
     cuenta_rechazada:       { grupo: 'cuenta',  icono: Icon('ban') },
@@ -44,7 +45,7 @@
     telefono_rechazado:     { grupo: 'cuenta',  icono: Icon('lock') },
     informe_semanal:        { grupo: 'cuenta',  icono: Icon('stats') },
     venta_donada:           { grupo: 'pedidos', icono: Icon('heart-fill') },
-    pago_donacion_confirmado:{ grupo: 'conversaciones', icono: Icon('check') },
+    pago_donacion_confirmado:{ grupo: 'pedidos', icono: Icon('check') },
     insignia_donador:       { grupo: 'cuenta',  icono: Icon('gift') },
     insignia_por_vencer:    { grupo: 'cuenta',  icono: Icon('clock') },
     password_cambiada:      { grupo: 'cuenta',  icono: Icon('lock') },
@@ -53,17 +54,16 @@
     plus_recordatorio:      { grupo: 'cuenta',  icono: Icon('star') },
     tips_bienvenida:        { grupo: 'cuenta',  icono: Icon('lightbulb') },
     historia_mencion:       { grupo: 'cuenta',  icono: Icon('bell') },
-    // Ya caían en Pedidos (el grupo por defecto), pero sin icono propio
-    codigo_entrega:         { grupo: 'conversaciones', icono: Icon('lock') },
-    devolucion:             { grupo: 'conversaciones', icono: Icon('refresh') },
+    codigo_entrega:         { grupo: 'pedidos', icono: Icon('lock') },
+    devolucion:             { grupo: 'pedidos', icono: Icon('refresh') },
     pedido_personalizado_nuevo:        { grupo: 'pedidos', icono: Icon('shopping-bag') },
-    pedido_personalizado_cotizacion:   { grupo: 'conversaciones', icono: Icon('dollar') },
-    pedido_personalizado_estado:       { grupo: 'conversaciones', icono: Icon('box') },
-    pedido_personalizado_pago:         { grupo: 'conversaciones', icono: Icon('credit-card') },
-    pedido_personalizado_calificacion: { grupo: 'conversaciones', icono: Icon('star') },
-    pedido_personalizado_recordatorio: { grupo: 'conversaciones', icono: Icon('clock') },
-    pedido_personalizado_aceptado:     { grupo: 'conversaciones', icono: Icon('check') },
-    pedido_personalizado_cotizacion_rechazada: { grupo: 'conversaciones', icono: Icon('x') }
+    pedido_personalizado_cotizacion:   { grupo: 'pedidos', icono: Icon('dollar') },
+    pedido_personalizado_estado:       { grupo: 'pedidos', icono: Icon('box') },
+    pedido_personalizado_pago:         { grupo: 'pedidos', icono: Icon('credit-card') },
+    pedido_personalizado_calificacion: { grupo: 'pedidos', icono: Icon('star') },
+    pedido_personalizado_recordatorio: { grupo: 'pedidos', icono: Icon('clock') },
+    pedido_personalizado_aceptado:     { grupo: 'pedidos', icono: Icon('check') },
+    pedido_personalizado_cotizacion_rechazada: { grupo: 'pedidos', icono: Icon('x') }
   };
 
   function getIdentity() {
