@@ -316,38 +316,6 @@
   </div>
  </div>
 
-<nav class="bottom-nav">
- <button class="bottom-nav-item" data-page="outfit" id="nav-outfit">
- <span class="nav-icon"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" aria-hidden="true"><use href="#ic-outfit"/></svg></span>
- <span>Outfit</span>
- </button>
-
- <button class="bottom-nav-item" data-page="catalogo" id="nav-catalogo">
- <span class="nav-icon"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" aria-hidden="true"><use href="#ic-catalog"/></svg></span>
- <span>Catálogo</span>
- </button>
-
- <button class="bottom-nav-item" data-page="comunidad" id="nav-comunidad">
- <span class="nav-icon"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" aria-hidden="true"><use href="#ic-community"/></svg></span>
- <span>Comunidad</span>
- </button>
-
- <button class="bottom-nav-item" id="nav-cart">
- <div class="badge-wrapper">
- <span class="nav-icon"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" aria-hidden="true"><use href="#ic-cart"/></svg></span>
- <span class="bottom-nav-badge" id="bottom-cart-count">0</span>
- </div>
- <span>Carrito</span>
- </button>
-
- <button class="bottom-nav-item" id="nav-wishlist">
- <div class="badge-wrapper">
- <span class="nav-icon"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" aria-hidden="true"><use href="#ic-heart"/></svg></span>
- <span class="bottom-nav-badge" id="bottom-wishlist-count">0</span>
- </div>
- <span>Favoritos</span>
- </button>
-</nav>
 
  <aside class="cart-drawer" id="cart-drawer" aria-hidden="true">
  <div class="cart-header">
@@ -1062,17 +1030,6 @@ document.addEventListener('DOMContentLoaded', function () {
     }
   }
 
-  document.getElementById('nav-catalogo')?.addEventListener('click', () => { window.location.href = 'catalogo.html'; });
-  document.getElementById('nav-outfit')?.addEventListener('click', () => { window.location.href = 'outfit.html'; });
-  document.getElementById('nav-comunidad')?.addEventListener('click', () => { window.location.href = 'comunidad.html'; });
-  document.getElementById('nav-cart')?.addEventListener('click', (e) => {
-    e.preventDefault();
-    if (typeof openCartDrawer === 'function') openCartDrawer();
-  });
-  document.getElementById('nav-wishlist')?.addEventListener('click', (e) => {
-    e.preventDefault();
-    window.location.href = 'outfit.html';
-  });
 
   window.addEventListener('cartUpdated', updateBottomBadges);
   window.addEventListener('storage', updateBottomBadges);
@@ -1091,5 +1048,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
 
  
+<script src="nav-bottom.js" defer></script>
 </body>
  </html>

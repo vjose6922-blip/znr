@@ -1062,40 +1062,7 @@
  });
  </script>
 
- <nav class="bottom-nav">
- <button class="bottom-nav-item" data-page="catalogo" id="nav-catalogo">
- <span class="nav-icon"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" aria-hidden="true"><use href="#ic-catalog"/></svg></span>
- <span>Catálogo</span>
- </button>
- <button class="bottom-nav-item" data-page="outfit" id="nav-outfit">
- <span class="nav-icon"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" aria-hidden="true"><use href="#ic-outfit"/></svg></span>
- <span>Outfits</span>
- </button>
- <button class="bottom-nav-item" data-page="comunidad" id="nav-comunidad">
- <span class="nav-icon"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" aria-hidden="true"><use href="#ic-community"/></svg></span>
- <span>Comunidad</span>
- </button>
- <button class="bottom-nav-item" data-page="vendedor" id="nav-vendedor">
- <span class="nav-icon"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 12m-9 0a9 9 0 1 0 18 0a9 9 0 1 0 -18 0" /><path d="M12 10m-3 0a3 3 0 1 0 6 0a3 3 0 1 0 -6 0" /><path d="M6.168 18.849a4 4 0 0 1 3.832 -2.849h4a4 4 0 0 1 3.834 2.855" /></svg></span>
- <span>Vendedor</span>
- </button>
- <button class="bottom-nav-item" id="nav-cart">
- <div class="badge-wrapper">
- <span class="nav-icon"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" aria-hidden="true"><use href="#ic-cart"/></svg></span>
- <span class="bottom-nav-badge" id="bottom-cart-count">0</span>
- </div>
- <span>Carrito</span>
- </button>
- </nav>
  <script>
- document.getElementById('nav-catalogo')?.addEventListener('click', () => { window.location.href = 'catalogo.html'; });
- document.getElementById('nav-outfit')?.addEventListener('click', () => { window.location.href = 'outfit.html'; });
- document.getElementById('nav-comunidad')?.addEventListener('click', () => { window.location.href = 'comunidad.html'; });
- document.getElementById('nav-vendedor')?.addEventListener('click', () => { window.location.href = 'vendedor.html'; });
- document.getElementById('nav-cart')?.addEventListener('click', (e) => {
- e.preventDefault();
- if (typeof openCartDrawer === 'function') openCartDrawer();
- });
  window.addEventListener('cartUpdated', () => {
  const count = Object.values(localCart || {}).reduce((s, i) => s + i.quantity, 0);
  const badge = document.getElementById('bottom-cart-count');
@@ -1103,5 +1070,6 @@
  });
  </script>
 
+<script src="nav-bottom.js" defer></script>
 </body>
 </html>
