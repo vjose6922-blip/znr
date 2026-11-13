@@ -4,7 +4,7 @@
   const POLL_MS = 600000; // red de seguridad
   let modalBuilt = false;
   let currentTab = 'pedidos';
-  let cache = { items: [], loaded: false };
+  let cache = { items: [], loaded: false, owner: '' };
 
   // Conversaciones: solo mensajes que alguien escribió en el chat. Los avisos de estado (stock, pago, entrega…) van en Pedidos.
   const TIPO_INFO = {
@@ -65,6 +65,16 @@
     pedido_personalizado_aceptado:     { grupo: 'pedidos', icono: Icon('check') },
     pedido_personalizado_cotizacion_rechazada: { grupo: 'pedidos', icono: Icon('x') }
   };
+
+  // Cuenta dueña de lo que hay en memoria. Si se cierra sesión y entra otra cuenta sin recargar la página, se descarta todo lo
+  // anterior: ni la campana ni las burbujas deben mostrar, ni por un momento, avisos de la cuenta anterior.
+  function quien() { const i = getIdentity(); return i ? i.type + ':' + i.id : ''; }
+  function alDia() {
+    if (cache.owner === quien()) return true;
+    cache.items = []; cache.loaded = false; cache.owner = quien(); _baseListo = false;
+    Object.keys(newestRaw).forEach((k) => delete newestRaw[k]);
+    return false;
+  }
 
   function getIdentity() {
     try {
@@ -785,6 +795,7 @@ const PICKUP_HORAS = ['9:00 AM','10:00 AM','11:00 AM','12:00 PM','1:00 PM','2:00
   }
 
   function updateBadge() {
+    alDia();
     const unread = cache.items.filter(n => !n.leida).length;
     document.querySelectorAll('#notif-bell-btn').forEach(btn => {
       let badge = btn.querySelector('.nc-badge');
@@ -837,7 +848,9 @@ const PICKUP_HORAS = ['9:00 AM','10:00 AM','11:00 AM','12:00 PM','1:00 PM','2:00
 
   async function loadNotificaciones(opts) {
     const autoSelectTab = !!(opts && opts.autoSelectTab);
-    const data = await fetchNotificaciones();
+    alDia();
+    const owner = cache.owner, data = await fetchNotificaciones();
+    if (owner !== quien()) return; // cambió de cuenta mientras se pedía: esta respuesta ya no es de nadie
     cache.items = (data && data.ok && Array.isArray(data.notificaciones)) ? data.notificaciones : [];
     cache.loaded = true;
     recordarMasReciente(cache.items);
@@ -881,8 +894,9 @@ const PICKUP_HORAS = ['9:00 AM','10:00 AM','11:00 AM','12:00 PM','1:00 PM','2:00
   }
 
   async function refreshBadgeNow() {
-    const data = await fetchNotificaciones();
-    if (data && data.ok && Array.isArray(data.notificaciones)) {
+    alDia();
+    const owner = cache.owner, data = await fetchNotificaciones();
+    if (owner === quien() && data && data.ok && Array.isArray(data.notificaciones)) {
       cache.items = data.notificaciones;
       recordarMasReciente(cache.items);
       _baseListo = true;
@@ -937,8 +951,8 @@ const PICKUP_HORAS = ['9:00 AM','10:00 AM','11:00 AM','12:00 PM','1:00 PM','2:00
   }
 
   async function refreshNuevas() {
-    if (document.hidden || _fastBusy || !_baseListo || navigator.onLine === false) return;
-    const identity = getIdentity();
+    if (!alDia() || document.hidden || _fastBusy || !_baseListo || navigator.onLine === false) return;
+    const identity = getIdentity(), owner = cache.owner;
     if (!identity || !(window.znrFirestore && window.znrFirestore.getNotificacionesCentroDesde)) return;
     _fastBusy = true;
     try {
@@ -949,7 +963,7 @@ const PICKUP_HORAS = ['9:00 AM','10:00 AM','11:00 AM','12:00 PM','1:00 PM','2:00
       const ref = comoCliente ? ownerId : identity.vendorToken;
       const ult = newestRaw[ownerType];
       const r = await window.znrFirestore.getNotificacionesCentroDesde(ownerType, ownerId, ref, ult ? ult.raw : null);
-      if (!r || !r.ok || !Array.isArray(r.notificaciones) || !r.notificaciones.length) return;
+      if (!r || !r.ok || !Array.isArray(r.notificaciones) || !r.notificaciones.length || owner !== quien()) return;
       const conocidos = new Set(cache.items.map((x) => x.id));
       const nuevas = r.notificaciones.filter((x) => !conocidos.has(x.id));
       if (!nuevas.length) return;
@@ -969,9 +983,10 @@ const PICKUP_HORAS = ['9:00 AM','10:00 AM','11:00 AM','12:00 PM','1:00 PM','2:00
 
   // Lo usa burbuja-mensajes.js (mismo feed, sin volver a consultar Firestore).
   window.znrNotifCentro = {
-    items: () => cache.items,
+    items: () => (alDia(), cache.items),
     refresh: refreshBadgeOnly,
-    actualizar: updateBadge
+    actualizar: updateBadge,
+    cambioCuenta: () => { updateBadge(); refreshBadgeOnly(); }
   };
 
   window.addEventListener('znr:nueva-notificacion', refreshBadgeOnly);
