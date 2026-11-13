@@ -94,6 +94,7 @@ const MAPA_ACCIONES_MIGRADAS = {
   getPlusSolicitudVendedor: VENDEDORES_API_URL,
   asignarDonacion: BENEFICIARIOS_API_URL,
   desasignarDonacion: BENEFICIARIOS_API_URL,
+  misDonaciones: BENEFICIARIOS_API_URL,
   solicitarEdicionBeneficiario: BENEFICIARIOS_API_URL,
   solicitarEliminacionBeneficiario: BENEFICIARIOS_API_URL,
   obtenerDonacionesRecibidas: BENEFICIARIOS_API_URL,
@@ -155,6 +156,7 @@ window.apiFetch = async function(data, method = 'POST') {
        parsed.error.toLowerCase().includes('unauthorized'))) {
     // Sesión vencida: este equipo deja de recibir los avisos de esta cuenta (si no, le llegarían al siguiente que entre).
     if (vendorSession && vendorSession.uid && typeof window.eliminarTokenFCM === 'function') window.eliminarTokenFCM('vendedor', vendorSession.uid).catch(() => {});
+    window.olvidarComprador?.(); // y la de comprador que se abrió con ella
     localStorage.removeItem('vendor_session');
     sessionStorage.removeItem('vendor_session');
     vendorSession = null;
@@ -509,6 +511,7 @@ function vendorLogout() {
 if (vendorSession && vendorSession.uid && typeof window.eliminarTokenFCM === 'function') {
   window.eliminarTokenFCM('vendedor', vendorSession.uid).catch(() => {});
 }
+window.olvidarComprador?.(); // también la sesión de comprador que se abrió con la de vendedor (conversaciones, burbujas y avisos)
 localStorage.removeItem('vendor_session');
 sessionStorage.removeItem('admin_token');
 vendorSession = null;
@@ -844,7 +847,7 @@ function renderVendorPlanPanel() {
     : '';
   // Cuántos productos ha donado (vigentes o ya vendidos); al tocarlo se abre "Gestionar donaciones".
   const nDon = window._productosDonados;
-  const donadosChip = nDon == null ? '' : `<button onclick="openGestionarDonacionesModal()" title="Productos que has donado a fundaciones" style="background:#fff7ed;color:#c2410c;font-size:11px;font-weight:700;padding:3px 10px;border-radius:999px;border:none;cursor:pointer;">❤️ ${nDon} donado${nDon === 1 ? '' : 's'}</button>`;
+  const donadosChip = nDon == null ? '' : `<button onclick="openMisDonacionesModal()" title="Lo que has donado y si ya se vendió" style="background:#fff7ed;color:#c2410c;font-size:11px;font-weight:700;padding:3px 10px;border-radius:999px;border:none;cursor:pointer;">❤️ ${nDon} donado${nDon === 1 ? '' : 's'}</button>`;
 
   let renovacionHTML = '';
   if (esPlus && diasRestantes != null && diasRestantes <= 7) {
@@ -3414,6 +3417,27 @@ window.openDonarProductosModal = async function(productoId) {
     cta.disabled = false; cta.textContent = `Donar a ${bens.find(b => String(b.id) === benId)?.nombre || 'beneficiario'}`;
   };
   cta.onclick = () => benId && enviar({ action: 'asignarDonacion', beneficiario_id: benId, cantidad: window.leerCantidadDonar(body) }, 'Donación asignada correctamente', 'Reintentar');
+};
+
+// "❤️ N donados": todo lo que el vendedor ha donado, con su estado, para ver de un vistazo si ya se vendió.
+window.openMisDonacionesModal = async function() {
+  if (!vendorSession) return;
+  const esc = s => String(s || '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const { modal, body, cta } = window.modalDonar({ id: 'modal-mis-donaciones', titulo: 'Mis donaciones', sub: 'Lo que has donado y si ya se vendió', cta: 'Donar otro artículo' });
+  cta.disabled = false;
+  cta.onclick = () => { modal.remove(); openGestionarDonacionesModal(); };
+  body.innerHTML = '<p style="text-align:center;color:#aaa;">Cargando…</p>';
+  const r = await apiFetch({ action: 'misDonaciones', vendor_token: vendorSession.token }).catch(() => ({}));
+  if (!r.ok) { body.innerHTML = `<p style="text-align:center;color:#ef4444;">${esc(r.error || 'No se pudieron cargar tus donaciones')}</p>`; return; }
+  const n = e => r.donaciones.filter(d => d.estado === e).length;
+  const vendido = '<span class="dr-stock" style="background:#dcfce7;color:#15803d;">✓ Vendido</span>';
+  body.innerHTML = !r.donaciones.length
+    ? '<p style="text-align:center;color:#aaa;padding:24px 0;">Aún no has donado nada.<br><small>Toca "Donar otro artículo" para empezar.</small></p>'
+    : `<p class="dr-tit">${n('donando')} donando · ${n('vendida')} vendido${n('vendida') === 1 ? '' : 's'}${n('retirada') ? ` · ${n('retirada')} retirado${n('retirada') === 1 ? '' : 's'}` : ''}</p>`
+      + r.donaciones.map(d => window.cardDonar({ id: esc(d.producto_id), img: d.imagen && esc(urlImagen(d.imagen)), titulo: esc(d.nombre), corazon: false,
+        sub: esc(`Para ${d.fundacion || 'una fundación'}${d.fecha ? ' · ' + new Date(d.fecha).toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric' }) : ''}`),
+        etiqueta: d.estado === 'donando' ? window.stockDonar({ stock: d.disponibles }) : d.estado === 'retirada' ? 'Retirado' : '',
+        extra: d.estado === 'vendida' ? vendido : '' })).join('');
 };
 
 window.openGestionarDonacionesModal = async function(page = 1) {
