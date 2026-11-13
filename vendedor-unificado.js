@@ -153,6 +153,8 @@ window.apiFetch = async function(data, method = 'POST') {
       (parsed.error.toLowerCase().includes('token') ||
        parsed.error.toLowerCase().includes('no autorizado') ||
        parsed.error.toLowerCase().includes('unauthorized'))) {
+    // Sesión vencida: este equipo deja de recibir los avisos de esta cuenta (si no, le llegarían al siguiente que entre).
+    if (vendorSession && vendorSession.uid && typeof window.eliminarTokenFCM === 'function') window.eliminarTokenFCM('vendedor', vendorSession.uid).catch(() => {});
     localStorage.removeItem('vendor_session');
     sessionStorage.removeItem('vendor_session');
     vendorSession = null;
@@ -435,6 +437,7 @@ if (typeof window.solicitarPermisoNotificacionesSiFalta === 'function') {
 }
 
 if (telefono) localStorage.setItem('client_phone', telefono);
+window.znrNotifCentro && window.znrNotifCentro.cambioCuenta(); // la campana y las burbujas dejan ya lo de la cuenta anterior
 vincularComprador(true);
 if (typeof updateSavedPhoneDisplay === 'function') updateSavedPhoneDisplay();
 }
@@ -509,6 +512,8 @@ if (vendorSession && vendorSession.uid && typeof window.eliminarTokenFCM === 'fu
 localStorage.removeItem('vendor_session');
 sessionStorage.removeItem('admin_token');
 vendorSession = null;
+window.cargarPagosDonacionPendientes?.();
+window.znrNotifCentro && window.znrNotifCentro.cambioCuenta(); // la campana y las burbujas dejan ya lo de la cuenta anterior
 document.documentElement.removeAttribute('data-vsess');
 const loginDiv = document.getElementById('login-section');
 const panelDiv = document.getElementById('panel-section');
@@ -590,7 +595,7 @@ checkStockBanner();
 checkInsigniaSolidarioChip();
 renderVendorPlanPanel();
 loadVendorSaleNotifications();
-cargarPagosDonacionPendientes();
+window.cargarPagosDonacionPendientes?.();
 // Desde la notificación "Tu informe semanal está listo" (vendedor.html?informe=1) se muestra
 // de inmediato y aunque ya se hubiera cerrado antes.
 const _forzarInforme = new URLSearchParams(location.search).get('informe') === '1';
@@ -600,7 +605,6 @@ if (!window._vsnPollingStarted) {
   window._vsnPollingStarted = true;
  
   window.addEventListener('znr:nueva-notificacion', loadVendorSaleNotifications);
-  window.addEventListener('znr:nueva-notificacion', cargarPagosDonacionPendientes);
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.addEventListener('message', (event) => {
       if (event.data && event.data.type === 'znr-nueva-notificacion') {
@@ -613,40 +617,6 @@ if (!window._vsnPollingStarted) {
   });
    intervalConJitter(loadVendorSaleNotifications, 600000, 60000);
 }
-}
-
-// Fundación: pagos de ventas donadas por confirmar. Botón flotante que sigue ahí aunque marque el aviso como leído;
-// cada pago muestra su referencia de 4 dígitos (la que el comprador pone en el concepto de la transferencia).
-async function cargarPagosDonacionPendientes() {
-  if (!vendorSession || !vendorSession.token || !window.VENTAS_API_URL) return;
-  const api = (p) => fetch(window.VENTAS_API_URL, { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: new URLSearchParams({ vendorToken: vendorSession.token, ...p }).toString() }).then(r => r.json()).catch(() => ({}));
-  const r = await api({ action: 'pagosDonacionPendientes' });
-  let fab = document.getElementById('fab-pagos-donacion');
-  const pagos = (r.ok && r.pagos) || [];
-  if (!pagos.length) { fab?.remove(); return; }
-  if (!fab) {
-    fab = Object.assign(document.createElement('button'), { id: 'fab-pagos-donacion', type: 'button' });
-    fab.style.cssText = 'position:fixed;left:14px;bottom:calc(84px + env(safe-area-inset-bottom,0px));z-index:900;padding:10px 14px;border:none;border-radius:999px;background:#f97316;color:#fff;font-weight:800;font-size:.82rem;box-shadow:0 6px 18px rgba(249,115,22,.4);cursor:pointer;';
-    document.body.appendChild(fab);
-  }
-  fab.textContent = `❤️ ${pagos.length} pago${pagos.length === 1 ? '' : 's'} por confirmar`;
-  fab.onclick = () => {
-    const esc = s => String(s || '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-    const { body, cta } = window.modalDonar({ id: 'modal-pagos-donacion', titulo: 'Pagos por confirmar', sub: 'Confirma solo cuando el dinero ya esté en tu cuenta. Busca la referencia en el concepto de la transferencia.' });
-    cta.parentElement.style.display = 'none';
-    body.innerHTML = pagos.map((p, i) => `<div style="padding:12px;border:1px solid #fed7aa;border-radius:12px;margin-bottom:10px;background:#fff7ed;">
-      <div style="display:flex;justify-content:space-between;gap:8px;align-items:center;"><b style="font-size:1rem;">Ref. ${esc(p.ref)}</b><b style="color:#c2410c;">$${Number(p.monto || 0).toLocaleString()}</b></div>
-      <div style="font-size:.8rem;color:#555;margin:4px 0 8px;">${esc(p.comprador)} · ${esc((p.articulos || []).join(', '))}<br><small style="color:#888;">Donado por ${esc(p.vendedorNombre)}</small></div>
-      <button data-i="${i}" class="btn-conf-don" style="width:100%;padding:9px;border:none;border-radius:10px;background:#16a34a;color:#fff;font-weight:700;cursor:pointer;">✅ Recibí el pago</button></div>`).join('');
-    body.onclick = async (e) => {
-      const b = e.target.closest('.btn-conf-don'); if (!b) return;
-      const p = pagos[+b.dataset.i]; b.disabled = true; b.textContent = 'Confirmando…';
-      const res = await api({ action: 'confirmarPagoDonacion', vendedor_uid: p.vendedor_uid, requestId: p.requestId, beneficiarioId: p.beneficiarioId });
-      b.textContent = res.ok ? '✔ Pago confirmado' : (res.error || 'Error, reintenta'); b.disabled = !!res.ok;
-      if (res.ok) cargarPagosDonacionPendientes();
-    };
-  };
 }
 
 async function loadVendorSaleNotifications() {
@@ -848,7 +818,8 @@ window.checkInsigniaSolidarioChip = async function() {
     const res  = await fetch(`https://beneficiarios-api-1038143238323.us-central1.run.app?${new URLSearchParams({ action: 'obtenerInsigniaDonador', vendor_uid: vendorSession.uid })}`);
     const data = await res.json();
     window._insigniaSolidaria = (data.ok && data.activa) ? { vence: data.vence } : null;
-  } catch (e) { window._insigniaSolidaria = null; }
+    window._productosDonados = data.ok ? Number(data.donados) || 0 : null;
+  } catch (e) { window._insigniaSolidaria = null; window._productosDonados = null; }
   if (typeof renderVendorPlanPanel === 'function') renderVendorPlanPanel();
 };
 
@@ -871,6 +842,9 @@ function renderVendorPlanPanel() {
   const solidarioChip = window._insigniaSolidaria
     ? `<button onclick="openGestionarDonacionesModal()" title="Vence el ${new Date(window._insigniaSolidaria.vence).toLocaleDateString('es-MX', { day: 'numeric', month: 'short' })} — dona algo más antes para conservarla" style="background:#fdf2f8;color:#9d174d;font-size:11px;font-weight:700;padding:3px 10px;border-radius:999px;border:none;cursor:pointer;">💜 Solidario</button>`
     : '';
+  // Cuántos productos ha donado (vigentes o ya vendidos); al tocarlo se abre "Gestionar donaciones".
+  const nDon = window._productosDonados;
+  const donadosChip = nDon == null ? '' : `<button onclick="openGestionarDonacionesModal()" title="Productos que has donado a fundaciones" style="background:#fff7ed;color:#c2410c;font-size:11px;font-weight:700;padding:3px 10px;border-radius:999px;border:none;cursor:pointer;">❤️ ${nDon} donado${nDon === 1 ? '' : 's'}</button>`;
 
   let renovacionHTML = '';
   if (esPlus && diasRestantes != null && diasRestantes <= 7) {
@@ -908,7 +882,7 @@ function renderVendorPlanPanel() {
     <div style="background:#f8f8fc;border-radius:14px;padding:12px 14px;color:#000;">
       <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
         <div style="font-size:13px;font-weight:600;color:#000;">${actuales}/${limite} productos usados</div>
-        <div style="display:flex;align-items:center;gap:6px;">${solidarioChip}${planBadge}</div>
+        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;justify-content:flex-end;">${donadosChip}${solidarioChip}${planBadge}</div>
       </div>
       <div style="background:#e6e6ee;border-radius:999px;height:6px;margin-top:8px;overflow:hidden;">
         <div style="background:${pct >= 100 ? '#c62828' : '#7c3aed'};height:100%;width:${pct}%;"></div>

@@ -2337,6 +2337,7 @@ localStorage.removeItem('client_phone');
 localStorage.removeItem('comprador_token');
 if (tel && typeof window.eliminarTokenFCM === 'function') window.eliminarTokenFCM('cliente', tel).catch(() => {});
 if (compradorToken) compradorApi({ action: 'cerrarSesionComprador', compradorToken }).catch(() => {});
+window.znrNotifCentro && window.znrNotifCentro.cambioCuenta(); // la campana y las burbujas dejan ya lo de la cuenta anterior
 }
 function pedirAccesoComprador(tel = '', motivo = 'Para continuar') {
 return new Promise(resolve => {
@@ -2409,6 +2410,7 @@ const acceso = await pedirAccesoComprador(tel, motivo);
 if (!acceso) { showTemporaryMessage(" Necesitamos tu número para continuar", "error"); return null; }
 localStorage.setItem('client_phone', acceso.telefono);
 localStorage.setItem('comprador_token', acceso.token);
+window.znrNotifCentro && window.znrNotifCentro.cambioCuenta(); // la campana y las burbujas dejan ya lo de la cuenta anterior
 updateSavedPhoneDisplay();
 return acceso.telefono;
 }
@@ -4261,3 +4263,42 @@ window.verResenasVendedor = function (data, titulo) {
 // theme-color fijo oscuro (#1e2128) en ambos temas: así los iconos de la barra de estado y de la barra de botones
 // de Android salen blancos siempre. El HTML ya lo trae; aquí solo se asegura.
 (()=>{const m=document.querySelector('meta[name=theme-color]');if(m)m.content='#1e2128'})();
+
+// Fundación: pagos de ventas donadas por confirmar. Botón flotante en todas las páginas (las que cargan common.js) que sigue
+// ahí aunque marque el aviso como leído;
+// cada pago muestra su referencia de 4 dígitos (la que el comprador pone en el concepto de la transferencia).
+window.cargarPagosDonacionPendientes = async function cargarPagosDonacionPendientes() {
+  let vendorSession = null;
+  try { vendorSession = JSON.parse(localStorage.getItem('vendor_session') || 'null'); } catch (_) {}
+  if (!vendorSession || !vendorSession.token || !window.VENTAS_API_URL) { document.getElementById('fab-pagos-donacion')?.remove(); return; }
+  const api = (p) => fetch(window.VENTAS_API_URL, { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({ vendorToken: vendorSession.token, ...p }).toString() }).then(r => r.json()).catch(() => ({}));
+  const r = await api({ action: 'pagosDonacionPendientes' });
+  let fab = document.getElementById('fab-pagos-donacion');
+  const pagos = (r.ok && r.pagos) || [];
+  if (!pagos.length) { fab?.remove(); return; }
+  if (!fab) {
+    fab = Object.assign(document.createElement('button'), { id: 'fab-pagos-donacion', type: 'button' });
+    fab.style.cssText = 'position:fixed;left:14px;bottom:calc(84px + env(safe-area-inset-bottom,0px));z-index:900;padding:10px 14px;border:none;border-radius:999px;background:#f97316;color:#fff;font-weight:800;font-size:.82rem;box-shadow:0 6px 18px rgba(249,115,22,.4);cursor:pointer;';
+    document.body.appendChild(fab);
+  }
+  fab.textContent = `❤️ ${pagos.length} pago${pagos.length === 1 ? '' : 's'} por confirmar`;
+  fab.onclick = () => {
+    const esc = s => String(s || '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    const { body, cta } = window.modalDonar({ id: 'modal-pagos-donacion', titulo: 'Pagos por confirmar', sub: 'Confirma solo cuando el dinero ya esté en tu cuenta. Busca la referencia en el concepto de la transferencia.' });
+    cta.parentElement.style.display = 'none';
+    body.innerHTML = pagos.map((p, i) => `<div style="padding:12px;border:1px solid #fed7aa;border-radius:12px;margin-bottom:10px;background:#fff7ed;">
+      <div style="display:flex;justify-content:space-between;gap:8px;align-items:center;"><b style="font-size:1rem;">Ref. ${esc(p.ref)}</b><b style="color:#c2410c;">$${Number(p.monto || 0).toLocaleString()}</b></div>
+      <div style="font-size:.8rem;color:#555;margin:4px 0 8px;">${esc(p.comprador)} · ${esc((p.articulos || []).join(', '))}<br><small style="color:#888;">Donado por ${esc(p.vendedorNombre)}</small></div>
+      <button data-i="${i}" class="btn-conf-don" style="width:100%;padding:9px;border:none;border-radius:10px;background:#16a34a;color:#fff;font-weight:700;cursor:pointer;">✅ Recibí el pago</button></div>`).join('');
+    body.onclick = async (e) => {
+      const b = e.target.closest('.btn-conf-don'); if (!b) return;
+      const p = pagos[+b.dataset.i]; b.disabled = true; b.textContent = 'Confirmando…';
+      const res = await api({ action: 'confirmarPagoDonacion', vendedor_uid: p.vendedor_uid, requestId: p.requestId, beneficiarioId: p.beneficiarioId });
+      b.textContent = res.ok ? '✔ Pago confirmado' : (res.error || 'Error, reintenta'); b.disabled = !!res.ok;
+      if (res.ok) cargarPagosDonacionPendientes();
+    };
+  };
+};
+document.addEventListener('DOMContentLoaded', () => window.cargarPagosDonacionPendientes());
+window.addEventListener('znr:nueva-notificacion', () => window.cargarPagosDonacionPendientes());
