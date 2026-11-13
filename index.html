@@ -964,6 +964,8 @@
  const guardada = () => { try { return JSON.parse(localStorage.getItem('home_comunidad_' + miCiudad) || 'null'); } catch (_) { return null; } };
  try {
  miCiudad = typeof obtenerCiudadComprador === 'function' ? await obtenerCiudadComprador() : null;
+ const previa = !reintento && guardada();
+ if (previa && previa.length) { homeComunidadLista = window.allCommunityProductsIndexed = previa; pintarHomeComunidad(); } // al instante; abajo se actualiza
  // Feed de la ciudad del comprador; si no existe todavía, el global (se filtra por ciudad abajo).
  let data = null;
  for (const u of [window.urlSnapshotCatalogo ? window.urlSnapshotCatalogo(miCiudad) : '', 'https://znr-live-default-rtdb.firebaseio.com/catalogo/snapshot.json']) {

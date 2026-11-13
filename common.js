@@ -5,7 +5,7 @@
 function cacheKeyZNR() {
   return 'zr_products_cache_' + (localStorage.getItem('buyer_ciudad') || 'pendiente');
 }
-const CACHE_EXPIRY = 5 * 60 * 1000;
+const CACHE_EXPIRY = 7 * 24 * 60 * 60 * 1000; // se muestra al instante y se actualiza en segundo plano (antes 5 min: casi cada visita esperaba)
 const RECENT_PRODUCTS_KEY = 'zr_recent_products';
 const MAX_RECENT_PRODUCTS = 12;
 const UP_KEY  = 'zr_user_prefs_v1';
@@ -4215,11 +4215,10 @@ window.STOCK_VIVO = {};
 window.cargarStockVivo = async function (ciudad) {
   const k = window.claveCiudad(ciudad);
   if (!k) return;
-  try {
-    const r = await fetch('https://znr-live-default-rtdb.firebaseio.com/catalogo/stock/' + k + '.json', { cache: 'no-store' });
-    const d = r.ok ? await r.json() : null;
-    window.STOCK_VIVO = d && typeof d === 'object' ? d : {};
-  } catch (e) { /* sin red o sin regla: se usa el stock del snapshot */ }
+  const leer = fetch('https://znr-live-default-rtdb.firebaseio.com/catalogo/stock/' + k + '.json', { cache: 'no-store' })
+    .then((r) => (r.ok ? r.json() : null)).then((d) => { if (d && typeof d === 'object') window.STOCK_VIVO = d; }).catch(() => {});
+  // Máx. 2.5 s: si RTDB espera el token de App Check (celular), se pinta con el stock del catálogo y esto sigue en fondo.
+  await Promise.race([leer, new Promise((ok) => setTimeout(ok, 2500))]);
 };
 window.stockVivo = (p) => { const v = window.STOCK_VIVO[p.id]; return v === undefined ? p.stock : v; };
 
