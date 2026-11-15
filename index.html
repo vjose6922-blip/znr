@@ -965,7 +965,10 @@
  try {
  miCiudad = typeof obtenerCiudadComprador === 'function' ? await obtenerCiudadComprador() : null;
  const previa = !reintento && guardada();
- if (previa && previa.length) { homeComunidadLista = window.allCommunityProductsIndexed = previa; pintarHomeComunidad(); } // al instante; abajo se actualiza
+ if (previa && previa.length) { homeComunidadLista = window.allCommunityProductsIndexed = previa; pintarVendedorDestacado(previa); pintarHomeComunidad(); } // al instante; abajo se actualiza
+ // RTDB rechaza la lectura (401) si sale antes de que reCAPTCHA entregue el token de App Check: se espera aquí
+ // (máx. 15 s; mientras tanto ya se ve la copia guardada) en vez de leer, fallar y reintentar.
+ await window.znrAppCheckListo;
  // Feed de la ciudad del comprador; si no existe todavía, el global (se filtra por ciudad abajo).
  let data = null;
  for (const u of [window.urlSnapshotCatalogo ? window.urlSnapshotCatalogo(miCiudad) : '', 'https://znr-live-default-rtdb.firebaseio.com/catalogo/snapshot.json']) {
@@ -992,8 +995,8 @@
  else grid.classList.remove('layout-grid');
 
  } catch(e) {
- console.error('Comunidad del inicio no cargó: ' + (e && e.message) + (window.znrAppCheckError ? ' · App Check: ' + window.znrAppCheckError : ''));
  if (!reintento) { await window.znrAppCheckListo; return loadHomeComunidad(true); }
+ console.error('Comunidad del inicio no cargó: ' + (e && e.message) + (window.znrAppCheckError ? ' · App Check: ' + window.znrAppCheckError : '') + ' · a los ' + Math.round(performance.now() / 1000) + ' s');
  const copia = guardada();
  if (copia && copia.length) { homeComunidadLista = window.allCommunityProductsIndexed = copia; pintarVendedorDestacado(copia); pintarHomeComunidad(); return; }
  grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:24px;color:var(--color-text-muted)">No se pudo cargar la comunidad.<br><button type="button" onclick="loadHomeComunidad()" style="margin-top:10px;padding:8px 20px;border-radius:999px;border:none;background:var(--color-accent-solid);color:#fff;font-weight:700;cursor:pointer">Reintentar</button></div>';
