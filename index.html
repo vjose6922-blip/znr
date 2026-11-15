@@ -972,7 +972,7 @@
  // Feed de la ciudad del comprador; si no existe todavía, el global (se filtra por ciudad abajo).
  let data = null;
  for (const u of [window.urlSnapshotCatalogo ? window.urlSnapshotCatalogo(miCiudad) : '', 'https://znr-live-default-rtdb.firebaseio.com/catalogo/snapshot.json']) {
- data = u ? await fetch(u).then(r => { estado = r.status; return r.json(); }).catch((e) => { estado = String(e && e.message || e); return null; }) : null;
+ data = u ? await fetch(u).then(async r => { const b = await r.json().catch(() => null); estado = r.status + (b && b.error ? ': ' + b.error : ''); return b; }).catch((e) => { estado = String(e && e.message || e); return null; }) : null;
  if (data && data.ok && data.products) break;
  }
  if (!data || !data.ok || !data.products) throw new Error('Sin datos (' + estado + ')');
@@ -996,7 +996,7 @@
 
  } catch(e) {
  if (!reintento) { await window.znrAppCheckListo; return loadHomeComunidad(true); }
- console.error('Comunidad del inicio no cargó: ' + (e && e.message) + (window.znrAppCheckError ? ' · App Check: ' + window.znrAppCheckError : '') + ' · a los ' + Math.round(performance.now() / 1000) + ' s');
+ console.error('Comunidad del inicio no cargó: ' + (e && e.message) + ' · App Check: ' + (window.znrAppCheckEstado || 'sin intentar') + ' · a los ' + Math.round(performance.now() / 1000) + ' s');
  const copia = guardada();
  if (copia && copia.length) { homeComunidadLista = window.allCommunityProductsIndexed = copia; pintarVendedorDestacado(copia); pintarHomeComunidad(); return; }
  grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:24px;color:var(--color-text-muted)">No se pudo cargar la comunidad.<br><button type="button" onclick="loadHomeComunidad()" style="margin-top:10px;padding:8px 20px;border-radius:999px;border:none;background:var(--color-accent-solid);color:#fff;font-weight:700;cursor:pointer">Reintentar</button></div>';

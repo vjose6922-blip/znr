@@ -16,9 +16,11 @@
     }), { provider: new c.ReCaptchaEnterpriseProvider(CLAVE), isTokenAutoRefreshEnabled: true }) })).catch(() => null);
   // Máx. 5 s: si reCAPTCHA no responde, la petición sale sin token en vez de quedarse esperando para siempre.
   // ms: cuánto se espera el token. Si falla, el motivo queda en window.znrAppCheckError (para el panel de errores).
+  // window.znrAppCheckEstado: qué pasó con el último token (lo agregan los errores que van al monitor).
   const token = (ms = 5000) => Promise.race([Promise.resolve(base).then((b) => b ? b.c.getToken(b.ac) : null)
-    .then((t) => t?.token || '', (e) => { window.znrAppCheckError = String((e && (e.code || e.message)) || e); return ''; }),
-    new Promise((ok) => setTimeout(ok, ms, ''))]);
+    .then((t) => { window.znrAppCheckEstado = t?.token ? 'con token' : 'sin App Check'; return t?.token || ''; },
+      (e) => { window.znrAppCheckError = String((e && (e.code || e.message)) || e); window.znrAppCheckEstado = 'error: ' + window.znrAppCheckError; return ''; }),
+    new Promise((ok) => setTimeout(() => { if (window.znrAppCheckEstado !== 'con token') window.znrAppCheckEstado = `tiempo agotado (${ms / 1000} s)`; ok(''); }, ms))]);
   // Se cumple cuando ya hay token (o a los 15 s): lo que se pide al abrir la página y no corre prisa (ej. el WhatsApp
   // del admin en api-config.js) lo espera, en vez de salir sin token y recibir 401 "Missing appcheck token".
   window.znrAppCheckListo = Promise.race([Promise.resolve(base).then((b) => b && b.c.getToken(b.ac)).catch(() => null), new Promise((ok) => setTimeout(ok, 15000))]);
