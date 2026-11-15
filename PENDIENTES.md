@@ -150,7 +150,7 @@ Usa montos chicos ($149 de Plus o ~$10) y reembolsa si no quieres conservarlos. 
 ## 4. Seguridad (puede ser justo después del lanzamiento, en este orden)
 - [x] **S1 Teléfonos filtrados (hacer primero)**: RTDB → `chats` y `presencia`: borrar mensajes con `uid` que empiece con `cliente_` (znr-backend#15).
 - [x] **S2 App Check en Firestore**: Firebase → Verificación de aplicaciones → APIs → **Aplicar** (98 % verificadas).
-- [ ] **S3 App Check en RTDB**: aún NO aplicar (84 % sin token). En la consola de znrcommunity.com correr la prueba y ver si sube
+- [x] **S3 App Check en RTDB**: aplicado (RTDB ya responde 401 sin token, 15 nov). Nota anterior: aún NO aplicar (84 % sin token). En la consola de znrcommunity.com correr la prueba y ver si sube
       "Sin verificar: solicitudes no válidas" (sube a 5 → aplicar; se queda en 0 → cambiar las lecturas REST antes):
       ```js
       for (let i = 0; i < 5; i++) { const x = new XMLHttpRequest(); x.open('GET', 'https://znr-live-default-rtdb.firebaseio.com/banners_temporada.json?shallow=true'); x.setRequestHeader('X-Firebase-AppCheck', 'token-falso-prueba'); x.send(); }
