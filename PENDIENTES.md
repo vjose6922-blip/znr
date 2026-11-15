@@ -150,7 +150,7 @@ Usa montos chicos ($149 de Plus o ~$10) y reembolsa si no quieres conservarlos. 
 ## 4. Seguridad (puede ser justo después del lanzamiento, en este orden)
 - [x] **S1 Teléfonos filtrados (hacer primero)**: RTDB → `chats` y `presencia`: borrar mensajes con `uid` que empiece con `cliente_` (znr-backend#15).
 - [x] **S2 App Check en Firestore**: Firebase → Verificación de aplicaciones → APIs → **Aplicar** (98 % verificadas).
-- [ ] **S3 App Check en RTDB**: aún NO aplicar (84 % sin token). En la consola de znrcommunity.com correr la prueba y ver si sube
+- [x] **S3 App Check en RTDB**: aplicado (RTDB ya responde 401 sin token, 15 nov). Nota anterior: aún NO aplicar (84 % sin token). En la consola de znrcommunity.com correr la prueba y ver si sube
       "Sin verificar: solicitudes no válidas" (sube a 5 → aplicar; se queda en 0 → cambiar las lecturas REST antes):
       ```js
       for (let i = 0; i < 5; i++) { const x = new XMLHttpRequest(); x.open('GET', 'https://znr-live-default-rtdb.firebaseio.com/banners_temporada.json?shallow=true'); x.setRequestHeader('X-Firebase-AppCheck', 'token-falso-prueba'); x.send(); }
@@ -164,7 +164,19 @@ Usa montos chicos ($149 de Plus o ~$10) y reembolsa si no quieres conservarlos. 
       **No** aplicar App Check en Storage (las `<img>` no llevan token).
 - [ ] **S6 Cuentas de servicio por API** (znr-backend#13): revisar roles de `…-compute@developer.gserviceaccount.com`, crear una
       cuenta por API solo con sus roles (tabla en el issue), asignarla en Cloud Run y quitar **Editor** a la cuenta por defecto.
-- [ ] **S7 Retirar `ADMIN_TOKEN` maestro**: confirmar que el Master tiene su documento en `admins` y quitar la variable de Cloud Run.
+- [ ] **S7 Apagar la entrada de emergencia y rotar `ADMIN_TOKEN`** (después de crear la cuenta de master con teléfono,
+      znr-backend#66/#67, CONTROL#39, y comprobar que entra con su teléfono):
+  - Cloud Run → `auth-api` → Variables → borrar **`ADMIN_PASSWORD`** (apaga "Emergencia (token)"; volver a ponerla la reactiva).
+  - Generar un valor nuevo de 64 caracteres en la consola del navegador y cambiar **`ADMIN_TOKEN`** en: admin, auth, beneficiarios,
+    catálogo, historias, live, pedidos, tienda, vendedores, ventas, registrar-token-fcm, eliminar-token-fcm, y en
+    espejar-productos-perfil / marcar-cambio-znr / marcar-cambio-vendedor solo si ya la tienen. Todos seguidos, en hora de poco uso.
+  - Cloud Scheduler: en cada trabajo cuyo cuerpo lleve `"token"`, poner el valor nuevo (los de `clave` / `X-Clave` no se tocan).
+    "Forzar ejecución" en uno → Correcto. Revisar el monitor de errores 1 h (sin "No autorizado").
+- [ ] **S10 `ADMIN_TOKEN` en Secret Manager**: guardarlo una sola vez como secreto y que los 15 servicios lo lean de ahí
+      (Cloud Run → Variables y secretos → Referenciar un secreto). Rotarlo pasa a ser cambiar un valor.
+- [ ] **S11 Huella / Face ID del master validada por el servidor** (paso 3 de la seguridad del staff): passkey (WebAuthn, como el
+      login con huella de vendedores) como segundo factor para entrar como master. La huella actual de CONTROL es solo un
+      candado local del navegador.
 - [ ] **S8 (opcional) RTDB**: agregar `&& root.child('vendedorOficial').child($liveId).exists()` al `.write` de `chats`, `presencia` y
       `contactos`. Probar antes con un live programado (el comprador que entra antes que el vendedor sería rechazado).
 - [ ] **S9 (futuro) Storage**: servir fotos de `pedidos_personalizados/` con URL firmada desde `pedidos-api` en vez de `allow get: if true`.
