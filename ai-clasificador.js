@@ -146,7 +146,14 @@ async function _cargarLabels() {
  * shape/normalización, ajustar aquí.
  */
 async function fileToInputTensor(file) {
-  const bitmap = await createImageBitmap(file);
+  // Algunos teléfonos dan fotos que createImageBitmap no decodifica (HEIC, fotos de la nube aún sin bajar):
+  // se reintenta con <img>, que entiende más formatos. Si tampoco puede, el error llega a clasificarImagen.
+  let bitmap;
+  try { bitmap = await createImageBitmap(file, { imageOrientation: 'from-image' }); }
+  catch (_) {
+    const u = URL.createObjectURL(file);
+    try { bitmap = new Image(); bitmap.src = u; await bitmap.decode(); } finally { URL.revokeObjectURL(u); }
+  }
   const canvas = document.createElement('canvas');
   canvas.width = INPUT_SIZE;
   canvas.height = INPUT_SIZE;
@@ -233,7 +240,8 @@ export async function clasificarImagen(file) {
     // sugerida según UMBRAL_CONFIANZA; el embedding se usa siempre.
     return { categoria: CATEGORY_MAP[idx], confianza, embedding };
   } catch (err) {
-    console.error('[ai-clasificador] Error clasificando imagen:', err);
+    // Foto que el teléfono no puede leer: el usuario ya ve "intenta con otra"; no es una falla de ZNR → aviso (WARN), no error.
+    (/EncodingError|InvalidStateError/.test(err?.name) ? console.warn : console.error)('[ai-clasificador] Error clasificando imagen:', err);
     return null;
   } finally {
     inputTensor?.delete?.();
