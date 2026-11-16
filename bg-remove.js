@@ -247,6 +247,9 @@
     '.zbg footer button{flex:1;padding:13px;border-radius:12px;font:inherit;font-weight:600;border:1px solid rgba(255,255,255,.16);background:none;color:inherit;cursor:pointer}' +
     '.zbg footer .zbg-pri{background:linear-gradient(135deg,#ff3d7f,#ff5c6f);border:0;color:#fff}' +
     '.zbg-anillo{position:fixed;z-index:10001;border:2px solid #fff;border-radius:50%;pointer-events:none;transform:translate(-50%,-50%);box-shadow:0 0 0 1px rgba(0,0,0,.5);display:none}' +
+    '.zbg-lupa{position:fixed;z-index:10002;width:120px;height:120px;border-radius:50%;border:3px solid #fff;background:#fff;box-shadow:0 6px 20px rgba(0,0,0,.6);pointer-events:none;display:none}' +
+    '.zbg-spin{width:16px;height:16px;border:2px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;animation:zbgGira .7s linear infinite}@keyframes zbgGira{to{transform:rotate(360deg)}}' +
+    '.zbg footer button:disabled{opacity:.85;cursor:default}.zbg footer .zbg-pri{display:flex;gap:8px;justify-content:center;align-items:center}' +
     '.zbg-grid{flex:1;overflow-y:auto;display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,240px),1fr));gap:14px;padding:4px 16px 16px;align-content:start}' +
     '.zbg-card{background:#14141d;border:1px solid rgba(255,255,255,.08);border-radius:16px;padding:8px}' +
     '.zbg-card img{display:block;width:100%;aspect-ratio:1;object-fit:contain;background:#fff;border-radius:10px;cursor:zoom-in}' +
@@ -274,30 +277,41 @@
       var ov = hoja('<header><button type="button" class="zbg-ico" data-no aria-label="Cancelar">' + ICO.cerrar + '</button>' +
         '<div><b>Retocar foto</b><small data-ayuda></small></div>' +
         '<button type="button" class="zbg-ico" data-u aria-label="Deshacer" disabled>' + ICO.deshacer + '</button></header>' +
-        '<div class="zbg-lienzo"><canvas></canvas></div><div class="zbg-anillo"></div>' +
+        '<div class="zbg-lienzo"><canvas></canvas></div><div class="zbg-anillo"></div><canvas class="zbg-lupa"></canvas>' +
         '<div class="zbg-seg"><button type="button" data-m="destination-out">' + ICO.borrar + 'Borrar</button>' +
         '<button type="button" data-m="source-over">' + ICO.pincel + 'Restaurar</button></div>' +
         '<label class="zbg-pincel">Pincel<input type="range" min="6" max="60" value="20" aria-label="Tamaño del pincel"><span class="zbg-punto"><i></i></span></label>' +
         '<footer><button type="button" data-no>Cancelar</button><button type="button" class="zbg-pri" data-ok>Guardar cambios</button></footer>');
-      var cv = ov.querySelector('canvas'), cx = cv.getContext('2d'), pincel = ov.querySelector('input'), modos = ov.querySelectorAll('[data-m]');
+      var cv = ov.querySelector('canvas'), lupa = ov.querySelector('.zbg-lupa'), lx = lupa.getContext('2d'), cx = cv.getContext('2d'), pincel = ov.querySelector('input'), modos = ov.querySelectorAll('[data-m]');
       var anillo = ov.querySelector('.zbg-anillo'), punto0 = ov.querySelector('.zbg-punto i'), btnU = ov.querySelector('[data-u]');
       cv.width = w; cv.height = h;
+      lupa.width = lupa.height = 120 * (window.devicePixelRatio || 1);
       function pintar() {
         tx.globalCompositeOperation = 'source-over'; tx.clearRect(0, 0, w, h); tx.drawImage(E.fuente, 0, 0);
         tx.globalCompositeOperation = 'destination-in'; tx.drawImage(mascara, 0, 0);
         cx.fillStyle = '#fff'; cx.fillRect(0, 0, w, h);
-        if (modo === 'source-over') { cx.globalAlpha = 0.3; cx.drawImage(E.fuente, 0, 0); cx.globalAlpha = 1; }
+        // Al restaurar, lo que se quitó se ve en gris y tenue (solo guía): lo que se pinta vuelve en color
+        if (modo === 'source-over') { cx.filter = 'grayscale(1)'; cx.globalAlpha = 0.22; cx.drawImage(E.fuente, 0, 0); cx.globalAlpha = 1; cx.filter = 'none'; }
         cx.drawImage(tmp, 0, 0);
       }
       function elegir(m) {
         modo = m; modos.forEach(function (b) { b.classList.toggle('on', b.dataset.m === m); });
-        ov.querySelector('[data-ayuda]').textContent = m === 'source-over' ? 'Pinta lo que quieras devolver de la foto' : 'Pinta los restos de fondo que quieras quitar';
+        ov.querySelector('[data-ayuda]').textContent = m === 'source-over' ? 'Pinta lo que quieres restaurar' : 'Pinta los restos de fondo que quieras quitar';
         pintar();
       }
       function tamPincel() { punto0.style.width = punto0.style.height = Math.min(40, pincel.value * 0.66) + 'px'; }
       function verAnillo(e) {
         var d = +pincel.value;
         anillo.style.cssText = 'display:block;width:' + d + 'px;height:' + d + 'px;left:' + e.clientX + 'px;top:' + e.clientY + 'px';
+      }
+      // Lupa: el dedo tapa lo que se corrige, así que se ve ampliado 2x en una esquina (la contraria al dedo)
+      function verLupa(e, p) {
+        var r = cv.getBoundingClientRect(), L = 120, lado = L / 2 * p[2], k = lupa.width / L;
+        lupa.style.cssText = 'display:block;top:' + (r.top + 8) + 'px;left:' + (e.clientX < r.left + r.width / 2 ? r.right - L - 8 : r.left + 8) + 'px';
+        lx.fillStyle = '#fff'; lx.fillRect(0, 0, lupa.width, lupa.height);
+        lx.drawImage(cv, p[0] - lado / 2, p[1] - lado / 2, lado, lado, 0, 0, lupa.width, lupa.height);
+        lx.strokeStyle = '#ff3d7f'; lx.lineWidth = 2 * k;
+        lx.beginPath(); lx.arc(lupa.width / 2, lupa.height / 2, pincel.value * k, 0, 7); lx.stroke();
       }
       function punto(e) { var r = cv.getBoundingClientRect(); return [(e.clientX - r.left) * w / r.width, (e.clientY - r.top) * h / r.height, w / r.width]; }
       function trazo(p) {
@@ -308,15 +322,22 @@
       }
       cv.onpointerdown = function (e) {
         cv.setPointerCapture(e.pointerId); hist.push(mx.getImageData(0, 0, w, h)); if (hist.length > 8) hist.shift();
-        btnU.disabled = false; ult = punto(e); trazo(ult); verAnillo(e);
+        btnU.disabled = false; ult = punto(e); trazo(ult); verAnillo(e); verLupa(e, ult);
       };
-      cv.onpointermove = function (e) { verAnillo(e); if (ult) trazo(punto(e)); };
-      cv.onpointerup = cv.onpointercancel = function () { ult = null; };
+      cv.onpointermove = function (e) { verAnillo(e); if (ult) { trazo(punto(e)); verLupa(e, ult); } };
+      cv.onpointerup = cv.onpointercancel = function () { ult = null; lupa.style.display = 'none'; };
       cv.onpointerleave = function () { if (!ult) anillo.style.display = 'none'; };
       pincel.oninput = tamPincel;
       modos.forEach(function (b) { b.onclick = function () { elegir(b.dataset.m); }; });
       btnU.onclick = function () { if (hist.length) { mx.putImageData(hist.pop(), 0, 0); pintar(); } btnU.disabled = !hist.length; };
-      ov.querySelector('[data-ok]').onclick = function () { ov.remove(); componer(E.fuente, mascara, E.base).then(res, function () { res(null); }); };
+      // Guardar tarda 1-3 s en el teléfono: se muestra "Guardando…" y se deja pintar antes de componer
+      ov.querySelector('[data-ok]').onclick = function () {
+        ov.querySelectorAll('button').forEach(function (b) { b.disabled = true; });
+        this.innerHTML = '<span class="zbg-spin"></span>Guardando…';
+        requestAnimationFrame(function () { setTimeout(function () {
+          componer(E.fuente, mascara, E.base).then(res, function () { res(null); }).then(function () { ov.remove(); });
+        }, 30); });
+      };
       ov.querySelectorAll('[data-no]').forEach(function (b) { b.onclick = function () { ov.remove(); res(null); }; });
       tamPincel(); elegir(modo);
     });
