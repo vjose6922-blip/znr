@@ -84,7 +84,7 @@
     paso(0.15);
     await new Promise(function (r) { setTimeout(r, 30); });
 
-    var bmp = await createImageBitmap(file);
+    var bmp = await createImageBitmap(file, { imageOrientation: 'from-image' });
     var k = Math.min(1, MAX_LADO / Math.max(bmp.width, bmp.height));
     var w = Math.round(bmp.width * k), h = Math.round(bmp.height * k);
     var fuente = document.createElement('canvas');
@@ -139,34 +139,119 @@
     mgctx.drawImage(mq, 0, 0, w, h);
     var md = mgctx.getImageData(0, 0, w, h).data;
 
-    // Recorte con transparencia (0.15 y 0.7 ajustan la dureza del borde)
-    var im = fctx.getImageData(0, 0, w, h);
-    for (i = 0; i < w * h; i++) {
-      var a = (md[i * 4] / 255 - 0.15) / 0.7;
-      im.data[i * 4 + 3] = Math.round(Math.max(0, Math.min(1, a)) * 255);
-    }
-    var recorte = document.createElement('canvas');
-    recorte.width = w; recorte.height = h;
-    recorte.getContext('2d').putImageData(im, 0, 0);
+    // Afinar el borde: la máscara viene de 320x320 estirada (borde borroso, con restos del fondo).
+    var pm = new Float32Array(w * h), im = fctx.getImageData(0, 0, w, h).data;
+    for (i = 0; i < w * h; i++) pm[i] = md[i * 4] / 255;
+    afinar(im, pm, w, h, Math.max(2, Math.round(Math.max(w, h) / 100)));
 
-    // Fondo blanco, producto centrado y acercado en cuadrado 1:1 (margen 8 %, sin ampliar más de 2x)
-    var cj = cajaProducto(im.data, w, h);
+    // Máscara como canvas: su alfa es el producto (0.15 y 0.7 ajustan la dureza del borde)
+    var mascara = lienzo(w, h), mxc = mascara.getContext('2d', { willReadFrequently: true }), ma = mxc.createImageData(w, h);
+    for (i = 0; i < w * h; i++) ma.data[i * 4 + 3] = Math.round(Math.max(0, Math.min(1, (pm[i] - 0.15) / 0.7)) * 255);
+    mxc.putImageData(ma, 0, 0);
+    paso(1);
+    return componer(fuente, mascara, (file.name || 'imagen').replace(/\.[^.]+$/, ''));
+  }
+
+  function lienzo(w, h) { var c = document.createElement('canvas'); c.width = w; c.height = h; return c; }
+
+  // Promedio en una ventana de (2r+1)² con imagen integral: O(n) sin importar r
+  function cajaMedia(a, w, h, r) {
+    var W = w + 1, I = new Float64Array(W * (h + 1)), o = new Float32Array(w * h), x, y;
+    for (y = 0; y < h; y++) for (var s = 0, x = 0; x < w; x++) { s += a[y * w + x]; I[(y + 1) * W + x + 1] = I[y * W + x + 1] + s; }
+    for (y = 0; y < h; y++) {
+      var y0 = Math.max(0, y - r), y1 = Math.min(h, y + r + 1);
+      for (x = 0; x < w; x++) {
+        var x0 = Math.max(0, x - r), x1 = Math.min(w, x + r + 1);
+        o[y * w + x] = (I[y1 * W + x1] - I[y0 * W + x1] - I[y1 * W + x0] + I[y0 * W + x0]) / ((y1 - y0) * (x1 - x0));
+      }
+    }
+    return o;
+  }
+
+  // En la franja dudosa del borde, cada píxel se compara con el color medio del producto (F) y del fondo (B)
+  // de su vecindario: alfa = proyección de su color en la línea B→F. Solo se confía en eso si F y B se
+  // distinguen bien (de 50 a 120 de distancia de color); si se parecen, se queda la máscara del modelo.
+  function afinar(im, p, w, h, r) {
+    var n = w * h, k, c, fg = new Float32Array(n), bg = new Float32Array(n), med = [];
+    for (k = 0; k < n; k++) { fg[k] = p[k] > 0.9 ? 1 : 0; bg[k] = p[k] < 0.1 ? 1 : 0; }
+    var mf = cajaMedia(fg, w, h, r), mb = cajaMedia(bg, w, h, r);
+    for (c = 0; c < 3; c++) {
+      var sf = new Float32Array(n), sb = new Float32Array(n);
+      for (k = 0; k < n; k++) { sf[k] = fg[k] * im[k * 4 + c]; sb[k] = bg[k] * im[k * 4 + c]; }
+      med.push(cajaMedia(sf, w, h, r), cajaMedia(sb, w, h, r));
+    }
+    for (k = 0; k < n; k++) {
+      if (p[k] <= 0.02 || p[k] >= 0.98 || !mf[k] || !mb[k]) continue;
+      var num = 0, den = 0;
+      for (c = 0; c < 3; c++) { var F = med[c * 2][k] / mf[k], B = med[c * 2 + 1][k] / mb[k], v = im[k * 4 + c]; num += (v - B) * (F - B); den += (F - B) * (F - B); }
+      var q = Math.max(0, Math.min(1, (Math.sqrt(den) - 50) / 70));
+      p[k] = q * Math.max(0, Math.min(1, num / (den + 1e-6))) + (1 - q) * p[k];
+    }
+  }
+
+  // Fondo blanco, producto centrado y acercado en cuadrado 1:1 (margen 8 %, sin ampliar más de 2x).
+  // El File lleva la foto y la máscara (znrEdit) para poder retocarlo a mano.
+  async function componer(fuente, mascara, base) {
+    var w = fuente.width, h = fuente.height, recorte = lienzo(w, h), rctx = recorte.getContext('2d', { willReadFrequently: true });
+    rctx.drawImage(fuente, 0, 0);
+    rctx.globalCompositeOperation = 'destination-in';
+    rctx.drawImage(mascara, 0, 0);
+    var cj = cajaProducto(rctx.getImageData(0, 0, w, h).data, w, h);
     var lado = cj ? Math.round(Math.max(cj[2] - cj[0], cj[3] - cj[1]) * 1.16) : 0;
     var S = cj ? Math.min(MAX_LADO, lado * 2) : 0;
-    var fin = document.createElement('canvas');
-    fin.width = cj ? S : w; fin.height = cj ? S : h;
-    var ctx = fin.getContext('2d');
+    var fin = cj ? lienzo(S, S) : lienzo(w, h), ctx = fin.getContext('2d');
     ctx.imageSmoothingQuality = 'high';
     ctx.fillStyle = '#fff';
     ctx.fillRect(0, 0, fin.width, fin.height);
     if (cj) ctx.drawImage(recorte, (cj[0] + cj[2]) / 2 - lado / 2, (cj[1] + cj[3]) / 2 - lado / 2, lado, lado, 0, 0, S, S);
     else ctx.drawImage(recorte, 0, 0);
-
     var blob = await new Promise(function (res) { fin.toBlob(res, 'image/jpeg', 0.92); });
     if (!blob) throw new Error('No se pudo generar la imagen final.');
-    paso(1);
-    var base = (file.name || 'imagen').replace(/\.[^.]+$/, '');
-    return new File([blob], base + '.jpg', { type: 'image/jpeg' });
+    var f = new File([blob], base + '.jpg', { type: 'image/jpeg' });
+    f.znrEdit = { fuente: fuente, mascara: mascara, base: base };
+    return f;
+  }
+
+  // Retoque a mano: con el dedo se borran restos del fondo o se restauran partes del producto.
+  // Al restaurar, la foto original se ve tenue detrás para saber qué se puede devolver. Devuelve el File nuevo o null.
+  function editar(file) {
+    return new Promise(function (res) {
+      var E = file.znrEdit, w = E.fuente.width, h = E.fuente.height, modo = 'destination-out', hist = [], ult = null;
+      var mascara = lienzo(w, h), mx = mascara.getContext('2d', { willReadFrequently: true }), tmp = lienzo(w, h), tx = tmp.getContext('2d');
+      mx.drawImage(E.mascara, 0, 0);
+      var ov = overlay('<b>Retocar foto</b><small>Pinta con el dedo sobre la foto</small>' +
+        '<canvas style="max-width:100%;max-height:58vh;touch-action:none;border-radius:8px"></canvas>' +
+        '<div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center"><button type="button" class="btn" data-m="destination-out">Borrar</button>' +
+        '<button type="button" class="btn" data-m="source-over">Restaurar</button><button type="button" class="btn" data-u>Deshacer</button></div>' +
+        '<label>Pincel <input type="range" min="6" max="60" value="20"></label>' +
+        '<div style="display:flex;gap:10px"><button type="button" class="btn" data-ok>Listo</button><button type="button" class="btn" data-no>Cancelar</button></div>');
+      ov.style.background = '#111';
+      var cv = ov.querySelector('canvas'), cx = cv.getContext('2d'), pincel = ov.querySelector('input'), modos = ov.querySelectorAll('[data-m]');
+      cv.width = w; cv.height = h;
+      function pintar() {
+        tx.globalCompositeOperation = 'source-over'; tx.clearRect(0, 0, w, h); tx.drawImage(E.fuente, 0, 0);
+        tx.globalCompositeOperation = 'destination-in'; tx.drawImage(mascara, 0, 0);
+        cx.fillStyle = '#fff'; cx.fillRect(0, 0, w, h);
+        if (modo === 'source-over') { cx.globalAlpha = 0.3; cx.drawImage(E.fuente, 0, 0); cx.globalAlpha = 1; }
+        cx.drawImage(tmp, 0, 0);
+      }
+      function elegir(m) { modo = m; modos.forEach(function (b) { b.style.outline = b.dataset.m === m ? '3px solid #4caf50' : ''; }); pintar(); }
+      function punto(e) { var r = cv.getBoundingClientRect(); return [(e.clientX - r.left) * w / r.width, (e.clientY - r.top) * h / r.height, w / r.width]; }
+      function trazo(p) {
+        mx.globalCompositeOperation = modo; mx.strokeStyle = mx.fillStyle = '#000'; mx.lineCap = 'round'; mx.lineWidth = pincel.value * p[2];
+        mx.beginPath(); mx.moveTo(ult[0], ult[1]); mx.lineTo(p[0], p[1]); mx.stroke();
+        mx.beginPath(); mx.arc(p[0], p[1], mx.lineWidth / 2, 0, 7); mx.fill();
+        ult = p; pintar();
+      }
+      cv.onpointerdown = function (e) { cv.setPointerCapture(e.pointerId); hist.push(mx.getImageData(0, 0, w, h)); if (hist.length > 8) hist.shift(); ult = punto(e); trazo(ult); };
+      cv.onpointermove = function (e) { if (ult) trazo(punto(e)); };
+      cv.onpointerup = cv.onpointercancel = function () { ult = null; };
+      modos.forEach(function (b) { b.onclick = function () { elegir(b.dataset.m); }; });
+      ov.querySelector('[data-u]').onclick = function () { if (hist.length) { mx.putImageData(hist.pop(), 0, 0); pintar(); } };
+      ov.querySelector('[data-ok]').onclick = function () { ov.remove(); componer(E.fuente, mascara, E.base).then(res, function () { res(null); }); };
+      ov.querySelector('[data-no]').onclick = function () { ov.remove(); res(null); };
+      elegir(modo);
+    });
   }
 
   async function procesarLista(archivos) {
@@ -207,9 +292,14 @@
       function fin() { ov.remove(); res(out); }
       files.forEach(function (file, i) {
         var f = document.createElement('div'), url = URL.createObjectURL(file);
-        f.innerHTML = '<img style="display:block;width:100%;max-height:42vh;object-fit:contain;background:#fff;border-radius:8px" onclick="this.style.maxHeight=this.style.maxHeight==\'none\'?\'42vh\':\'none\'"><button type="button" class="btn" style="margin-top:6px">Descartar</button>';
+        f.innerHTML = '<img style="display:block;width:100%;max-height:42vh;object-fit:contain;background:#fff;border-radius:8px" onclick="this.style.maxHeight=this.style.maxHeight==\'none\'?\'42vh\':\'none\'">' +
+          '<div style="display:flex;gap:6px;justify-content:center;margin-top:6px">' + (file.znrEdit ? '<button type="button" class="btn" data-r>Retocar</button>' : '') + '<button type="button" class="btn" data-d>Descartar</button></div>';
         f.firstChild.src = url;
-        f.lastChild.onclick = function () { out[i] = null; f.remove(); URL.revokeObjectURL(url); if (!g.children.length) fin(); };
+        if (file.znrEdit) f.querySelector('[data-r]').onclick = async function () {
+          var nuevo = await editar(out[i]);
+          if (nuevo) { out[i] = nuevo; URL.revokeObjectURL(url); f.firstChild.src = url = URL.createObjectURL(nuevo); }
+        };
+        f.querySelector('[data-d]').onclick = function () { out[i] = null; f.remove(); URL.revokeObjectURL(url); if (!g.children.length) fin(); };
         g.appendChild(f);
       });
       ov.querySelector('[data-ok]').onclick = fin;
