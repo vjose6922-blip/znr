@@ -212,48 +212,6 @@
     return f;
   }
 
-  // Retoque a mano: con el dedo se borran restos del fondo o se restauran partes del producto.
-  // Al restaurar, la foto original se ve tenue detrás para saber qué se puede devolver. Devuelve el File nuevo o null.
-  function editar(file) {
-    return new Promise(function (res) {
-      var E = file.znrEdit, w = E.fuente.width, h = E.fuente.height, modo = 'destination-out', hist = [], ult = null;
-      var mascara = lienzo(w, h), mx = mascara.getContext('2d', { willReadFrequently: true }), tmp = lienzo(w, h), tx = tmp.getContext('2d');
-      mx.drawImage(E.mascara, 0, 0);
-      var ov = overlay('<b>Retocar foto</b><small>Pinta con el dedo sobre la foto</small>' +
-        '<canvas style="max-width:100%;max-height:58vh;touch-action:none;border-radius:8px"></canvas>' +
-        '<div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center"><button type="button" class="btn" data-m="destination-out">Borrar</button>' +
-        '<button type="button" class="btn" data-m="source-over">Restaurar</button><button type="button" class="btn" data-u>Deshacer</button></div>' +
-        '<label>Pincel <input type="range" min="6" max="60" value="20"></label>' +
-        '<div style="display:flex;gap:10px"><button type="button" class="btn" data-ok>Listo</button><button type="button" class="btn" data-no>Cancelar</button></div>');
-      ov.style.background = '#111';
-      var cv = ov.querySelector('canvas'), cx = cv.getContext('2d'), pincel = ov.querySelector('input'), modos = ov.querySelectorAll('[data-m]');
-      cv.width = w; cv.height = h;
-      function pintar() {
-        tx.globalCompositeOperation = 'source-over'; tx.clearRect(0, 0, w, h); tx.drawImage(E.fuente, 0, 0);
-        tx.globalCompositeOperation = 'destination-in'; tx.drawImage(mascara, 0, 0);
-        cx.fillStyle = '#fff'; cx.fillRect(0, 0, w, h);
-        if (modo === 'source-over') { cx.globalAlpha = 0.3; cx.drawImage(E.fuente, 0, 0); cx.globalAlpha = 1; }
-        cx.drawImage(tmp, 0, 0);
-      }
-      function elegir(m) { modo = m; modos.forEach(function (b) { b.style.outline = b.dataset.m === m ? '3px solid #4caf50' : ''; }); pintar(); }
-      function punto(e) { var r = cv.getBoundingClientRect(); return [(e.clientX - r.left) * w / r.width, (e.clientY - r.top) * h / r.height, w / r.width]; }
-      function trazo(p) {
-        mx.globalCompositeOperation = modo; mx.strokeStyle = mx.fillStyle = '#000'; mx.lineCap = 'round'; mx.lineWidth = pincel.value * p[2];
-        mx.beginPath(); mx.moveTo(ult[0], ult[1]); mx.lineTo(p[0], p[1]); mx.stroke();
-        mx.beginPath(); mx.arc(p[0], p[1], mx.lineWidth / 2, 0, 7); mx.fill();
-        ult = p; pintar();
-      }
-      cv.onpointerdown = function (e) { cv.setPointerCapture(e.pointerId); hist.push(mx.getImageData(0, 0, w, h)); if (hist.length > 8) hist.shift(); ult = punto(e); trazo(ult); };
-      cv.onpointermove = function (e) { if (ult) trazo(punto(e)); };
-      cv.onpointerup = cv.onpointercancel = function () { ult = null; };
-      modos.forEach(function (b) { b.onclick = function () { elegir(b.dataset.m); }; });
-      ov.querySelector('[data-u]').onclick = function () { if (hist.length) { mx.putImageData(hist.pop(), 0, 0); pintar(); } };
-      ov.querySelector('[data-ok]').onclick = function () { ov.remove(); componer(E.fuente, mascara, E.base).then(res, function () { res(null); }); };
-      ov.querySelector('[data-no]').onclick = function () { ov.remove(); res(null); };
-      elegir(modo);
-    });
-  }
-
   async function procesarLista(archivos) {
     var salida = [];
     tot = archivos.length;
@@ -271,33 +229,118 @@
     return salida;
   }
 
-  // El contenido va en un wrapper con margin:auto: centrado si cabe y con scroll desde arriba si no
-  function overlay(html) {
-    var ov = document.createElement('div');
-    ov.style.cssText = 'position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,.85);overflow-y:auto;display:flex;padding:12px;box-sizing:border-box;color:#fff;text-align:center;';
-    ov.innerHTML = '<div style="margin:auto;width:100%;max-width:1000px;display:flex;flex-direction:column;align-items:center;gap:12px">' + html + '</div>';
-    document.body.appendChild(ov);
-    return ov;
+  // Estilos de los dos modales (revisión y retoque), con los colores de la app; se inyectan una vez.
+  var CSS = '.zbg{position:fixed;inset:0;z-index:10000;background:#0b0b12;color:#f3ece8;display:flex;flex-direction:column;font-family:inherit;' +
+    'padding:env(safe-area-inset-top,0px) 0 env(safe-area-inset-bottom,0px);animation:zbgIn .18s ease-out}' +
+    '@keyframes zbgIn{from{opacity:0;transform:translateY(12px)}}' +
+    '.zbg header,.zbg footer{display:flex;align-items:center;gap:12px;padding:12px 16px}' +
+    '.zbg header>div{flex:1;text-align:center;line-height:1.3}.zbg header b{font-size:16px}.zbg small{display:block;color:rgba(206,202,226,.7);font-size:12px;margin-top:2px}' +
+    '.zbg-ico{width:40px;height:40px;flex:none;border-radius:50%;border:1px solid rgba(255,255,255,.16);background:rgba(255,255,255,.05);color:inherit;display:grid;place-items:center;cursor:pointer}' +
+    '.zbg-ico:disabled{opacity:.3;cursor:default}.zbg-ico.zbg-x{visibility:hidden}' +
+    '.zbg-lienzo{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;padding:4px 16px}' +
+    '.zbg-lienzo canvas{max-width:100%;max-height:100%;border-radius:14px;touch-action:none;background:#fff;box-shadow:0 8px 24px rgba(0,0,0,.5)}' +
+    '.zbg-seg{display:flex;margin:12px 16px 0;padding:4px;border-radius:999px;background:rgba(255,255,255,.06)}' +
+    '.zbg-seg button{flex:1;border:0;border-radius:999px;padding:10px;background:none;color:rgba(206,202,226,.8);font:inherit;font-weight:600;display:flex;gap:6px;justify-content:center;align-items:center;cursor:pointer;transition:background .18s}' +
+    '.zbg-seg button.on{background:linear-gradient(135deg,#ff3d7f,#ff5c6f);color:#fff}' +
+    '.zbg-pincel{display:flex;align-items:center;gap:12px;padding:10px 20px 0;font-size:13px;color:rgba(206,202,226,.8)}.zbg-pincel input{flex:1;accent-color:#ff3d7f}' +
+    '.zbg-punto{width:40px;height:40px;display:grid;place-items:center}.zbg-punto i{display:block;border-radius:50%;background:#f3ece8}' +
+    '.zbg footer button{flex:1;padding:13px;border-radius:12px;font:inherit;font-weight:600;border:1px solid rgba(255,255,255,.16);background:none;color:inherit;cursor:pointer}' +
+    '.zbg footer .zbg-pri{background:linear-gradient(135deg,#ff3d7f,#ff5c6f);border:0;color:#fff}' +
+    '.zbg-anillo{position:fixed;z-index:10001;border:2px solid #fff;border-radius:50%;pointer-events:none;transform:translate(-50%,-50%);box-shadow:0 0 0 1px rgba(0,0,0,.5);display:none}' +
+    '.zbg-grid{flex:1;overflow-y:auto;display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,240px),1fr));gap:14px;padding:4px 16px 16px;align-content:start}' +
+    '.zbg-card{background:#14141d;border:1px solid rgba(255,255,255,.08);border-radius:16px;padding:8px}' +
+    '.zbg-card img{display:block;width:100%;aspect-ratio:1;object-fit:contain;background:#fff;border-radius:10px;cursor:zoom-in}' +
+    '.zbg-card div{display:flex;gap:8px;margin-top:8px}.zbg-card button{flex:1;padding:9px;border-radius:10px;border:1px solid rgba(255,255,255,.16);background:rgba(255,255,255,.05);color:inherit;font:inherit;font-size:13px;font-weight:600;display:flex;gap:6px;justify-content:center;align-items:center;cursor:pointer}' +
+    '.zbg-card [data-d]{color:#f87171}';
+  var ICO = {
+    borrar: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m7 21-4.3-4.3a1 1 0 0 1 0-1.4l10-10a1 1 0 0 1 1.4 0l5.6 5.6a1 1 0 0 1 0 1.4L11 21"/><path d="M22 21H7M5 11l9 9"/></svg>',
+    pincel: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9.06 11.9 8.07-8.06a2.85 2.85 0 1 1 4.03 4.03l-8.06 8.08"/><path d="M7.07 14.94c-1.66 0-3 1.35-3 3.02 0 1.33-2.5 1.52-2 2.02 1.08 1.1 2.49 2.02 4 2.02 2.2 0 4-1.8 4-4.04a3.01 3.01 0 0 0-3-3.02z"/></svg>',
+    deshacer: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg>',
+    cerrar: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>',
+    basura: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/></svg>'
+  };
+  function hoja(html) {
+    if (!$('zbg-css')) { var st = document.createElement('style'); st.id = 'zbg-css'; st.textContent = CSS; document.head.appendChild(st); }
+    var ov = document.createElement('div'); ov.className = 'zbg'; ov.innerHTML = html; document.body.appendChild(ov); return ov;
   }
 
-  // Modal para ver el resultado ampliado y decidir si se usa cada foto
+  // Retoque a mano: con el dedo se borran restos del fondo o se restauran partes del producto.
+  // Al restaurar, la foto original se ve tenue detrás para saber qué se puede devolver. Devuelve el File nuevo o null.
+  function editar(file) {
+    return new Promise(function (res) {
+      var E = file.znrEdit, w = E.fuente.width, h = E.fuente.height, modo = 'destination-out', hist = [], ult = null;
+      var mascara = lienzo(w, h), mx = mascara.getContext('2d', { willReadFrequently: true }), tmp = lienzo(w, h), tx = tmp.getContext('2d');
+      mx.drawImage(E.mascara, 0, 0);
+      var ov = hoja('<header><button type="button" class="zbg-ico" data-no aria-label="Cancelar">' + ICO.cerrar + '</button>' +
+        '<div><b>Retocar foto</b><small data-ayuda></small></div>' +
+        '<button type="button" class="zbg-ico" data-u aria-label="Deshacer" disabled>' + ICO.deshacer + '</button></header>' +
+        '<div class="zbg-lienzo"><canvas></canvas></div><div class="zbg-anillo"></div>' +
+        '<div class="zbg-seg"><button type="button" data-m="destination-out">' + ICO.borrar + 'Borrar</button>' +
+        '<button type="button" data-m="source-over">' + ICO.pincel + 'Restaurar</button></div>' +
+        '<label class="zbg-pincel">Pincel<input type="range" min="6" max="60" value="20" aria-label="Tamaño del pincel"><span class="zbg-punto"><i></i></span></label>' +
+        '<footer><button type="button" data-no>Cancelar</button><button type="button" class="zbg-pri" data-ok>Guardar cambios</button></footer>');
+      var cv = ov.querySelector('canvas'), cx = cv.getContext('2d'), pincel = ov.querySelector('input'), modos = ov.querySelectorAll('[data-m]');
+      var anillo = ov.querySelector('.zbg-anillo'), punto0 = ov.querySelector('.zbg-punto i'), btnU = ov.querySelector('[data-u]');
+      cv.width = w; cv.height = h;
+      function pintar() {
+        tx.globalCompositeOperation = 'source-over'; tx.clearRect(0, 0, w, h); tx.drawImage(E.fuente, 0, 0);
+        tx.globalCompositeOperation = 'destination-in'; tx.drawImage(mascara, 0, 0);
+        cx.fillStyle = '#fff'; cx.fillRect(0, 0, w, h);
+        if (modo === 'source-over') { cx.globalAlpha = 0.3; cx.drawImage(E.fuente, 0, 0); cx.globalAlpha = 1; }
+        cx.drawImage(tmp, 0, 0);
+      }
+      function elegir(m) {
+        modo = m; modos.forEach(function (b) { b.classList.toggle('on', b.dataset.m === m); });
+        ov.querySelector('[data-ayuda]').textContent = m === 'source-over' ? 'Pinta lo que quieras devolver de la foto' : 'Pinta los restos de fondo que quieras quitar';
+        pintar();
+      }
+      function tamPincel() { punto0.style.width = punto0.style.height = Math.min(40, pincel.value * 0.66) + 'px'; }
+      function verAnillo(e) {
+        var d = +pincel.value;
+        anillo.style.cssText = 'display:block;width:' + d + 'px;height:' + d + 'px;left:' + e.clientX + 'px;top:' + e.clientY + 'px';
+      }
+      function punto(e) { var r = cv.getBoundingClientRect(); return [(e.clientX - r.left) * w / r.width, (e.clientY - r.top) * h / r.height, w / r.width]; }
+      function trazo(p) {
+        mx.globalCompositeOperation = modo; mx.strokeStyle = mx.fillStyle = '#000'; mx.lineCap = 'round'; mx.lineWidth = pincel.value * p[2];
+        mx.beginPath(); mx.moveTo(ult[0], ult[1]); mx.lineTo(p[0], p[1]); mx.stroke();
+        mx.beginPath(); mx.arc(p[0], p[1], mx.lineWidth / 2, 0, 7); mx.fill();
+        ult = p; pintar();
+      }
+      cv.onpointerdown = function (e) {
+        cv.setPointerCapture(e.pointerId); hist.push(mx.getImageData(0, 0, w, h)); if (hist.length > 8) hist.shift();
+        btnU.disabled = false; ult = punto(e); trazo(ult); verAnillo(e);
+      };
+      cv.onpointermove = function (e) { verAnillo(e); if (ult) trazo(punto(e)); };
+      cv.onpointerup = cv.onpointercancel = function () { ult = null; };
+      cv.onpointerleave = function () { if (!ult) anillo.style.display = 'none'; };
+      pincel.oninput = tamPincel;
+      modos.forEach(function (b) { b.onclick = function () { elegir(b.dataset.m); }; });
+      btnU.onclick = function () { if (hist.length) { mx.putImageData(hist.pop(), 0, 0); pintar(); } btnU.disabled = !hist.length; };
+      ov.querySelector('[data-ok]').onclick = function () { ov.remove(); componer(E.fuente, mascara, E.base).then(res, function () { res(null); }); };
+      ov.querySelectorAll('[data-no]').forEach(function (b) { b.onclick = function () { ov.remove(); res(null); }; });
+      tamPincel(); elegir(modo);
+    });
+  }
+
+  // Revisión: ver cada resultado (toca para ampliar), retocarlo o descartarlo, y decidir si se usan
   function revisar(files) {
     return new Promise(function (res) {
       var out = files.slice();
-      var ov = overlay('<b>Revisa las fotos sin fondo</b><small>Toca una foto para ampliarla</small>' +
-        '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr));gap:12px;width:100%"></div>' +
-        '<div style="position:sticky;bottom:0;width:100%;padding:10px 0 calc(10px + env(safe-area-inset-bottom,0px));background:rgba(0,0,0,.85);display:flex;gap:10px;justify-content:center;flex-wrap:wrap">' +
-        '<button type="button" class="btn" data-ok>Usar estas fotos</button><button type="button" class="btn" data-no>Descartar todas</button></div>');
-      var g = ov.firstChild.children[2];
+      var ov = hoja('<header><span class="zbg-ico zbg-x"></span><div><b>Revisa las fotos sin fondo</b><small>Toca una foto para ampliarla</small></div><span class="zbg-ico zbg-x"></span></header>' +
+        '<div class="zbg-grid"></div><footer><button type="button" data-no>Descartar todas</button><button type="button" class="zbg-pri" data-ok>Usar estas fotos</button></footer>');
+      var g = ov.querySelector('.zbg-grid');
       function fin() { ov.remove(); res(out); }
       files.forEach(function (file, i) {
         var f = document.createElement('div'), url = URL.createObjectURL(file);
-        f.innerHTML = '<img style="display:block;width:100%;max-height:42vh;object-fit:contain;background:#fff;border-radius:8px" onclick="this.style.maxHeight=this.style.maxHeight==\'none\'?\'42vh\':\'none\'">' +
-          '<div style="display:flex;gap:6px;justify-content:center;margin-top:6px">' + (file.znrEdit ? '<button type="button" class="btn" data-r>Retocar</button>' : '') + '<button type="button" class="btn" data-d>Descartar</button></div>';
-        f.firstChild.src = url;
+        f.className = 'zbg-card';
+        f.innerHTML = '<img alt="Foto sin fondo"><div>' + (file.znrEdit ? '<button type="button" data-r>' + ICO.pincel + 'Retocar</button>' : '') +
+          '<button type="button" data-d>' + ICO.basura + 'Descartar</button></div>';
+        var img = f.firstChild;
+        img.src = url;
+        img.onclick = function () { var v = hoja('<div class="zbg-lienzo" style="cursor:zoom-out"><img style="max-width:100%;max-height:100%;background:#fff;border-radius:14px"></div>'); v.querySelector('img').src = img.src; v.onclick = function () { v.remove(); }; };
         if (file.znrEdit) f.querySelector('[data-r]').onclick = async function () {
           var nuevo = await editar(out[i]);
-          if (nuevo) { out[i] = nuevo; URL.revokeObjectURL(url); f.firstChild.src = url = URL.createObjectURL(nuevo); }
+          if (nuevo) { out[i] = nuevo; URL.revokeObjectURL(url); img.src = url = URL.createObjectURL(nuevo); }
         };
         f.querySelector('[data-d]').onclick = function () { out[i] = null; f.remove(); URL.revokeObjectURL(url); if (!g.children.length) fin(); };
         g.appendChild(f);
