@@ -161,6 +161,11 @@ const res = await fetch(api, { method: "POST", headers: { "Content-Type": "appli
 const data = await res.json();
 if (data.ok === true) {
 inspectorMode = true;
+// En modo inspector no se compra ni se comparte: se ocultan "Añadir", "Compartir", el carrito y el botón de compra del detalle
+document.body.classList.add('modo-inspector');
+const estilo = document.createElement('style');
+estilo.textContent = '.modo-inspector .comunidad-add-btn,.modo-inspector .btn-share-comunidad,.modo-inspector #floating-cart-btn,.modo-inspector .floating-cart,.modo-inspector .im-buy-slot,.modo-inspector .im-buy-btn{display:none!important}';
+document.head.appendChild(estilo);
 const banner = document.createElement('div');
 banner.id = 'inspector-banner';
 banner.style.cssText = `
@@ -1244,19 +1249,26 @@ if (!token) {
 window.showTemporaryMessage(' Sin sesión de admin', 'error');
 return;
 }
-showCustomConfirm({
+// La razón es obligatoria: queda en Auditoría con quién borró y cuándo (el servidor también la exige)
+showCustomPrompt({
 title: ' Eliminar producto',
-message: `¿Eliminar "${productName}" de la comunidad? Esta acción no se puede deshacer.`,
+message: `¿Por qué eliminas "${productName}"? Queda en Auditoría. No se puede deshacer.`,
 icon: '',
 confirmText: 'Eliminar',
 cancelText: 'Cancelar',
-onConfirm: async () => {
+onConfirm: async (razon) => {
+razon = String(razon || '').trim();
+if (razon.length < 3) {
+window.showTemporaryMessage('Escribe la razón para eliminar', 'error');
+return deleteProductInspector(productId, productName, cardElement);
+}
 try {
 if (typeof window.showLoader === 'function') window.showLoader('Eliminando...');
 const params = new URLSearchParams({
 action: 'deleteComunidad',
 id: String(productId),
-token: token
+token: token,
+razon
 });
 const res = await fetch(_resolverApiUrlInspector('deleteComunidad'), {
 method: 'POST',
