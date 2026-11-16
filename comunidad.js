@@ -6,15 +6,17 @@ const COMUNIDAD_CACHE_TTL_LOCAL   = 7 * 24 * 60 * 60 * 1000; // se muestra al in
 // ── Servicios de Cloud Run que usa este archivo (modo inspector y acciones de comunidad) ──
 const CATALOGO_API_URL_INSPECTOR =
   "https://catalogo-api-1038143238323.us-central1.run.app";
-const AUTH_API_URL_INSPECTOR =
-  "https://auth-api-1038143238323.us-central1.run.app"; // TODO: pegar la URL real tras el deploy
+const VENDEDORES_API_URL_INSPECTOR =
+  "https://vendedores-api-1038143238323.us-central1.run.app";
 const VENTAS_API_URL_INSPECTOR =
   "https://ventas-api-1038143238323.us-central1.run.app"; // TODO: pegar la URL real tras el deploy
 function _resolverApiUrlInspector(action) {
   if (['deleteComunidad', 'reportarProducto', 'calificarProducto', 'misProductosComunidad'].includes(action)) {
     return CATALOGO_API_URL_INSPECTOR;
   }
-  if (action === 'verificarAdmin') return AUTH_API_URL_INSPECTOR;
+  // verificarSesionAdmin acepta las cuentas del staff (también la de master) y el acceso heredado;
+  // verificarAdmin (auth-api) solo conocía ADMIN_TOKEN y el inspector no abría con cuenta.
+  if (action === 'verificarSesionAdmin') return VENDEDORES_API_URL_INSPECTOR;
   if (action === 'obtenerCalificacionesPendientes') return VENTAS_API_URL_INSPECTOR;
   throw new Error('Acción sin servicio asignado: ' + action);
 }
@@ -153,9 +155,9 @@ cleanUrl.hash = '';
 history.replaceState(null, '', cleanUrl.toString());
 }
 try {
-const api = _resolverApiUrlInspector('verificarAdmin');
-// POST: el token va en el body y no en la URL (auth-api acepta verificarAdmin por POST).
-const res = await fetch(api, { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: new URLSearchParams({ action: "verificarAdmin", token }).toString() });
+const api = _resolverApiUrlInspector('verificarSesionAdmin');
+// POST: el token va en el body y no en la URL.
+const res = await fetch(api, { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: new URLSearchParams({ action: "verificarSesionAdmin", token }).toString() });
 const data = await res.json();
 if (data.ok === true) {
 inspectorMode = true;

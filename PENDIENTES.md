@@ -174,9 +174,9 @@ Usa montos chicos ($149 de Plus o ~$10) y reembolsa si no quieres conservarlos. 
     "Forzar ejecución" en uno → Correcto. Revisar el monitor de errores 1 h (sin "No autorizado").
 - [ ] **S10 `ADMIN_TOKEN` en Secret Manager**: guardarlo una sola vez como secreto y que los 15 servicios lo lean de ahí
       (Cloud Run → Variables y secretos → Referenciar un secreto). Rotarlo pasa a ser cambiar un valor.
-- [ ] **S11 Huella / Face ID del master validada por el servidor** (paso 3 de la seguridad del staff): passkey (WebAuthn, como el
-      login con huella de vendedores) como segundo factor para entrar como master. La huella actual de CONTROL es solo un
-      candado local del navegador.
+- [x] **S11 Huella / Face ID del staff validada por el servidor** (znr-backend + CONTROL): opcional por cuenta en
+      CONTROL → Mi cuenta → "Huella para entrar"; activada, `loginAdmin` pide contraseña + firma. Perderla: "¿Olvidaste tu
+      contraseña?" (código al correo) la quita. Probar: activar en el celular → cerrar sesión → entrar pide la huella.
 - [ ] **S8 (opcional) RTDB**: agregar `&& root.child('vendedorOficial').child($liveId).exists()` al `.write` de `chats`, `presencia` y
       `contactos`. Probar antes con un live programado (el comprador que entra antes que el vendedor sería rechazado).
 - [ ] **S9 (futuro) Storage**: servir fotos de `pedidos_personalizados/` con URL firmada desde `pedidos-api` en vez de `allow get: if true`.
