@@ -10,11 +10,11 @@
  * - Todo texto de usuario se pinta con textContent (nunca innerHTML).
  * - Los listeners se cierran cuando la pestaña queda oculta, para no gastar lecturas.
  */
-import { getApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
+import { getApp } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-app.js";
 import {
   getFirestore, doc, collection, query, orderBy, limit, startAfter,
   onSnapshot, getDoc, getDocs
-} from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
+} from "https://www.gstatic.com/firebasejs/10.13.1/firebase-firestore.js";
 
 const PEDIDO_ID = new URLSearchParams(location.search).get("pedido") || "";
 const ROL_HINT = new URLSearchParams(location.search).get("rol") || "";

@@ -5,8 +5,8 @@
  * ordena en el cliente, así no hace falta crear ningún índice compuesto en Firestore.
  * Es lectura única (getDocs), no listener: la lista se recarga al volver a la pestaña.
  */
-import { getApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
-import { getFirestore, collection, query, where, limit, getDocs } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
+import { getApp } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-app.js";
+import { getFirestore, collection, query, where, limit, getDocs } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-firestore.js";
 
 const app = document.getElementById("app");
 const db = getFirestore(getApp());

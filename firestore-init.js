@@ -15,7 +15,7 @@
  * ------------------------------------------------------------------
  */
 
-import { initializeApp, getApps, getApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
+import { initializeApp, getApps, getApp } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-app.js";
 import {
   initializeAuth,
   getAuth,
@@ -23,7 +23,7 @@ import {
   browserLocalPersistence,
   browserSessionPersistence,
   signInWithCustomToken
-} from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
+} from "https://www.gstatic.com/firebasejs/10.13.1/firebase-auth.js";
 import { 
   getFirestore, 
   collection, 
@@ -34,7 +34,7 @@ import {
   orderBy, 
   limit,
   where 
-} from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-lite.js";
+} from "https://www.gstatic.com/firebasejs/10.13.1/firebase-firestore-lite.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyAaOe_lxLdQtTFCtw2BDR8KZRSafEMkkes",

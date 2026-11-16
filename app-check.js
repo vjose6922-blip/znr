@@ -12,7 +12,7 @@
   const conBody = document.body ? Promise.resolve() : new Promise((ok) => new MutationObserver((_, o) => { if (document.body) { o.disconnect(); ok(); } })
     .observe(document.documentElement, { childList: true }));
   // Una sola instancia habla con reCAPTCHA: la de la app principal (la crea si la página aún no la tiene).
-  const base = CLAVE.startsWith('PEGA_') ? null : Promise.all([sdk('10.13.0'), conBody]).then(([[a, c]]) => ({ c, ac: c.initializeAppCheck(
+  const base = CLAVE.startsWith('PEGA_') ? null : Promise.all([sdk('10.13.1'), conBody]).then(([[a, c]]) => ({ c, ac: c.initializeAppCheck(
     a.getApps().find((x) => x.name === '[DEFAULT]') || a.initializeApp({
       apiKey: 'AIzaSyAaOe_lxLdQtTFCtw2BDR8KZRSafEMkkes', authDomain: 'znr-live.firebaseapp.com',
       databaseURL: 'https://znr-live-default-rtdb.firebaseio.com', projectId: 'znr-live',
@@ -32,7 +32,7 @@
 
   // Cada módulo que crea una app de Firebase hace `await window.znrAppCheck(app, versión)` antes de usarla.
   // Las apps con nombre (lives, chat) reutilizan el token de la principal.
-  window.znrAppCheck = async (app, v = '10.13.0') => {
+  window.znrAppCheck = async (app, v = '10.13.1') => {
     if (!(await base) || app.name === '[DEFAULT]') return;
     const [, c] = await sdk(v).catch(() => []);
     c?.initializeAppCheck(app, { provider: new c.CustomProvider({ getToken: async () => ({ token: await token(), expireTimeMillis: Date.now() + 300000 }) }) });

@@ -160,6 +160,7 @@
 
 }, true);
   window.addEventListener("unhandledrejection", function (e) {
+    if (window.__zrRuidoVT && window.__zrRuidoVT(e.reason)) return;
     addConsoleEntry("error", ["Promise rechazada sin manejar:", e.reason]);
   });
 
