@@ -10,7 +10,7 @@
   'use strict';
 
   var MODEL_URL = 'u2netp.onnx';   // en la raíz del repo, junto a index.html
-  var ORT_JS = 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.20.1/dist/ort.min.js';
+  var ORT_JS = 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.20.1/dist/ort.wasm.min.js';
   var ORT_WASM_PATH = 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.20.1/dist/';
   var MAX_LADO = 800;            // igual que compressImage de vendedor-unificado.js
   var SIZE = 320;                // entrada fija del modelo
