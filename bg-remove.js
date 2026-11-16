@@ -290,12 +290,13 @@
         tx.globalCompositeOperation = 'source-over'; tx.clearRect(0, 0, w, h); tx.drawImage(E.fuente, 0, 0);
         tx.globalCompositeOperation = 'destination-in'; tx.drawImage(mascara, 0, 0);
         cx.fillStyle = '#fff'; cx.fillRect(0, 0, w, h);
-        if (modo === 'source-over') { cx.globalAlpha = 0.3; cx.drawImage(E.fuente, 0, 0); cx.globalAlpha = 1; }
+        // Al restaurar, lo que se quitó se ve en gris y tenue (solo guía): lo que se pinta vuelve en color
+        if (modo === 'source-over') { cx.filter = 'grayscale(1)'; cx.globalAlpha = 0.22; cx.drawImage(E.fuente, 0, 0); cx.globalAlpha = 1; cx.filter = 'none'; }
         cx.drawImage(tmp, 0, 0);
       }
       function elegir(m) {
         modo = m; modos.forEach(function (b) { b.classList.toggle('on', b.dataset.m === m); });
-        ov.querySelector('[data-ayuda]').textContent = m === 'source-over' ? 'Pinta lo que quieras devolver de la foto' : 'Pinta los restos de fondo que quieras quitar';
+        ov.querySelector('[data-ayuda]').textContent = m === 'source-over' ? 'Pinta lo que quieres restaurar' : 'Pinta los restos de fondo que quieras quitar';
         pintar();
       }
       function tamPincel() { punto0.style.width = punto0.style.height = Math.min(40, pincel.value * 0.66) + 'px'; }
