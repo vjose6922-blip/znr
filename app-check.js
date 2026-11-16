@@ -6,8 +6,13 @@
   'use strict';
   const CLAVE = '6Lee1AcuAAAAAH4DUNptOgvBdPq64Lr4pUCH5-SI'; // Firebase Console → App Check → Apps → Fraud Defense (reCAPTCHA Enterprise)
   const sdk = (v) => Promise.all(['app', 'app-check'].map((m) => import(`https://www.gstatic.com/firebasejs/${v}/firebase-${m}.js`)));
+  // reCAPTCHA agrega un elemento al <body>: este script corre en el <head>, y con el SDK ya guardado en el teléfono el
+  // import termina antes de que exista el <body> → initializeAppCheck fallaba ("reading 'appendChild'") y la página se
+  // quedaba SIN App Check (Firestore y RTDB rechazaban todo: "Cargando productos..." y "Sin datos (401)").
+  const conBody = document.body ? Promise.resolve() : new Promise((ok) => new MutationObserver((_, o) => { if (document.body) { o.disconnect(); ok(); } })
+    .observe(document.documentElement, { childList: true }));
   // Una sola instancia habla con reCAPTCHA: la de la app principal (la crea si la página aún no la tiene).
-  const base = CLAVE.startsWith('PEGA_') ? null : sdk('10.13.0').then(([a, c]) => ({ c, ac: c.initializeAppCheck(
+  const base = CLAVE.startsWith('PEGA_') ? null : Promise.all([sdk('10.13.0'), conBody]).then(([[a, c]]) => ({ c, ac: c.initializeAppCheck(
     a.getApps().find((x) => x.name === '[DEFAULT]') || a.initializeApp({
       apiKey: 'AIzaSyAaOe_lxLdQtTFCtw2BDR8KZRSafEMkkes', authDomain: 'znr-live.firebaseapp.com',
       databaseURL: 'https://znr-live-default-rtdb.firebaseio.com', projectId: 'znr-live',
