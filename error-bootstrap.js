@@ -281,8 +281,12 @@
     });
   });
 
+  // Si Chrome aborta la transición antes de dar el objeto (p. ej. al llegar a una página sin motion.css), su
+  // promesa interna sale como "sin manejar". Es ruido del navegador: no se registra (lo usan también el monitor y la consola).
+  window.__zrRuidoVT = function (r) { return !!r && r.name === 'InvalidStateError' && /Transition was aborted|ViewTransition/i.test(r.message || ''); };
   window.addEventListener('unhandledrejection', function (e) {
     const reason = e.reason;
+    if (window.__zrRuidoVT(reason)) { e.preventDefault(); return; }
     window.__zrEarlyHandler('rejection', {
       message: (reason && reason.message) || String(reason).slice(0, 200),
       stack: (reason && reason.stack) || ''

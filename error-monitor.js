@@ -280,6 +280,7 @@
       }
     }, true);
     window.addEventListener('unhandledrejection', (e) => {
+      if (window.__zrRuidoVT?.(e.reason)) return;
       handleRejection({ message: e.reason?.message || String(e.reason).slice(0, 200), stack: e.reason?.stack || '' });
     });
     document.addEventListener('securitypolicyviolation', (e) => {
