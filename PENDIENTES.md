@@ -164,16 +164,12 @@ Usa montos chicos ($149 de Plus o ~$10) y reembolsa si no quieres conservarlos. 
       **No** aplicar App Check en Storage (las `<img>` no llevan token).
 - [ ] **S6 Cuentas de servicio por API** (znr-backend#13): revisar roles de `…-compute@developer.gserviceaccount.com`, crear una
       cuenta por API solo con sus roles (tabla en el issue), asignarla en Cloud Run y quitar **Editor** a la cuenta por defecto.
-- [ ] **S7 Apagar la entrada de emergencia y rotar `ADMIN_TOKEN`** (después de crear la cuenta de master con teléfono,
-      znr-backend#66/#67, CONTROL#39, y comprobar que entra con su teléfono):
-  - Cloud Run → `auth-api` → Variables → borrar **`ADMIN_PASSWORD`** (apaga "Emergencia (token)"; volver a ponerla la reactiva).
-  - Generar un valor nuevo de 64 caracteres en la consola del navegador y cambiar **`ADMIN_TOKEN`** en: admin, auth, beneficiarios,
-    catálogo, historias, live, pedidos, tienda, vendedores, ventas, registrar-token-fcm, eliminar-token-fcm, y en
-    espejar-productos-perfil / marcar-cambio-znr / marcar-cambio-vendedor solo si ya la tienen. Todos seguidos, en hora de poco uso.
-  - Cloud Scheduler: en cada trabajo cuyo cuerpo lleve `"token"`, poner el valor nuevo (los de `clave` / `X-Clave` no se tocan).
-    "Forzar ejecución" en uno → Correcto. Revisar el monitor de errores 1 h (sin "No autorizado").
-- [ ] **S10 `ADMIN_TOKEN` en Secret Manager**: guardarlo una sola vez como secreto y que los 15 servicios lo lean de ahí
-      (Cloud Run → Variables y secretos → Referenciar un secreto). Rotarlo pasa a ser cambiar un valor.
+- [x] **S7 Entrada de emergencia apagada y `ADMIN_TOKEN` rotado** (19 nov): `ADMIN_PASSWORD` borrada de auth-api y
+      vendedores-api; token nuevo en los 10 servicios y en los 9 trabajos de Cloud Scheduler. Revisar el monitor de errores
+      1 h (sin "No autorizado") y que "Emergencia (contraseña + token)" ya no deje entrar.
+- [x] **S10 `ADMIN_TOKEN` en Secret Manager** (19 nov): los 10 servicios lo leen del secreto `ADMIN_TOKEN:latest`
+      (cuenta `…-compute@` con "Usuario con acceso a secretos"). Rotar: Secret Manager → Nueva versión → en cada servicio
+      "Editar e implementar" sin cambios → actualizar los trabajos de Cloud Scheduler (no leen secretos).
 - [x] **S11 Huella / Face ID del staff validada por el servidor** (znr-backend + CONTROL): opcional por cuenta en
       CONTROL → Mi cuenta → "Huella para entrar"; activada, `loginAdmin` pide contraseña + firma. Perderla: "¿Olvidaste tu
       contraseña?" (código al correo) la quita. Probar: activar en el celular → cerrar sesión → entrar pide la huella.

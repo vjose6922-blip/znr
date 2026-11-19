@@ -21,7 +21,11 @@ function _resolverApiUrlInspector(action) {
   throw new Error('Acción sin servicio asignado: ' + action);
 }
 
+// En modo inspector se ve la Comunidad tal como la ve un comprador, pero de la ciudad elegida en la barra de MODO ADMIN
+const ciudadVista = () => (inspectorMode && sessionStorage.getItem('inspector_ciudad')) ? Promise.resolve(sessionStorage.getItem('inspector_ciudad')) : obtenerCiudadComprador();
+
 function setComunidadCache(products) {
+if (inspectorMode) return; // la caché es la vista del comprador; la del inspector puede ser de otra ciudad
   const payload = JSON.stringify({ data: products, timestamp: Date.now(), version: '1.1' });
   try { sessionStorage.setItem(COMUNIDAD_CACHE_KEY, payload); } catch(e) {}
   try { localStorage.setItem(COMUNIDAD_CACHE_KEY, payload); } catch(e) {}
@@ -54,6 +58,7 @@ function abrirDetalleComunidad(img, id, images, productData) {
 }
 
 function getComunidadCache() {
+if (inspectorMode) return null;
   try {
 
     let raw = sessionStorage.getItem(COMUNIDAD_CACHE_KEY);
@@ -164,7 +169,7 @@ inspectorMode = true;
 // En modo inspector no se compra ni se comparte: se ocultan "Añadir", "Compartir", el carrito y el botón de compra del detalle
 document.body.classList.add('modo-inspector');
 const estilo = document.createElement('style');
-estilo.textContent = '.modo-inspector .comunidad-add-btn,.modo-inspector .btn-share-comunidad,.modo-inspector #floating-cart-btn,.modo-inspector .floating-cart,.modo-inspector .im-buy-slot,.modo-inspector .im-buy-btn{display:none!important}';
+estilo.textContent = '.modo-inspector .comunidad-add-btn,.modo-inspector .btn-share-comunidad,.modo-inspector #floating-cart-btn,.modo-inspector .floating-cart,.modo-inspector .im-buy-slot,.modo-inspector .im-buy-btn,.modo-inspector #znr-carrito{display:none!important}';
 document.head.appendChild(estilo);
 const banner = document.createElement('div');
 banner.id = 'inspector-banner';
@@ -175,10 +180,45 @@ color: white; text-align: center; padding: 8px 16px;
 font-size: 13px; font-weight: 700; letter-spacing: 0.5px;
 box-shadow: 0 2px 10px rgba(0,0,0,0.3);
 `;
-banner.innerHTML = ' MODO ADMIN';
+banner.innerHTML = '<span style="white-space:nowrap">MODO ADMIN</span>';
 document.body.prepend(banner);
+// Ciudad que se inspecciona: el staff de ciudad ve la suya; el master elige cualquiera (empieza en la de este navegador)
+if (data.rol !== 'master' && data.ciudad && data.ciudad !== '*') {
+  sessionStorage.setItem('inspector_ciudad', data.ciudad);
+  banner.append(' · ' + data.ciudad);
+} else {
+  if (!sessionStorage.getItem('inspector_ciudad')) sessionStorage.setItem('inspector_ciudad', localStorage.getItem('buyer_ciudad') || '');
+  // Dos pasos (estado → ciudad): con las ciudades chicas son miles y una sola lista es pesada en el celular
+  const actual = () => sessionStorage.getItem('inspector_ciudad');
+  const selE = document.createElement('select'), selC = document.createElement('select');
+  [selE, selC].forEach((x) => { x.style.cssText = 'margin-left:6px;min-width:0;flex:0 1 34vw;padding:3px 6px;border-radius:8px;border:none;font:inherit;font-weight:600;'; });
+  selE.setAttribute('aria-label', 'Estado a inspeccionar'); selC.setAttribute('aria-label', 'Ciudad a inspeccionar');
+  const llenarC = () => {
+    const [pa, es] = selE.value.split(' · ');
+    const cs = window.ZNR_CIUDADES.filter((c) => c.pais === pa && c.estado === es).sort((x, y) => x.nombre.localeCompare(y.nombre, 'es'));
+    selC.replaceChildren(new Option('Ciudad…', ''), ...[...new Map(cs.map((c) => [c.ciudad, c])).values()].map((c) => new Option(c.nombre, c.ciudad, false, c.ciudad === actual())));
+  };
+  const llenarE = () => {
+    const act = window.ZNR_CIUDADES.find((c) => c.ciudad === actual());
+    const es = [...new Set(window.ZNR_CIUDADES.map((c) => c.pais + ' · ' + c.estado))].sort((x, y) => x.localeCompare(y, 'es'));
+    selE.replaceChildren(...es.map((e) => new Option(e.split(' · ')[1], e, false, !!act && e === act.pais + ' · ' + act.estado)));
+    llenarC();
+  };
+  llenarE();
+  window.cargarCiudadesExtra?.().then(llenarE); // también las ciudades chicas
+  selE.onchange = llenarC;
+  selC.onchange = async () => {
+    if (!selC.value) return;
+    sessionStorage.setItem('inspector_ciudad', selC.value);
+    communityRandomOrder = null; window.communityRandomOrder = null; // el orden armado era de la ciudad anterior
+    if (window.cargarStockVivo) await window.cargarStockVivo(selC.value);
+    loadComunidadPage(1, currentFilters, { force: true });
+  };
+  banner.append(selE, selC);
+  banner.style.display = 'flex'; banner.style.alignItems = 'center'; banner.style.justifyContent = 'center'; banner.style.padding = '6px 10px';
+}
 const header = document.querySelector('.app-header');
-if (header) header.style.marginTop = '38px';
+if (header) header.style.marginTop = banner.offsetHeight + 'px'; // la barra mide distinto con o sin selector de ciudad
 } else {
 console.warn(' Token de admin inválido, modo inspector desactivado');
 }
@@ -238,13 +278,6 @@ const cards = Array.from({length: count}, () => `
 container.innerHTML = cards;
 }
 
-// ── URL del listado del modo inspector (admin) ──────────────────────────────
-// catalogo-api: lista completa hasta 200, sin filtros de servidor (se pagina/ordena localmente).
-function buildComunidadUrl() {
-  const token = sessionStorage.getItem('admin_token') || '';
-  return CATALOGO_API_URL_INSPECTOR + '?' + new URLSearchParams({ action: 'listarTodoComunidad', token }).toString();
-}
-
 // ── Si la carga falla: usa la caché si existe; si no, muestra el error con botón de reintentar ──
 function mostrarErrorCargaComunidad(err) {
   // Si falla y hay caché, la usamos como respaldo
@@ -265,105 +298,6 @@ function mostrarErrorCargaComunidad(err) {
   }
 }
 
-// ── Carga y renderiza una página de productos en modo inspector (admin, vía catalogo-api) ──
-async function loadComunidadPageInspector(page, filters, opts = {}) {
-  if (isLoading && !opts.force) return;
-  isLoading = true;
-
-  // isFirstLoad: solo true la primera vez que se carga la página (no en cada cambio de filtro,
-  // que también llega con isPageChange:false). Antes esto hacía que CUALQUIER cambio de filtro
-  // pintara primero el catálogo completo en caché antes de la respuesta real filtrada.
-  const isFirstLoad = !hasLoadedOnce;
-
-  // En la primera carga mostramos caché mientras llega la red
-  if (isFirstLoad && !opts.force) {
-    const cached = getComunidadCache();
-    if (cached && cached.length > 0) {
-      allCommunityProducts = cached;
-      filteredProducts     = [...cached];
-      totalPagesGlobal     = 1; // caché no tiene meta, asumimos 1 página
-      currentPage          = 1;
-      renderProducts();
-      if (typeof window.hideLoader === 'function') window.hideLoader();
-    } else {
-      if (gridContainer) showSkeletonComunidad(gridContainer, 6);
-      if (typeof window.showLoader === 'function') window.showLoader('Cargando comunidad...');
-    }
-  } else if (opts.isPageChange && !anexando) {
-    if (gridContainer) showSkeletonComunidad(gridContainer, PAGE_SIZE);
-  }
-
-  try {
-    // Si ya tenemos el orden aleatorio armado en esta sesión (por Algolia o
-    // por una carga previa), solo paginamos en memoria, sin red.
-    if (esVistaComunidadPorDefecto(filters) && communityRandomOrder && !opts.force) {
-      currentPage      = page;
-      totalPagesGlobal = Math.max(1, Math.ceil(communityRandomOrder.length / PAGE_SIZE));
-      const start = (page - 1) * PAGE_SIZE;
-      allCommunityProducts = communityRandomOrder.slice(start, start + PAGE_SIZE);
-      filteredProducts     = [...allCommunityProducts];
-      window.allCommunityProductsIndexed = allCommunityProducts;
-      renderProducts();
-      handleInitialHashComunidad();
-      isLoading = false;
-      hasLoadedOnce = true;
-      if (typeof window.hideLoader === 'function') window.hideLoader();
-      return;
-    }
-
-    const url = buildComunidadUrl();
-    const controller = new AbortController();
-    const tid = setTimeout(() => controller.abort(), 10000);
-    const res = await fetch(url, { signal: controller.signal });
-    clearTimeout(tid);
-    if (!res.ok) throw new Error('HTTP ' + res.status);
-    const data = await res.json();
-    if (!data.ok) throw new Error(data.error || 'Error del servidor');
-    if (inspectorMode) data.fullSet = true; // listarTodoComunidad no pagina en servidor
-
-    if (data.fullSet) {
-      communityRandomOrder = data.products || [];
-      window.communityRandomOrder = communityRandomOrder;
-      currentPage      = page;
-      totalPagesGlobal = Math.max(1, Math.ceil(communityRandomOrder.length / PAGE_SIZE));
-      const start = (page - 1) * PAGE_SIZE;
-      allCommunityProducts = communityRandomOrder.slice(start, start + PAGE_SIZE);
-    } else {
-      currentPage      = data.page      || page;
-      totalPagesGlobal = data.totalPages || 1;
-      allCommunityProducts = data.products || [];
-    }
-    filteredProducts     = [...allCommunityProducts];
-    window.allCommunityProductsIndexed = allCommunityProducts;
-
-    // Poblar dropdowns de filtros solo en la primera carga (el backend los manda en page=1)
-    if (data.filterOptions) {
-      populateFiltersFromOptions(data.filterOptions);
-    }
-
-    // Cachear solo la primera página sin filtros (igual que en script.js)
-    if (page === 1 && !filters.categoria && !filters.busqueda && !filters.vendedor && !filters.temporada && !filters.orden) {
-      setComunidadCache(allCommunityProducts);
-    }
-
-    // En modo inspector el servidor no ordena (calificación/precio): reordenamos
-    // localmente lo que llegó (no es un orden global, pero evita que el select
-    // quede sin efecto).
-    aplicarOrdenLocal(filters.orden);
-
-    renderProducts();
-    handleInitialHashComunidad();
-
-  } catch (err) {
-    console.error('Error loadComunidadPageInspector:', err);
-    if (window.ZRMonitor) ZRMonitor.report('CRÍTICO','comunidad.js','loadComunidadPageInspector', err.message || String(err));
-    mostrarErrorCargaComunidad(err);
-  } finally {
-    isLoading = false;
-    hasLoadedOnce = true;
-    if (typeof window.hideLoader === 'function') window.hideLoader();
-  }
-}
 
 // ── Carga las opciones de los selects UNA sola vez, sin filtros aplicados ──
 // (si se piden junto con un filtro activo, Algolia solo devuelve el valor ya seleccionado)
@@ -448,7 +382,7 @@ function aplicarOrdenLocal(orden) {
 // los carruseles y las vistas "Ver más".
 async function asegurarCatalogoBase() {
   if (communityRandomOrder) return communityRandomOrder;
-        const miCiudad = await obtenerCiudadComprador();
+        const miCiudad = await ciudadVista();
         const snapshot = await intentarCatalogoDesdeSnapshot(miCiudad);
         if (snapshot) {
           communityRandomOrder = window.ordenarCatalogoComunidad ? window.ordenarCatalogoComunidad(snapshot.products) : snapshot.products;
@@ -551,7 +485,7 @@ async function loadComunidadPageAlgolia(page, filters, opts = {}) {
   // isFirstLoad: solo true la primera vez que se carga la página (no en cada cambio de filtro).
   const isFirstLoad = !hasLoadedOnce;
   // Stock en vivo antes de pintar (también la caché): lo agotado se oculta al instante.
-  if (isFirstLoad && window.cargarStockVivo) await window.cargarStockVivo(await obtenerCiudadComprador());
+  if (isFirstLoad && window.cargarStockVivo) await window.cargarStockVivo(await ciudadVista());
 
   if (isFirstLoad && !opts.force) {
     const cached = getComunidadCache();
@@ -598,7 +532,7 @@ async function loadComunidadPageAlgolia(page, filters, opts = {}) {
       // camino (con categoría/búsqueda/orden activos) armaba el filtro de
       // Algolia sin incluir ciudad — por eso se colaban productos de otras
       // ciudades en cuanto se usaba cualquier filtro.
-      const miCiudad = await obtenerCiudadComprador();
+      const miCiudad = await ciudadVista();
       const filterParts = [];
       if (miCiudad) filterParts.push('ciudad:"' + String(miCiudad).replace(/"/g, '') + '"');
       if (filters.categoria) filterParts.push(filtroAlgolia('categoria', filters.categoria));
@@ -656,10 +590,6 @@ async function loadComunidadPageAlgolia(page, filters, opts = {}) {
 // ── Punto de entrada: decide si usar Algolia (público) o catalogo-api (modo inspector/admin) ──
 async function loadComunidadPage(page, filters, opts = {}) {
   if (filters && filters.vista) return cargarVistaComunidad(page, filters);
-  // El modo inspector necesita ver productos pendientes también, que no viven en Algolia
-  if (inspectorMode) {
-    return loadComunidadPageInspector(page, filters, opts);
-  }
   return loadComunidadPageAlgolia(page, filters, opts);
 }
 
@@ -1840,7 +1770,7 @@ checkPendingRatings();
     }
   }
 
-  const miCiudad = await obtenerCiudadComprador();
+  const miCiudad = await ciudadVista();
   lives = lives.filter((l) => l.ciudad === miCiudad);
   if (lives.length === 0) {
     slot.innerHTML = '';
