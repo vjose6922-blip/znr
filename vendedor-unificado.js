@@ -279,6 +279,13 @@ window.fetchAndCacheVendorPage = async function(uid, page, limit, status) {
     totalPages = data.totalPages || Math.ceil(total / limit) || 1;
   }
 
+  // Sin filtro de estado el servidor dice cuántos cuentan para el límite (aprobados + pendientes) y cuántos
+  // quedaron ocultos porque el plan venció (siguen guardados y vuelven al reactivarlo)
+  if (data.usados != null) {
+    window._usadosPlan = data.usados; window._ocultosPlan = data.ocultos || 0;
+    if (vendorSession) vendorSession.productosActuales = data.usados;
+    if (typeof renderVendorPlanPanel === 'function') renderVendorPlanPanel();
+  }
   const payload = { data: myProducts, total, page, totalPages };
   window.setVendorPageCache(uid, page, status, payload);
   return payload;
@@ -843,6 +850,13 @@ function renderVendorPlanPanel() {
   const donadosChip = nDon == null ? '' : `<button onclick="openGestionarDonacionesModal()" title="Lo que has donado y si ya se vendió" style="background:#fff7ed;color:#c2410c;font-size:11px;font-weight:700;padding:3px 10px;border-radius:999px;border:none;cursor:pointer;">❤️ ${nDon} donado${nDon === 1 ? '' : 's'}</button>`;
 
   let renovacionHTML = '';
+  // Artículos ocultos por el plan: siguen guardados; al reactivar Plus vuelven a Comunidad al instante
+  const ocultos = window._ocultosPlan || 0;
+  const ocultosHTML = ocultos ? `
+      <div style="margin-top:8px;background:#f3e8ff;color:#5b21b6;font-size:12px;border-radius:10px;padding:8px 12px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+        <span><b>${ocultos} artículo${ocultos === 1 ? '' : 's'} oculto${ocultos === 1 ? '' : 's'}</b> porque tu plan venció: siguen guardados, solo se muestran tus ${limite} más antiguos. Reactiva Plus y vuelven a Comunidad al instante.</span>
+        <button onclick="location.href='plan-plus.html'" style="padding:6px 14px;border:none;border-radius:20px;background:linear-gradient(135deg,#7c3aed,#a855f7);color:#fff;font-weight:700;font-size:12px;cursor:pointer;">Reactivar</button>
+      </div>` : '';
   if (esPlus && diasRestantes != null && diasRestantes <= 7) {
     renovacionHTML = `
       <div style="margin-top:8px;background:#fff8e1;color:#92702a;font-size:12px;border-radius:10px;padding:8px 12px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
@@ -859,6 +873,7 @@ function renderVendorPlanPanel() {
     { status: 'aprobado',  label: 'Aprobados' },
     { status: 'pendiente', label: 'Pendientes' },
     { status: 'rechazado', label: 'Rechazados' },
+    ...((window._ocultosPlan > 0 || window.currentStatusFilter === 'oculto_plan') ? [{ status: 'oculto_plan', label: `Ocultos (${window._ocultosPlan || 0})` }] : []),
     ...((window._sinStockCount > 0 || window.currentStatusFilter === 'sin_stock') ? [{ status: 'sin_stock', label: 'Sin stock' }] : []),
   ];
   const statusFilterHTML = `
@@ -883,7 +898,7 @@ function renderVendorPlanPanel() {
       <div style="background:#e6e6ee;border-radius:999px;height:6px;margin-top:8px;overflow:hidden;">
         <div style="background:${pct >= 100 ? '#c62828' : '#7c3aed'};height:100%;width:${pct}%;"></div>
       </div>
-      ${renovacionHTML}
+      ${renovacionHTML}${ocultosHTML}
       ${statusFilterHTML}
     </div>
   `;
@@ -971,7 +986,8 @@ function createVendorProductCard(product) {
 
   const badgeEl = document.createElement("div");
   badgeEl.className = "product-badge";
-  badgeEl.textContent = estado || "Pendiente";
+  badgeEl.textContent = estado === "oculto_plan" ? "Oculto: plan vencido" : (estado || "Pendiente");
+  if (estado === "oculto_plan") card.style.opacity = ".6";
   slider.appendChild(badgeEl);
 
   const info = document.createElement("div");
@@ -1100,7 +1116,7 @@ function applyMyProducts(myProducts, container, total = null, currentPage = 1, t
   const realTotal = (total !== null) ? total : myProducts.length;
 
   if (vendorSession) {
-    vendorSession.productosActuales = realTotal;
+    vendorSession.productosActuales = window._usadosPlan ?? realTotal; // con un filtro, total es solo lo filtrado
     renderChecklistVendedor();
     localStorage.setItem('vendor_session', JSON.stringify(vendorSession));
   }
