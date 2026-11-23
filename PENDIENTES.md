@@ -114,10 +114,7 @@ Usa montos chicos ($149 de Plus o ~$10) y reembolsa si no quieres conservarlos. 
 - [ ] **M5** Comprador: recibe "En camino" → "Eres la siguiente parada" → "Entregado" / "No se pudo entregar", y cada aviso
       reemplaza al anterior en el teléfono. Antes de ser la siguiente ve "Faltan N entregas antes de la tuya" y no hay mapa.
 - [ ] **M6** Siendo la siguiente parada: mapa de OpenFreeMap con el repartidor moviéndose y ETA.
-- [ ] **M7** Tras desplegar `live-api`: borrar la variable `MAPBOX_TOKEN` y **revocar los dos tokens en la cuenta de Mapbox**
-      (el secreto `sk.` y el público `pk.` que estaba en `entregas-live.html` y `seguimiento-entrega.html`).
-
-### 3.6 Celular, datos móviles y carga (znr#61)
+- [x] **M7** Mapbox retirado (23 nov): ningún servicio tiene `MAPBOX_TOKEN` y los tokens `sk.`/`pk.` se revocaron.
 - [x] **T1** Fotos de productos cargan bien (WebP con `-rw` en `lh3`) y la cuadrícula usa la miniatura de 300 px.
 - [x] **T2** Preferencias → Apariencia → **Ahorro de datos**: en historias sale "▶ Ver video" y reproduce al tocar.
 - [x] **T3** Android con datos móviles: aviso "Estás usando datos móviles" al abrir live o historias (en iPhone no sale, es normal).
@@ -162,8 +159,11 @@ Usa montos chicos ($149 de Plus o ~$10) y reembolsa si no quieres conservarlos. 
       `APP_CHECK=bloquear` en admin, auth, beneficiarios, catálogo, historias, live, pedidos, registrar-token-fcm, tienda,
       vendedores y ventas; revisar logs (`401` con "App Check" = falta excepción). Emergencia: quitar la variable.
       **No** aplicar App Check en Storage (las `<img>` no llevan token).
-- [ ] **S6 Cuentas de servicio por API** (znr-backend#13): revisar roles de `…-compute@developer.gserviceaccount.com`, crear una
-      cuenta por API solo con sus roles (tabla en el issue), asignarla en Cloud Run y quitar **Editor** a la cuenta por defecto.
+- [ ] **S6 Cuentas de servicio por API**: fases A y B hechas (23 nov): los 17 servicios corren con su cuenta
+      `<servicio>-sa@znr-live.iam.gserviceaccount.com`, solo con los roles que usan (`respaldo-anual-sa` ya existía).
+      **Falta la fase C** (2–3 días después, si el monitor sigue limpio): a `…-compute@` darle `roles/cloudbuild.builds.builder`
+      y `roles/run.invoker` en espejar-productos-perfil / marcar-cambio-znr / marcar-cambio-vendedor (Eventarc), y luego quitarle
+      **Editor**. Sigue firmando las tareas de push (`PUSH_WORKER_SA`, `TASKS_SA`) y desplegando con Cloud Build.
 - [x] **S7 Entrada de emergencia apagada y `ADMIN_TOKEN` rotado** (19 nov): `ADMIN_PASSWORD` borrada de auth-api y
       vendedores-api; token nuevo en los 10 servicios y en los 9 trabajos de Cloud Scheduler. Revisar el monitor de errores
       1 h (sin "No autorizado") y que "Emergencia (contraseña + token)" ya no deje entrar.
