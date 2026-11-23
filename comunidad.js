@@ -522,8 +522,21 @@ async function loadComunidadPageAlgolia(page, filters, opts = {}) {
 
       if (page === 1) { setComunidadCache(allCommunityProducts); renderCarruseles(communityRandomOrder); }
 
+    } else if (!filters.busqueda && !filters.orden) {
+      // ── Filtro de categoría/temporada/vendedor sin búsqueda: sobre el catálogo base de la ciudad, que ya viene
+      // mezclado con prioridad a Plus/Pro y Z&R (Algolia los regresaba por fecha). Además no gasta búsquedas. ──
+      loadComunidadFilterOptionsAlgolia();
+      await asegurarCatalogoBase();
+      const coincide = (campo, v, p) => !v || [].concat(p[campo] ?? []).some((x) => filtrarPor(campo, v).includes(x));
+      const lista = communityRandomOrder.filter((p) => coincide('categoria', filters.categoria, p) && coincide('temporada', filters.temporada, p)
+        && (!filters.vendedor || String(p.vendedor_uid) === String(filters.vendedor)));
+      currentPage      = page;
+      totalPagesGlobal = Math.max(1, Math.ceil(lista.length / PAGE_SIZE));
+      allCommunityProducts = lista.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+      filteredProducts     = [...allCommunityProducts];
+      window.allCommunityProductsIndexed = allCommunityProducts;
     } else {
-      // ── Con filtros/búsqueda/orden activos: paginado normal vía Algolia ──
+      // ── Con búsqueda de texto u orden: paginado normal vía Algolia ──
       // Las opciones del select se cargan aparte y solo una vez, así siempre
       // muestran TODAS las categorías/vendedores, no solo las del filtro activo.
       loadComunidadFilterOptionsAlgolia();

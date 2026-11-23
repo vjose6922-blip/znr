@@ -1006,6 +1006,17 @@ function openImageModal(url, productId = null, allImages = [], productData = nul
   const modal  = document.getElementById("image-modal");
   const overlay = document.getElementById("overlay");
   if (!modal) return;
+  // Visita al producto (una por sesión, no la del propio vendedor): le muestra cuántas tenían sus artículos ocultos por el plan
+  if (productId && !(productData && (productData.es_znr || productData._modoVendedorPropio))) {
+    try {
+      const k = 'znr_vista_' + productId;
+      if (!sessionStorage.getItem(k)) {
+        sessionStorage.setItem(k, '1');
+        fetch(window.CATALOGO_API_URL || 'https://catalogo-api-1038143238323.us-central1.run.app', { method: 'POST', keepalive: true,
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams({ action: 'registrarVistaProducto', id: String(productId) }) }).catch(() => {});
+      }
+    } catch (_) {}
+  }
   const hiResUrl = getModalImageUrl(url);
   const hiResAll = allImages.filter(u => u && u !== url).map(getModalImageUrl);
   _modalImages = [hiResUrl, ...hiResAll];
