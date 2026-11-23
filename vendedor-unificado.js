@@ -85,6 +85,7 @@ const MAPA_ACCIONES_MIGRADAS = {
   eliminarCuentaVendedor: VENDEDORES_API_URL,
   createComunidad: CATALOGO_API_URL,
   updateComunidad: CATALOGO_API_URL,
+  fijarVisiblePlan: CATALOGO_API_URL,
   uploadImageVendedor: CATALOGO_API_URL,
   completarAnuncioIA: VENDEDORES_API_URL,
   deleteComunidad: CATALOGO_API_URL,
@@ -283,6 +284,7 @@ window.fetchAndCacheVendorPage = async function(uid, page, limit, status) {
   // quedaron ocultos porque el plan venció (siguen guardados y vuelven al reactivarlo)
   if (data.usados != null) {
     window._usadosPlan = data.usados; window._ocultosPlan = data.ocultos || 0;
+    window._planVis = { limite: data.limiteVisible, fijados: data.fijados || 0, vistas: data.vistasOcultos || 0, graciaHasta: data.graciaHasta || 0, porOcultar: data.porOcultar || 0 };
     if (vendorSession) vendorSession.productosActuales = data.usados;
     if (typeof renderVendorPlanPanel === 'function') renderVendorPlanPanel();
   }
@@ -851,10 +853,16 @@ function renderVendorPlanPanel() {
 
   let renovacionHTML = '';
   // Artículos ocultos por el plan: siguen guardados; al reactivar Plus vuelven a Comunidad al instante
-  const ocultos = window._ocultosPlan || 0;
+  const ocultos = window._ocultosPlan || 0, pv = window._planVis || {};
+  const diasGracia = pv.graciaHasta ? Math.max(1, Math.ceil((pv.graciaHasta - Date.now()) / 86400000)) : 0;
+  const graciaHTML = diasGracia && pv.porOcultar ? `
+      <div style="margin-top:8px;background:#fff1f2;color:#9f1239;font-size:12px;border-radius:10px;padding:8px 12px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+        <span><b>Tu plan venció.</b> En ${diasGracia} día${diasGracia === 1 ? '' : 's'} ocultaremos ${pv.porOcultar} artículo${pv.porOcultar === 1 ? '' : 's'}: solo quedarán a la vista ${limite} (los más antiguos o los que fijes con 📌). Reactiva y no se oculta nada.</span>
+        <button onclick="location.href='plan-plus.html'" style="padding:6px 14px;border:none;border-radius:20px;background:linear-gradient(135deg,#7c3aed,#a855f7);color:#fff;font-weight:700;font-size:12px;cursor:pointer;">Reactivar</button>
+      </div>` : '';
   const ocultosHTML = ocultos ? `
       <div style="margin-top:8px;background:#f3e8ff;color:#5b21b6;font-size:12px;border-radius:10px;padding:8px 12px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
-        <span><b>${ocultos} artículo${ocultos === 1 ? '' : 's'} oculto${ocultos === 1 ? '' : 's'}</b> porque tu plan venció: siguen guardados, solo se muestran tus ${limite} más antiguos. Reactiva Plus y vuelven a Comunidad al instante.</span>
+        <span><b>${ocultos} artículo${ocultos === 1 ? '' : 's'} oculto${ocultos === 1 ? '' : 's'}</b> porque tu plan venció: siguen guardados. Se muestran ${limite}: los que fijes con 📌 y luego los más antiguos.${pv.vistas ? ` Mientras estaban a la vista tuvieron <b>${pv.vistas.toLocaleString('es-MX')} visitas</b>.` : ''} Reactiva Plus y vuelven a Comunidad al instante.</span>
         <button onclick="location.href='plan-plus.html'" style="padding:6px 14px;border:none;border-radius:20px;background:linear-gradient(135deg,#7c3aed,#a855f7);color:#fff;font-weight:700;font-size:12px;cursor:pointer;">Reactivar</button>
       </div>` : '';
   if (esPlus && diasRestantes != null && diasRestantes <= 7) {
@@ -898,7 +906,7 @@ function renderVendorPlanPanel() {
       <div style="background:#e6e6ee;border-radius:999px;height:6px;margin-top:8px;overflow:hidden;">
         <div style="background:${pct >= 100 ? '#c62828' : '#7c3aed'};height:100%;width:${pct}%;"></div>
       </div>
-      ${renovacionHTML}${ocultosHTML}
+      ${renovacionHTML}${graciaHTML}${ocultosHTML}
       ${statusFilterHTML}
     </div>
   `;
@@ -1055,6 +1063,20 @@ function createVendorProductCard(product) {
 
   actions.appendChild(editBtn);
   actions.appendChild(deleteBtn);
+  // 📌 elegir cuáles quedan a la vista con el plan vencido (los fijados van primero dentro del límite)
+  if ((window._ocultosPlan > 0 || (window._planVis || {}).graciaHasta) && ['aprobado', 'pendiente', 'oculto_plan'].includes(estado)) {
+    const pinBtn = document.createElement("button");
+    pinBtn.className = "btn-secondary";
+    pinBtn.textContent = product.fijadoPlan ? '📌 Fijado' : '📌 Fijar';
+    pinBtn.title = product.fijadoPlan ? 'Quitar de los que siempre se ven' : 'Que este se vea siempre (en lugar de otro)';
+    pinBtn.onclick = async () => {
+      pinBtn.disabled = true;
+      const r = await apiFetch({ action: 'fijarVisiblePlan', id, fijar: product.fijadoPlan ? '0' : '1', vendorToken: vendorSession.token }).catch((e) => ({ ok: false, error: e.message }));
+      showTemporaryMessage(r.ok ? (product.fijadoPlan ? 'Ya no está fijado' : '📌 Fijado: se ve siempre') : r.error, r.ok ? 'success' : 'error');
+      if (r.ok) loadMyProducts(true); else pinBtn.disabled = false;
+    };
+    actions.appendChild(pinBtn);
+  }
 
   card.appendChild(slider);
   card.appendChild(info);
