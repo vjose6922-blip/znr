@@ -166,10 +166,11 @@ const res = await fetch(api, { method: "POST", headers: { "Content-Type": "appli
 const data = await res.json();
 if (data.ok === true) {
 inspectorMode = true;
-// En modo inspector no se compra ni se comparte: se ocultan "Añadir", "Compartir", el carrito y el botón de compra del detalle
+// En modo inspector no se compra ni se comparte: se ocultan "Añadir", "Compartir", el carrito y el botón de compra del detalle.
+// Tampoco se ven las burbujas de chat ni la campana: son de la cuenta personal (vendedor/comprador) abierta en este navegador.
 document.body.classList.add('modo-inspector');
 const estilo = document.createElement('style');
-estilo.textContent = '.modo-inspector .comunidad-add-btn,.modo-inspector .btn-share-comunidad,.modo-inspector #floating-cart-btn,.modo-inspector .floating-cart,.modo-inspector .im-buy-slot,.modo-inspector .im-buy-btn,.modo-inspector #znr-carrito{display:none!important}';
+estilo.textContent = '.modo-inspector .comunidad-add-btn,.modo-inspector .btn-share-comunidad,.modo-inspector #floating-cart-btn,.modo-inspector .floating-cart,.modo-inspector .im-buy-slot,.modo-inspector .im-buy-btn,.modo-inspector #znr-carrito,.modo-inspector #znb-stack,.modo-inspector #znb-card,.modo-inspector #notif-bell-btn{display:none!important}';
 document.head.appendChild(estilo);
 const banner = document.createElement('div');
 banner.id = 'inspector-banner';
