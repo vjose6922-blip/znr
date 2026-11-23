@@ -2672,7 +2672,7 @@ const hoy = new Date(Date.now() - new Date().getTimezoneOffset() * 6e4).toISOStr
 _znrPersonalizarEstilos();
 const ov = document.createElement('div');
 ov.className = 'zp-ov';
-ov.innerHTML = `<div class="zp-box" role="dialog" aria-modal="true" aria-label="Agendar servicio"><h3>Agendar servicio</h3>
+ov.innerHTML = `<div class="zp-box za-full" role="dialog" aria-modal="true" aria-label="Agendar servicio"><h3>Agendar servicio</h3>
 <div class="zp-prod">${p.Imagen1 || p.imagen1 ? `<img src="${esc(p.Imagen1 || p.imagen1)}" alt="" loading="lazy">` : ''}<div><b>${esc(p.Nombre || p.nombre || '')}</b><span id="za-precio">Cargando…</span></div></div>
 <div id="za-form" hidden>
 <div class="zr-dos"><div><label for="za-fecha">Fecha</label><input id="za-fecha" type="date" min="${hoy}"></div><div><label for="za-hora">Hora</label><input id="za-hora" type="time" value="10:00"></div></div>
@@ -2687,6 +2687,11 @@ ov.innerHTML = `<div class="zp-box" role="dialog" aria-modal="true" aria-label="
 if (!document.getElementById('zr-style')) document.head.insertAdjacentHTML('beforeend', `<style id="zr-style">.zr-dos{display:grid;grid-template-columns:1fr 1fr;gap:8px}.zr-modos label{display:flex;gap:8px;align-items:center;font-weight:500;margin:6px 0}.zr-modos input{width:auto}
 .zr-gps{width:100%;margin:0 0 6px;padding:10px;border-radius:10px;border:1px solid var(--color-border-subtle,#d1d5db);background:var(--color-surface-2,#f3f4f6);color:inherit;font:inherit;font-weight:600;cursor:pointer}
 .zr-total{margin-top:12px;padding:10px;border-radius:10px;background:var(--color-surface-2,#f3f4f6);font-size:13px;line-height:1.5}</style>`);
+// Agendar ocupa toda la pantalla en el celular (el formulario es largo) y los botones quedan siempre a la vista
+if (!document.getElementById('za-style')) document.head.insertAdjacentHTML('beforeend', `<style id="za-style">
+.zp-box.za-full{box-sizing:border-box;width:100%;max-width:none;height:100dvh;max-height:none;border-radius:0;display:flex;flex-direction:column;padding-top:calc(18px + env(safe-area-inset-top,0px))}
+.zp-box.za-full #za-form{flex:1 0 auto}.zp-box.za-full .zp-row{position:sticky;bottom:calc(-18px - env(safe-area-inset-bottom,0px));background:inherit;margin:12px -16px calc(-18px - env(safe-area-inset-bottom,0px));padding:12px 16px calc(12px + env(safe-area-inset-bottom,0px));box-shadow:0 -6px 16px rgba(0,0,0,.08)}
+@media(min-width:600px){.zp-box.za-full{max-width:560px;height:auto;max-height:92vh;border-radius:18px}}</style>`);
 document.body.appendChild(ov);
 const $ = s => ov.querySelector(s), err = $('#za-err'), ok = $('.zp-ok');
 const cerrar = () => ov.remove();
