@@ -136,7 +136,7 @@ function render() {
       esMiTurno(p, rolActual) ? h("span", { class: "turno", "aria-label": "Te toca responder" }) : null,
       p.productoImagen ? h("img", { src: p.productoImagen, alt: "", loading: "lazy" }) : h("div", { style: "width:54px;height:54px;border-radius:10px;background:var(--color-surface-3,#e5e7eb);flex-shrink:0" }),
       h("div", { class: "info" }, h("b", { text: p.productoNombre || "Pedido" }), h("small", { text: otro }), h("small", { text: ult ? quien + ult.texto : "" })),
-      h("div", { class: "meta" }, h("span", { class: "pp-badge" + clase, text: p.tipo === "consulta" ? "Consulta" : p.tipo === "venta" ? "Chat · " + (TEXTO_VENTA[p.estadoVenta] || "Pedido") : (p.tipo === "renta" ? "Renta · " : "") + (TEXTO_ESTADO[e] || e) }), h("small", { text: fechaCorta(ms(p.actualizadoEn)) }))));
+      h("div", { class: "meta" }, h("span", { class: "pp-badge" + clase, text: p.tipo === "consulta" ? "Consulta" : p.tipo === "venta" ? "Chat · " + (TEXTO_VENTA[p.estadoVenta] || "Pedido") : (p.tipo === "renta" ? "Renta · " : p.tipo === "servicio" ? "Servicio · " : "") + ((p.tipo === "servicio" && { aceptado: "Agendado", en_elaboracion: "En curso", entregado: "Realizado" }[e]) || TEXTO_ESTADO[e] || e) }), h("small", { text: fechaCorta(ms(p.actualizadoEn)) }))));
   });
   partes.push(cont);
   app.replaceChildren(...partes);

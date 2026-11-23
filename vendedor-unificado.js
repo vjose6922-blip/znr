@@ -1027,6 +1027,8 @@ function createVendorProductCard(product) {
     stockEl.textContent = ` Bajo pedido${d ? ' · ' + d + (d === 1 ? ' día' : ' días') : ''}`;
   } else if (product.tipoVenta === 'renta') {
     stockEl.textContent = ` Renta · ${stockNum} unidad${stockNum === 1 ? '' : 'es'}`;
+  } else if (product.tipoVenta === 'servicio') {
+    stockEl.textContent = ' Servicio' + (product.duracionServicio ? ' · ' + product.duracionServicio : '');
   } else if (isOutOfStock) {
     stockEl.classList.add("out-of-stock");
     stockEl.textContent = " Sin stock";
@@ -1353,18 +1355,23 @@ window.aplicarTemporada = function() {
 
 window.aplicarTipoVenta = function() {
   const tipo = document.getElementById('pTipoVenta')?.value || 'stock';
-  const pers = tipo === 'personalizado', renta = tipo === 'renta';
+  const pers = tipo === 'personalizado', renta = tipo === 'renta', serv = tipo === 'servicio';
+  const precioServ = document.getElementById('pPrecioServicio')?.value || 'fijo';
   const show = (id, on) => { const el = document.getElementById(id); if (el) el.style.display = on ? '' : 'none'; };
   show('pers-fields', pers);
   show('renta-fields', renta);
-  show('tipo-venta-hint', pers || renta);
-  show('stock-group', !pers);
+  show('serv-fields', serv);
+  show('tipo-venta-hint', pers || renta || serv);
+  show('stock-group', !pers && !serv);
+  const grupoPrecio = document.getElementById('pPrecio')?.closest('.field-group');
+  if (grupoPrecio) grupoPrecio.style.display = serv && precioServ === 'cotizar' ? 'none' : '';
   const hint = document.getElementById('tipo-venta-hint');
   if (hint) hint.textContent = renta
     ? 'El cliente elige fechas, horas y cantidad; tú confirmas y él acepta el contrato con tus reglas. ZNR no deja rentar más unidades de las que tienes en las mismas fechas.'
+    : serv ? 'El cliente elige fecha, hora y dónde; tú confirmas (o propones otra) y el precio en el chat, y le das seguimiento: agendado → en curso → realizado.'
     : 'El cliente te escribe en el chat, tú le envías una cotización y lo elaboras a su medida. Este artículo sirve de referencia.';
   const lbl = document.getElementById('lbl-precio');
-  if (lbl) lbl.textContent = pers ? 'Precio desde (MXN) *' : renta ? 'Precio por día, por unidad (MXN) *' : 'Precio (MXN) *';
+  if (lbl) lbl.textContent = pers || (serv && precioServ === 'desde') ? 'Precio desde (MXN) *' : renta ? 'Precio por día, por unidad (MXN) *' : 'Precio (MXN) *';
   const lblStock = document.querySelector('#stock-group label');
   if (lblStock) lblStock.textContent = renta ? 'Unidades para rentar *' : 'Stock *';
 };
@@ -1418,13 +1425,15 @@ window.editProduct = async function(id) {
   document.getElementById('pNombre').value = p.nombre || '';
   document.getElementById('pPrecio').value = p.precio || '';
   document.getElementById('pPrecioOriginal').value = p.precio_original || '';
-  document.getElementById('pStock').value = p.tipoVenta === 'personalizado' ? '' : (p.stock || '');
-  [['pEntregaRenta', p.entregaRenta || 'ambos'], ['pDepositoRenta', p.depositoRenta || ''], ['pFleteRenta', p.fleteRenta || ''], ['pReglasRenta', p.reglasRenta || '']]
+  document.getElementById('pStock').value = ['personalizado', 'servicio'].includes(p.tipoVenta) ? '' : (p.stock || '');
+  document.querySelectorAll('input[name="pLugarServicio"]').forEach((c) => { c.checked = (p.lugaresServicio || []).includes(c.value); });
+  [['pEntregaRenta', p.entregaRenta || 'ambos'], ['pDepositoRenta', p.depositoRenta || ''], ['pFleteRenta', p.fleteRenta || ''], ['pReglasRenta', p.reglasRenta || ''],
+   ['pPrecioServicio', p.precioServicio || 'fijo'], ['pTrasladoServicio', p.trasladoServicio || ''], ['pDuracionServicio', p.duracionServicio || ''], ['pZonaServicio', p.zonaServicio || '']]
     .forEach(([id, v]) => { const el = document.getElementById(id); if (el) el.value = v; });
   {
     // El tipo de venta no se cambia al editar (hay pedidos abiertos que dependen de él).
     const selTipo = document.getElementById('pTipoVenta');
-    if (selTipo) { selTipo.value = ['personalizado', 'renta'].includes(p.tipoVenta) ? p.tipoVenta : 'stock'; selTipo.disabled = true; }
+    if (selTipo) { selTipo.value = ['personalizado', 'renta', 'servicio'].includes(p.tipoVenta) ? p.tipoVenta : 'stock'; selTipo.disabled = true; }
     const dias = document.getElementById('pTiempoDias');
     if (dias) dias.value = p.tiempoElaboracionDias || '';
     const ops = document.getElementById('pOpciones');
@@ -1519,13 +1528,16 @@ switchTab('products');
 window.cancelEdit = cancelEdit;
 
 function resetForm() {
-['pNombre','pPrecio','pPrecioOriginal','pStock','pTalla','pDescripcion','pTiempoDias','pOpciones','pDepositoRenta','pFleteRenta','pReglasRenta'].forEach(id => {
+['pNombre','pPrecio','pPrecioOriginal','pStock','pTalla','pDescripcion','pTiempoDias','pOpciones','pDepositoRenta','pFleteRenta','pReglasRenta','pTrasladoServicio','pDuracionServicio','pZonaServicio'].forEach(id => {
 const el = document.getElementById(id);
 if (el) el.value = '';
 });
 {
   const selTipo = document.getElementById('pTipoVenta');
   if (selTipo) { selTipo.value = 'stock'; selTipo.disabled = false; }
+  const precioServ = document.getElementById('pPrecioServicio');
+  if (precioServ) precioServ.value = 'fijo';
+  document.querySelectorAll('input[name="pLugarServicio"]').forEach((c) => { c.checked = false; });
   if (window.aplicarTipoVenta) window.aplicarTipoVenta();
 }
 const cat = document.getElementById('pCategoria');
@@ -1769,6 +1781,10 @@ if (!tiempoDias || tiempoDias < 1 || tiempoDias > 120) { showTemporaryMessage(' 
 if (opcionesPers.length < 3) { showTemporaryMessage(' Indica qué se puede personalizar', 'error'); return; }
 }
 if (esRenta && !(stock >= 1)) { showTemporaryMessage(' Indica cuántas unidades tienes para rentar', 'error'); return; }
+const esServicio = tipoVenta === 'servicio', precioServicio = document.getElementById('pPrecioServicio')?.value || 'fijo';
+const lugaresServicio = [...document.querySelectorAll('input[name="pLugarServicio"]:checked')].map((c) => c.value);
+if (esServicio && !lugaresServicio.length) { showTemporaryMessage(' Marca dónde das el servicio', 'error'); return; }
+if (esServicio && precioServicio !== 'cotizar' && !(precio > 0)) { showTemporaryMessage(' Indica el precio del servicio (o elige "a cotizar")', 'error'); return; }
 showLoader('Subiendo imágenes...');
 const btn = document.getElementById('submit-product-btn');
 if (btn) btn.disabled = true;
@@ -1787,8 +1803,10 @@ const productData = {
 Nombre: document.getElementById('pNombre')?.value.trim(),
 Precio: Number(document.getElementById('pPrecio')?.value),
 PrecioOriginal: Number(document.getElementById('pPrecioOriginal')?.value) || 0,
-Stock: esPersonalizado ? 0 : Number(document.getElementById('pStock')?.value),
+Stock: esPersonalizado || esServicio ? 0 : Number(document.getElementById('pStock')?.value),
 TipoVenta: tipoVenta,
+...(esServicio && { PrecioServicio: precioServicio, LugaresServicio: lugaresServicio.join(','), TrasladoServicio: document.getElementById('pTrasladoServicio')?.value || 0,
+  DuracionServicio: document.getElementById('pDuracionServicio')?.value.trim() || '', ZonaServicio: document.getElementById('pZonaServicio')?.value.trim() || '' }),
 ...(esRenta && { EntregaRenta: document.getElementById('pEntregaRenta')?.value || 'ambos', DepositoRenta: document.getElementById('pDepositoRenta')?.value || 0,
   FleteRenta: document.getElementById('pFleteRenta')?.value || 0, ReglasRenta: document.getElementById('pReglasRenta')?.value.trim() || '' }),
 TiempoElaboracionDias: esPersonalizado ? tiempoDias : 0,
@@ -3175,7 +3193,7 @@ window.verMisEstadisticas = async function(forceRefresh) {
         total: all.length,
         aprobados: all.filter(p => p.estado === 'aprobado').length,
         pendientes: all.filter(p => p.estado === 'pendiente').length,
-        valorInventario: all.filter(p => p.estado === 'aprobado' && !['personalizado', 'renta'].includes(p.tipoVenta))
+        valorInventario: all.filter(p => p.estado === 'aprobado' && !['personalizado', 'renta', 'servicio'].includes(p.tipoVenta))
           .reduce((s, p) => s + (Number(p.precio) || 0) * (Number(p.stock) || 0), 0)
       };
     } catch (err) {

@@ -736,7 +736,17 @@ bottomBadge.textContent = totalQty;
 bottomBadge.style.display = totalQty > 0 ? '' : 'none';
 }
 }
+// Servicios (shows, técnicos, belleza…): precio fijo, "desde" o a cotizar, y dónde se da. Lo usan tarjetas y detalle.
+const LUGARES_SERVICIO = { domicilio: 'A domicilio', local: 'En su local', linea: 'En línea' };
+window.esServicio = (p) => !!p && (p.tipoVenta || p.TipoVenta) === 'servicio';
+window.znrPrecioServicio = (p, fmt) => {
+  const t = p.precioServicio || p.PrecioServicio || 'fijo', f = fmt || ((v) => '$' + Number(v || 0).toLocaleString('es-MX'));
+  return t === 'cotizar' ? '<span style="font-size:.8em">A cotizar</span>' : (t === 'desde' ? '<span style="font-size:10px;font-weight:600;opacity:.7;">Desde </span>' : '') + f(p.precio ?? p.Precio);
+};
+window.znrLugaresServicio = (p) => [].concat(p.lugaresServicio || p.LugaresServicio || []).map((l) => LUGARES_SERVICIO[l]).filter(Boolean).join(' · ');
+
 function addToCart(product) {
+if (window.esServicio(product)) { window.znrAgendar?.(product); return; }
 if (product && (product.tipoVenta === 'renta' || product.TipoVenta === 'renta')) { window.znrRentar?.(product); return; }
 if (product && (product._personalizado === true || product.tipoVenta === 'personalizado' || product.TipoVenta === 'personalizado')) {
 if (typeof window.znrPersonalizar === 'function') window.znrPersonalizar(product);
@@ -995,6 +1005,8 @@ function _completarVentaPersonalizada(productData, productId) {
     const pool = [].concat(window.communityRandomOrder || [], window.allCommunityProductsIndexed || []);
     const fila = pool.find(x => x && String(x.id || x.ID) === id);
     if (fila && fila.tipoVenta === 'renta') return { ...p, TipoVenta: 'renta', Stock: Number(fila.stock) || 0 };
+    if (fila && fila.tipoVenta === 'servicio') return { ...p, TipoVenta: 'servicio', Stock: -1, PrecioServicio: fila.precioServicio || 'fijo',
+      LugaresServicio: fila.lugaresServicio || [], DuracionServicio: fila.duracionServicio || '', ZonaServicio: fila.zonaServicio || '', TrasladoServicio: Number(fila.trasladoServicio) || 0 };
     if (!fila || fila.tipoVenta !== 'personalizado') return p;
     return { ...p, TipoVenta: 'personalizado', TiempoElaboracionDias: Number(fila.tiempoElaboracionDias) || 0,
       OpcionesPersonalizacion: fila.opcionesPersonalizacion || '', Stock: -1 };
@@ -1069,10 +1081,10 @@ const precio  = p.Precio  || p.precio  || 0;
 const talla  = p.Talla  || p.talla  || '';
 const desc  = p.Descripcion || p.descripcion || '';
 const categoria = p.Categoria || p.categoria || '';
-const esPersonal = (p.TipoVenta || p.tipoVenta) === 'personalizado', esRenta = (p.TipoVenta || p.tipoVenta) === 'renta';
+const esPersonal = (p.TipoVenta || p.tipoVenta) === 'personalizado', esRenta = (p.TipoVenta || p.tipoVenta) === 'renta', esServ = window.esServicio(p);
 const diasElab = Number(p.TiempoElaboracionDias || p.tiempoElaboracionDias || 0);
 const opcionesPers = String(p.OpcionesPersonalizacion || p.opcionesPersonalizacion || '');
-const stock  = esPersonal ? -1 : Number(p.Stock ?? p.stock ?? -1);
+const stock  = esPersonal || esServ ? -1 : Number(p.Stock ?? p.stock ?? -1);
 const badge  = p.Badge  || p.badge  || '';
 const precioOriginal = Number(p.PrecioOriginal ?? p.precio_original ?? 0);
 const tieneDescuento = precioOriginal > Number(precio);
@@ -1081,7 +1093,8 @@ const montoMinEnvio = Number(p._montoMinimoEnvio ?? p.vendedor_monto_minimo_envi
 const califica_entrega = montoMinEnvio > 0 && Number(precio) >= montoMinEnvio;
 const fmt = v => typeof formatCurrency === 'function' ? formatCurrency(v) : `$${Number(v).toLocaleString()}`;
 const fmtPrecio = fmt(precio);
-const stockHtml = esRenta ? `<span class="im-info-stock ok">Renta por día · ${stock} unidad${stock === 1 ? '' : 'es'}</span>` : esPersonal ? `<span class="im-info-stock ok">Bajo pedido${diasElab ? ' · ' + diasElab + (diasElab === 1 ? ' día' : ' días') + ' de elaboración' : ''}</span>` : stock < 0 ? '' :
+const duracionServ = p.DuracionServicio || p.duracionServicio || '', zonaServ = p.ZonaServicio || p.zonaServicio || '';
+const stockHtml = esServ ? `<span class="im-info-stock ok">Servicio · ${escapeHtml(window.znrLugaresServicio(p))}${duracionServ ? ' · ' + escapeHtml(duracionServ) : ''}</span>${zonaServ ? `<span class="im-info-cat">Zona: ${escapeHtml(zonaServ)}</span>` : ''}` : esRenta ? `<span class="im-info-stock ok">Renta por día · ${stock} unidad${stock === 1 ? '' : 'es'}</span>` : esPersonal ? `<span class="im-info-stock ok">Bajo pedido${diasElab ? ' · ' + diasElab + (diasElab === 1 ? ' día' : ' días') + ' de elaboración' : ''}</span>` : stock < 0 ? '' :
 stock === 0
 ? `<span class="im-info-stock out">Sin stock</span>`
 : `<span class="im-info-stock ok"> ${stock} disponibles</span>`;
@@ -1095,6 +1108,8 @@ const entregaHtml = califica_entrega ? `<div class="im-info-entrega"><svg xmlns=
 const sinStock = stock === 0;
 const buyBtnHtml = p._modoVendedorPropio
 ? `<button class="im-buy-btn" id="im-buy-btn">${Icon('edit', { size: 16 })} Editar</button>`
+: esServ
+? `<button class="im-buy-btn" id="im-buy-btn">${Icon('calendar', { size: 16 })} Agendar</button>`
 : esRenta
 ? `<button class="im-buy-btn" id="im-buy-btn">${Icon('calendar', { size: 16 })} Rentar</button>`
 : esPersonal
@@ -1111,7 +1126,7 @@ el.innerHTML = `
 <div class="im-info-name">${escapeHtml(nombre)}</div>
 <div style="text-align:right;">
 ${tieneDescuento ? `<div class="im-info-price-original">${fmt(precioOriginal)}</div>` : ''}
-<div class="im-info-price">${esPersonal ? '<small style="font-size:11px;font-weight:600;opacity:.7;">Desde </small>' : ''}${fmtPrecio}${esRenta ? '<small style="font-size:11px;font-weight:600;opacity:.7;"> /día</small>' : ''}${tieneDescuento ? ` <span class="im-info-pct">-${pctDescuento}%</span>` : ''}</div>
+<div class="im-info-price">${esServ ? window.znrPrecioServicio(p, fmt) : (esPersonal ? '<small style="font-size:11px;font-weight:600;opacity:.7;">Desde </small>' : '') + fmtPrecio}${esRenta ? '<small style="font-size:11px;font-weight:600;opacity:.7;"> /día</small>' : ''}${tieneDescuento ? ` <span class="im-info-pct">-${pctDescuento}%</span>` : ''}</div>
 </div>
 </div>
 ${entregaHtml}
@@ -1168,6 +1183,7 @@ return beneficiario;
 };
 
 async function _handleModalBuyClick(p) {
+if (window.esServicio(p)) { window.znrAgendar?.(p); return; }
 if ((p.TipoVenta || p.tipoVenta) === 'renta') { window.znrRentar?.(p); return; }
 if ((p.TipoVenta || p.tipoVenta) === 'personalizado') {
 if (typeof window.znrPersonalizar === 'function') window.znrPersonalizar(p);
@@ -1271,7 +1287,8 @@ function _renderMagazinePanel(modal) {
     _beneficiarioId: p.beneficiario_id || p._beneficiarioId || '',
     _precioOriginal: p.precio_original || p.PrecioOriginal || 0,
     _montoMinimoEnvio: p.vendedor_monto_minimo_envio || p._montoMinimoEnvio || 0,
-    _tipoVenta: ['personalizado', 'renta'].includes(p.tipoVenta || p.TipoVenta) ? (p.tipoVenta || p.TipoVenta) : 'stock',
+    _tipoVenta: ['personalizado', 'renta', 'servicio'].includes(p.tipoVenta || p.TipoVenta) ? (p.tipoVenta || p.TipoVenta) : 'stock',
+    _precioServicio: p.precioServicio || p.PrecioServicio || '',
     _tiempoElaboracionDias: Number(p.tiempoElaboracionDias || p.TiempoElaboracionDias || 0),
     _opcionesPersonalizacion: p.opcionesPersonalizacion || p.OpcionesPersonalizacion || '',
   }));
@@ -1307,7 +1324,7 @@ function _renderMagazinePanel(modal) {
       const fullImg = getModalImageUrl(p._imagen1);
       const name = (p._nombre || 'Producto').substring(0, 28);
       const esPers = p._tipoVenta === 'personalizado';
-      const price = (esPers ? 'Desde ' : '') + (typeof formatCurrency === 'function'
+      const price = p._tipoVenta === 'servicio' && p._precioServicio === 'cotizar' ? 'A cotizar' : (esPers || p._precioServicio === 'desde' ? 'Desde ' : '') + (typeof formatCurrency === 'function'
         ? formatCurrency(p._precio)
         : `$${p._precio}`) + (p._tipoVenta === 'renta' ? ' /día' : '');
       const safeImg     = thumbImg ? escapeAttr(thumbImg) : 'https://placehold.co/200x200/3b1f5f/white?text=Z%26R';
@@ -2639,6 +2656,93 @@ ok.addEventListener('click', async () => {
 });
 }
 window.znrRentar = znrRentar;
+
+// Servicios: el cliente propone fecha, hora y dónde (a domicilio con dirección, en el local o en línea); el vendedor
+// confirma o propone otra fecha/hora y el precio en el chat. Datos del servicio desde pedidos-api (infoServicio).
+async function znrAgendar(p) {
+const productoId = String((p && (p.ID || p.id)) || '');
+if (!productoId || !window.PEDIDOS_API_URL) return;
+const telefono = await asegurarComprador('Para agendar este servicio');
+if (!telefono) return;
+window.solicitarPermisoNotificacionesSiFalta?.('cliente', telefono);
+const esc = window.escapeHtml || (x => String(x).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])));
+const fmt = v => typeof formatCurrency === 'function' ? formatCurrency(v) : '$' + Number(v).toLocaleString('es-MX');
+const api = data => fetch(window.PEDIDOS_API_URL, { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams(data).toString() }).then(r => r.json());
+const hoy = new Date(Date.now() - new Date().getTimezoneOffset() * 6e4).toISOString().slice(0, 10);
+_znrPersonalizarEstilos();
+const ov = document.createElement('div');
+ov.className = 'zp-ov';
+ov.innerHTML = `<div class="zp-box" role="dialog" aria-modal="true" aria-label="Agendar servicio"><h3>Agendar servicio</h3>
+<div class="zp-prod">${p.Imagen1 || p.imagen1 ? `<img src="${esc(p.Imagen1 || p.imagen1)}" alt="" loading="lazy">` : ''}<div><b>${esc(p.Nombre || p.nombre || '')}</b><span id="za-precio">Cargando…</span></div></div>
+<div id="za-form" hidden>
+<div class="zr-dos"><div><label for="za-fecha">Fecha</label><input id="za-fecha" type="date" min="${hoy}"></div><div><label for="za-hora">Hora</label><input id="za-hora" type="time" value="10:00"></div></div>
+<div id="za-lugar-box"><label>¿Dónde?</label><div class="zr-modos" id="za-lugares"></div></div>
+<div id="za-dir-box" hidden><label for="za-dir">Dirección</label><button type="button" id="za-gps" class="zr-gps">📍 Usar mi ubicación</button><textarea id="za-dir" maxlength="250" style="min-height:60px" placeholder="Calle, número, colonia"></textarea></div>
+<label for="za-nombre">Tu nombre</label><input id="za-nombre" maxlength="60" autocomplete="name">
+<label for="za-nota" id="za-nota-lbl">¿Qué necesitas? (opcional)</label><textarea id="za-nota" maxlength="500" style="min-height:70px" placeholder="Ej: fiesta infantil de 6 años, 20 niños"></textarea>
+<div class="zr-total" id="za-total" aria-live="polite"></div>
+</div>
+<div class="zp-err" id="za-err"></div>
+<div class="zp-row"><button type="button" class="zp-cancel">Cancelar</button><button type="button" class="zp-ok" disabled>Enviar solicitud</button></div></div>`;
+if (!document.getElementById('zr-style')) document.head.insertAdjacentHTML('beforeend', `<style id="zr-style">.zr-dos{display:grid;grid-template-columns:1fr 1fr;gap:8px}.zr-modos label{display:flex;gap:8px;align-items:center;font-weight:500;margin:6px 0}.zr-modos input{width:auto}
+.zr-gps{width:100%;margin:0 0 6px;padding:10px;border-radius:10px;border:1px solid var(--color-border-subtle,#d1d5db);background:var(--color-surface-2,#f3f4f6);color:inherit;font:inherit;font-weight:600;cursor:pointer}
+.zr-total{margin-top:12px;padding:10px;border-radius:10px;background:var(--color-surface-2,#f3f4f6);font-size:13px;line-height:1.5}</style>`);
+document.body.appendChild(ov);
+const $ = s => ov.querySelector(s), err = $('#za-err'), ok = $('.zp-ok');
+const cerrar = () => ov.remove();
+$('.zp-cancel').addEventListener('click', cerrar);
+ov.addEventListener('click', e => { if (e.target === ov) cerrar(); });
+try { $('#za-nombre').value = localStorage.getItem('client_name') || ''; $('#za-dir').value = localStorage.getItem('client_address') || ''; } catch (_) {}
+const info = await api({ action: 'infoServicio', productoId }).catch(() => ({ ok: false, error: 'Sin conexión. Intenta de nuevo.' }));
+if (!info.ok) { $('#za-precio').textContent = ''; err.textContent = info.error || 'No se pudo cargar el servicio.'; return; }
+const NOMBRES = { domicilio: 'A domicilio' + (info.traslado ? ` (+${fmt(info.traslado)} de traslado)` : ''), local: 'En su local' + (info.puntoEntrega ? `: ${info.puntoEntrega}` : ''), linea: 'En línea' };
+$('#za-precio').textContent = (info.precioServicio === 'cotizar' ? 'A cotizar' : (info.precioServicio === 'desde' ? 'Desde ' : '') + fmt(info.precio)) + (info.duracion ? ' · ' + info.duracion : '');
+$('#za-lugares').innerHTML = info.lugares.map((l, i) => `<label><input type="radio" name="za-lugar" value="${esc(l)}"${i ? '' : ' checked'}> ${esc(NOMBRES[l] || l)}</label>`).join('');
+$('#za-lugar-box').hidden = info.lugares.length < 2;
+if (info.precioServicio === 'cotizar') { $('#za-nota-lbl').textContent = '¿Qué necesitas? (para que te cotice)'; }
+$('#za-form').hidden = false; ok.disabled = false;
+const lugar = () => (ov.querySelector('[name="za-lugar"]:checked') || {}).value || info.lugares[0];
+const pintar = () => {
+  $('#za-dir-box').hidden = lugar() !== 'domicilio';
+  const traslado = lugar() === 'domicilio' ? info.traslado : 0;
+  $('#za-total').innerHTML = info.precioServicio === 'cotizar' ? 'El vendedor te enviará el precio en el chat.'
+    : `${info.precioServicio === 'desde' ? 'Desde ' : ''}${fmt(info.precio)}${traslado ? ` + traslado ${fmt(traslado)} = <b>${fmt(info.precio + traslado)}</b>` : ''} · el vendedor confirma fecha, hora y precio en el chat`
+    + (info.zona ? `<br>Zona que cubre: ${esc(info.zona)}` : '');
+};
+ov.querySelectorAll('[name="za-lugar"]').forEach(r => r.addEventListener('change', pintar));
+let gps = null;
+$('#za-dir').addEventListener('input', () => { gps = null; });
+$('#za-gps').addEventListener('click', () => {
+  const b = $('#za-gps');
+  if (!navigator.geolocation) { b.textContent = '⚠️ Tu navegador no tiene GPS'; return; }
+  b.disabled = true; b.textContent = '⏳ Obteniendo ubicación…';
+  navigator.geolocation.getCurrentPosition(async ({ coords: { latitude: lat, longitude: lng } }) => {
+    let dir = `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+    try { const d = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&accept-language=es`).then(r => r.json()); if (d.display_name) dir = d.display_name; } catch (_) {}
+    $('#za-dir').value = dir.slice(0, 250); gps = { lat, lng };
+    b.disabled = false; b.textContent = '✅ Ubicación agregada · tócalo para actualizarla';
+  }, () => { b.disabled = false; b.textContent = '❌ Sin permiso de ubicación · escríbela'; }, { enableHighAccuracy: true, timeout: 10000 });
+});
+pintar();
+ok.addEventListener('click', async () => {
+  err.textContent = '';
+  const nombre = $('#za-nombre').value.trim(), nota = $('#za-nota').value.trim();
+  if (!$('#za-fecha').value) { err.textContent = 'Elige la fecha.'; return; }
+  if (lugar() === 'domicilio' && $('#za-dir').value.trim().length < 5) { err.textContent = 'Escribe la dirección.'; return; }
+  if (nombre.length < 2) { err.textContent = 'Escribe tu nombre.'; return; }
+  if (info.precioServicio === 'cotizar' && nota.length < 3) { err.textContent = 'Cuéntale al vendedor qué necesitas para que te cotice.'; return; }
+  ok.disabled = true; ok.textContent = 'Enviando…';
+  try {
+    try { localStorage.setItem('client_name', nombre); if (lugar() === 'domicilio') localStorage.setItem('client_address', $('#za-dir').value.trim()); } catch (_) {}
+    const data = await api({ action: 'crearPedidoPersonalizado', telefono, compradorToken: localStorage.getItem('comprador_token') || '', productoId, nombre,
+      fecha: $('#za-fecha').value, hora: $('#za-hora').value, lugar: lugar(), direccion: $('#za-dir').value.trim(), nota,
+      ...(gps && lugar() === 'domicilio' ? { lat: gps.lat, lng: gps.lng } : {}) });
+    if (!data.ok) throw new Error(data.error || 'No se pudo enviar la solicitud');
+    location.href = 'pedido-chat.html?pedido=' + encodeURIComponent(data.pedidoId);
+  } catch (e) { err.textContent = e.message || 'No se pudo enviar. Intenta de nuevo.'; ok.disabled = false; ok.textContent = 'Enviar solicitud'; }
+});
+}
+window.znrAgendar = znrAgendar;
 window.olvidarComprador = olvidarComprador;
 async function _checkoutZNR(znrItems, allItems) {
 const clientPhone = await asegurarComprador("Para procesar tu compra");

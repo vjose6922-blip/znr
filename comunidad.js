@@ -803,7 +803,7 @@ function crearMiniCardComunidad(p, badgeHtml) {
     <div style="padding:6px 2px 0;">
       <div style="font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(safeString(p.nombre))}</div>
       ${tieneDescuento ? `<div style="font-size:11px;color:var(--color-text-muted,#888);text-decoration:line-through;">${fmtCurr(original)}</div>` : ''}
-      <div style="font-size:15px;font-weight:800;">${p.tipoVenta === 'personalizado' ? '<span style="font-size:10px;font-weight:600;opacity:.7;">Desde </span>' : ''}${fmtCurr(p.precio)}${p.tipoVenta === 'renta' ? '<span style="font-size:10px;font-weight:600;opacity:.7;"> /día</span>' : ''}</div>
+      <div style="font-size:15px;font-weight:800;">${p.tipoVenta === 'servicio' ? window.znrPrecioServicio(p, fmtCurr) : (p.tipoVenta === 'personalizado' ? '<span style="font-size:10px;font-weight:600;opacity:.7;">Desde </span>' : '') + fmtCurr(p.precio)}${p.tipoVenta === 'renta' ? '<span style="font-size:10px;font-weight:600;opacity:.7;"> /día</span>' : ''}</div>
     </div>`;
   mini.onclick = () => {
     if (!window.openImageModal) return;
@@ -1349,10 +1349,10 @@ card.id = `producto-${product.id}`;
 card.setAttribute('data-id', product.id);
 const imgUrl  = product.imagen1 || 'https://placehold.co/400x400/3b1f5f/white?text=Sin+Imagen';
 const allImages = [product.imagen1, product.imagen2, product.imagen3].filter(Boolean);
-const esPersonal = product.tipoVenta === 'personalizado', esRenta = product.tipoVenta === 'renta';
+const esPersonal = product.tipoVenta === 'personalizado', esRenta = product.tipoVenta === 'renta', esServ = product.tipoVenta === 'servicio';
 const diasElab = Number(product.tiempoElaboracionDias) || 0;
 const stockNum  = Number(stockVivo(product)) || 0;
-const hasStock  = esPersonal ? true : stockNum > 0;
+const hasStock  = esPersonal || esServ ? true : stockNum > 0;
 const esDonativo = product.donado === true || product.donado === 'TRUE' || product.donado === 'true';
 const vendorName = safeString(product.vendedor_nombre);
 const vendorLogo = safeString(product.vendedor_logo || '');
@@ -1377,7 +1377,7 @@ ${(window.crearSliderImagenesHTML ? window.crearSliderImagenesHTML(allImages.len
 ${tieneDescuento ? `<div style="text-align:right;font-size:11px;color:var(--color-text-muted,#888);text-decoration:line-through;">${fmtCurr(precioOriginal)}</div>` : ''}
 <div class="product-title-row">
 <h3 class="product-name" style="font-size:14px;" title="${esc(safeString(product.nombre))}">${esc(safeString(product.nombre))}</h3>
-<div class="product-price" style="font-size:16px;">${esPersonal ? '<span style="font-size:10px;font-weight:600;opacity:.7;">Desde </span>' : ''}${fmtCurr(product.precio)}${esRenta ? '<span style="font-size:10px;font-weight:600;opacity:.7;"> /día</span>' : ''}${tieneDescuento ? ` <span style="font-size:10px;font-weight:800;color:#22c55e;">-${pctDescuento}%</span>` : ''}</div>
+<div class="product-price" style="font-size:16px;">${esServ ? window.znrPrecioServicio(product, fmtCurr) : (esPersonal ? '<span style="font-size:10px;font-weight:600;opacity:.7;">Desde </span>' : '') + fmtCurr(product.precio)}${esRenta ? '<span style="font-size:10px;font-weight:600;opacity:.7;"> /día</span>' : ''}${tieneDescuento ? ` <span style="font-size:10px;font-weight:800;color:#22c55e;">-${pctDescuento}%</span>` : ''}</div>
 </div>
 ${califica_entrega ? `<div style="display:flex;align-items:center;gap:4px;font-size:10.5px;color:#16a34a;font-weight:600;margin-top:2px;"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 3h15v13H1z"/><path d="M16 8h4l3 3v5h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg> Entrega a domicilio disponible</div>` : ''}
 ${vendorName ? `<div style="font-size:11px;color:var(--color-text-muted,#888);margin-top:2px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:4px;">
@@ -1390,7 +1390,9 @@ ${esDonativo && product.beneficiario_id ? `<button class="btn-ver-beneficiario" 
 ${product.talla ? `<div style="font-size:11px;color:var(--color-text-muted);margin-top:2px;">Info: ${esc(safeString(product.talla))}</div>` : ''}
 ${window.ZNR_TEMPORADAS ? window.ZNR_TEMPORADAS.chipsHTML(product) : ''}
 <div style="display:flex;align-items:center;gap:6px;margin-top:6px;flex-wrap:wrap;">
-${esPersonal
+${esServ
+? `<span style="color:#0ea5e9;font-size:11px;font-weight:600;">Servicio · ${esc(window.znrLugaresServicio(product))}</span>`
+: esPersonal
 ? `<span style="color:#a855f7;font-size:11px;font-weight:600;">Bajo pedido${diasElab ? ' · ' + diasElab + (diasElab === 1 ? ' día' : ' días') : ''}</span>`
 : !hasStock
 ? '<span style="color:var(--color-error,#ef4444);font-size:11px;font-weight:600;">Sin stock</span>'
@@ -1413,7 +1415,7 @@ data-vendoruid="${esc(safeString(product.vendedor_uid || ''))}"
 data-donacion="${esDonativo}"
 data-benid="${esDonativo && product.beneficiario_id ? esc(safeString(product.beneficiario_id)) : ''}"
 data-personalizado="${esPersonal}">
-${!hasStock ? '-' : (esPersonal ? 'Personalizar' : esRenta ? 'Rentar' : 'Añadir')}
+${!hasStock ? '-' : (esServ ? 'Agendar' : esPersonal ? 'Personalizar' : esRenta ? 'Rentar' : 'Añadir')}
 </button>
 ${!product.es_znr ? `<button class="btn-report" title="Reportar" style="background:var(--color-surface-3);border:none;border-radius:30px;padding:8px 8px;cursor:pointer;color:var(--color-text-muted);display:flex;align-items:center;"><svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" aria-hidden="true"><use href="#ic-flag"/></svg></button>` : ''}
 <button class="btn-share-comunidad" title="Compartir" style="background:var(--color-surface-3);border:none;border-radius:30px;padding:8px 8px;cursor:pointer;color:var(--color-text-muted);display:flex;align-items:center;"><svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" aria-hidden="true"><use href="#ic-share"/></svg></button>
@@ -1460,6 +1462,7 @@ if (addBtn && hasStock && window.addToCart) {
 addBtn.addEventListener('click', async (e) => {
 e.stopPropagation();
 if (esRenta) { window.znrRentar?.({ ID: product.id, Nombre: product.nombre, Imagen1: product.imagen1 }); return; }
+if (esServ) { window.znrAgendar?.(product); return; }
 if (addBtn.dataset.personalizado === 'true') {
 if (window.znrPersonalizar) window.znrPersonalizar({
 ID: addBtn.dataset.id, Nombre: addBtn.dataset.nombre, Precio: Number(addBtn.dataset.precio),
