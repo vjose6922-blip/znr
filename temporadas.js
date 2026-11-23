@@ -127,6 +127,8 @@
     'Tecnología': ['Electrónica y tecnología'],
     'Escolar y oficina': ['Papelería y oficina', 'Libros y revistas'],
     'Niños y juguetes': ['Juguetes y juegos'],
+    'Servicios': ['Shows y animación de fiestas', 'Reparación de celulares y consolas', 'Reparación de electrodomésticos', 'Belleza y estética',
+      'Fotografía y video', 'Limpieza del hogar', 'Oficios y mantenimiento', 'Clases y asesorías', 'Mudanzas y fletes', 'Otros servicios'],
     'Otros': ['Mascotas', 'Automotriz', 'Alimentos y bebidas', 'Salud y bienestar']
   };
   // Las del catálogo propio de ZNR (Playeras, Calzado para Dama…) y las viejas se ubican por nombre; lo demás va a "Otros".

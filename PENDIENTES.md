@@ -201,11 +201,9 @@ Usa montos chicos ($149 de Plus o ~$10) y reembolsa si no quieres conservarlos. 
   - Idea: una configuración por ciudad/país (lada, dígitos, moneda, pasarelas) que lean sitio, CONTROL y backend.
 
 ## Limpieza
-- [ ] **F10 Nuevos tipos de publicación** (pedido 22 nov; hoy: Producto, Personalizado y Renta). Agregar **Servicios**:
-      shows infantiles, técnicos de consolas y celulares, reparaciones, belleza, fotografía, limpieza… Precio "desde" o
-      "a cotizar", zona de servicio, agendar fecha y hora (como el horario de renta), sin stock; el pedido llega como cita.
-      Propuestos además (decidir cuáles): **Comida por encargo** (pasteles, antojitos: días de entrega y hora límite para pedir),
-      **Clases y talleres** (cupo, fecha/hora, presencial o en línea), **Preventa / apartado** (llega en una fecha, con anticipo)
-      y **Usado / segunda mano** como etiqueta de condición en Producto (no como tipo aparte).
+- [x] **F10 Servicios** (23 nov): tipo de publicación nuevo (shows, técnicos, belleza…): precio fijo / desde / a cotizar,
+      a domicilio / en local / en línea, traslado, duración y zona; el cliente agenda fecha, hora y lugar; el vendedor
+      confirma o propone otra; agendado → en curso → realizado. Probar: publicar uno, agendarlo desde otra cuenta y llevarlo
+      hasta "Realizado". Pendientes para después: Comida por encargo, Clases y talleres, Preventa y etiqueta Usado/Nuevo.
 - [ ] Borrar la rama `vjose6922-blip-patch-1` de znr (historia vieja de sep 2026, sin relación con `main`).
 - [x] Cerrados los issues znr#18, znr#61, znr-backend#13, #15 y #37: su contenido ya está aquí.
