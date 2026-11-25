@@ -155,9 +155,11 @@ Usa montos chicos ($149 de Plus o ~$10) y reembolsa si no quieres conservarlos. 
 - [x] **S4 Código antes de `APP_CHECK=bloquear`** (hecho en znr-backend, rama `claude/busy-turing-3kwzsb`):
   - `catalogo-api`: `LIBRES_APP_CHECK = { body: ["cronMantenimientoCatalogo"] }` (el Scheduler usa `CRON_SECRET`, no `ADMIN_TOKEN`).
   - `appCheckOk` en los 11 servicios: parsear el body cuando llega como texto (igual que los handlers), o se rechazan jobs de Scheduler.
-- [ ] **S5 App Check en APIs** (al final, después de S3 y S4): F12 → Red, las llamadas a `…run.app` llevan `&_ac=`; poner
-      `APP_CHECK=bloquear` en admin, auth, beneficiarios, catálogo, historias, live, pedidos, registrar-token-fcm, tienda,
-      vendedores y ventas; revisar logs (`401` con "App Check" = falta excepción). Emergencia: quitar la variable.
+- [ ] **S5 App Check en APIs** (25 nov): `APP_CHECK=bloquear` activo en 10 de 11 (admin, auth, beneficiarios, catálogo,
+      historias, pedidos, registrar-token-fcm, tienda, vendedores, ventas); sin rechazos salvo bots. El Scheduler
+      `limpiar-historias` ahora manda `token` (antes `adminToken`). **Falta `live-api`**: activarlo cuando se pueda probar un live
+      con 2 teléfonos. Revisar con `s5_401 <servicio> 1440` (en `~/s6.sh`) que no haya Stripe/MP/Scheduler; `s5_estado` lista cuáles
+      bloquean. Emergencia: `gcloud run services update <servicio> --region=us-central1 --remove-env-vars=APP_CHECK`.
       **No** aplicar App Check en Storage (las `<img>` no llevan token).
 - [x] **S6 Cuentas de servicio por API** (25 nov): los 17 servicios corren con su cuenta `<servicio>-sa@…`; a `…-compute@`
       se le quitó **Editor** (ahora: cloudbuild.builds.builder, run.admin, artifactregistry.writer, Cloud Tasks, eventarc,
