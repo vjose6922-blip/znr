@@ -752,7 +752,24 @@ window.znrPrecioServicio = (p, fmt) => {
 };
 window.znrLugaresServicio = (p) => [].concat(p.lugaresServicio || p.LugaresServicio || []).map((l) => (esComida(p) ? LUGARES_COMIDA : LUGARES_SERVICIO)[l]).filter(Boolean).join(' · ');
 
+// Estadísticas por producto (mejora 8): v = vista, c = carrito/pedido, s = compartido. Una por tipo y producto al día en
+// este teléfono; no cuenta las del propio vendedor.
+window.znrEventoProducto = (id, tipo, vendedorUid) => {
+  try {
+    const yo = (JSON.parse(localStorage.getItem('vendor_session') || 'null') || {}).uid;
+    if (!id || /^znr_/.test(id) || (yo && vendedorUid && String(yo) === String(vendedorUid))) return;
+    const hoy = new Date().toLocaleDateString('en-CA'), reg = JSON.parse(localStorage.getItem('znr_ev') || '{}'), k = tipo + id;
+    const vistos = reg.d === hoy ? reg.k : {};
+    if (vistos[k]) return;
+    vistos[k] = 1;
+    localStorage.setItem('znr_ev', JSON.stringify({ d: hoy, k: vistos }));
+    fetch(window.CATALOGO_API_URL || 'https://catalogo-api-1038143238323.us-central1.run.app', { method: 'POST', keepalive: true,
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams({ action: 'registrarVistaProducto', id: String(id), tipo }) }).catch(() => {});
+  } catch (_) {}
+};
+
 function addToCart(product) {
+if (product && (product._comunidad || product.vendedor_uid)) window.znrEventoProducto(String(product.ID || product.id || ''), 'c', product.vendedor_uid || product._vendedorUid);
 if (window.esServicio(product)) { window.znrAgendar?.(product); return; }
 if (product && (product.tipoVenta === 'renta' || product.TipoVenta === 'renta')) { window.znrRentar?.(product); return; }
 if (product && (product._personalizado === true || product.tipoVenta === 'personalizado' || product.TipoVenta === 'personalizado')) {
@@ -1025,17 +1042,8 @@ function openImageModal(url, productId = null, allImages = [], productData = nul
   const modal  = document.getElementById("image-modal");
   const overlay = document.getElementById("overlay");
   if (!modal) return;
-  // Visita al producto (una por sesión, no la del propio vendedor): le muestra cuántas tenían sus artículos ocultos por el plan
-  if (productId && !(productData && (productData.es_znr || productData._modoVendedorPropio))) {
-    try {
-      const k = 'znr_vista_' + productId;
-      if (!sessionStorage.getItem(k)) {
-        sessionStorage.setItem(k, '1');
-        fetch(window.CATALOGO_API_URL || 'https://catalogo-api-1038143238323.us-central1.run.app', { method: 'POST', keepalive: true,
-          headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams({ action: 'registrarVistaProducto', id: String(productId) }) }).catch(() => {});
-      }
-    } catch (_) {}
-  }
+  // Visita al producto (estadísticas del vendedor y las visitas de artículos ocultos por el plan)
+  if (productId && !(productData && (productData.es_znr || productData._modoVendedorPropio))) window.znrEventoProducto(productId, 'v', productData && (productData._vendedorUid || productData.vendedor_uid));
   const hiResUrl = getModalImageUrl(url);
   const hiResAll = allImages.filter(u => u && u !== url).map(getModalImageUrl);
   _modalImages = [hiResUrl, ...hiResAll];
@@ -2053,6 +2061,7 @@ function shareProduct(id, nombre, precio) {
   const text = precio
     ? `${title} — $${Number(precio).toLocaleString()} MXN\n¡Míralo en Z&R!`
     : `${title}\n¡Míralo en Z&R!`;
+  window.znrEventoProducto(String(id || ''), 's');
   shareContent({ id, title, text });
 }
 

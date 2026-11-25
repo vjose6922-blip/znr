@@ -91,6 +91,7 @@ const MAPA_ACCIONES_MIGRADAS = {
   completarAnuncioIA: VENDEDORES_API_URL,
   deleteComunidad: CATALOGO_API_URL,
   misProductosComunidad: CATALOGO_API_URL,
+  misEstadisticasProductos: CATALOGO_API_URL,
   resolverNotificacionVentaComunidad: VENTAS_API_URL,
   solicitarPlanPlus: VENDEDORES_API_URL,
   getPlusSolicitudVendedor: VENDEDORES_API_URL,
@@ -902,6 +903,9 @@ function renderVendorPlanPanel() {
     <div style="background:#f8f8fc;border-radius:14px;padding:12px 14px;color:#000;">
       <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
         <div style="font-size:13px;font-weight:600;color:#000;display:flex;align-items:center;gap:6px;">${actuales}/${limite} productos usados
+          <button type="button" onclick="window.abrirRankingStats()" title="Estadísticas de tus productos" aria-label="Estadísticas de tus productos" style="display:inline-flex;padding:3px;border:none;border-radius:6px;background:transparent;color:#7c3aed;cursor:pointer;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-8M22 20H2"/></svg>
+          </button>
           <button type="button" onclick="window.entrarSeleccion()" title="Seleccionar varios" aria-label="Seleccionar varios productos" style="display:inline-flex;padding:3px;border:none;border-radius:6px;background:transparent;color:#7c3aed;cursor:pointer;">
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="4"/><path d="m8 12 3 3 5-6"/></svg>
           </button></div>
@@ -1062,6 +1066,7 @@ function createVendorProductCard(product) {
     rech.textContent = '❌ No aprobado' + (product.motivo_rechazo ? ': ' + product.motivo_rechazo : '');
     info.appendChild(rech);
   }
+  info.insertAdjacentHTML('beforeend', '<p class="vp-stats" style="margin:4px 0;font-size:.72rem;color:#7c3aed;font-weight:600"></p>');
   info.appendChild(descEl);
   info.appendChild(sizesEl);
 
@@ -1185,7 +1190,38 @@ function applyMyProducts(myProducts, container, total = null, currentPage = 1, t
 applyLayoutGlobal(savedLayout);
 
   renderPagination(container, currentPage, totalPages, realTotal);
+  window.cargarStatsProd().then(pintarStatsProd);
 }
+
+// ── Mejora 8: estadísticas por producto (7 días; Plus/Pro también 30 días y la semana anterior) ──
+window.cargarStatsProd = async (forzar) => {
+  if (!forzar && window._statsProd && Date.now() - window._statsProdEn < 300000) return window._statsProd;
+  const r = await apiFetch({ action: 'misEstadisticasProductos', vendorToken: vendorSession.token }, 'GET').catch(() => null);
+  if (r && r.ok) { window._statsProd = r; window._statsProdEn = Date.now(); }
+  return window._statsProd;
+};
+const statsTxt = (d) => `👁 ${d.v} · 🛒 ${d.c} · ↗ ${d.s} · ✅ ${d.e}`;
+function pintarStatsProd(st) {
+  (st && st.productos || []).forEach((p) => { const el = document.querySelector(`#producto-${CSS.escape(p.id)} .vp-stats`); if (el) el.textContent = statsTxt(p.d7) + ' · 7 días'; });
+}
+window.abrirRankingStats = async function() {
+  const st = await window.cargarStatsProd(true);
+  if (!st) return showTemporaryMessage(' No se pudieron cargar las estadísticas', 'error');
+  const per = st.plus ? 'd30' : 'd7', cambio = (a, b) => (b ? `${a >= b ? '▲' : '▼'} ${Math.round(Math.abs(a - b) / b * 100)}%` : a ? '▲ nuevo' : '');
+  const filas = [...st.productos].sort((a, b) => b[per].v - a[per].v || b[per].c - a[per].c).map((p, i) => `<tr><td>${i + 1}</td><td>${escapeHtml(p.nombre)}</td>
+    <td>${statsTxt(p.d7)}${st.plus ? `<br><small>30 días: ${statsTxt(p.d30)}</small><br><small>Vistas vs semana anterior: ${cambio(p.d7.v, p.previa.v) || '—'}</small>` : ''}</td></tr>`).join('');
+  const m = document.createElement('div');
+  m.className = 'custom-alert-modal';
+  m.innerHTML = `<div class="custom-alert-content" style="max-width:560px;width:94vw;max-height:86vh;overflow:auto"><div class="custom-alert-header"><h3>📊 Tus productos · ${st.plus ? 'últimos 30 días' : 'últimos 7 días'}</h3></div>
+    <div class="custom-alert-body"><p style="font-size:12px;margin:0 0 8px">👁 vistas · 🛒 agregados al carrito o pedidos · ↗ compartidos · ✅ piezas entregadas. Cuenta 1 por celular al día y no las tuyas.</p>
+    ${st.plus ? '' : '<p style="font-size:12px;margin:0 0 8px;color:#7c3aed">Con <a href="plan-plus.html">Plus o Pro</a> ves 30 días y la comparación con la semana anterior.</p>'}
+    <table style="width:100%;font-size:12px;border-collapse:collapse"><tbody>${filas || '<tr><td>Aún no tienes productos.</td></tr>'}</tbody></table></div>
+    <div class="custom-alert-footer"><button class="custom-alert-btn confirm">Cerrar</button></div></div>`;
+  document.body.appendChild(m);
+  m.querySelectorAll('td').forEach((td) => { td.style.cssText = 'padding:6px 4px;border-top:1px solid #eee;vertical-align:top'; });
+  m.querySelector('.confirm').onclick = () => m.remove();
+  m.onclick = (e) => { if (e.target === m) m.remove(); };
+};
 
 function renderPagination(container, currentPage, totalPages, total) {
   const oldPagination = document.getElementById('vendor-pagination');
@@ -1246,6 +1282,7 @@ window.loadMyProducts = async function loadMyProducts(force = false, page = 1) {
       window._vendorProducts = lista;
       container.innerHTML = lista.length ? '' : '<p style="color:#aaa;text-align:center">Sin resultados para tu búsqueda.</p>';
       lista.forEach(p => container.appendChild(createVendorProductCard(p)));
+      window.cargarStatsProd().then(pintarStatsProd);
       applyLayoutGlobal(localStorage.getItem('products_layout') || 'grid');
       document.getElementById('vendor-pagination')?.remove();
     } catch (err) {
