@@ -895,14 +895,16 @@ function renderVendorPlanPanel() {
         const borderColor = activo ? 'var(--color-accent-solid)' : '#ccc';
         return `<button class="${clase}" data-status="${status}" style="padding:4px 12px; border-radius:20px; border:1.5px solid ${borderColor}; background:${bg}; color:${color}; font-size:11px; font-weight:600; cursor:pointer; transition:all .15s;">${label}</button>`;
       }).join('')}
-      <button type="button" onclick="window.entrarSeleccion()" style="margin-left:auto;padding:4px 12px;border-radius:20px;border:1.5px solid #7c3aed;background:transparent;color:#7c3aed;font-size:11px;font-weight:700;cursor:pointer;">☑️ Seleccionar varios</button>
     </div>
   `;
 
   el.innerHTML = `
     <div style="background:#f8f8fc;border-radius:14px;padding:12px 14px;color:#000;">
       <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
-        <div style="font-size:13px;font-weight:600;color:#000;">${actuales}/${limite} productos usados</div>
+        <div style="font-size:13px;font-weight:600;color:#000;display:flex;align-items:center;gap:6px;">${actuales}/${limite} productos usados
+          <button type="button" onclick="window.entrarSeleccion()" title="Seleccionar varios" aria-label="Seleccionar varios productos" style="display:inline-flex;padding:3px;border:none;border-radius:6px;background:transparent;color:#7c3aed;cursor:pointer;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="4"/><path d="m8 12 3 3 5-6"/></svg>
+          </button></div>
         <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;justify-content:flex-end;">${donadosChip}${solidarioChip}${planBadge}</div>
       </div>
       <div style="background:#e6e6ee;border-radius:999px;height:6px;margin-top:8px;overflow:hidden;">
