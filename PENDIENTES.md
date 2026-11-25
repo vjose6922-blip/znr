@@ -211,10 +211,10 @@ Usa montos chicos ($149 de Plus o ~$10) y reembolsa si no quieres conservarlos. 
       a domicilio / en local / en línea, traslado, duración y zona; el cliente agenda fecha, hora y lugar; el vendedor
       confirma o propone otra; agendado → en curso → realizado. Probar: publicar uno, agendarlo desde otra cuenta y llevarlo
       hasta "Realizado". Pendientes para después: Comida por encargo, Clases y talleres, Preventa y etiqueta Usado/Nuevo.
-- [ ] **F11 Notificaciones push con mejor aspecto** (pedido 24 nov): hoy todos los servicios mandan `icon: …/logo.svg` y Android
-      no muestra SVG en notificaciones. Usar iconos PNG 192×192 por tipo (general 🔔, pedido 🛒, chat 💬, en vivo 🔴, promoción 🏷️)
-      a la derecha, `badge` PNG monocromo 96×96 para la barra de estado y emojis en los títulos. El título de color (como la app
-      nativa de Mercado Libre) no es posible en web push.
+- [ ] **F11 Notificaciones push con mejor aspecto** (25 nov, en rama sin fusionar): `sw.js` elige el icono PNG 192×192 de
+      `img/push/` (general 🔔, pedido 🛒, chat 💬, en vivo 🔴, promoción 🏷️) por `data.tipo` o, si no viene, por el título y la
+      página de destino; agrega el emoji al título si no trae uno y el `badge` monocromo (Z) en la barra de estado. Los chats
+      siguen con la foto de quien escribe. Sin cambios en znr-backend. Probar tras fusionar: pedido, chat y live en Android y PC.
 - [x] **F12 Banners de temporada legibles** (25 nov): opción "Recuadro" (panel translúcido con desenfoque detrás del texto) y
       sugerencia automática en CONTROL según el brillo y la variedad de tonos de la zona del texto (se aplica sola al subir una
       imagen nueva; con un banner ya guardado solo funciona si el bucket permite leer la imagen por CORS). Ideas no hechas:

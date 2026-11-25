@@ -129,7 +129,7 @@ async function solicitarPermisoNotificacionesSiFalta(ownerType, ownerId) {
 if (messaging) onMessage(messaging, (payload) => {
   const { title, body } = payload.notification || {};
   if (title && Notification.permission === "granted") {
-    new Notification(title, { body, icon: "/logo.svg" });
+    new Notification(title, { body, icon: "/img/push/general.png", badge: "/img/push/badge.png" });
   }
   window.dispatchEvent(new CustomEvent('znr:nueva-notificacion'));
 });
