@@ -928,7 +928,7 @@ function renderVendorPlanPanel() {
         <div style="background:${pct >= 100 ? '#c62828' : '#7c3aed'};height:100%;width:${pct}%;"></div>
       </div>
       ${vendorSession && vendorSession.enRevision ? `<div style="margin-top:8px;background:#e0f2fe;color:#075985;font-size:12px;border-radius:10px;padding:8px 12px;">
-        🕓 <b>Tu cuenta está en revisión.</b> Completa tu perfil (Ajustes → punto de entrega) y sube hasta ${limite} productos: nadie los ve todavía y se publican en cuanto aprobemos tu cuenta. Lives, historias, ventas y planes se activan al aprobarla.</div>` : ''}
+        🕓 <b>Tu cuenta está en revisión.</b> Completa tu perfil (Ajustes → punto de entrega) y sube hasta ${limite} productos: nadie los ve todavía. Al aprobar tu cuenta te mandamos por WhatsApp una contraseña nueva para confirmar tu número; al entrar con ella se publican. Lives, historias, ventas y planes se activan al aprobarla.</div>` : ''}
       ${renovacionHTML}${graciaHTML}${ocultosHTML}
       ${statusFilterHTML}
     </div>
