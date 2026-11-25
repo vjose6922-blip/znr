@@ -217,7 +217,10 @@ Ya existían: 3 (pedido + chat antes de WhatsApp), 10 (chat por pedido/consulta)
 - [x] **M9 Selección múltiple + Apartado** (25 nov): en Mis productos "☑️ Seleccionar varios" → precio (descuento % con el
       anterior tachado, o precio fijo), stock (0 = vendido, "Sin stock") y eliminar, máx. 50 (`actualizarProductosLote`).
       Botón "🔖 Apartar/Liberar" por producto: se ve con la etiqueta "Apartado" y no se puede comprar.
-- [ ] Siguientes recomendadas: 8 (panel de estadísticas), 22 simple (subir productos
+- [x] **M8 Estadísticas por producto** (25 nov): por día en `stats_producto/{id}` (vistas, carrito/pedidos, compartidos; 1 por
+      celular al día y no las del vendedor) + piezas entregadas de `ventas_historial`. Panel: línea "👁 · 🛒 · ↗ · ✅ · 7 días"
+      en cada producto y icono 📊 con el ranking (gratis 7 días; Plus/Pro 30 días y vistas vs semana anterior).
+- [ ] Siguientes recomendadas: 22 simple (subir productos
       mientras se aprueba la cuenta). Más adelante: 11–14 (colonia), 17–18 (puntaje/renovar), 5 (soporte), 6 (selfie).
       Descartadas por ahora: 15 (canales) y 19–21 (impulsos).
 
