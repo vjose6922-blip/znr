@@ -1049,6 +1049,12 @@ function createVendorProductCard(product) {
 
   info.appendChild(titleRow);
   info.appendChild(metaRow);
+  if (estado === 'rechazado') { // motivo que eligió el equipo; "Corregir y reenviar" lo regresa a revisión
+    const rech = document.createElement("p");
+    rech.style.cssText = "margin:6px 0;color:#dc2626;font-size:.8rem;font-weight:600;";
+    rech.textContent = '❌ No aprobado' + (product.motivo_rechazo ? ': ' + product.motivo_rechazo : '');
+    info.appendChild(rech);
+  }
   info.appendChild(descEl);
   info.appendChild(sizesEl);
 
@@ -1057,7 +1063,7 @@ function createVendorProductCard(product) {
 
   const editBtn = document.createElement("button");
   editBtn.className = "btn-secondary";
-  editBtn.innerHTML = 'Editar';
+  editBtn.textContent = estado === 'rechazado' ? 'Corregir y reenviar' : 'Editar';
   editBtn.onclick = () => editProduct(id);
 
   const deleteBtn = document.createElement("button");

@@ -207,6 +207,17 @@ Usa montos chicos ($149 de Plus o ~$10) y reembolsa si no quieres conservarlos. 
   - Pasarelas: MP solo cobra en su país y no opera en USA; actualizar términos y privacidad.
   - Idea: una configuración por ciudad/país (lada, dígitos, moneda, pasarelas) que lean sitio, CONTROL y backend.
 
+## 6. Informe de 22 mejoras (ZNR_roadmap_mejoras.md, revisado 25 nov)
+Ya existían: 3 (pedido + chat antes de WhatsApp), 10 (chat por pedido/consulta) y 7 (calificar solo tras entrega).
+- [x] **M1 Aviso anti-reembolso** (25 nov): al ver la CLABE (aviso del pedido y chat) y al confirmar una transferencia en el chat.
+- [x] **M2 "No compartas tu código"**: códigos por WhatsApp y correo, código de entrega y contraseñas temporales de CONTROL.
+- [x] **M4 Rechazo con motivo**: CONTROL elige el motivo (lista fija; "Otro" pide nota); el vendedor lo ve en Rechazados con
+      "Corregir y reenviar", que lo regresa a pendientes y avisa al equipo.
+- [x] **M16 Tope por vendedor**: en Comunidad máx. 3 por vendedor entre los 15 Plus de arriba y nunca más de 2 seguidos del mismo.
+- [ ] Siguientes recomendadas: 9 (edición masiva + Apartado/Vendido), 8 (panel de estadísticas), 22 simple (subir productos
+      mientras se aprueba la cuenta). Más adelante: 11–14 (colonia), 17–18 (puntaje/renovar), 5 (soporte), 6 (selfie).
+      Descartadas por ahora: 15 (canales) y 19–21 (impulsos).
+
 ## Limpieza
 - [x] **F10 Servicios** (23 nov): tipo de publicación nuevo (shows, técnicos, belleza…): precio fijo / desde / a cotizar,
       a domicilio / en local / en línea, traslado, duración y zona; el cliente agenda fecha, hora y lugar; el vendedor

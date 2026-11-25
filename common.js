@@ -4339,12 +4339,21 @@ window.intervalConJitter = intervalConJitter;
 
 
 // Orden del catálogo por visita (antes lo mezclaba el servidor en cada corrida):
-// primero hasta 15 productos de vendedores Plus al azar, luego el resto al azar.
+// primero hasta 15 productos de vendedores Plus al azar (máx. 3 por vendedor), luego el resto al azar.
+// Nunca más de 2 seguidos del mismo vendedor, para que uno con mucho inventario no tape a los pequeños.
 window.ordenarCatalogoComunidad = function (lista) {
   const mezclar = (a) => a.map((v) => [Math.random(), v]).sort((x, y) => x[0] - y[0]).map((x) => x[1]);
-  const plus = mezclar(lista.filter((p) => p.vendedor_plan === 'plus')).slice(0, 15);
+  const porVend = {}, plus = mezclar(lista.filter((p) => p.vendedor_plan === 'plus')).filter((p) => (porVend[p.vendedor_uid] = (porVend[p.vendedor_uid] || 0) + 1) <= 3).slice(0, 15);
   const ids = new Set(plus.map((p) => String(p.id)));
-  return plus.concat(mezclar(lista.filter((p) => !ids.has(String(p.id)))));
+  const separar = (pend, out = []) => {
+    while (pend.length) {
+      const n = out.length, repetido = n > 1 && out[n - 1].vendedor_uid === out[n - 2].vendedor_uid ? out[n - 1].vendedor_uid : null;
+      const i = repetido ? pend.findIndex((p) => p.vendedor_uid !== repetido) : 0;
+      out.push(pend.splice(Math.max(i, 0), 1)[0]);
+    }
+    return out;
+  };
+  return separar(mezclar(lista.filter((p) => !ids.has(String(p.id)))), separar(plus));
 };
 
 // Nodo del catálogo para la ciudad del comprador (misma clave que catalogo-api); sin ciudad, el global.
