@@ -159,11 +159,15 @@ Usa montos chicos ($149 de Plus o ~$10) y reembolsa si no quieres conservarlos. 
       `APP_CHECK=bloquear` en admin, auth, beneficiarios, catálogo, historias, live, pedidos, registrar-token-fcm, tienda,
       vendedores y ventas; revisar logs (`401` con "App Check" = falta excepción). Emergencia: quitar la variable.
       **No** aplicar App Check en Storage (las `<img>` no llevan token).
-- [ ] **S6 Cuentas de servicio por API**: fases A y B hechas (23 nov): los 17 servicios corren con su cuenta
-      `<servicio>-sa@znr-live.iam.gserviceaccount.com`, solo con los roles que usan (`respaldo-anual-sa` ya existía).
-      **Falta la fase C** (2–3 días después, si el monitor sigue limpio): a `…-compute@` darle `roles/cloudbuild.builds.builder`
-      y `roles/run.invoker` en espejar-productos-perfil / marcar-cambio-znr / marcar-cambio-vendedor (Eventarc), y luego quitarle
-      **Editor**. Sigue firmando las tareas de push (`PUSH_WORKER_SA`, `TASKS_SA`) y desplegando con Cloud Build.
+- [x] **S6 Cuentas de servicio por API** (25 nov): los 17 servicios corren con su cuenta `<servicio>-sa@…`; a `…-compute@`
+      se le quitó **Editor** (ahora: cloudbuild.builds.builder, run.admin, artifactregistry.writer, Cloud Tasks, eventarc,
+      logWriter y `run.invoker` en los 3 servicios de Eventarc y push-send-worker). Si algo da 403/PERMISSION_DENIED, volver a darle
+      Editor: `gcloud projects add-iam-policy-binding znr-live --member=serviceAccount:1038143238323-compute@developer.gserviceaccount.com --role=roles/editor --condition=None`.
+- [ ] **S12 Push al equipo viejo**: al iniciar sesión en otro equipo, el anterior sigue recibiendo notificaciones. Hoy el equipo
+      viejo solo borra su token FCM si está abierto y hace una llamada que falla por sesión vencida (`checkTokenInvalid`). Arreglo
+      en el servidor: al iniciar sesión, desactivar los tokens de los otros equipos de esa cuenta (o ligar cada token a su sesión).
+- [ ] **S13 `push-queue-worker`**: servicio privado que nadie llama (la cola `push-queue` va a `push-send-worker`). Confirmar en
+      sus logs que no recibe nada y borrarlo (servicio, carpeta en znr-backend y su cuenta `push-queue-worker-sa`).
 - [x] **S7 Entrada de emergencia apagada y `ADMIN_TOKEN` rotado** (19 nov): `ADMIN_PASSWORD` borrada de auth-api y
       vendedores-api; token nuevo en los 10 servicios y en los 9 trabajos de Cloud Scheduler. Revisar el monitor de errores
       1 h (sin "No autorizado") y que "Emergencia (contraseña + token)" ya no deje entrar.
