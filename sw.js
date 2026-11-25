@@ -289,19 +289,28 @@ async function staleWhileRevalidate(request) {
   return new Response('No disponible', { status: 404 });
 }
 
+// Tipo de aviso (data.tipo o, si no viene, por título y página de destino) → icono PNG y emoji del título.
+const PUSH_TIPOS = [
+  ['envivo', '🔴', /en vivo|\blive\b/i], ['chat', '💬', /mensaje|chat|conversaci|escribi/i],
+  ['pedido', '🛒', /pedido|\bcompr(a\b|ó)|\bventa|entrega|pago|devoluci|servicio|agend|seguimiento/i],
+  ['promocion', '🏷️', /oferta|descuento|promo|temporada|buen fin|%/i]];
+const tipoPush = (d, texto) => PUSH_TIPOS.find(([t, , re]) => d.tipo === t || (!d.tipo && re.test(texto))) || ['general', '🔔'];
+
 self.addEventListener('push', event => {
   const payload = event.data ? event.data.json() : {};
   // FCM entrega el título/cuerpo anidados en "notification",
   // no en el nivel superior del payload.
   const notif = payload.notification || {};
-  const title = notif.title || 'Z&R';
-  const body  = notif.body  || '¡Novedades en Z&R!';
   const url   = (payload.data && payload.data.url) || payload.fcmOptions?.link || '/';
+  const [tipo, emoji] = tipoPush({ ...((notif.image || payload.data?.image) && { tipo: 'promocion' }), ...payload.data }, (notif.title || '') + ' ' + url.split('?')[0]);
+  const title = /^[\p{L}\p{N}"'¡¿(]/u.test(notif.title || '') ? `${emoji} ${notif.title}` : notif.title || 'Z&R'; // sin emoji propio → el del tipo
+  const body  = notif.body  || '¡Novedades en Z&R!';
 
   event.waitUntil((async () => {
     await self.registration.showNotification(title, {
       body:    body,
-      icon:    /^https:\/\//.test(payload.data?.icon || '') ? payload.data.icon : '/logo.svg', // foto de quien escribe (chats)
+      icon:    /^https:\/\//.test(payload.data?.icon || '') ? payload.data.icon : `/img/push/${tipo}.png`, // foto de quien escribe (chats)
+      badge:   '/img/push/badge.png', // silueta de la barra de estado (Android)
       image:   notif.image || payload.data?.image, // foto grande (avisos de temporada); iPhone la ignora
       vibrate: [200, 100, 200],
       data:    { url: url },

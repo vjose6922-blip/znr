@@ -155,15 +155,20 @@ Usa montos chicos ($149 de Plus o ~$10) y reembolsa si no quieres conservarlos. 
 - [x] **S4 Código antes de `APP_CHECK=bloquear`** (hecho en znr-backend, rama `claude/busy-turing-3kwzsb`):
   - `catalogo-api`: `LIBRES_APP_CHECK = { body: ["cronMantenimientoCatalogo"] }` (el Scheduler usa `CRON_SECRET`, no `ADMIN_TOKEN`).
   - `appCheckOk` en los 11 servicios: parsear el body cuando llega como texto (igual que los handlers), o se rechazan jobs de Scheduler.
-- [ ] **S5 App Check en APIs** (al final, después de S3 y S4): F12 → Red, las llamadas a `…run.app` llevan `&_ac=`; poner
-      `APP_CHECK=bloquear` en admin, auth, beneficiarios, catálogo, historias, live, pedidos, registrar-token-fcm, tienda,
-      vendedores y ventas; revisar logs (`401` con "App Check" = falta excepción). Emergencia: quitar la variable.
+- [ ] **S5 App Check en APIs** (25 nov): `APP_CHECK=bloquear` activo en los 11 (admin, auth, beneficiarios, catálogo,
+      historias, live, pedidos, registrar-token-fcm, tienda, vendedores, ventas); sin rechazos salvo bots. El Scheduler
+      `limpiar-historias` ahora manda `token` (antes `adminToken`). **Falta**: probar lives L1–L5 con `live-api` bloqueando y revisar 24 h. Revisar con `s5_401 <servicio> 1440` (en `~/s6.sh`) que no haya Stripe/MP/Scheduler; `s5_estado` lista cuáles
+      bloquean. Emergencia: `gcloud run services update <servicio> --region=us-central1 --remove-env-vars=APP_CHECK`.
       **No** aplicar App Check en Storage (las `<img>` no llevan token).
-- [ ] **S6 Cuentas de servicio por API**: fases A y B hechas (23 nov): los 17 servicios corren con su cuenta
-      `<servicio>-sa@znr-live.iam.gserviceaccount.com`, solo con los roles que usan (`respaldo-anual-sa` ya existía).
-      **Falta la fase C** (2–3 días después, si el monitor sigue limpio): a `…-compute@` darle `roles/cloudbuild.builds.builder`
-      y `roles/run.invoker` en espejar-productos-perfil / marcar-cambio-znr / marcar-cambio-vendedor (Eventarc), y luego quitarle
-      **Editor**. Sigue firmando las tareas de push (`PUSH_WORKER_SA`, `TASKS_SA`) y desplegando con Cloud Build.
+- [x] **S6 Cuentas de servicio por API** (25 nov): los 17 servicios corren con su cuenta `<servicio>-sa@…`; a `…-compute@`
+      se le quitó **Editor** (ahora: cloudbuild.builds.builder, run.admin, artifactregistry.writer, Cloud Tasks, eventarc,
+      logWriter y `run.invoker` en los 3 servicios de Eventarc y push-send-worker). Si algo da 403/PERMISSION_DENIED, volver a darle
+      Editor: `gcloud projects add-iam-policy-binding znr-live --member=serviceAccount:1038143238323-compute@developer.gserviceaccount.com --role=roles/editor --condition=None`.
+- [ ] **S12 Push al equipo viejo**: al iniciar sesión en otro equipo, el anterior sigue recibiendo notificaciones. Hoy el equipo
+      viejo solo borra su token FCM si está abierto y hace una llamada que falla por sesión vencida (`checkTokenInvalid`). Arreglo
+      en el servidor: al iniciar sesión, desactivar los tokens de los otros equipos de esa cuenta (o ligar cada token a su sesión).
+- [ ] **S13 `push-queue-worker`**: servicio privado que nadie llama (la cola `push-queue` va a `push-send-worker`). Confirmar en
+      sus logs que no recibe nada y borrarlo (servicio, carpeta en znr-backend y su cuenta `push-queue-worker-sa`).
 - [x] **S7 Entrada de emergencia apagada y `ADMIN_TOKEN` rotado** (19 nov): `ADMIN_PASSWORD` borrada de auth-api y
       vendedores-api; token nuevo en los 10 servicios y en los 9 trabajos de Cloud Scheduler. Revisar el monitor de errores
       1 h (sin "No autorizado") y que "Emergencia (contraseña + token)" ya no deje entrar.
@@ -205,10 +210,10 @@ Usa montos chicos ($149 de Plus o ~$10) y reembolsa si no quieres conservarlos. 
       a domicilio / en local / en línea, traslado, duración y zona; el cliente agenda fecha, hora y lugar; el vendedor
       confirma o propone otra; agendado → en curso → realizado. Probar: publicar uno, agendarlo desde otra cuenta y llevarlo
       hasta "Realizado". Pendientes para después: Comida por encargo, Clases y talleres, Preventa y etiqueta Usado/Nuevo.
-- [ ] **F11 Notificaciones push con mejor aspecto** (pedido 24 nov): hoy todos los servicios mandan `icon: …/logo.svg` y Android
-      no muestra SVG en notificaciones. Usar iconos PNG 192×192 por tipo (general 🔔, pedido 🛒, chat 💬, en vivo 🔴, promoción 🏷️)
-      a la derecha, `badge` PNG monocromo 96×96 para la barra de estado y emojis en los títulos. El título de color (como la app
-      nativa de Mercado Libre) no es posible en web push.
+- [ ] **F11 Notificaciones push con mejor aspecto** (25 nov, en rama sin fusionar): `sw.js` elige el icono PNG 192×192 de
+      `img/push/` (general 🔔, pedido 🛒, chat 💬, en vivo 🔴, promoción 🏷️) por `data.tipo` o, si no viene, por el título y la
+      página de destino; agrega el emoji al título si no trae uno y el `badge` monocromo (Z) en la barra de estado. Los chats
+      siguen con la foto de quien escribe. Sin cambios en znr-backend. Probar tras fusionar: pedido, chat y live en Android y PC.
 - [x] **F12 Banners de temporada legibles** (25 nov): opción "Recuadro" (panel translúcido con desenfoque detrás del texto) y
       sugerencia automática en CONTROL según el brillo y la variedad de tonos de la zona del texto (se aplica sola al subir una
       imagen nueva; con un banner ya guardado solo funciona si el bucket permite leer la imagen por CORS). Ideas no hechas:
