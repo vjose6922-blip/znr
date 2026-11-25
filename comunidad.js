@@ -461,12 +461,20 @@ async function intentarCatalogoDesdeSnapshot(ciudad) {
   // Primero el feed de la ciudad del comprador; si no existe, el global (se filtra por ciudad después).
   for (const url of [window.urlSnapshotCatalogo ? window.urlSnapshotCatalogo(ciudad) : CATALOGO_SNAPSHOT_URL, CATALOGO_SNAPSHOT_URL]) {
     try {
+      // Ahorro de descarga (F5): el catálogo se guarda en el teléfono y solo se baja otra vez si cambió su `generadoEn`
+      // (leer ese campo cuesta unos bytes; el catálogo completo, cientos de KB por visita).
+      const clave = 'znr_snap_' + url, guardado = (() => { try { return JSON.parse(localStorage.getItem(clave) || 'null'); } catch (_) { return null; } })();
       const controller = new AbortController();
       const tid = setTimeout(() => controller.abort(), 4000);
-      const res = await fetch(url, { signal: controller.signal });
+      const gen = guardado && await fetch(url.replace(/\.json$/, '/generadoEn.json'), { signal: controller.signal }).then((r) => r.ok ? r.json() : null).catch(() => null);
+      const res = gen && gen === guardado.generadoEn ? null : await fetch(url, { signal: controller.signal });
       clearTimeout(tid);
-      if (!res.ok) continue;
-      const data = await res.json();
+      if (res && !res.ok) continue;
+      const data = res ? await res.json() : guardado;
+      if (res && data && data.generadoEn) try { // solo se guarda el último (cambiar de ciudad no llena el espacio)
+        Object.keys(localStorage).filter((k) => k.startsWith('znr_snap_') && k !== clave).forEach((k) => localStorage.removeItem(k));
+        localStorage.setItem(clave, JSON.stringify(data));
+      } catch (_) { /* sin espacio: se baja cada vez, como antes */ }
       if (!data || !data.ok || !Array.isArray(data.products) || !data.products.length) continue;
       if (!data.generadoEn || (Date.now() - data.generadoEn) > CATALOGO_SNAPSHOT_MAX_AGE_MS) {
         console.warn('Snapshot de catálogo desactualizado o sin generadoEn, usando Algolia');

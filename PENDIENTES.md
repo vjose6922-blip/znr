@@ -177,9 +177,10 @@ Usa montos chicos ($149 de Plus o ~$10) y reembolsa si no quieres conservarlos. 
 - [x] **S11 Huella / Face ID del staff validada por el servidor** (znr-backend + CONTROL): opcional por cuenta en
       CONTROL → Mi cuenta → "Huella para entrar"; activada, `loginAdmin` pide contraseña + firma. Perderla: "¿Olvidaste tu
       contraseña?" (código al correo) la quita. Probar: activar en el celular → cerrar sesión → entrar pide la huella.
-- [ ] **S8 (opcional) RTDB**: agregar `&& root.child('vendedorOficial').child($liveId).exists()` al `.write` de `chats`, `presencia` y
-      `contactos`. Probar antes con un live programado (el comprador que entra antes que el vendedor sería rechazado).
-- [ ] **S9 (futuro) Storage**: servir fotos de `pedidos_personalizados/` con URL firmada desde `pedidos-api` en vez de `allow get: if true`.
+- [x] **S8 RTDB lives** (25 nov, revisado): ya cubierto con algo más estricto. En `chats` y `presencia` solo se escribe si
+      `live_estado/$liveId/estado` es `en_vivo` (y borrar/editar mensajes solo el `vendedorOficial`); `contactos` ya no existe.
+- [x] **S9 Storage** (25 nov): descartado. Las fotos de pedidos tienen ruta con parte aleatoria, Storage no deja listar y la URL
+      solo está en el chat (Firestore, solo participantes); la URL firmada obligaba a rehacer cómo el chat muestra imágenes.
 
 ## 5. Después del lanzamiento (mejoras e ideas)
 - [x] **F1 Tráfico real en mapas** (znr-backend#40, fusionado; probar con M1 y revisar consumo de Mapbox): rama `claude/admiring-cannon-rz50he` (commit `d341ff4`:
@@ -192,8 +193,10 @@ Usa montos chicos ($149 de Plus o ~$10) y reembolsa si no quieres conservarlos. 
       Regla de RTDB con `".indexOn": ["estado"]` en `chats_soporte` publicada.
 - [x] **F3 Scroll infinito** en Catálogo, Comunidad y Perfil de vendedor (`scroll-infinito.js`): tandas de 30, "Ver más" cada 150, restaura posición al regresar.
 - [x] **F4 Mapas**: "Reordenar" ahora es vecino más cercano en el teléfono, sin límite de paradas. Nominatim: cambiar solo si falla seguido.
-- [ ] **F5 Ahorro de cuota**: `Cache-Control: public, max-age=60` en respuestas públicas; caché de búsquedas de Algolia;
-      paginar `obtenerBeneficiarios` y `obtenerDonaciones`.
+- [x] **F5 Ahorro de cuota** (25 nov): Comunidad guarda en el teléfono el catálogo de la ciudad (RTDB `catalogo/snapshot_ciudad`)
+      y en cada visita solo lee su `generadoEn`; lo baja completo solo si cambió. Revisado y no hizo falta: las lecturas
+      públicas ya tienen caché (historias `max-age=30`, beneficiarios y lives en memoria), Algolia-lite ya cachea búsquedas
+      iguales en la sesión, y `obtenerBeneficiarios`/`obtenerDonaciones` son solo de CONTROL (paginar si crecen mucho).
 - [ ] **F6 Pago de pedidos dentro de la página** (Stripe Embedded Checkout / Mercado Pago Bricks), como ya hace Plan Plus.
 - [ ] **F7 Costos**: revisar cada mes los minutos de Cloudflare Stream contra lo que entra por suscripciones.
 - [ ] **F8 Rendimiento**: PageSpeed (celular) cada mes o tras cambios grandes (base 69–75; preocuparse si baja de 50); revisar
