@@ -27,13 +27,15 @@
   const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const esMulticolor = (p) => !!p && (p.multicolor === true || p.multicolor === 'true' || p.multicolor === 'TRUE');
 
-  // Chips para la tarjeta: temporada/festividad y "Multicolor".
+  // Chips para la tarjeta: temporada/festividad, Nuevo/Usado y "Multicolor".
   function chipsHTML(p) {
     if (!p) return '';
     const chips = [];
     if (p.temporada) {
       chips.push('<span class="znr-chip znr-chip-temporada" style="display:inline-flex;align-items:center;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700;background:rgba(168,85,247,.14);color:#a855f7;">' + esc(p.temporada) + '</span>');
     }
+    const cond = { nuevo: ['Nuevo', '34,197,94'], usado: ['Usado', '245,158,11'] }[p.condicion];
+    if (cond) chips.push(`<span class="znr-chip znr-chip-condicion" style="display:inline-flex;align-items:center;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700;background:rgba(${cond[1]},.14);color:rgb(${cond[1]});">${cond[0]}</span>`);
     if (esMulticolor(p)) {
       chips.push('<span class="znr-chip znr-chip-multicolor" style="display:inline-flex;align-items:center;gap:5px;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700;background:var(--color-surface-2,#f3f4f6);color:var(--color-text-main,#374151);border:1px solid var(--color-border-subtle,#e5e7eb);">'
         + '<span style="width:9px;height:9px;border-radius:50%;background:conic-gradient(#ef4444,#f59e0b,#22c55e,#3b82f6,#a855f7,#ef4444);flex:none;"></span>Multicolor</span>');
@@ -129,6 +131,7 @@
     'Niños y juguetes': ['Juguetes y juegos'],
     'Servicios': ['Shows y animación de fiestas', 'Reparación de celulares y consolas', 'Reparación de electrodomésticos', 'Belleza y estética',
       'Fotografía y video', 'Limpieza del hogar', 'Oficios y mantenimiento', 'Clases y asesorías', 'Mudanzas y fletes', 'Otros servicios'],
+    'Comida por encargo': ['Comida casera', 'Tamales', 'Pasteles y postres', 'Pan y repostería', 'Antojitos y botanas', 'Otra comida por encargo'],
     'Otros': ['Mascotas', 'Automotriz', 'Alimentos y bebidas', 'Salud y bienestar']
   };
   // Las del catálogo propio de ZNR (Playeras, Calzado para Dama…) y las viejas se ubican por nombre; lo demás va a "Otros".

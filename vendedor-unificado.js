@@ -1029,6 +1029,8 @@ function createVendorProductCard(product) {
     stockEl.textContent = ` Renta · ${stockNum} unidad${stockNum === 1 ? '' : 'es'}`;
   } else if (product.tipoVenta === 'servicio') {
     stockEl.textContent = ' Servicio' + (product.duracionServicio ? ' · ' + product.duracionServicio : '');
+  } else if (product.tipoVenta === 'comida') {
+    stockEl.textContent = ' Comida por encargo' + (product.minimoComida > 1 ? ' · mínimo ' + product.minimoComida : '');
   } else if (isOutOfStock) {
     stockEl.classList.add("out-of-stock");
     stockEl.textContent = " Sin stock";
@@ -1355,12 +1357,19 @@ window.aplicarTemporada = function() {
 
 window.aplicarTipoVenta = function() {
   const tipo = document.getElementById('pTipoVenta')?.value || 'stock';
-  const pers = tipo === 'personalizado', renta = tipo === 'renta', serv = tipo === 'servicio';
-  const precioServ = document.getElementById('pPrecioServicio')?.value || 'fijo';
+  const pers = tipo === 'personalizado', renta = tipo === 'renta', com = tipo === 'comida', serv = tipo === 'servicio' || com;
+  const precioServ = com ? 'fijo' : document.getElementById('pPrecioServicio')?.value || 'fijo';
   const show = (id, on) => { const el = document.getElementById(id); if (el) el.style.display = on ? '' : 'none'; };
   show('pers-fields', pers);
   show('renta-fields', renta);
   show('serv-fields', serv);
+  // Comida por encargo usa los campos de servicio con otras palabras, sin "a cotizar", "en línea" ni duración
+  ['serv-precio-group', 'lbl-serv-linea', 'serv-duracion-group'].forEach((id) => show(id, !com));
+  show('comida-fields', com);
+  show('cond-group', tipo === 'stock' || renta);
+  [['lbl-lugar-serv', com ? '¿Cómo entregas? *' : '¿Dónde das el servicio? *'], ['lbl-serv-dom', com ? 'Entrega a domicilio' : 'A domicilio'],
+   ['lbl-serv-local', com ? 'El cliente pasa a recoger' : 'En mi local'], ['lbl-traslado', com ? 'Envío a domicilio (MXN)' : 'Traslado a domicilio (MXN)']]
+    .forEach(([id, t]) => { const el = document.getElementById(id); if (el) el.textContent = t; });
   show('tipo-venta-hint', pers || renta || serv);
   show('stock-group', !pers && !serv);
   const grupoPrecio = document.getElementById('pPrecio')?.closest('.field-group');
@@ -1368,10 +1377,11 @@ window.aplicarTipoVenta = function() {
   const hint = document.getElementById('tipo-venta-hint');
   if (hint) hint.textContent = renta
     ? 'El cliente elige fechas, horas y cantidad; tú confirmas y él acepta el contrato con tus reglas. ZNR no deja rentar más unidades de las que tienes en las mismas fechas.'
+    : com ? 'El cliente elige cantidad, fecha, hora y si pasa a recoger o se la llevas; tú confirmas en el chat y le das seguimiento: confirmado → en preparación → entregado.'
     : serv ? 'El cliente elige fecha, hora y dónde; tú confirmas (o propones otra) y el precio en el chat, y le das seguimiento: agendado → en curso → realizado.'
     : 'El cliente te escribe en el chat, tú le envías una cotización y lo elaboras a su medida. Este artículo sirve de referencia.';
   const lbl = document.getElementById('lbl-precio');
-  if (lbl) lbl.textContent = pers || (serv && precioServ === 'desde') ? 'Precio desde (MXN) *' : renta ? 'Precio por día, por unidad (MXN) *' : 'Precio (MXN) *';
+  if (lbl) lbl.textContent = com ? 'Precio por pieza o porción (MXN) *' : pers || (serv && precioServ === 'desde') ? 'Precio desde (MXN) *' : renta ? 'Precio por día, por unidad (MXN) *' : 'Precio (MXN) *';
   const lblStock = document.querySelector('#stock-group label');
   if (lblStock) lblStock.textContent = renta ? 'Unidades para rentar *' : 'Stock *';
 };
@@ -1425,15 +1435,16 @@ window.editProduct = async function(id) {
   document.getElementById('pNombre').value = p.nombre || '';
   document.getElementById('pPrecio').value = p.precio || '';
   document.getElementById('pPrecioOriginal').value = p.precio_original || '';
-  document.getElementById('pStock').value = ['personalizado', 'servicio'].includes(p.tipoVenta) ? '' : (p.stock || '');
+  document.getElementById('pStock').value = ['personalizado', 'servicio', 'comida'].includes(p.tipoVenta) ? '' : (p.stock || '');
   document.querySelectorAll('input[name="pLugarServicio"]').forEach((c) => { c.checked = (p.lugaresServicio || []).includes(c.value); });
   [['pEntregaRenta', p.entregaRenta || 'ambos'], ['pDepositoRenta', p.depositoRenta || ''], ['pFleteRenta', p.fleteRenta || ''], ['pReglasRenta', p.reglasRenta || ''],
-   ['pPrecioServicio', p.precioServicio || 'fijo'], ['pTrasladoServicio', p.trasladoServicio || ''], ['pDuracionServicio', p.duracionServicio || ''], ['pZonaServicio', p.zonaServicio || '']]
+   ['pPrecioServicio', p.precioServicio || 'fijo'], ['pTrasladoServicio', p.trasladoServicio || ''], ['pDuracionServicio', p.duracionServicio || ''], ['pZonaServicio', p.zonaServicio || ''],
+   ['pMinimoComida', p.minimoComida || ''], ['pAnticipacion', p.anticipacionDias || 0], ['pCondicion', p.condicion || '']]
     .forEach(([id, v]) => { const el = document.getElementById(id); if (el) el.value = v; });
   {
     // El tipo de venta no se cambia al editar (hay pedidos abiertos que dependen de él).
     const selTipo = document.getElementById('pTipoVenta');
-    if (selTipo) { selTipo.value = ['personalizado', 'renta', 'servicio'].includes(p.tipoVenta) ? p.tipoVenta : 'stock'; selTipo.disabled = true; }
+    if (selTipo) { selTipo.value = ['personalizado', 'renta', 'servicio', 'comida'].includes(p.tipoVenta) ? p.tipoVenta : 'stock'; selTipo.disabled = true; }
     const dias = document.getElementById('pTiempoDias');
     if (dias) dias.value = p.tiempoElaboracionDias || '';
     const ops = document.getElementById('pOpciones');
@@ -1528,7 +1539,7 @@ switchTab('products');
 window.cancelEdit = cancelEdit;
 
 function resetForm() {
-['pNombre','pPrecio','pPrecioOriginal','pStock','pTalla','pDescripcion','pTiempoDias','pOpciones','pDepositoRenta','pFleteRenta','pReglasRenta','pTrasladoServicio','pDuracionServicio','pZonaServicio'].forEach(id => {
+['pNombre','pPrecio','pPrecioOriginal','pStock','pTalla','pDescripcion','pTiempoDias','pOpciones','pDepositoRenta','pFleteRenta','pReglasRenta','pTrasladoServicio','pDuracionServicio','pZonaServicio','pMinimoComida','pCondicion'].forEach(id => {
 const el = document.getElementById(id);
 if (el) el.value = '';
 });
@@ -1537,6 +1548,8 @@ if (el) el.value = '';
   if (selTipo) { selTipo.value = 'stock'; selTipo.disabled = false; }
   const precioServ = document.getElementById('pPrecioServicio');
   if (precioServ) precioServ.value = 'fijo';
+  const antic = document.getElementById('pAnticipacion');
+  if (antic) antic.value = '0';
   document.querySelectorAll('input[name="pLugarServicio"]').forEach((c) => { c.checked = false; });
   if (window.aplicarTipoVenta) window.aplicarTipoVenta();
 }
@@ -1781,9 +1794,11 @@ if (!tiempoDias || tiempoDias < 1 || tiempoDias > 120) { showTemporaryMessage(' 
 if (opcionesPers.length < 3) { showTemporaryMessage(' Indica qué se puede personalizar', 'error'); return; }
 }
 if (esRenta && !(stock >= 1)) { showTemporaryMessage(' Indica cuántas unidades tienes para rentar', 'error'); return; }
-const esServicio = tipoVenta === 'servicio', precioServicio = document.getElementById('pPrecioServicio')?.value || 'fijo';
+const esComida = tipoVenta === 'comida', esServicio = tipoVenta === 'servicio' || esComida, precioServicio = esComida ? 'fijo' : document.getElementById('pPrecioServicio')?.value || 'fijo';
+const condicion = document.getElementById('pCondicion')?.value || '';
+if ((tipoVenta === 'stock' || esRenta) && !condicion && !editId) { showTemporaryMessage(' Indica si el artículo es nuevo o usado', 'error'); return; }
 const lugaresServicio = [...document.querySelectorAll('input[name="pLugarServicio"]:checked')].map((c) => c.value);
-if (esServicio && !lugaresServicio.length) { showTemporaryMessage(' Marca dónde das el servicio', 'error'); return; }
+if (esServicio && !lugaresServicio.length) { showTemporaryMessage(esComida ? ' Marca si el cliente pasa a recoger o si la llevas a domicilio' : ' Marca dónde das el servicio', 'error'); return; }
 if (esServicio && precioServicio !== 'cotizar' && !(precio > 0)) { showTemporaryMessage(' Indica el precio del servicio (o elige "a cotizar")', 'error'); return; }
 showLoader('Subiendo imágenes...');
 const btn = document.getElementById('submit-product-btn');
@@ -1807,6 +1822,8 @@ Stock: esPersonalizado || esServicio ? 0 : Number(document.getElementById('pStoc
 TipoVenta: tipoVenta,
 ...(esServicio && { PrecioServicio: precioServicio, LugaresServicio: lugaresServicio.join(','), TrasladoServicio: document.getElementById('pTrasladoServicio')?.value || 0,
   DuracionServicio: document.getElementById('pDuracionServicio')?.value.trim() || '', ZonaServicio: document.getElementById('pZonaServicio')?.value.trim() || '' }),
+...(esComida && { MinimoComida: document.getElementById('pMinimoComida')?.value || 1, AnticipacionDias: document.getElementById('pAnticipacion')?.value || 0 }),
+...((tipoVenta === 'stock' || esRenta) && { Condicion: condicion }),
 ...(esRenta && { EntregaRenta: document.getElementById('pEntregaRenta')?.value || 'ambos', DepositoRenta: document.getElementById('pDepositoRenta')?.value || 0,
   FleteRenta: document.getElementById('pFleteRenta')?.value || 0, ReglasRenta: document.getElementById('pReglasRenta')?.value.trim() || '' }),
 TiempoElaboracionDias: esPersonalizado ? tiempoDias : 0,
@@ -3193,7 +3210,7 @@ window.verMisEstadisticas = async function(forceRefresh) {
         total: all.length,
         aprobados: all.filter(p => p.estado === 'aprobado').length,
         pendientes: all.filter(p => p.estado === 'pendiente').length,
-        valorInventario: all.filter(p => p.estado === 'aprobado' && !['personalizado', 'renta', 'servicio'].includes(p.tipoVenta))
+        valorInventario: all.filter(p => p.estado === 'aprobado' && !['personalizado', 'renta', 'servicio', 'comida'].includes(p.tipoVenta))
           .reduce((s, p) => s + (Number(p.precio) || 0) * (Number(p.stock) || 0), 0)
       };
     } catch (err) {

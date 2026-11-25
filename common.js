@@ -737,13 +737,20 @@ bottomBadge.style.display = totalQty > 0 ? '' : 'none';
 }
 }
 // Servicios (shows, técnicos, belleza…): precio fijo, "desde" o a cotizar, y dónde se da. Lo usan tarjetas y detalle.
-const LUGARES_SERVICIO = { domicilio: 'A domicilio', local: 'En su local', linea: 'En línea' };
-window.esServicio = (p) => !!p && (p.tipoVenta || p.TipoVenta) === 'servicio';
+// Comida por encargo usa el mismo flujo (Agendar → "Pedir"): precio por pieza, "para recoger" o a domicilio.
+const LUGARES_SERVICIO = { domicilio: 'A domicilio', local: 'En su local', linea: 'En línea' }, LUGARES_COMIDA = { domicilio: 'A domicilio', local: 'Para recoger' };
+const esComida = (p) => !!p && (p.tipoVenta || p.TipoVenta) === 'comida';
+window.esServicio = (p) => !!p && ['servicio', 'comida'].includes(p.tipoVenta || p.TipoVenta);
+window.znrTipoServicio = (p) => (esComida(p) ? 'Comida por encargo' : 'Servicio');
+// Campos de servicio/comida y Nuevo/Usado que la ventana del producto necesita (las tarjetas arman sus propios datos)
+window.znrCamposVenta = (p) => Object.fromEntries(['condicion', 'precioServicio', 'lugaresServicio', 'duracionServicio', 'zonaServicio', 'trasladoServicio', 'minimoComida', 'anticipacionDias']
+  .filter((k) => p && p[k] != null && p[k] !== '').map((k) => [k, p[k]]));
 window.znrPrecioServicio = (p, fmt) => {
   const t = p.precioServicio || p.PrecioServicio || 'fijo', f = fmt || ((v) => '$' + Number(v || 0).toLocaleString('es-MX'));
+  if (esComida(p)) return f(p.precio ?? p.Precio) + '<span style="font-size:10px;font-weight:600;opacity:.7;"> c/u</span>';
   return t === 'cotizar' ? '<span style="font-size:.8em">A cotizar</span>' : (t === 'desde' ? '<span style="font-size:10px;font-weight:600;opacity:.7;">Desde </span>' : '') + f(p.precio ?? p.Precio);
 };
-window.znrLugaresServicio = (p) => [].concat(p.lugaresServicio || p.LugaresServicio || []).map((l) => LUGARES_SERVICIO[l]).filter(Boolean).join(' · ');
+window.znrLugaresServicio = (p) => [].concat(p.lugaresServicio || p.LugaresServicio || []).map((l) => (esComida(p) ? LUGARES_COMIDA : LUGARES_SERVICIO)[l]).filter(Boolean).join(' · ');
 
 function addToCart(product) {
 if (window.esServicio(product)) { window.znrAgendar?.(product); return; }
@@ -998,15 +1005,15 @@ let _modalProduct  = null;
 // con el catálogo de Comunidad que ya está en memoria: un artículo "bajo pedido" nunca debe verse como compra normal.
 function _completarVentaPersonalizada(productData, productId) {
   try {
-    const p = productData;
-    if (!p || p._comunidad !== true || p.TipoVenta || p.tipoVenta) return p;
-    const id = String(productId || p.ID || p.id || '');
-    if (!id) return p;
+    if (!productData || productData._comunidad !== true) return productData;
+    const id = String(productId || productData.ID || productData.id || '');
+    if (!id) return productData;
     const pool = [].concat(window.communityRandomOrder || [], window.allCommunityProductsIndexed || []);
     const fila = pool.find(x => x && String(x.id || x.ID) === id);
+    const p = fila ? { ...window.znrCamposVenta(fila), ...productData } : productData; // lo que la tarjeta no mandó (lugares, Nuevo/Usado…)
+    if (p.TipoVenta || p.tipoVenta) return p;
     if (fila && fila.tipoVenta === 'renta') return { ...p, TipoVenta: 'renta', Stock: Number(fila.stock) || 0 };
-    if (fila && fila.tipoVenta === 'servicio') return { ...p, TipoVenta: 'servicio', Stock: -1, PrecioServicio: fila.precioServicio || 'fijo',
-      LugaresServicio: fila.lugaresServicio || [], DuracionServicio: fila.duracionServicio || '', ZonaServicio: fila.zonaServicio || '', TrasladoServicio: Number(fila.trasladoServicio) || 0 };
+    if (fila && window.esServicio(fila)) return { ...p, TipoVenta: fila.tipoVenta, Stock: -1 };
     if (!fila || fila.tipoVenta !== 'personalizado') return p;
     return { ...p, TipoVenta: 'personalizado', TiempoElaboracionDias: Number(fila.tiempoElaboracionDias) || 0,
       OpcionesPersonalizacion: fila.opcionesPersonalizacion || '', Stock: -1 };
@@ -1094,7 +1101,8 @@ const califica_entrega = montoMinEnvio > 0 && Number(precio) >= montoMinEnvio;
 const fmt = v => typeof formatCurrency === 'function' ? formatCurrency(v) : `$${Number(v).toLocaleString()}`;
 const fmtPrecio = fmt(precio);
 const duracionServ = p.DuracionServicio || p.duracionServicio || '', zonaServ = p.ZonaServicio || p.zonaServicio || '';
-const stockHtml = esServ ? `<span class="im-info-stock ok">Servicio · ${escapeHtml(window.znrLugaresServicio(p))}${duracionServ ? ' · ' + escapeHtml(duracionServ) : ''}</span>${zonaServ ? `<span class="im-info-cat">Zona: ${escapeHtml(zonaServ)}</span>` : ''}` : esRenta ? `<span class="im-info-stock ok">Renta por día · ${stock} unidad${stock === 1 ? '' : 'es'}</span>` : esPersonal ? `<span class="im-info-stock ok">Bajo pedido${diasElab ? ' · ' + diasElab + (diasElab === 1 ? ' día' : ' días') + ' de elaboración' : ''}</span>` : stock < 0 ? '' :
+const minComida = esComida(p) && Number(p.minimoComida || 0) > 1 ? ` · mínimo ${Number(p.minimoComida)} piezas` : '';
+const stockHtml = esServ ? `<span class="im-info-stock ok">${window.znrTipoServicio(p)} · ${escapeHtml(window.znrLugaresServicio(p))}${minComida}${duracionServ ? ' · ' + escapeHtml(duracionServ) : ''}</span>${zonaServ ? `<span class="im-info-cat">Zona: ${escapeHtml(zonaServ)}</span>` : ''}` : esRenta ? `<span class="im-info-stock ok">Renta por día · ${stock} unidad${stock === 1 ? '' : 'es'}</span>` : esPersonal ? `<span class="im-info-stock ok">Bajo pedido${diasElab ? ' · ' + diasElab + (diasElab === 1 ? ' día' : ' días') + ' de elaboración' : ''}</span>` : stock < 0 ? '' :
 stock === 0
 ? `<span class="im-info-stock out">Sin stock</span>`
 : `<span class="im-info-stock ok"> ${stock} disponibles</span>`;
@@ -1109,7 +1117,7 @@ const sinStock = stock === 0;
 const buyBtnHtml = p._modoVendedorPropio
 ? `<button class="im-buy-btn" id="im-buy-btn">${Icon('edit', { size: 16 })} Editar</button>`
 : esServ
-? `<button class="im-buy-btn" id="im-buy-btn">${Icon('calendar', { size: 16 })} Agendar</button>`
+? `<button class="im-buy-btn" id="im-buy-btn">${Icon('calendar', { size: 16 })} ${esComida(p) ? 'Pedir' : 'Agendar'}</button>`
 : esRenta
 ? `<button class="im-buy-btn" id="im-buy-btn">${Icon('calendar', { size: 16 })} Rentar</button>`
 : esPersonal
@@ -1287,7 +1295,7 @@ function _renderMagazinePanel(modal) {
     _beneficiarioId: p.beneficiario_id || p._beneficiarioId || '',
     _precioOriginal: p.precio_original || p.PrecioOriginal || 0,
     _montoMinimoEnvio: p.vendedor_monto_minimo_envio || p._montoMinimoEnvio || 0,
-    _tipoVenta: ['personalizado', 'renta', 'servicio'].includes(p.tipoVenta || p.TipoVenta) ? (p.tipoVenta || p.TipoVenta) : 'stock',
+    _tipoVenta: ['personalizado', 'renta', 'servicio', 'comida'].includes(p.tipoVenta || p.TipoVenta) ? (p.tipoVenta || p.TipoVenta) : 'stock',
     _precioServicio: p.precioServicio || p.PrecioServicio || '',
     _tiempoElaboracionDias: Number(p.tiempoElaboracionDias || p.TiempoElaboracionDias || 0),
     _opcionesPersonalizacion: p.opcionesPersonalizacion || p.OpcionesPersonalizacion || '',
@@ -2662,7 +2670,7 @@ window.znrRentar = znrRentar;
 async function znrAgendar(p) {
 const productoId = String((p && (p.ID || p.id)) || '');
 if (!productoId || !window.PEDIDOS_API_URL) return;
-const telefono = await asegurarComprador('Para agendar este servicio');
+const telefono = await asegurarComprador(esComida(p) ? 'Para pedir esta comida' : 'Para agendar este servicio');
 if (!telefono) return;
 window.solicitarPermisoNotificacionesSiFalta?.('cliente', telefono);
 const esc = window.escapeHtml || (x => String(x).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])));
@@ -2675,6 +2683,7 @@ ov.className = 'zp-ov';
 ov.innerHTML = `<div class="zp-box za-full" role="dialog" aria-modal="true" aria-label="Agendar servicio"><h3>Agendar servicio</h3>
 <div class="zp-prod">${p.Imagen1 || p.imagen1 ? `<img src="${esc(p.Imagen1 || p.imagen1)}" alt="" loading="lazy">` : ''}<div><b>${esc(p.Nombre || p.nombre || '')}</b><span id="za-precio">Cargando…</span></div></div>
 <div id="za-form" hidden>
+<div id="za-cant-box" hidden><label for="za-cant">Cantidad (piezas)</label><input id="za-cant" type="number" min="1" max="10000" value="1" inputmode="numeric"></div>
 <div class="zr-dos"><div><label for="za-fecha">Fecha</label><input id="za-fecha" type="date" min="${hoy}"></div><div><label for="za-hora">Hora</label><input id="za-hora" type="time" value="10:00"></div></div>
 <div id="za-lugar-box"><label>¿Dónde?</label><div class="zr-modos" id="za-lugares"></div></div>
 <div id="za-dir-box" hidden><label for="za-dir">Dirección</label><button type="button" id="za-gps" class="zr-gps">📍 Usar mi ubicación</button><textarea id="za-dir" maxlength="250" style="min-height:60px" placeholder="Calle, número, colonia"></textarea></div>
@@ -2700,8 +2709,18 @@ ov.addEventListener('click', e => { if (e.target === ov) cerrar(); });
 try { $('#za-nombre').value = localStorage.getItem('client_name') || ''; $('#za-dir').value = localStorage.getItem('client_address') || ''; } catch (_) {}
 const info = await api({ action: 'infoServicio', productoId }).catch(() => ({ ok: false, error: 'Sin conexión. Intenta de nuevo.' }));
 if (!info.ok) { $('#za-precio').textContent = ''; err.textContent = info.error || 'No se pudo cargar el servicio.'; return; }
-const NOMBRES = { domicilio: 'A domicilio' + (info.traslado ? ` (+${fmt(info.traslado)} de traslado)` : ''), local: 'En su local' + (info.puntoEntrega ? `: ${info.puntoEntrega}` : ''), linea: 'En línea' };
-$('#za-precio').textContent = (info.precioServicio === 'cotizar' ? 'A cotizar' : (info.precioServicio === 'desde' ? 'Desde ' : '') + fmt(info.precio)) + (info.duracion ? ' · ' + info.duracion : '');
+// Comida por encargo: cantidad (≥ mínimo), fecha desde la anticipación que pide el vendedor y "paso a recoger" o a domicilio
+const com = info.tipo === 'comida', cant = () => Math.round(Number($('#za-cant').value)) || 0;
+if (com) {
+  $('h3').textContent = 'Pedir comida por encargo'; ok.textContent = 'Enviar pedido'; $('#za-cant-box').hidden = false;
+  $('#za-cant').min = $('#za-cant').value = info.minimo;
+  $('#za-fecha').min = new Date(Date.parse(hoy) + info.anticipacion * 864e5).toISOString().slice(0, 10);
+  $('#za-lugar-box label').textContent = '¿Cómo lo recibes?'; $('#za-nota-lbl').textContent = 'Indicaciones (opcional)'; $('#za-nota').placeholder = 'Ej: sin chile, la mitad de rajas';
+}
+const NOMBRES = { domicilio: (com ? 'Entrega a domicilio' : 'A domicilio') + (info.traslado ? ` (+${fmt(info.traslado)} de ${com ? 'envío' : 'traslado'})` : ''),
+  local: (com ? 'Paso a recoger' : 'En su local') + (info.puntoEntrega ? `: ${info.puntoEntrega}` : ''), linea: 'En línea' };
+$('#za-precio').textContent = com ? `${fmt(info.precio)} c/u` + (info.minimo > 1 ? ` · mínimo ${info.minimo}` : '') + (info.anticipacion ? ` · pide con ${info.anticipacion} día${info.anticipacion > 1 ? 's' : ''} de anticipación` : '')
+  : (info.precioServicio === 'cotizar' ? 'A cotizar' : (info.precioServicio === 'desde' ? 'Desde ' : '') + fmt(info.precio)) + (info.duracion ? ' · ' + info.duracion : '');
 $('#za-lugares').innerHTML = info.lugares.map((l, i) => `<label><input type="radio" name="za-lugar" value="${esc(l)}"${i ? '' : ' checked'}> ${esc(NOMBRES[l] || l)}</label>`).join('');
 $('#za-lugar-box').hidden = info.lugares.length < 2;
 if (info.precioServicio === 'cotizar') { $('#za-nota-lbl').textContent = '¿Qué necesitas? (para que te cotice)'; }
@@ -2710,11 +2729,13 @@ const lugar = () => (ov.querySelector('[name="za-lugar"]:checked') || {}).value 
 const pintar = () => {
   $('#za-dir-box').hidden = lugar() !== 'domicilio';
   const traslado = lugar() === 'domicilio' ? info.traslado : 0;
-  $('#za-total').innerHTML = info.precioServicio === 'cotizar' ? 'El vendedor te enviará el precio en el chat.'
+  $('#za-total').innerHTML = com ? `${cant()} × ${fmt(info.precio)}${traslado ? ` + envío ${fmt(traslado)}` : ''} = <b>${fmt(cant() * info.precio + traslado)}</b> · el vendedor confirma tu pedido en el chat`
+    : info.precioServicio === 'cotizar' ? 'El vendedor te enviará el precio en el chat.'
     : `${info.precioServicio === 'desde' ? 'Desde ' : ''}${fmt(info.precio)}${traslado ? ` + traslado ${fmt(traslado)} = <b>${fmt(info.precio + traslado)}</b>` : ''} · el vendedor confirma fecha, hora y precio en el chat`
     + (info.zona ? `<br>Zona que cubre: ${esc(info.zona)}` : '');
 };
 ov.querySelectorAll('[name="za-lugar"]').forEach(r => r.addEventListener('change', pintar));
+$('#za-cant').addEventListener('input', pintar);
 let gps = null;
 $('#za-dir').addEventListener('input', () => { gps = null; });
 $('#za-gps').addEventListener('click', () => {
@@ -2732,6 +2753,7 @@ pintar();
 ok.addEventListener('click', async () => {
   err.textContent = '';
   const nombre = $('#za-nombre').value.trim(), nota = $('#za-nota').value.trim();
+  if (com && cant() < info.minimo) { err.textContent = `La cantidad mínima es ${info.minimo}.`; return; }
   if (!$('#za-fecha').value) { err.textContent = 'Elige la fecha.'; return; }
   if (lugar() === 'domicilio' && $('#za-dir').value.trim().length < 5) { err.textContent = 'Escribe la dirección.'; return; }
   if (nombre.length < 2) { err.textContent = 'Escribe tu nombre.'; return; }
@@ -2740,11 +2762,11 @@ ok.addEventListener('click', async () => {
   try {
     try { localStorage.setItem('client_name', nombre); if (lugar() === 'domicilio') localStorage.setItem('client_address', $('#za-dir').value.trim()); } catch (_) {}
     const data = await api({ action: 'crearPedidoPersonalizado', telefono, compradorToken: localStorage.getItem('comprador_token') || '', productoId, nombre,
-      fecha: $('#za-fecha').value, hora: $('#za-hora').value, lugar: lugar(), direccion: $('#za-dir').value.trim(), nota,
+      fecha: $('#za-fecha').value, hora: $('#za-hora').value, lugar: lugar(), ...(com && { cantidad: cant() }), direccion: $('#za-dir').value.trim(), nota,
       ...(gps && lugar() === 'domicilio' ? { lat: gps.lat, lng: gps.lng } : {}) });
     if (!data.ok) throw new Error(data.error || 'No se pudo enviar la solicitud');
     location.href = 'pedido-chat.html?pedido=' + encodeURIComponent(data.pedidoId);
-  } catch (e) { err.textContent = e.message || 'No se pudo enviar. Intenta de nuevo.'; ok.disabled = false; ok.textContent = 'Enviar solicitud'; }
+  } catch (e) { err.textContent = e.message || 'No se pudo enviar. Intenta de nuevo.'; ok.disabled = false; ok.textContent = com ? 'Enviar pedido' : 'Enviar solicitud'; }
 });
 }
 window.znrAgendar = znrAgendar;

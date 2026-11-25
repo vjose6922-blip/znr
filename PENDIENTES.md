@@ -54,9 +54,8 @@ es posterior al cambio; si no, en **Cloud Build → Activadores** revisa que ten
       `MAPBOX_PK` de `entregas-live.html` y `seguimiento-entrega.html` (hoy usan tiles de OpenStreetMap, no aptos para uso intensivo).
 - [x] **C7 Alerta de presupuesto** en Google Cloud (Facturación → Presupuestos y alertas). Cloudflare no ofrece aviso por correo: se cubre con F7.
 - [x] **C8 Storage ciclo de vida**: `znr-backups` a clase Archive; borrar en `znr-live-grabaciones` lo de más de 7 días.
-- [ ] **C11 (opcional)** Google Cloud → Transferencia de datos → Storage Transfer Service → el trabajo que copia a
-      `znr-backups/storage-continuo/`: que **"Borrar archivos del destino que no estén en el origen"** esté desactivado
-      (`znr-backups` es clase Archive: borrar antes de 1 año tiene cobro).
+- [x] **C11** (25 nov): el trabajo de Storage Transfer `2833072074860092080` (en znr-live) copia cada noche a medianoche UTC las
+      fotos a `znr-backups/storage-continuo/` y **no** borra en el destino. Se activó la API `storagetransfer` para poder consultarlo (dejarla activa).
 - [x] **C9 App Check TTL**: 1 día (Verificación de aplicaciones → Apps → ZNR WEB).
 - [x] **C10 Stripe**: confirmar el **primer depósito** a la CLABE (previsto ~2 nov) en Stripe → Saldos (automático lunes y viernes).
 
@@ -167,8 +166,8 @@ Usa montos chicos ($149 de Plus o ~$10) y reembolsa si no quieres conservarlos. 
 - [ ] **S12 Push al equipo viejo**: al iniciar sesión en otro equipo, el anterior sigue recibiendo notificaciones. Hoy el equipo
       viejo solo borra su token FCM si está abierto y hace una llamada que falla por sesión vencida (`checkTokenInvalid`). Arreglo
       en el servidor: al iniciar sesión, desactivar los tokens de los otros equipos de esa cuenta (o ligar cada token a su sesión).
-- [ ] **S13 `push-queue-worker`**: servicio privado que nadie llama (la cola `push-queue` va a `push-send-worker`). Confirmar en
-      sus logs que no recibe nada y borrarlo (servicio, carpeta en znr-backend y su cuenta `push-queue-worker-sa`).
+- [x] **S13 `push-queue-worker`** (25 nov): borrado (servicio, cuenta `push-queue-worker-sa`, activador `push-queue-worker-auto`
+      y carpeta en znr-backend). Nadie lo llamaba; la cola `push-queue` va a `push-send-worker`.
 - [x] **S7 Entrada de emergencia apagada y `ADMIN_TOKEN` rotado** (19 nov): `ADMIN_PASSWORD` borrada de auth-api y
       vendedores-api; token nuevo en los 10 servicios y en los 9 trabajos de Cloud Scheduler. Revisar el monitor de errores
       1 h (sin "No autorizado") y que "Emergencia (contraseña + token)" ya no deje entrar.
@@ -209,7 +208,13 @@ Usa montos chicos ($149 de Plus o ~$10) y reembolsa si no quieres conservarlos. 
 - [x] **F10 Servicios** (23 nov): tipo de publicación nuevo (shows, técnicos, belleza…): precio fijo / desde / a cotizar,
       a domicilio / en local / en línea, traslado, duración y zona; el cliente agenda fecha, hora y lugar; el vendedor
       confirma o propone otra; agendado → en curso → realizado. Probar: publicar uno, agendarlo desde otra cuenta y llevarlo
-      hasta "Realizado". Pendientes para después: Comida por encargo, Clases y talleres, Preventa y etiqueta Usado/Nuevo.
+      hasta "Realizado". Clases y talleres y Preventa: descartados (25 nov).
+- [ ] **F10b Comida por encargo y etiqueta Nuevo/Usado** (25 nov, en rama sin fusionar): tipo de venta "comida" (precio por pieza,
+      mínimo opcional, anticipación 0/1/2/3/7 días, "pasa a recoger" y/o a domicilio con envío; mismo flujo que Servicios:
+      confirmado → en preparación → entregado) y campo `condicion` (nuevo/usado) obligatorio al publicar con stock o renta,
+      chip en tarjetas y filtro "Estado del artículo" en Comunidad. **Después de fusionar:** CONTROL → Herramientas →
+      "Resincronizar todo Comunidad con Algolia" (agrega solo la faceta `condicion` al índice y sus réplicas). Probar: publicar tamales, pedirlos desde otra
+      cuenta hasta "Entregado"; publicar un artículo usado y filtrarlo.
 - [ ] **F11 Notificaciones push con mejor aspecto** (25 nov, en rama sin fusionar): `sw.js` elige el icono PNG 192×192 de
       `img/push/` (general 🔔, pedido 🛒, chat 💬, en vivo 🔴, promoción 🏷️) por `data.tipo` o, si no viene, por el título y la
       página de destino; agrega el emoji al título si no trae uno y el `badge` monocromo (Z) en la barra de estado. Los chats
@@ -218,5 +223,5 @@ Usa montos chicos ($149 de Plus o ~$10) y reembolsa si no quieres conservarlos. 
       sugerencia automática en CONTROL según el brillo y la variedad de tonos de la zona del texto (se aplica sola al subir una
       imagen nueva; con un banner ya guardado solo funciona si el bucket permite leer la imagen por CORS). Ideas no hechas:
       intensidad de sombra (suave/media/fuerte) y contorno en las letras.
-- [ ] Borrar la rama `vjose6922-blip-patch-1` de znr (historia vieja de sep 2026, sin relación con `main`).
+- [x] Rama `vjose6922-blip-patch-1` de znr: ya no existe.
 - [x] Cerrados los issues znr#18, znr#61, znr-backend#13, #15 y #37: su contenido ya está aquí.
