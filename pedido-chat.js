@@ -804,7 +804,7 @@ function renderTodo() {
 
 function abrirDatosPago(tipo) {
   const destino = h("div", { class: "pp-pago-datos" }, h("p", { class: "pp-hint", text: "Cargando datos…" }));
-  ventana("Datos para transferir", destino, [
+  ventana("Datos para transferir", h("div", {}, destino, h("p", { class: "pp-hint", text: "🔒 Z&R nunca te pedirá reembolsar diferencias ni depositar a otra cuenta. Confirma el pago en tu banco, no en una captura." })), [
     ["Cerrar", "", (b, cerrar) => cerrar()],
     ["Ya pagué · subir comprobante", "primary", (b, cerrar) => { cerrar(); subirComprobante(tipo, b); }]
   ]);
@@ -882,7 +882,7 @@ function noRecibido(tipo) {
 async function confirmarRecibido(tipo, metodo, btn) {
   const nom = tipo === "anticipo" ? "el anticipo" : esRenta() ? "el restante (la renta pasará a «en renta»)" : esServicio() ? S("el restante (el servicio quedará realizado)", "el restante (el pedido quedará entregado)") : "el restante (el pedido pasará a entregado)";
   const via = metodo === "efectivo" ? "en efectivo" : "por transferencia";
-  if (!(await confirmar("Confirmar pago", "¿Confirmas que recibiste " + nom + " " + via + "?", "Sí, lo recibí", "primary"))) return;
+  if (!(await confirmar("Confirmar pago", "¿Confirmas que recibiste " + nom + " " + via + "?" + (metodo === "efectivo" ? "" : " Revísalo en tu banco: una captura se puede falsificar. Z&R nunca te pedirá reembolsar diferencias."), "Sí, lo recibí", "primary"))) return;
   await hacer(btn, "confirmarPago", { tipo, accion: "confirmar", metodo });
 }
 

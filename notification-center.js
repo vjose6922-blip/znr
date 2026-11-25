@@ -675,7 +675,7 @@ const PICKUP_HORAS = ['9:00 AM','10:00 AM','11:00 AM','12:00 PM','1:00 PM','2:00
              <div class="nc-pago-pendiente-clabe">
                <span class="nc-pago-pendiente-clabe-texto">${clabePago}</span>
                <button type="button" class="nc-pago-pendiente-clabe-btn" data-clabe="${clabePago}">${Icon('clipboard')} Copiar CLABE</button>
-             </div>` : '') + (linkPago ? `<a class="nc-pago-link" href="${esc(linkPago)}" target="_blank" rel="noopener noreferrer">Ir al link de pago del vendedor</a>` : '');
+             </div><p class="nc-pago-sub" style="font-weight:400;opacity:.8">🔒 Z&R nunca te pedirá reembolsar diferencias ni depositar a otra cuenta. Confirma el pago en tu banco, no en una captura.</p>` : '') + (linkPago ? `<a class="nc-pago-link" href="${esc(linkPago)}" target="_blank" rel="noopener noreferrer">Ir al link de pago del vendedor</a>` : '');
       const pagoTarjetaHtml = provPago.length || otrosPago
         ? `<div class="nc-pago-tarjeta" onclick="event.stopPropagation()" data-request-id="${esc(meta.requestId)}" data-vendedor-uid="${esc(meta.vendedor_uid)}">
              <p class="nc-pago-tarjeta-label">${provPago.length ? '💳 Paga tu pedido en línea' : '💳 Datos para pagarle al vendedor'}</p>
