@@ -86,6 +86,7 @@ const MAPA_ACCIONES_MIGRADAS = {
   createComunidad: CATALOGO_API_URL,
   updateComunidad: CATALOGO_API_URL,
   fijarVisiblePlan: CATALOGO_API_URL,
+  actualizarProductosLote: CATALOGO_API_URL,
   uploadImageVendedor: CATALOGO_API_URL,
   completarAnuncioIA: VENDEDORES_API_URL,
   deleteComunidad: CATALOGO_API_URL,
@@ -900,7 +901,10 @@ function renderVendorPlanPanel() {
   el.innerHTML = `
     <div style="background:#f8f8fc;border-radius:14px;padding:12px 14px;color:#000;">
       <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
-        <div style="font-size:13px;font-weight:600;color:#000;">${actuales}/${limite} productos usados</div>
+        <div style="font-size:13px;font-weight:600;color:#000;display:flex;align-items:center;gap:6px;">${actuales}/${limite} productos usados
+          <button type="button" onclick="window.entrarSeleccion()" title="Seleccionar varios" aria-label="Seleccionar varios productos" style="display:inline-flex;padding:3px;border:none;border-radius:6px;background:transparent;color:#7c3aed;cursor:pointer;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="4"/><path d="m8 12 3 3 5-6"/></svg>
+          </button></div>
         <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;justify-content:flex-end;">${donadosChip}${solidarioChip}${planBadge}</div>
       </div>
       <div style="background:#e6e6ee;border-radius:999px;height:6px;margin-top:8px;overflow:hidden;">
@@ -954,6 +958,8 @@ function createVendorProductCard(product) {
   const card = document.createElement("article");
   card.className = "product-card";
   card.id = `producto-${id}`;
+  card.style.position = 'relative';
+  card.insertAdjacentHTML('afterbegin', `<input type="checkbox" class="vp-sel" data-id="${escapeHtml(id)}" aria-label="Seleccionar ${safeNombre}">`);
 
   const slider = document.createElement("div");
   slider.className = "product-slider";
@@ -1037,6 +1043,7 @@ function createVendorProductCard(product) {
   } else {
     stockEl.textContent = ` Stock: ${stockNum}`;
   }
+  if (product.apartado === true) stockEl.textContent += ' · 🔖 Apartado';
   metaRow.appendChild(stockEl);
 
   const descEl = document.createElement("p");
@@ -1073,6 +1080,13 @@ function createVendorProductCard(product) {
 
   actions.appendChild(editBtn);
   actions.appendChild(deleteBtn);
+  if (estado === 'aprobado' && (product.tipoVenta || 'stock') === 'stock' && !isOutOfStock) { // apartado: se ve con etiqueta y no se puede comprar
+    const apBtn = document.createElement("button");
+    apBtn.className = "btn-secondary";
+    apBtn.textContent = product.apartado === true ? 'Liberar' : '🔖 Apartar';
+    apBtn.onclick = () => window.accionLote([id], 'apartado', product.apartado === true ? '0' : '1', apBtn);
+    actions.appendChild(apBtn);
+  }
   // 📌 elegir cuáles quedan a la vista con el plan vencido (los fijados van primero dentro del límite)
   if ((window._ocultosPlan > 0 || (window._planVis || {}).graciaHasta) && ['aprobado', 'pendiente', 'oculto_plan'].includes(estado)) {
     const pinBtn = document.createElement("button");
@@ -1502,6 +1516,66 @@ window.editProduct = async function(id) {
   // de pestaña o al terminar una subida; se reafirma el modo edición.
   window.aplicarModoFormulario();
   setTimeout(window.aplicarModoFormulario, 400);
+};
+
+// ── Mejora 9: selección múltiple en Mis productos (precio, stock, eliminar; máx. 50) y "Apartar" por producto ──
+window.accionLote = async function(ids, accion, valor, btn) {
+  if (btn) btn.disabled = true;
+  const r = await apiFetch({ action: 'actualizarProductosLote', ids: ids.join(','), accion, valor, vendorToken: vendorSession.token }).catch((e) => ({ ok: false, error: e.message }));
+  if (btn) btn.disabled = false;
+  if (!r.ok) return showTemporaryMessage(' ' + (r.error || 'No se pudo actualizar'), 'error');
+  showTemporaryMessage(accion === 'apartado' ? (valor === '1' ? '🔖 Apartado: sigue visible pero no se puede comprar' : 'Liberado') : `Listo: ${r.actualizados} producto${r.actualizados === 1 ? '' : 's'}`, 'success');
+  window.invalidateVendorProductsCache?.();
+  salirSeleccion();
+  loadMyProducts(true);
+};
+const seleccionados = () => [...document.querySelectorAll('#products-container .vp-sel:checked')].map((c) => c.dataset.id);
+function salirSeleccion() {
+  document.getElementById('products-container')?.classList.remove('sel-mode');
+  document.querySelectorAll('.vp-sel').forEach((c) => { c.checked = false; });
+  document.getElementById('vp-bar')?.remove();
+}
+// Pide el valor en una ventanita (campos = HTML); devuelve los valores de sus inputs/selects o null si cancela.
+const pedirLote = (titulo, campos) => new Promise((ok) => {
+  const m = document.createElement('div');
+  m.className = 'custom-alert-modal';
+  m.innerHTML = `<div class="custom-alert-content"><div class="custom-alert-header"><h3>${titulo}</h3></div><div class="custom-alert-body">${campos}</div>
+    <div class="custom-alert-footer"><button class="custom-alert-btn cancel">Cancelar</button><button class="custom-alert-btn confirm">Aplicar</button></div></div>`;
+  document.body.appendChild(m);
+  const fin = (v) => { m.remove(); ok(v); };
+  m.querySelector('.cancel').onclick = () => fin(null);
+  m.querySelector('.confirm').onclick = () => fin([...m.querySelectorAll('input,select')].map((x) => x.value));
+});
+window.entrarSeleccion = function() {
+  const cont = document.getElementById('products-container');
+  if (!cont || document.getElementById('vp-bar')) return salirSeleccion();
+  if (!document.getElementById('vp-sel-style')) document.head.insertAdjacentHTML('beforeend', `<style id="vp-sel-style">.vp-sel{display:none;position:absolute;top:8px;left:8px;width:24px;height:24px;z-index:3;accent-color:#7c3aed}
+    #products-container.sel-mode .vp-sel{display:block}#vp-bar{position:fixed;left:8px;right:8px;bottom:calc(76px + env(safe-area-inset-bottom,0px));z-index:10050;display:flex;flex-wrap:wrap;gap:6px;align-items:center;
+    padding:10px 12px;border-radius:14px;background:#1e2128;color:#fff;box-shadow:0 8px 24px rgba(0,0,0,.25)}#vp-bar button{padding:7px 12px;border-radius:18px;border:1px solid #555;background:transparent;color:#fff;font-weight:600;cursor:pointer}
+    #vp-bar b{flex:1;min-width:110px;font-size:13px}</style>`);
+  cont.classList.add('sel-mode');
+  document.body.insertAdjacentHTML('beforeend', `<div id="vp-bar" role="toolbar" aria-label="Acciones con los seleccionados"><b id="vp-count">Toca los productos</b>
+    <button data-a="todos">Todos</button><button data-a="precio">Precio</button><button data-a="stock">Stock</button><button data-a="eliminar">Eliminar</button><button data-a="salir" aria-label="Salir">✕</button></div>`);
+  cont.addEventListener('change', () => { const n = seleccionados().length; const c = document.getElementById('vp-count'); if (c) c.textContent = `${n} seleccionado${n === 1 ? '' : 's'}`; });
+  document.getElementById('vp-bar').onclick = async (e) => {
+    const a = e.target.dataset && e.target.dataset.a, ids = seleccionados();
+    if (!a) return;
+    if (a === 'salir') return salirSeleccion();
+    if (a === 'todos') { cont.querySelectorAll('.vp-sel').forEach((c) => { c.checked = true; }); return cont.dispatchEvent(new Event('change')); }
+    if (!ids.length) return showTemporaryMessage(' Selecciona al menos un producto', 'error');
+    if (ids.length > 50) return showTemporaryMessage(' Máximo 50 productos a la vez', 'error');
+    if (a === 'precio') {
+      const v = await pedirLote(`Precio de ${ids.length} producto(s)`, `<select class="custom-alert-input" style="width:100%;margin-bottom:8px"><option value="descuento">Descuento en % (el precio anterior se ve tachado)</option><option value="precio">Precio nuevo (el mismo para todos)</option></select>
+        <input class="custom-alert-input" type="number" inputmode="decimal" min="1" placeholder="Ej: 20" style="width:100%">`);
+      if (v) window.accionLote(ids, v[0], v[1], e.target);
+    } else if (a === 'stock') {
+      const v = await pedirLote(`Stock de ${ids.length} producto(s)`, `<p style="margin:0 0 8px;font-size:13px">Pon 0 si ya se vendieron (se verán como "Sin stock").</p><input class="custom-alert-input" type="number" inputmode="numeric" min="0" placeholder="Cantidad" style="width:100%">`);
+      if (v) window.accionLote(ids, 'stock', v[0], e.target);
+    } else if (a === 'eliminar') {
+      showCustomConfirm({ title: 'Eliminar productos', message: `¿Eliminar ${ids.length} producto(s) con sus fotos? No se puede deshacer.`, confirmText: 'Eliminar', cancelText: 'Cancelar',
+        onConfirm: () => window.accionLote(ids, 'eliminar', '', e.target), onCancel: () => {} });
+    }
+  };
 };
 
 window.deleteMyProduct = async function(id) {

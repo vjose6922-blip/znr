@@ -1366,7 +1366,7 @@ const allImages = [product.imagen1, product.imagen2, product.imagen3].filter(Boo
 const esPersonal = product.tipoVenta === 'personalizado', esRenta = product.tipoVenta === 'renta', esServ = window.esServicio(product);
 const diasElab = Number(product.tiempoElaboracionDias) || 0;
 const stockNum  = Number(stockVivo(product)) || 0;
-const hasStock  = esPersonal || esServ ? true : stockNum > 0;
+const hasStock  = esPersonal || esServ ? true : stockNum > 0 && product.apartado !== true; // apartado: visible, no se compra
 const esDonativo = product.donado === true || product.donado === 'TRUE' || product.donado === 'true';
 const vendorName = safeString(product.vendedor_nombre);
 const vendorLogo = safeString(product.vendedor_logo || '');
@@ -1409,7 +1409,7 @@ ${esServ
 : esPersonal
 ? `<span style="color:#a855f7;font-size:11px;font-weight:600;">Bajo pedido${diasElab ? ' · ' + diasElab + (diasElab === 1 ? ' día' : ' días') : ''}</span>`
 : !hasStock
-? '<span style="color:var(--color-error,#ef4444);font-size:11px;font-weight:600;">Sin stock</span>'
+? (product.apartado === true ? '<span style="color:#d97706;font-size:11px;font-weight:600;">🔖 Apartado</span>' : '<span style="color:var(--color-error,#ef4444);font-size:11px;font-weight:600;">Sin stock</span>')
 : `<span style="color:var(--color-success,#22c55e);font-size:11px;">Stock: ${stockNum}</span>`}
 ${product.categoria ? `<span style="font-size:10px;color:var(--color-text-muted,#aaa);">· ${esc(safeString(product.categoria))}</span>` : ''}
 </div>

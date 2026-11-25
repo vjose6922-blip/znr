@@ -214,7 +214,10 @@ Ya existían: 3 (pedido + chat antes de WhatsApp), 10 (chat por pedido/consulta)
 - [x] **M4 Rechazo con motivo**: CONTROL elige el motivo (lista fija; "Otro" pide nota); el vendedor lo ve en Rechazados con
       "Corregir y reenviar", que lo regresa a pendientes y avisa al equipo.
 - [x] **M16 Tope por vendedor**: en Comunidad máx. 3 por vendedor entre los 15 Plus de arriba y nunca más de 2 seguidos del mismo.
-- [ ] Siguientes recomendadas: 9 (edición masiva + Apartado/Vendido), 8 (panel de estadísticas), 22 simple (subir productos
+- [x] **M9 Selección múltiple + Apartado** (25 nov): en Mis productos "☑️ Seleccionar varios" → precio (descuento % con el
+      anterior tachado, o precio fijo), stock (0 = vendido, "Sin stock") y eliminar, máx. 50 (`actualizarProductosLote`).
+      Botón "🔖 Apartar/Liberar" por producto: se ve con la etiqueta "Apartado" y no se puede comprar.
+- [ ] Siguientes recomendadas: 8 (panel de estadísticas), 22 simple (subir productos
       mientras se aprueba la cuenta). Más adelante: 11–14 (colonia), 17–18 (puntaje/renovar), 5 (soporte), 6 (selfie).
       Descartadas por ahora: 15 (canales) y 19–21 (impulsos).
 

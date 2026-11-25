@@ -739,7 +739,7 @@
  const esPersonal = p.tipoVenta === 'personalizado', esRenta = p.tipoVenta === 'renta', esServ = window.esServicio(p);
  const diasElab = Number(p.tiempoElaboracionDias) || 0;
  const stock = Number(stockVivo(p)) || 0;
- const hasStock = esPersonal || esServ ? true : stock > 0;
+ const hasStock = esPersonal || esServ ? true : stock > 0 && p.apartado !== true;
 
  const card = document.createElement('div');
  card.className = 'product-card';
@@ -763,7 +763,7 @@
  ${esServ ? `<span style="color:#0ea5e9;font-size:11px;font-weight:600;">${window.znrTipoServicio(p)} · ${esc(window.znrLugaresServicio(p))}</span>` : esPersonal
  ? `<span style="color:#a855f7;font-size:11px;font-weight:600;">Bajo pedido${diasElab ? ' · ' + diasElab + (diasElab === 1 ? ' día' : ' días') : ''}</span>`
  : !hasStock
- ? '<span style="color:var(--color-error);font-size:11px;font-weight:600;">Sin stock</span>'
+ ? (p.apartado === true ? '<span style="color:#d97706;font-size:11px;font-weight:600;">🔖 Apartado</span>' : '<span style="color:var(--color-error);font-size:11px;font-weight:600;">Sin stock</span>')
  : `<span style="color:var(--color-success);font-size:11px;">Stock: ${stock}</span>`}
  </div>
  <div class="product-actions" style="margin-top:8px;">

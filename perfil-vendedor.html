@@ -1287,7 +1287,7 @@ const infoBits = [
           const stock = Number(p.stock || 0);
           const esPersonal = p.tipoVenta === 'personalizado', esRenta = p.tipoVenta === 'renta', esServ = window.esServicio(p);
           const diasElab = Number(p.tiempoElaboracionDias) || 0;
-          const hasStock = esPersonal || esServ ? true : stock > 0;
+          const hasStock = esPersonal || esServ ? true : stock > 0 && p.apartado !== true;
           const talla = p.talla || '';
           const categoria = p.categoria || '';
           const esConfiable = p.confiable === true || p.confiable === 'true';
@@ -1306,7 +1306,7 @@ const infoBits = [
             : `<img ${imgAttr} alt="${esc(p.nombre)}" onerror="this.src='https://placehold.co/400x400/3b1f5f/white?text=Error'">`;
           const stockLineHtml = `
             <div class="profile-product-stockline">
-              ${esServ ? `<span class="profile-stock-ok" style="color:#0ea5e9;">${window.znrTipoServicio(p)} · ${esc(window.znrLugaresServicio(p))}</span>` : esRenta ? `<span class="profile-stock-ok" style="color:#a855f7;">Renta · ${stock} unidad${stock === 1 ? '' : 'es'}</span>` : esPersonal ? `<span class="profile-stock-ok" style="color:#a855f7;">Bajo pedido${diasElab ? ' · ' + diasElab + (diasElab === 1 ? ' día' : ' días') : ''}</span>` : hasStock ? `<span class="profile-stock-ok">Stock: ${stock}</span>` : `<span class="profile-stock-out">Sin stock</span>`}
+              ${esServ ? `<span class="profile-stock-ok" style="color:#0ea5e9;">${window.znrTipoServicio(p)} · ${esc(window.znrLugaresServicio(p))}</span>` : esRenta ? `<span class="profile-stock-ok" style="color:#a855f7;">Renta · ${stock} unidad${stock === 1 ? '' : 'es'}</span>` : esPersonal ? `<span class="profile-stock-ok" style="color:#a855f7;">Bajo pedido${diasElab ? ' · ' + diasElab + (diasElab === 1 ? ' día' : ' días') : ''}</span>` : hasStock ? `<span class="profile-stock-ok">Stock: ${stock}</span>` : `<span class="profile-stock-out">${p.apartado === true ? '🔖 Apartado' : 'Sin stock'}</span>`}
               ${categoria ? `<span class="profile-product-cat">· ${esc(categoria)}</span>` : ''}
             </div>`;
           return `
@@ -1326,7 +1326,7 @@ const infoBits = [
                 ${stockLineHtml}
                 <div class="profile-product-actions">
                   <button class="profile-product-add" data-id="${esc(p.id)}" data-nombre="${esc(p.nombre)}" data-precio="${p.precio}" data-img="${esc(p.imagen1 || '')}" data-talla="${esc(p.talla || '')}" data-donado="${esDonativo}" data-benid="${esDonativo ? esc(p.beneficiario_id || '') : ''}" data-personalizado="${esPersonal}" data-renta="${esRenta}" data-servicio="${esServ}" data-dias="${diasElab}" data-opciones="${esc(p.opcionesPersonalizacion || '')}" ${!hasStock ? 'disabled' : ''}>
-                    ${hasStock ? (esServ ? (p.tipoVenta === 'comida' ? 'Pedir' : 'Agendar') : esPersonal ? 'Personalizar' : esRenta ? 'Rentar' : 'Añadir') : 'Sin stock'}
+                    ${hasStock ? (esServ ? (p.tipoVenta === 'comida' ? 'Pedir' : 'Agendar') : esPersonal ? 'Personalizar' : esRenta ? 'Rentar' : 'Añadir') : (p.apartado === true ? 'Apartado' : 'Sin stock')}
                   </button>
                   <button type="button" class="profile-product-icon-btn profile-product-report" data-id="${esc(p.id)}" title="Reportar">${Icon('flag')}</button>
                   <button type="button" class="profile-product-icon-btn profile-product-share" data-id="${esc(p.id)}" data-nombre="${esc(p.nombre)}" data-precio="${p.precio}" title="Compartir">${Icon('share')}</button>

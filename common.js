@@ -743,7 +743,7 @@ const esComida = (p) => !!p && (p.tipoVenta || p.TipoVenta) === 'comida';
 window.esServicio = (p) => !!p && ['servicio', 'comida'].includes(p.tipoVenta || p.TipoVenta);
 window.znrTipoServicio = (p) => (esComida(p) ? 'Comida por encargo' : 'Servicio');
 // Campos de servicio/comida y Nuevo/Usado que la ventana del producto necesita (las tarjetas arman sus propios datos)
-window.znrCamposVenta = (p) => Object.fromEntries(['condicion', 'precioServicio', 'lugaresServicio', 'duracionServicio', 'zonaServicio', 'trasladoServicio', 'minimoComida', 'anticipacionDias']
+window.znrCamposVenta = (p) => Object.fromEntries(['condicion', 'apartado', 'precioServicio', 'lugaresServicio', 'duracionServicio', 'zonaServicio', 'trasladoServicio', 'minimoComida', 'anticipacionDias']
   .filter((k) => p && p[k] != null && p[k] !== '').map((k) => [k, p[k]]));
 window.znrPrecioServicio = (p, fmt) => {
   const t = p.precioServicio || p.PrecioServicio || 'fijo', f = fmt || ((v) => '$' + Number(v || 0).toLocaleString('es-MX'));
@@ -1113,7 +1113,7 @@ const DESC_LIMIT = 140;
 const descLarga = desc.length > DESC_LIMIT;
 const descHtml  = desc ? `<div class="im-desc-wrap"><p class="im-info-desc">${escapeHtml(descLarga ? desc.slice(0, DESC_LIMIT).trim() + '…' : desc)}</p>${descLarga ? `<button type="button" class="im-desc-toggle">Ver más</button><div class="im-desc-pop"><p>${escapeHtml(desc)}</p><button type="button" class="im-desc-toggle">Ver menos</button></div>` : ''}</div>` : '';
 const entregaHtml = califica_entrega ? `<div class="im-info-entrega"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 3h15v13H1z"/><path d="M16 8h4l3 3v5h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg> Entrega a domicilio disponible</div>` : '';
-const sinStock = stock === 0;
+const apartado = p.apartado === true, sinStock = stock === 0 || apartado; // apartado: se ve, no se compra
 const buyBtnHtml = p._modoVendedorPropio
 ? `<button class="im-buy-btn" id="im-buy-btn">${Icon('edit', { size: 16 })} Editar</button>`
 : esServ
@@ -1125,7 +1125,7 @@ const buyBtnHtml = p._modoVendedorPropio
 : `
 <button class="im-buy-btn"${sinStock ? ' disabled' : ''} id="im-buy-btn">
 ${sinStock
-? 'Sin stock'
+? (apartado ? '🔖 Apartado' : 'Sin stock')
 : '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" aria-hidden="true"><use href="#ic-cart"/></svg>Añadir al carrito'}
 </button>`;
 el.style.display = '';
