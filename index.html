@@ -736,7 +736,7 @@
  const img  = optUrl(p.imagen1 || '', 400) || 'https://placehold.co/300x300/3b1f5f/white?text=Z%26R';
  const allImages = [p.imagen1, p.imagen2, p.imagen3].filter(Boolean).map(u => optUrl(u, 800));
  const price = Number(p.precio || 0).toLocaleString('es-MX', { style:'currency', currency:'MXN', maximumFractionDigits:0 });
- const esPersonal = p.tipoVenta === 'personalizado', esRenta = p.tipoVenta === 'renta', esServ = p.tipoVenta === 'servicio';
+ const esPersonal = p.tipoVenta === 'personalizado', esRenta = p.tipoVenta === 'renta', esServ = window.esServicio(p);
  const diasElab = Number(p.tiempoElaboracionDias) || 0;
  const stock = Number(stockVivo(p)) || 0;
  const hasStock = esPersonal || esServ ? true : stock > 0;
@@ -760,7 +760,7 @@
  ${p.talla ? `<div style="font-size:11px;color:var(--color-text-muted);margin-top:2px;">Info: ${esc(p.talla)}</div>` : ''}
  ${window.ZNR_TEMPORADAS ? window.ZNR_TEMPORADAS.chipsHTML(p) : ''}
  <div style="display:flex;align-items:center;gap:6px;margin-top:6px;">
- ${esServ ? `<span style="color:#0ea5e9;font-size:11px;font-weight:600;">Servicio · ${esc(window.znrLugaresServicio(p))}</span>` : esPersonal
+ ${esServ ? `<span style="color:#0ea5e9;font-size:11px;font-weight:600;">${window.znrTipoServicio(p)} · ${esc(window.znrLugaresServicio(p))}</span>` : esPersonal
  ? `<span style="color:#a855f7;font-size:11px;font-weight:600;">Bajo pedido${diasElab ? ' · ' + diasElab + (diasElab === 1 ? ' día' : ' días') : ''}</span>`
  : !hasStock
  ? '<span style="color:var(--color-error);font-size:11px;font-weight:600;">Sin stock</span>'
@@ -780,7 +780,7 @@
  data-vendorplan="${esc(p.vendedor_plan || '')}"
  data-vendoruid="${esc(p.vendedor_uid || '')}"
  data-donacion="${p.donado === true || p.donado === 'TRUE' || p.donado === 'true'}"
- data-benid="${esc(String(p.beneficiario_id || ''))}"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" aria-hidden="true"><use href="#ic-plus"/></svg> ${esServ ? 'Agendar' : esPersonal ? 'Personalizar' : esRenta ? 'Rentar' : 'Agregar'}</button>
+ data-benid="${esc(String(p.beneficiario_id || ''))}"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" aria-hidden="true"><use href="#ic-plus"/></svg> ${esServ ? (p.tipoVenta === 'comida' ? 'Pedir' : 'Agendar') : esPersonal ? 'Personalizar' : esRenta ? 'Rentar' : 'Agregar'}</button>
  </div>
  </div>`;
 
@@ -800,7 +800,7 @@
  TipoVenta: p.tipoVenta || 'stock',
  TiempoElaboracionDias: diasElab,
  OpcionesPersonalizacion: p.opcionesPersonalizacion || '',
- temporada: p.temporada || '', multicolor: p.multicolor === true || p.multicolor === 'true',
+ temporada: p.temporada || '', multicolor: p.multicolor === true || p.multicolor === 'true', ...window.znrCamposVenta(p),
  Badge:  p.badge  || '',
  Imagen1:  p.imagen1  || '',
  Imagen2:  p.imagen2  || '',

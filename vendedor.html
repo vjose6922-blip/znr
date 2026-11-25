@@ -434,6 +434,7 @@ h3 {
  <option value="personalizado">Personalizado (bajo pedido)</option>
  <option value="renta">Renta (por día)</option>
  <option value="servicio">Servicio (shows, técnicos, belleza…)</option>
+ <option value="comida">Comida por encargo (tamales, pasteles…)</option>
  </select>
  <p id="tipo-venta-hint" style="margin:2px 0 0;font-size:.73rem;color:#aaa;display:none;">El cliente te escribe en el chat, tú le envías una cotización y lo elaboras a su medida. Este artículo sirve de referencia.</p>
  </div>
@@ -442,21 +443,25 @@ h3 {
  <div class="field-group"><label>¿Qué se puede personalizar? *</label><input type="text" id="pOpciones" maxlength="400" placeholder="Ej: color, tamaño, nombre grabado"></div>
  </div>
  <div id="serv-fields" style="display:none">
- <div class="field-group"><label for="pPrecioServicio">Precio *</label><select id="pPrecioServicio" onchange="window.aplicarTipoVenta && window.aplicarTipoVenta()">
+ <div class="field-group" id="serv-precio-group"><label for="pPrecioServicio">Precio *</label><select id="pPrecioServicio" onchange="window.aplicarTipoVenta && window.aplicarTipoVenta()">
  <option value="fijo">Precio fijo</option>
  <option value="desde">Desde (confirmas el precio final en el chat)</option>
  <option value="cotizar">A cotizar (sin precio publicado)</option>
  </select></div>
- <div class="field-group"><label>¿Dónde das el servicio? *</label>
+ <div class="field-group"><label id="lbl-lugar-serv">¿Dónde das el servicio? *</label>
  <div style="display:flex;flex-wrap:wrap;gap:6px 16px">
- <label style="display:flex;gap:6px;align-items:center;font-weight:400"><input type="checkbox" name="pLugarServicio" value="domicilio"> A domicilio</label>
- <label style="display:flex;gap:6px;align-items:center;font-weight:400"><input type="checkbox" name="pLugarServicio" value="local"> En mi local</label>
- <label style="display:flex;gap:6px;align-items:center;font-weight:400"><input type="checkbox" name="pLugarServicio" value="linea"> En línea</label>
+ <label style="display:flex;gap:6px;align-items:center;font-weight:400"><input type="checkbox" name="pLugarServicio" value="domicilio"> <span id="lbl-serv-dom">A domicilio</span></label>
+ <label style="display:flex;gap:6px;align-items:center;font-weight:400"><input type="checkbox" name="pLugarServicio" value="local"> <span id="lbl-serv-local">En mi local</span></label>
+ <label id="lbl-serv-linea" style="display:flex;gap:6px;align-items:center;font-weight:400"><input type="checkbox" name="pLugarServicio" value="linea"> En línea</label>
  </div></div>
  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
- <div class="field-group"><label for="pTrasladoServicio">Traslado a domicilio (MXN)</label><input type="number" id="pTrasladoServicio" placeholder="0" min="0" max="99999"></div>
- <div class="field-group"><label for="pDuracionServicio">Duración aprox.</label><input type="text" id="pDuracionServicio" maxlength="60" placeholder="Ej: 2 horas"></div>
+ <div class="field-group"><label for="pTrasladoServicio" id="lbl-traslado">Traslado a domicilio (MXN)</label><input type="number" id="pTrasladoServicio" placeholder="0" min="0" max="99999"></div>
+ <div class="field-group" id="serv-duracion-group"><label for="pDuracionServicio">Duración aprox.</label><input type="text" id="pDuracionServicio" maxlength="60" placeholder="Ej: 2 horas"></div>
  </div>
+ <div id="comida-fields" style="display:none"><div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+ <div class="field-group"><label for="pMinimoComida">Pedido mínimo (piezas)</label><input type="number" id="pMinimoComida" placeholder="1" min="1" max="1000"></div>
+ <div class="field-group"><label for="pAnticipacion">Pedir con anticipación</label><select id="pAnticipacion"><option value="0">Mismo día</option><option value="1">1 día</option><option value="2">2 días</option><option value="3">3 días</option><option value="7">1 semana</option></select></div>
+ </div></div>
  <div class="field-group"><label for="pZonaServicio">Zona que cubres <span style="color:#aaa;">(opcional)</span></label><input type="text" id="pZonaServicio" maxlength="200" placeholder="Ej: todo Nuevo Laredo, o solo el centro"></div>
  </div>
  <div id="renta-fields" style="display:none">
@@ -481,6 +486,10 @@ h3 {
  <label>Precio antes del descuento <span style="color:#aaa;">(opcional)</span></label>
  <input type="number" id="pPrecioOriginal" placeholder="Ej. 450" min="0" max="99999">
  <p style="margin:2px 0 0;font-size:.73rem;color:#aaa;">Si es mayor al precio de venta, se mostrará tachado con el % de descuento.</p>
+ </div>
+ <div class="field-group" id="cond-group">
+ <label for="pCondicion">Estado del artículo *</label>
+ <select id="pCondicion"><option value="">— Elegir —</option><option value="nuevo">Nuevo</option><option value="usado">Usado</option></select>
  </div>
  <div class="field-group">
  <label>Categoría</label>

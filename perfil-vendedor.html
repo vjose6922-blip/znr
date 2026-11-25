@@ -1285,7 +1285,7 @@ const infoBits = [
           const img = p.imagen1 || 'https://placehold.co/200x200/3b1f5f/white?text=Sin+Imagen';
           const allImages = [p.imagen1, p.imagen2, p.imagen3].filter(Boolean);
           const stock = Number(p.stock || 0);
-          const esPersonal = p.tipoVenta === 'personalizado', esRenta = p.tipoVenta === 'renta', esServ = p.tipoVenta === 'servicio';
+          const esPersonal = p.tipoVenta === 'personalizado', esRenta = p.tipoVenta === 'renta', esServ = window.esServicio(p);
           const diasElab = Number(p.tiempoElaboracionDias) || 0;
           const hasStock = esPersonal || esServ ? true : stock > 0;
           const talla = p.talla || '';
@@ -1306,7 +1306,7 @@ const infoBits = [
             : `<img ${imgAttr} alt="${esc(p.nombre)}" onerror="this.src='https://placehold.co/400x400/3b1f5f/white?text=Error'">`;
           const stockLineHtml = `
             <div class="profile-product-stockline">
-              ${esServ ? `<span class="profile-stock-ok" style="color:#0ea5e9;">Servicio · ${esc(window.znrLugaresServicio(p))}</span>` : esRenta ? `<span class="profile-stock-ok" style="color:#a855f7;">Renta · ${stock} unidad${stock === 1 ? '' : 'es'}</span>` : esPersonal ? `<span class="profile-stock-ok" style="color:#a855f7;">Bajo pedido${diasElab ? ' · ' + diasElab + (diasElab === 1 ? ' día' : ' días') : ''}</span>` : hasStock ? `<span class="profile-stock-ok">Stock: ${stock}</span>` : `<span class="profile-stock-out">Sin stock</span>`}
+              ${esServ ? `<span class="profile-stock-ok" style="color:#0ea5e9;">${window.znrTipoServicio(p)} · ${esc(window.znrLugaresServicio(p))}</span>` : esRenta ? `<span class="profile-stock-ok" style="color:#a855f7;">Renta · ${stock} unidad${stock === 1 ? '' : 'es'}</span>` : esPersonal ? `<span class="profile-stock-ok" style="color:#a855f7;">Bajo pedido${diasElab ? ' · ' + diasElab + (diasElab === 1 ? ' día' : ' días') : ''}</span>` : hasStock ? `<span class="profile-stock-ok">Stock: ${stock}</span>` : `<span class="profile-stock-out">Sin stock</span>`}
               ${categoria ? `<span class="profile-product-cat">· ${esc(categoria)}</span>` : ''}
             </div>`;
           return `
@@ -1326,7 +1326,7 @@ const infoBits = [
                 ${stockLineHtml}
                 <div class="profile-product-actions">
                   <button class="profile-product-add" data-id="${esc(p.id)}" data-nombre="${esc(p.nombre)}" data-precio="${p.precio}" data-img="${esc(p.imagen1 || '')}" data-talla="${esc(p.talla || '')}" data-donado="${esDonativo}" data-benid="${esDonativo ? esc(p.beneficiario_id || '') : ''}" data-personalizado="${esPersonal}" data-renta="${esRenta}" data-servicio="${esServ}" data-dias="${diasElab}" data-opciones="${esc(p.opcionesPersonalizacion || '')}" ${!hasStock ? 'disabled' : ''}>
-                    ${hasStock ? (esServ ? 'Agendar' : esPersonal ? 'Personalizar' : esRenta ? 'Rentar' : 'Añadir') : 'Sin stock'}
+                    ${hasStock ? (esServ ? (p.tipoVenta === 'comida' ? 'Pedir' : 'Agendar') : esPersonal ? 'Personalizar' : esRenta ? 'Rentar' : 'Añadir') : 'Sin stock'}
                   </button>
                   <button type="button" class="profile-product-icon-btn profile-product-report" data-id="${esc(p.id)}" title="Reportar">${Icon('flag')}</button>
                   <button type="button" class="profile-product-icon-btn profile-product-share" data-id="${esc(p.id)}" data-nombre="${esc(p.nombre)}" data-precio="${p.precio}" title="Compartir">${Icon('share')}</button>
@@ -1616,7 +1616,7 @@ const infoBits = [
                 TipoVenta: p.tipoVenta || 'stock',
                 TiempoElaboracionDias: Number(p.tiempoElaboracionDias) || 0,
                 OpcionesPersonalizacion: p.opcionesPersonalizacion || '',
-                temporada: p.temporada || '', multicolor: p.multicolor === true || p.multicolor === 'true',
+                temporada: p.temporada || '', multicolor: p.multicolor === true || p.multicolor === 'true', ...window.znrCamposVenta(p),
 Badge: p.badge || '',
                 Imagen1: p.imagen1 || '',
                 Imagen2: p.imagen2 || '',
@@ -1779,7 +1779,7 @@ Badge: p.badge || '',
                 TipoVenta: p.tipoVenta || 'stock',
                 TiempoElaboracionDias: Number(p.tiempoElaboracionDias) || 0,
                 OpcionesPersonalizacion: p.opcionesPersonalizacion || '',
-            temporada: p.temporada || '', multicolor: p.multicolor === true || p.multicolor === 'true',
+            temporada: p.temporada || '', multicolor: p.multicolor === true || p.multicolor === 'true', ...window.znrCamposVenta(p),
 Badge: p.badge || '',
             Imagen1: p.imagen1 || '',
             Imagen2: p.imagen2 || '',

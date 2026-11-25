@@ -234,6 +234,7 @@ busqueda: urlParams.get('busqueda') || '',
 categoria: urlParams.get('categoria') || '',
 vendedor: urlParams.get('vendedor') || '',
 temporada: urlParams.get('temporada') || '',
+condicion: urlParams.get('condicion') || '',
 vista: VISTA_LABELS[urlParams.get('vista')] ? urlParams.get('vista') : '',
 orden: urlParams.get('orden') || ''
 };
@@ -253,6 +254,8 @@ if (searchTerm) params.set('busqueda', searchTerm);
 if (category) params.set('categoria', category);
 if (vendor) params.set('vendedor', vendor);
 if (temporada) params.set('temporada', temporada);
+const condicion = (document.getElementById('comunidad-condicion') || {}).value || '';
+if (condicion) params.set('condicion', condicion);
 if (vistaActiva) params.set('vista', vistaActiva);
 if (orden) params.set('orden', orden);
 const newURL = `${window.location.pathname}${params.toString() ? '?' + params.toString() : ''}`;
@@ -407,7 +410,7 @@ async function asegurarCatalogoBase() {
 }
 
 function esVistaComunidadPorDefecto(filters) {
-  return !filters.vista && !filters.categoria && !filters.busqueda && !filters.vendedor && !filters.temporada && !filters.orden;
+  return !filters.vista && !filters.categoria && !filters.busqueda && !filters.vendedor && !filters.temporada && !filters.condicion && !filters.orden;
 }
 
 function shuffleArray(arr) {
@@ -529,7 +532,7 @@ async function loadComunidadPageAlgolia(page, filters, opts = {}) {
       loadComunidadFilterOptionsAlgolia();
       await asegurarCatalogoBase();
       const coincide = (campo, v, p) => !v || [].concat(p[campo] ?? []).some((x) => filtrarPor(campo, v).includes(x));
-      const lista = communityRandomOrder.filter((p) => coincide('categoria', filters.categoria, p) && coincide('temporada', filters.temporada, p)
+      const lista = communityRandomOrder.filter((p) => coincide('categoria', filters.categoria, p) && coincide('temporada', filters.temporada, p) && (!filters.condicion || p.condicion === filters.condicion)
         && (!filters.vendedor || String(p.vendedor_uid) === String(filters.vendedor)));
       currentPage      = page;
       totalPagesGlobal = Math.max(1, Math.ceil(lista.length / PAGE_SIZE));
@@ -552,6 +555,7 @@ async function loadComunidadPageAlgolia(page, filters, opts = {}) {
       if (filters.categoria) filterParts.push(filtroAlgolia('categoria', filters.categoria));
       if (filters.vendedor)  filterParts.push('vendedor_uid:"' + String(filters.vendedor).replace(/"/g, '') + '"');
       if (filters.temporada) filterParts.push(filtroAlgolia('temporada', filters.temporada));
+      if (filters.condicion) filterParts.push('condicion:"' + filters.condicion.replace(/"/g, '') + '"');
       if (filters.orden === 'verificados') filterParts.push('vendedor_plan:"plus"');
       const filterString = filterParts.join(' AND ');
 
@@ -694,7 +698,7 @@ function applyFilters() {
     const temporada = temporadaSelect ? temporadaSelect.value : '';
     const ordenEl   = document.getElementById('comunidad-orden');
     const orden     = ordenEl ? ordenEl.value : '';
-    const filters = { busqueda, categoria, vendedor, temporada, vista: vistaActiva, orden };
+    const filters = { busqueda, categoria, vendedor, temporada, condicion: (document.getElementById('comunidad-condicion') || {}).value || '', vista: vistaActiva, orden };
     // Eliminar vacíos
     Object.keys(filters).forEach(k => { if (!filters[k]) delete filters[k]; });
     currentFilters = filters;
@@ -730,7 +734,7 @@ function initFiltrosSheet() {
   sheet.querySelectorAll('[data-cerrar-filtros]').forEach(el => el.addEventListener('click', cerrar));
   document.getElementById('filtros-aplicar')?.addEventListener('click', cerrar);
   document.getElementById('filtros-limpiar')?.addEventListener('click', () => {
-    [catSelect, vendorSelect, temporadaSelect, document.getElementById('comunidad-orden')].forEach(el => { if (el) el.value = ''; }); // catSelect/temporadaSelect limpian grupo y detalle
+    [catSelect, vendorSelect, temporadaSelect, document.getElementById('comunidad-condicion'), document.getElementById('comunidad-orden')].forEach(el => { if (el) el.value = ''; }); // catSelect/temporadaSelect limpian grupo y detalle
     applyFilters();
   });
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && sheet.classList.contains('open')) cerrar(); });
@@ -740,7 +744,7 @@ function initFiltrosSheet() {
 function actualizarBadgeFiltros(filters) {
   const badge = document.getElementById('filtros-badge');
   if (!badge) return;
-  const n = ['categoria', 'vendedor', 'temporada', 'orden'].filter(k => filters && filters[k]).length;
+  const n = ['categoria', 'vendedor', 'temporada', 'condicion', 'orden'].filter(k => filters && filters[k]).length;
   badge.textContent = String(n);
   badge.style.display = n ? 'inline-flex' : 'none';
 }
@@ -760,6 +764,7 @@ function updateComunidadChips(filters) {
   if (filters.categoria) chips.push({ label: `${filters.categoria}`, clear: () => { if (catSelect) catSelect.value = ''; applyFilters(); } });
   if (filters.vendedor)  chips.push({ label: `${vendorSelect && vendorSelect.selectedOptions[0] ? vendorSelect.selectedOptions[0].textContent : 'Vendedor'}`, clear: () => { if (vendorSelect) vendorSelect.value = ''; applyFilters(); } });
   if (filters.temporada) chips.push({ label: `${filters.temporada}`, clear: () => { if (temporadaSelect) temporadaSelect.value = ''; applyFilters(); } });
+  if (filters.condicion) chips.push({ label: filters.condicion === 'nuevo' ? 'Nuevo' : 'Usado', clear: () => { const el = document.getElementById('comunidad-condicion'); if (el) el.value = ''; applyFilters(); } });
   if (filters.orden)     chips.push({ label: ordenLabels[filters.orden] || filters.orden, clear: () => { const el = document.getElementById('comunidad-orden'); if (el) el.value = ''; applyFilters(); } });
 
   if (!chips.length) { bar.style.display = 'none'; bar.innerHTML = ''; return; }
@@ -773,7 +778,7 @@ function updateComunidadChips(filters) {
     btn.addEventListener('click', () => {
       const idx = btn.dataset.chip;
       if (idx === 'all') {
-        ['comunidad-cat','comunidad-vendor','comunidad-temporada','comunidad-orden'].forEach(id => {
+        ['comunidad-cat','comunidad-vendor','comunidad-temporada','comunidad-condicion','comunidad-orden'].forEach(id => {
           const el = document.getElementById(id); if (el) el.value = '';
         });
         const si = document.getElementById('comunidad-search'); if (si) si.value = '';
@@ -803,7 +808,7 @@ function crearMiniCardComunidad(p, badgeHtml) {
     <div style="padding:6px 2px 0;">
       <div style="font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(safeString(p.nombre))}</div>
       ${tieneDescuento ? `<div style="font-size:11px;color:var(--color-text-muted,#888);text-decoration:line-through;">${fmtCurr(original)}</div>` : ''}
-      <div style="font-size:15px;font-weight:800;">${p.tipoVenta === 'servicio' ? window.znrPrecioServicio(p, fmtCurr) : (p.tipoVenta === 'personalizado' ? '<span style="font-size:10px;font-weight:600;opacity:.7;">Desde </span>' : '') + fmtCurr(p.precio)}${p.tipoVenta === 'renta' ? '<span style="font-size:10px;font-weight:600;opacity:.7;"> /día</span>' : ''}</div>
+      <div style="font-size:15px;font-weight:800;">${window.esServicio(p) ? window.znrPrecioServicio(p, fmtCurr) : (p.tipoVenta === 'personalizado' ? '<span style="font-size:10px;font-weight:600;opacity:.7;">Desde </span>' : '') + fmtCurr(p.precio)}${p.tipoVenta === 'renta' ? '<span style="font-size:10px;font-weight:600;opacity:.7;"> /día</span>' : ''}</div>
     </div>`;
   mini.onclick = () => {
     if (!window.openImageModal) return;
@@ -814,7 +819,7 @@ function crearMiniCardComunidad(p, badgeHtml) {
       Stock: p.tipoVenta === 'personalizado' ? -1 : (stockVivo(p) !== undefined ? Number(stockVivo(p)) : -1),
       TipoVenta: p.tipoVenta || 'stock', TiempoElaboracionDias: Number(p.tiempoElaboracionDias) || 0,
       OpcionesPersonalizacion: p.opcionesPersonalizacion || '',
-      temporada: p.temporada || '', multicolor: p.multicolor === true || p.multicolor === 'true',
+      temporada: p.temporada || '', multicolor: p.multicolor === true || p.multicolor === 'true', ...window.znrCamposVenta(p),
       Badge: p.badge || '', Imagen1: p.imagen1 || '', Imagen2: p.imagen2 || '', Imagen3: p.imagen3 || '',
       _comunidad: true, _vendedorNombre: p.vendedor_nombre || '', _vendedorUid: p.vendedor_uid || '',
       _vendedorLogo: p.vendedor_logo || '', _vendedorPlan: p.vendedor_plan || '', _vendedorNivel: p.vendedor_nivel || '', _vendedorPlanVence: p.vendedor_plan_vence || 0,
@@ -1017,6 +1022,7 @@ function filtrarLocal(lista, f) {
   if (f.categoria) out = out.filter(p => filtrarPor('categoria', f.categoria).includes(p.categoria));
   if (f.vendedor) out = out.filter(p => p.vendedor_uid === f.vendedor);
   if (f.temporada) out = out.filter(p => filtrarPor('temporada', f.temporada).includes(p.temporada));
+  if (f.condicion) out = out.filter(p => p.condicion === f.condicion);
   if (f.orden === 'precio_asc') out.sort((a, b) => (Number(a.precio) || 0) - (Number(b.precio) || 0));
   return out;
 }
@@ -1170,7 +1176,7 @@ function handleInitialHashComunidad(intentos = 0) {
     TiempoElaboracionDias: Number(product.tiempoElaboracionDias) || 0,
     OpcionesPersonalizacion: product.opcionesPersonalizacion || '',
     temporada: product.temporada || '',
-    multicolor: product.multicolor === true || product.multicolor === 'true',
+    multicolor: product.multicolor === true || product.multicolor === 'true', ...window.znrCamposVenta(product),
     Badge: product.badge || '',
     Imagen1: product.imagen1 || '',
     Imagen2: product.imagen2 || '',
@@ -1349,7 +1355,7 @@ card.id = `producto-${product.id}`;
 card.setAttribute('data-id', product.id);
 const imgUrl  = product.imagen1 || 'https://placehold.co/400x400/3b1f5f/white?text=Sin+Imagen';
 const allImages = [product.imagen1, product.imagen2, product.imagen3].filter(Boolean);
-const esPersonal = product.tipoVenta === 'personalizado', esRenta = product.tipoVenta === 'renta', esServ = product.tipoVenta === 'servicio';
+const esPersonal = product.tipoVenta === 'personalizado', esRenta = product.tipoVenta === 'renta', esServ = window.esServicio(product);
 const diasElab = Number(product.tiempoElaboracionDias) || 0;
 const stockNum  = Number(stockVivo(product)) || 0;
 const hasStock  = esPersonal || esServ ? true : stockNum > 0;
@@ -1391,7 +1397,7 @@ ${product.talla ? `<div style="font-size:11px;color:var(--color-text-muted);marg
 ${window.ZNR_TEMPORADAS ? window.ZNR_TEMPORADAS.chipsHTML(product) : ''}
 <div style="display:flex;align-items:center;gap:6px;margin-top:6px;flex-wrap:wrap;">
 ${esServ
-? `<span style="color:#0ea5e9;font-size:11px;font-weight:600;">Servicio · ${esc(window.znrLugaresServicio(product))}</span>`
+? `<span style="color:#0ea5e9;font-size:11px;font-weight:600;">${window.znrTipoServicio(product)} · ${esc(window.znrLugaresServicio(product))}</span>`
 : esPersonal
 ? `<span style="color:#a855f7;font-size:11px;font-weight:600;">Bajo pedido${diasElab ? ' · ' + diasElab + (diasElab === 1 ? ' día' : ' días') : ''}</span>`
 : !hasStock
@@ -1415,7 +1421,7 @@ data-vendoruid="${esc(safeString(product.vendedor_uid || ''))}"
 data-donacion="${esDonativo}"
 data-benid="${esDonativo && product.beneficiario_id ? esc(safeString(product.beneficiario_id)) : ''}"
 data-personalizado="${esPersonal}">
-${!hasStock ? '-' : (esServ ? 'Agendar' : esPersonal ? 'Personalizar' : esRenta ? 'Rentar' : 'Añadir')}
+${!hasStock ? '-' : (esServ ? (product.tipoVenta === 'comida' ? 'Pedir' : 'Agendar') : esPersonal ? 'Personalizar' : esRenta ? 'Rentar' : 'Añadir')}
 </button>
 ${!product.es_znr ? `<button class="btn-report" title="Reportar" style="background:var(--color-surface-3);border:none;border-radius:30px;padding:8px 8px;cursor:pointer;color:var(--color-text-muted);display:flex;align-items:center;"><svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" aria-hidden="true"><use href="#ic-flag"/></svg></button>` : ''}
 <button class="btn-share-comunidad" title="Compartir" style="background:var(--color-surface-3);border:none;border-radius:30px;padding:8px 8px;cursor:pointer;color:var(--color-text-muted);display:flex;align-items:center;"><svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" aria-hidden="true"><use href="#ic-share"/></svg></button>
@@ -1438,7 +1444,7 @@ TipoVenta: product.tipoVenta || 'stock',
 TiempoElaboracionDias: diasElab,
 OpcionesPersonalizacion: product.opcionesPersonalizacion || '',
 temporada: product.temporada || '',
-multicolor: product.multicolor === true || product.multicolor === 'true',
+multicolor: product.multicolor === true || product.multicolor === 'true', ...window.znrCamposVenta(product),
 Badge:  product.badge  || '',
 Imagen1:  product.imagen1  || '',
 Imagen2:  product.imagen2  || '',
@@ -1568,6 +1574,7 @@ if (catSelectEl) catSelectEl.addEventListener('change', updateHandler);
 if (vendorSelectEl) vendorSelectEl.addEventListener('change', updateHandler);
 const temporadaSelectEl = document.getElementById('comunidad-temporada');
 if (temporadaSelectEl) temporadaSelectEl.addEventListener('change', updateHandler);
+document.getElementById('comunidad-condicion')?.addEventListener('change', updateHandler);
 if (ordenEl) ordenEl.addEventListener('change', updateHandler);
 }
 function initCartAndUI() {
@@ -1741,6 +1748,7 @@ vendorSelect = document.getElementById('comunidad-vendor');
   temporadaSelect = el('comunidad-temporada') && selectorAgrupado(el('comunidad-temporada'), 'temporada', 'Todas');
   if (catSelect) catSelect.value = urlF.get('categoria') || '';
   if (temporadaSelect) temporadaSelect.value = urlF.get('temporada') || '';
+  if (el('comunidad-condicion')) el('comunidad-condicion').value = urlF.get('condicion') || '';
 }
 paginationDiv = document.getElementById('comunidad-pagination');
 if (!gridContainer) {

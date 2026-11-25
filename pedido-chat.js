@@ -52,13 +52,18 @@ const TEXTO_RENTA = {
 };
 // Servicio (pedido.tipo === "servicio"): el cliente propuso fecha, hora y lugar; el vendedor confirma (o propone otra)
 // con el precio. Agendado → en curso → realizado (sin "listo": no hay entrega).
-const esServicio = () => pedido && pedido.tipo === "servicio";
+// Comida por encargo (tipo "comida"): mismo flujo con otras palabras (confirmado → en preparación → entregado) y cantidad.
+const esComida = () => pedido && pedido.tipo === "comida", S = (serv, com) => (esComida() ? com : serv);
+const esServicio = () => pedido && ["servicio", "comida"].includes(pedido.tipo);
 const ETAPAS_SERVICIO = [["solicitado", "Solicitud"], ["cotizado", "Confirmación"], ["aceptado", "Agendado"], ["en_elaboracion", "En curso"], ["entregado", "Realizado"]];
+const ETAPAS_COMIDA = [["solicitado", "Pedido"], ["cotizado", "Confirmación"], ["aceptado", "Confirmado"], ["en_elaboracion", "En preparación"], ["entregado", "Entregado"]];
 const TEXTO_SERVICIO = { solicitado: "Esperando confirmación", cotizado: "Por aceptar", aceptado: "Agendado", en_elaboracion: "En curso", entregado: "Realizado" };
-const LUGAR_SERVICIO = { domicilio: "A domicilio", local: "En el local del vendedor", linea: "En línea" };
+const TEXTO_COMIDA = { ...TEXTO_SERVICIO, aceptado: "Confirmado", en_elaboracion: "En preparación", entregado: "Entregado" };
+const LUGAR_SERVICIO = { domicilio: "A domicilio", local: "En el local del vendedor", linea: "En línea" }, LUGAR_COMIDA = { domicilio: "A domicilio", local: "Para recoger con el vendedor" };
+const lugarTxt = (l) => (esComida() ? LUGAR_COMIDA : LUGAR_SERVICIO)[l] || l;
 const citaTxt = (fecha, hora) => fechaCorta(fecha) + (hora ? " a las " + hora : "");
-const etapas = () => (esRenta() ? ETAPAS_RENTA : esServicio() ? ETAPAS_SERVICIO : ETAPAS);
-const textoEstado = (e) => (esRenta() && TEXTO_RENTA[e]) || (esServicio() && TEXTO_SERVICIO[e]) || TEXTO_ESTADO[e] || e;
+const etapas = () => (esRenta() ? ETAPAS_RENTA : esServicio() ? S(ETAPAS_SERVICIO, ETAPAS_COMIDA) : ETAPAS);
+const textoEstado = (e) => (esRenta() && TEXTO_RENTA[e]) || (esServicio() && S(TEXTO_SERVICIO, TEXTO_COMIDA)[e]) || TEXTO_ESTADO[e] || e;
 const TERMINADO = ["entregado", "devuelto"];
 
 // Chat de un pedido normal (Comunidad / live): pedido.tipo === "venta". Sin cotización, pagos ni etapas: solo la
@@ -400,7 +405,7 @@ function renderDetalle() {
   ui.detalle.appendChild(h("div", { class: "pp-d-ref" },
     pedido.productoImagen ? h("img", { src: pedido.productoImagen, alt: "", loading: "lazy" }) : null,
     h("div", {}, h("b", { text: pedido.productoNombre || "" }),
-      h("span", { text: esServicio() ? "Servicio · " + (pedido.precioServicio === "cotizar" ? "a cotizar" : "desde " + dinero(pedido.precioDesde)) : esRenta() ? "Renta · " + dinero(pedido.renta.precioDia) + " por día" : "Artículo de referencia · desde " + dinero(pedido.precioDesde) + (pedido.tiempoElaboracionDias ? " · " + pedido.tiempoElaboracionDias + " días" : "") }))));
+      h("span", { text: esComida() ? "Comida por encargo · " + pedido.servicio.cantidad + " piezas · " + dinero(pedido.precioDesde) : esServicio() ? "Servicio · " + (pedido.precioServicio === "cotizar" ? "a cotizar" : "desde " + dinero(pedido.precioDesde)) : esRenta() ? "Renta · " + dinero(pedido.renta.precioDia) + " por día" : "Artículo de referencia · desde " + dinero(pedido.precioDesde) + (pedido.tiempoElaboracionDias ? " · " + pedido.tiempoElaboracionDias + " días" : "") }))));
 
   const filas = [];
   if (esRenta()) {
@@ -416,8 +421,9 @@ function renderDetalle() {
   }
   if (esServicio()) {
     const sv = pedido.servicio;
-    filas.push(["Cita", citaTxt(c ? c.fechaEntrega : sv.fecha, c ? c.hora : sv.hora) + (c && (c.fechaEntrega !== sv.fecha || c.hora !== sv.hora) ? " (el cliente pidió " + citaTxt(sv.fecha, sv.hora) + ")" : "")]);
-    filas.push(["Lugar", (LUGAR_SERVICIO[sv.lugar] || sv.lugar) + (sv.direccion ? ": " + sv.direccion : "") + (sv.traslado ? " · traslado " + dinero(sv.traslado) : ""),
+    if (sv.cantidad) filas.push(["Cantidad", sv.cantidad + " piezas"]);
+    filas.push([S("Cita", "Entrega"), citaTxt(c ? c.fechaEntrega : sv.fecha, c ? c.hora : sv.hora) + (c && (c.fechaEntrega !== sv.fecha || c.hora !== sv.hora) ? " (el cliente pidió " + citaTxt(sv.fecha, sv.hora) + ")" : "")]);
+    filas.push([S("Lugar", "Cómo"), lugarTxt(sv.lugar) + (sv.direccion ? ": " + sv.direccion : "") + (sv.traslado ? S(" · traslado ", " · envío ") + dinero(sv.traslado) : ""),
       null, typeof sv.lat === "number" ? "https://www.google.com/maps/dir/?api=1&destination=" + sv.lat + "," + sv.lng : ""]);
   }
   if (c && c.precio) {
@@ -620,25 +626,25 @@ function configServicio(e, vend, cot, a, r, btnPago) {
   const cita = cot ? citaTxt(cot.fechaEntrega, cot.hora) : citaTxt(pedido.servicio.fecha, pedido.servicio.hora);
   const restante = r && r.estado === "pendiente" ? r : null;
   if (vend) {
-    if (e === "solicitado") return { info: "Te piden " + cita + " · confirma o propón otra", botones: [["Confirmar servicio", "primary", abrirCotizar]] };
+    if (e === "solicitado") return { info: "Te piden " + cita + " · confirma o propón otra", botones: [[S("Confirmar servicio", "Confirmar pedido"), "primary", abrirCotizar]] };
     if (e === "cotizado") return { info: "Confirmaste " + dinero(cot && cot.precio) + " · " + cita + " · esperando al cliente", botones: [["Cambiar", "", abrirCotizar]] };
-    if (e === "aceptado" && !(a && ["pendiente", "por_confirmar"].includes(a.estado))) return { info: "Agendado: " + cita, botones: [["Iniciar servicio", "primary", (b) => cambiarEstado("en_elaboracion", b)]] };
+    if (e === "aceptado" && !(a && ["pendiente", "por_confirmar"].includes(a.estado))) return { info: S("Agendado: ", "Confirmado: ") + cita, botones: [[S("Iniciar servicio", "Empezar a preparar"), "primary", (b) => cambiarEstado("en_elaboracion", b)]] };
     if (e === "en_elaboracion") {
       if (restante) return { info: "Cobra el restante: " + dinero(r.monto), botones: [["Recibí el restante (efectivo)", "primary", (b) => confirmarRecibido("restante", "efectivo", b)]] };
       if (r && r.estado === "por_confirmar") return { info: "Comprobante del restante (" + dinero(r.monto) + ")", thumb: r.comprobante, botones: [["Confirmar y terminar", "primary", (b) => confirmarRecibido("restante", "transferencia", b)]] };
-      return { info: "Servicio en curso", botones: [["Marcar realizado", "primary", (b) => cambiarEstado("entregado", b)]] };
+      return { info: S("Servicio en curso", "En preparación"), botones: [[S("Marcar realizado", "Marcar entregado"), "primary", (b) => cambiarEstado("entregado", b)]] };
     }
     return undefined;
   }
   if (e === "solicitado") return { info: "Pediste " + cita + " · esperando que el vendedor confirme", botones: [] };
   if (e === "cotizado" && cot) return { info: "Confirmado: " + dinero(cot.precio) + " · " + cita + (cot.anticipo > 0 ? " · anticipo " + dinero(cot.anticipo) : ""),
     botones: [["Aceptar", "primary", (b) => responderCotizacion("aceptar", cot, b)], ["Rechazar", "", (b) => responderCotizacion("rechazar", cot, b)]] };
-  if (e === "aceptado" && !(a && ["pendiente", "por_confirmar"].includes(a.estado))) return { info: "Agendado: " + cita, botones: [] };
+  if (e === "aceptado" && !(a && ["pendiente", "por_confirmar"].includes(a.estado))) return { info: S("Agendado: ", "Confirmado: ") + cita, botones: [] };
   if (e === "en_elaboracion") {
     if (restante) return r.ultimoRechazo ? { info: "El vendedor no encontró tu pago: " + r.ultimoRechazo.motivo, tono: "bad", botones: btnPago("restante") }
-      : { info: "Servicio en curso · paga " + dinero(r.monto) + " en efectivo o por transferencia", botones: btnPago("restante") };
+      : { info: S("Servicio en curso", "En preparación") + " · paga " + dinero(r.monto) + " en efectivo o por transferencia", botones: btnPago("restante") };
     if (r && r.estado === "por_confirmar") return { info: "Comprobante enviado · esperando confirmación", thumb: r.comprobante, botones: [] };
-    return { info: "Servicio en curso", botones: [] };
+    return { info: S("Servicio en curso", "Tu pedido está en preparación"), botones: [] };
   }
   return undefined;
 }
@@ -863,7 +869,7 @@ function noRecibido(tipo) {
 }
 
 async function confirmarRecibido(tipo, metodo, btn) {
-  const nom = tipo === "anticipo" ? "el anticipo" : esRenta() ? "el restante (la renta pasará a «en renta»)" : esServicio() ? "el restante (el servicio quedará realizado)" : "el restante (el pedido pasará a entregado)";
+  const nom = tipo === "anticipo" ? "el anticipo" : esRenta() ? "el restante (la renta pasará a «en renta»)" : esServicio() ? S("el restante (el servicio quedará realizado)", "el restante (el pedido quedará entregado)") : "el restante (el pedido pasará a entregado)";
   const via = metodo === "efectivo" ? "en efectivo" : "por transferencia";
   if (!(await confirmar("Confirmar pago", "¿Confirmas que recibiste " + nom + " " + via + "?", "Sí, lo recibí", "primary"))) return;
   await hacer(btn, "confirmarPago", { tipo, accion: "confirmar", metodo });
@@ -984,8 +990,8 @@ function abrirConfirmarServicio() {
   const detalles = h("textarea", { maxlength: "600", placeholder: "Opcional: qué incluye, qué debe preparar el cliente…" });
   detalles.value = previa.detalles || "";
   const err = h("div", { class: "err" });
-  ventana("Confirmar servicio", h("div", {},
-    h("p", { class: "pp-hint", text: "El cliente pidió " + citaTxt(sv.fecha, sv.hora) + " · " + (LUGAR_SERVICIO[sv.lugar] || sv.lugar) + ". Si no puedes, cambia la fecha u hora." }),
+  ventana(S("Confirmar servicio", "Confirmar pedido"), h("div", {},
+    h("p", { class: "pp-hint", text: "El cliente pidió " + (sv.cantidad ? sv.cantidad + " piezas para el " : "") + citaTxt(sv.fecha, sv.hora) + " · " + lugarTxt(sv.lugar) + ". Si no puedes, cambia la fecha u hora." }),
     h("label", { text: "Precio total (MXN)" }), precio, h("label", { text: "Anticipo para apartar (MXN)" }), anticipo,
     h("div", { style: "display:grid;grid-template-columns:1fr 1fr;gap:8px" }, h("div", {}, h("label", { text: "Fecha" }), fecha), h("div", {}, h("label", { text: "Hora" }), horaIn)),
     h("label", { text: "Notas" }), detalles, err), [
@@ -1075,8 +1081,8 @@ async function enviarTexto() {
 
 async function responderCotizacion(accion, c, btn) {
   if (accion === "aceptar") {
-    const ok = await confirmar(esServicio() ? "Aceptar servicio" : "Aceptar cotización", esServicio()
-      ? "Aceptas " + dinero(c.precio) + " por el servicio el " + fechaEntregaTxt(c.fechaEntrega) + (c.hora ? " a las " + c.hora : "") + ". Quedará agendado."
+    const ok = await confirmar(esServicio() ? S("Aceptar servicio", "Aceptar pedido") : "Aceptar cotización", esServicio()
+      ? "Aceptas " + dinero(c.precio) + S(" por el servicio el ", " por tu pedido para el ") + fechaEntregaTxt(c.fechaEntrega) + (c.hora ? " a las " + c.hora : "") + S(". Quedará agendado.", ". Quedará confirmado.")
       : "Aceptas el precio de " + dinero(c.precio) + " con entrega el " + fechaEntregaTxt(c.fechaEntrega) + ". El vendedor empezará a elaborar tu pedido.", "Aceptar", "primary");
     if (!ok) return;
   }
@@ -1086,6 +1092,7 @@ async function responderCotizacion(accion, c, btn) {
 async function cambiarEstado(estado, btn) {
   const txt = (esRenta()
     ? { en_elaboracion: "¿Empiezas a preparar esta renta?", listo: "¿La renta ya está lista para entregar?", en_renta: "¿Confirmas que ya entregaste lo rentado al cliente?" }
+    : esComida() ? { en_elaboracion: "¿Empiezas a preparar este pedido? Se le avisa al cliente.", entregado: "¿Confirmas que el pedido ya se entregó?" }
     : esServicio() ? { en_elaboracion: "¿Vas en camino o ya empezaste el servicio? Se le avisa al cliente.", entregado: "¿Confirmas que el servicio ya se realizó?" }
     : { en_elaboracion: "¿Empiezas a elaborar este pedido?", listo: "¿Tu pedido ya está listo para entregar?", entregado: "¿Confirmas que el pedido ya fue entregado?" })[estado];
   if (!(await confirmar("Confirmar", txt, "Sí", "primary"))) return;
