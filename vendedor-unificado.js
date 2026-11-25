@@ -847,11 +847,11 @@ function renderVendorPlanPanel() {
     : `<span style="background:#eee;color:#666;font-size:11px;font-weight:700;padding:3px 10px;border-radius:999px;">FREE</span>`;
 
   const solidarioChip = window._insigniaSolidaria
-    ? `<button onclick="openGestionarDonacionesModal()" title="Vence el ${new Date(window._insigniaSolidaria.vence).toLocaleDateString('es-MX', { day: 'numeric', month: 'short' })} — dona algo más antes para conservarla" style="background:#fdf2f8;color:#9d174d;font-size:11px;font-weight:700;padding:3px 10px;border-radius:999px;border:none;cursor:pointer;">💜 Solidario</button>`
+    ? `<button onclick="openGestionarDonacionesModal()" title="Vence el ${new Date(window._insigniaSolidaria.vence).toLocaleDateString('es-MX', { day: 'numeric', month: 'short' })} — dona algo más antes para conservarla" aria-label="Insignia Vendedor Solidario" style="background:none;border:none;padding:2px;font-size:15px;text-decoration:underline;text-decoration-color:#9d174d;text-underline-offset:4px;cursor:pointer;">💜</button>`
     : '';
   // Cuántos productos ha donado (vigentes o ya vendidos); al tocarlo se abre "Gestionar donaciones".
   const nDon = window._productosDonados;
-  const donadosChip = nDon == null ? '' : `<button onclick="openGestionarDonacionesModal()" title="Lo que has donado y si ya se vendió" style="background:#fff7ed;color:#c2410c;font-size:11px;font-weight:700;padding:3px 10px;border-radius:999px;border:none;cursor:pointer;">❤️ ${nDon} donado${nDon === 1 ? '' : 's'}</button>`;
+  const donadosChip = nDon == null ? '' : `<button onclick="openGestionarDonacionesModal()" title="${nDon} donado${nDon === 1 ? '' : 's'}: lo que has donado y si ya se vendió" aria-label="${nDon} productos donados" style="background:none;border:none;padding:2px;color:#c2410c;font-size:13px;font-weight:700;text-decoration:underline;text-underline-offset:4px;cursor:pointer;white-space:nowrap;">❤️ ${nDon}</button>`;
 
   let renovacionHTML = '';
   // Artículos ocultos por el plan: siguen guardados; al reactivar Plus vuelven a Comunidad al instante
@@ -902,7 +902,7 @@ function renderVendorPlanPanel() {
   el.innerHTML = `
     <div style="background:#f8f8fc;border-radius:14px;padding:12px 14px;color:#000;">
       <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
-        <div style="font-size:13px;font-weight:600;color:#000;display:flex;align-items:center;gap:6px;">${actuales}/${limite} productos usados
+        <div style="font-size:13px;font-weight:600;color:#000;display:flex;align-items:center;gap:6px;white-space:nowrap;">${actuales}/${limite} productos usados
           <button type="button" onclick="window.abrirRankingStats()" title="Estadísticas de tus productos" aria-label="Estadísticas de tus productos" style="display:inline-flex;padding:3px;border:none;border-radius:6px;background:transparent;color:#7c3aed;cursor:pointer;">
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-8M22 20H2"/></svg>
           </button>
@@ -1207,18 +1207,26 @@ function pintarStatsProd(st) {
 window.abrirRankingStats = async function() {
   const st = await window.cargarStatsProd(true);
   if (!st) return showTemporaryMessage(' No se pudieron cargar las estadísticas', 'error');
-  const per = st.plus ? 'd30' : 'd7', cambio = (a, b) => (b ? `${a >= b ? '▲' : '▼'} ${Math.round(Math.abs(a - b) / b * 100)}%` : a ? '▲ nuevo' : '');
-  const filas = [...st.productos].sort((a, b) => b[per].v - a[per].v || b[per].c - a[per].c).map((p, i) => `<tr><td>${i + 1}</td><td>${escapeHtml(p.nombre)}</td>
-    <td>${statsTxt(p.d7)}${st.plus ? `<br><small>30 días: ${statsTxt(p.d30)}</small><br><small>Vistas vs semana anterior: ${cambio(p.d7.v, p.previa.v) || '—'}</small>` : ''}</td></tr>`).join('');
+  const per = st.plus ? 'd30' : 'd7';
+  const caja = (icono, n, t) => `<div title="${t}" style="flex:1;min-width:0;text-align:center;background:#f5f3ff;border-radius:10px;padding:6px 2px"><div style="font-size:15px">${icono}</div><b style="font-size:15px;color:#111">${n}</b></div>`;
+  const fila = (d) => `<div style="display:flex;gap:6px">${caja('👁', d.v, 'Vistas')}${caja('🛒', d.c, 'Carrito o pedidos')}${caja('↗', d.s, 'Compartidos')}${caja('✅', d.e, 'Entregadas')}</div>`;
+  const cambio = (a, b) => (b ? `<span style="color:${a >= b ? '#16a34a' : '#dc2626'}">${a >= b ? '▲' : '▼'} ${Math.round(Math.abs(a - b) / b * 100)}% vistas vs semana anterior</span>` : a ? '<span style="color:#16a34a">▲ vistas nuevas esta semana</span>' : '');
+  const tarjetas = [...st.productos].sort((a, b) => b[per].v - a[per].v || b[per].c - a[per].c).map((p, i) => `
+    <div style="text-align:left;border:1px solid #eee;border-radius:14px;padding:10px;margin-bottom:10px">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+        ${p.imagen ? `<img src="${escapeHtml(urlImagen(p.imagen))}" alt="" loading="lazy" style="width:40px;height:40px;border-radius:8px;object-fit:cover;flex:none">` : ''}
+        <b style="flex:1;min-width:0;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${i + 1}. ${escapeHtml(p.nombre)}</b></div>
+      <small style="color:#888">Últimos 7 días</small>${fila(p.d7)}
+      ${st.plus ? `<small style="color:#888;display:block;margin-top:6px">Últimos 30 días</small>${fila(p.d30)}<small style="display:block;margin-top:6px">${cambio(p.d7.v, p.previa.v)}</small>` : ''}
+    </div>`).join('');
   const m = document.createElement('div');
   m.className = 'custom-alert-modal';
-  m.innerHTML = `<div class="custom-alert-content" style="max-width:560px;width:94vw;max-height:86vh;overflow:auto"><div class="custom-alert-header"><h3>📊 Tus productos · ${st.plus ? 'últimos 30 días' : 'últimos 7 días'}</h3></div>
-    <div class="custom-alert-body"><p style="font-size:12px;margin:0 0 8px">👁 vistas · 🛒 agregados al carrito o pedidos · ↗ compartidos · ✅ piezas entregadas. Cuenta 1 por celular al día y no las tuyas.</p>
-    ${st.plus ? '' : '<p style="font-size:12px;margin:0 0 8px;color:#7c3aed">Con <a href="plan-plus.html">Plus o Pro</a> ves 30 días y la comparación con la semana anterior.</p>'}
-    <table style="width:100%;font-size:12px;border-collapse:collapse"><tbody>${filas || '<tr><td>Aún no tienes productos.</td></tr>'}</tbody></table></div>
+  m.innerHTML = `<div class="custom-alert-content" style="max-width:520px;width:94vw;max-height:88vh;display:flex;flex-direction:column"><div class="custom-alert-header"><h3>📊 Tus productos</h3></div>
+    <div class="custom-alert-body" style="overflow:auto;text-align:left"><p style="font-size:12px;margin:0 0 10px;color:#666">👁 vistas · 🛒 carrito o pedidos · ↗ compartidos · ✅ piezas entregadas. Cuenta 1 por celular al día y no las tuyas.</p>
+    ${st.plus ? '' : '<p style="font-size:12px;margin:0 0 10px;color:#7c3aed">Con <a href="plan-plus.html">Plus o Pro</a> ves 30 días y la comparación con la semana anterior.</p>'}
+    ${tarjetas || '<p>Aún no tienes productos.</p>'}</div>
     <div class="custom-alert-footer"><button class="custom-alert-btn confirm">Cerrar</button></div></div>`;
   document.body.appendChild(m);
-  m.querySelectorAll('td').forEach((td) => { td.style.cssText = 'padding:6px 4px;border-top:1px solid #eee;vertical-align:top'; });
   m.querySelector('.confirm').onclick = () => m.remove();
   m.onclick = (e) => { if (e.target === m) m.remove(); };
 };
