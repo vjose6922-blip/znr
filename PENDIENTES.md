@@ -205,5 +205,13 @@ Usa montos chicos ($149 de Plus o ~$10) y reembolsa si no quieres conservarlos. 
       a domicilio / en local / en línea, traslado, duración y zona; el cliente agenda fecha, hora y lugar; el vendedor
       confirma o propone otra; agendado → en curso → realizado. Probar: publicar uno, agendarlo desde otra cuenta y llevarlo
       hasta "Realizado". Pendientes para después: Comida por encargo, Clases y talleres, Preventa y etiqueta Usado/Nuevo.
+- [ ] **F11 Notificaciones push con mejor aspecto** (pedido 24 nov): hoy todos los servicios mandan `icon: …/logo.svg` y Android
+      no muestra SVG en notificaciones. Usar iconos PNG 192×192 por tipo (general 🔔, pedido 🛒, chat 💬, en vivo 🔴, promoción 🏷️)
+      a la derecha, `badge` PNG monocromo 96×96 para la barra de estado y emojis en los títulos. El título de color (como la app
+      nativa de Mercado Libre) no es posible en web push.
+- [x] **F12 Banners de temporada legibles** (25 nov): opción "Recuadro" (panel translúcido con desenfoque detrás del texto) y
+      sugerencia automática en CONTROL según el brillo y la variedad de tonos de la zona del texto (se aplica sola al subir una
+      imagen nueva; con un banner ya guardado solo funciona si el bucket permite leer la imagen por CORS). Ideas no hechas:
+      intensidad de sombra (suave/media/fuerte) y contorno en las letras.
 - [ ] Borrar la rama `vjose6922-blip-patch-1` de znr (historia vieja de sep 2026, sin relación con `main`).
 - [x] Cerrados los issues znr#18, znr#61, znr-backend#13, #15 y #37: su contenido ya está aquí.
