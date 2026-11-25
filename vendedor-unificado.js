@@ -2959,6 +2959,7 @@ async function cerrarSesionesRemotas() {
 
     vendorSession.token = res.token;
     try { localStorage.setItem('vendor_session', JSON.stringify(vendorSession)); } catch(e) {}
+    window.solicitarPermisoNotificacionesSiFalta?.('vendedor', vendorSession.uid); // el servidor olvidó todos los equipos (S12): este se vuelve a registrar
     msg.style.color = '#16a34a';
     msg.textContent = 'Listo, los demás dispositivos quedaron sin sesión.';
     document.getElementById('settings-sesiones-pwd').value = '';

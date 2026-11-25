@@ -163,9 +163,9 @@ Usa montos chicos ($149 de Plus o ~$10) y reembolsa si no quieres conservarlos. 
       se le quitó **Editor** (ahora: cloudbuild.builds.builder, run.admin, artifactregistry.writer, Cloud Tasks, eventarc,
       logWriter y `run.invoker` en los 3 servicios de Eventarc y push-send-worker). Si algo da 403/PERMISSION_DENIED, volver a darle
       Editor: `gcloud projects add-iam-policy-binding znr-live --member=serviceAccount:1038143238323-compute@developer.gserviceaccount.com --role=roles/editor --condition=None`.
-- [ ] **S12 Push al equipo viejo**: al iniciar sesión en otro equipo, el anterior sigue recibiendo notificaciones. Hoy el equipo
-      viejo solo borra su token FCM si está abierto y hace una llamada que falla por sesión vencida (`checkTokenInvalid`). Arreglo
-      en el servidor: al iniciar sesión, desactivar los tokens de los otros equipos de esa cuenta (o ligar cada token a su sesión).
+- [x] **S12 Push al equipo viejo** (25 nov): al iniciar sesión de vendedor (contraseña, huella o "cerrar sesiones
+      remotas") `vendedores-api` borra los equipos registrados en `fcm_tokens/vendedor_<uid>/tokens`; el que entra se vuelve a
+      registrar enseguida. Probar: entrar en la PC y luego en el celular → un pedido nuevo solo avisa al celular.
 - [x] **S13 `push-queue-worker`** (25 nov): borrado (servicio, cuenta `push-queue-worker-sa`, activador `push-queue-worker-auto`
       y carpeta en znr-backend). Nadie lo llamaba; la cola `push-queue` va a `push-send-worker`.
 - [x] **S7 Entrada de emergencia apagada y `ADMIN_TOKEN` rotado** (19 nov): `ADMIN_PASSWORD` borrada de auth-api y
