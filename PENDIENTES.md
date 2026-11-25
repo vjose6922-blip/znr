@@ -212,8 +212,8 @@ Usa montos chicos ($149 de Plus o ~$10) y reembolsa si no quieres conservarlos. 
 - [ ] **F10b Comida por encargo y etiqueta Nuevo/Usado** (25 nov, en rama sin fusionar): tipo de venta "comida" (precio por pieza,
       mínimo opcional, anticipación 0/1/2/3/7 días, "pasa a recoger" y/o a domicilio con envío; mismo flujo que Servicios:
       confirmado → en preparación → entregado) y campo `condicion` (nuevo/usado) obligatorio al publicar con stock o renta,
-      chip en tarjetas y filtro "Estado del artículo" en Comunidad. **Algolia:** agregar `condicion` en Configuration →
-      Facets → "filter only" (índice de Comunidad y sus réplicas de orden). Probar: publicar tamales, pedirlos desde otra
+      chip en tarjetas y filtro "Estado del artículo" en Comunidad. **Después de fusionar:** CONTROL → Herramientas →
+      "Resincronizar todo Comunidad con Algolia" (agrega solo la faceta `condicion` al índice y sus réplicas). Probar: publicar tamales, pedirlos desde otra
       cuenta hasta "Entregado"; publicar un artículo usado y filtrarlo.
 - [ ] **F11 Notificaciones push con mejor aspecto** (25 nov, en rama sin fusionar): `sw.js` elige el icono PNG 192×192 de
       `img/push/` (general 🔔, pedido 🛒, chat 💬, en vivo 🔴, promoción 🏷️) por `data.tipo` o, si no viene, por el título y la
