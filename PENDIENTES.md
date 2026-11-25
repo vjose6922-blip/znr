@@ -177,8 +177,8 @@ Usa montos chicos ($149 de Plus o ~$10) y reembolsa si no quieres conservarlos. 
 - [x] **S11 Huella / Face ID del staff validada por el servidor** (znr-backend + CONTROL): opcional por cuenta en
       CONTROL → Mi cuenta → "Huella para entrar"; activada, `loginAdmin` pide contraseña + firma. Perderla: "¿Olvidaste tu
       contraseña?" (código al correo) la quita. Probar: activar en el celular → cerrar sesión → entrar pide la huella.
-- [ ] **S8 (opcional) RTDB**: agregar `&& root.child('vendedorOficial').child($liveId).exists()` al `.write` de `chats`, `presencia` y
-      `contactos`. Probar antes con un live programado (el comprador que entra antes que el vendedor sería rechazado).
+- [x] **S8 RTDB lives** (25 nov, revisado): ya cubierto con algo más estricto. En `chats` y `presencia` solo se escribe si
+      `live_estado/$liveId/estado` es `en_vivo` (y borrar/editar mensajes solo el `vendedorOficial`); `contactos` ya no existe.
 - [ ] **S9 (futuro) Storage**: servir fotos de `pedidos_personalizados/` con URL firmada desde `pedidos-api` en vez de `allow get: if true`.
 
 ## 5. Después del lanzamiento (mejoras e ideas)
