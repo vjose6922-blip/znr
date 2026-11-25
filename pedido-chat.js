@@ -423,8 +423,9 @@ function renderDetalle() {
     const sv = pedido.servicio;
     if (sv.cantidad) filas.push(["Cantidad", sv.cantidad + " piezas"]);
     filas.push([S("Cita", "Entrega"), citaTxt(c ? c.fechaEntrega : sv.fecha, c ? c.hora : sv.hora) + (c && (c.fechaEntrega !== sv.fecha || c.hora !== sv.hora) ? " (el cliente pidió " + citaTxt(sv.fecha, sv.hora) + ")" : "")]);
-    filas.push([S("Lugar", "Cómo"), lugarTxt(sv.lugar) + (sv.direccion ? ": " + sv.direccion : "") + (sv.traslado ? S(" · traslado ", " · envío ") + dinero(sv.traslado) : ""),
-      null, typeof sv.lat === "number" ? "https://www.google.com/maps/dir/?api=1&destination=" + sv.lat + "," + sv.lng : ""]);
+    const dir = sv.direccion || sv.punto || ""; // a domicilio: dirección del cliente; para recoger / en el local: punto del vendedor
+    filas.push([S("Lugar", "Cómo"), lugarTxt(sv.lugar) + (dir ? ": " + dir : "") + (sv.traslado ? S(" · traslado ", " · envío ") + dinero(sv.traslado) : ""),
+      null, typeof sv.lat === "number" ? "https://www.google.com/maps/dir/?api=1&destination=" + sv.lat + "," + sv.lng : dir ? "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(dir) : ""]);
   }
   if (c && c.precio) {
     filas.push([pedido.cotizacionAceptada ? "Acordado" : "Cotización", dinero(c.precio)]);
@@ -484,7 +485,7 @@ function chipCotizacion(m, e) {
   return h("div", { class: "pp-chip cot" + (vigente ? " vivo" : "") + (m.autorUid === identidad.authUid ? " me" : "") },
     h("div", { class: "l1" },
       h("b", { text: "💲 " + dinero(c.precio) + (c.version > 1 ? " (#" + c.version + ")" : "") }),
-      h("span", { text: (esRenta() ? " · renta " + fechaCorta(pedido.renta.desde) + (c.deposito > 0 ? " · depósito " + dinero(c.deposito) : "") : esServicio() ? " · cita " + citaTxt(c.fechaEntrega, c.hora) : " · entrega " + fechaCorta(c.fechaEntrega)) + (c.anticipo > 0 ? " · anticipo " + dinero(c.anticipo) : "") }),
+      h("span", { text: (esRenta() ? " · renta " + fechaCorta(pedido.renta.desde) + (c.deposito > 0 ? " · depósito " + dinero(c.deposito) : "") : esServicio() ? S(" · cita ", " · entrega ") + citaTxt(c.fechaEntrega, c.hora) : " · entrega " + fechaCorta(c.fechaEntrega)) + (c.anticipo > 0 ? " · anticipo " + dinero(c.anticipo) : "") }),
       h("em", { text: etiqueta })),
     m.contenido ? h("div", { class: "l2", text: m.contenido }) : null);
 }
@@ -621,6 +622,13 @@ function configBarra(e, vend) {
   return null;
 }
 
+// Comida: el cliente elige pagar el restante ya (transferencia) o en efectivo al recibir; se avisa al vendedor en el chat.
+const pagoAlRecibir = () => { try { return localStorage.getItem("znr_pago_al_recibir_" + pedido.id) === "1"; } catch (_) { return false; } };
+async function elegirPagoAlRecibir(r, btn) {
+  const ok = await hacer(btn, "enviarMensajePedido", { contenido: "💵 Pagaré los " + dinero(r.monto) + " en efectivo al recibir mi pedido." });
+  if (ok) { try { localStorage.setItem("znr_pago_al_recibir_" + pedido.id, "1"); } catch (_) {} renderTodo(); }
+}
+
 // Pasos propios del servicio; undefined = igual que un pedido personalizado (cobro del anticipo).
 function configServicio(e, vend, cot, a, r, btnPago) {
   const cita = cot ? citaTxt(cot.fechaEntrega, cot.hora) : citaTxt(pedido.servicio.fecha, pedido.servicio.hora);
@@ -630,7 +638,7 @@ function configServicio(e, vend, cot, a, r, btnPago) {
     if (e === "cotizado") return { info: "Confirmaste " + dinero(cot && cot.precio) + " · " + cita + " · esperando al cliente", botones: [["Cambiar", "", abrirCotizar]] };
     if (e === "aceptado" && !(a && ["pendiente", "por_confirmar"].includes(a.estado))) return { info: S("Agendado: ", "Confirmado: ") + cita, botones: [[S("Iniciar servicio", "Empezar a preparar"), "primary", (b) => cambiarEstado("en_elaboracion", b)]] };
     if (e === "en_elaboracion") {
-      if (restante) return { info: "Cobra el restante: " + dinero(r.monto), botones: [["Recibí el restante (efectivo)", "primary", (b) => confirmarRecibido("restante", "efectivo", b)]] };
+      if (restante) return { info: S("Cobra el restante: ", "En preparación · al entregar cobra ") + dinero(r.monto), botones: [[S("Recibí el restante (efectivo)", "Entregué y cobré en efectivo"), "primary", (b) => confirmarRecibido("restante", "efectivo", b)]] };
       if (r && r.estado === "por_confirmar") return { info: "Comprobante del restante (" + dinero(r.monto) + ")", thumb: r.comprobante, botones: [["Confirmar y terminar", "primary", (b) => confirmarRecibido("restante", "transferencia", b)]] };
       return { info: S("Servicio en curso", "En preparación"), botones: [[S("Marcar realizado", "Marcar entregado"), "primary", (b) => cambiarEstado("entregado", b)]] };
     }
@@ -641,6 +649,9 @@ function configServicio(e, vend, cot, a, r, btnPago) {
     botones: [["Aceptar", "primary", (b) => responderCotizacion("aceptar", cot, b)], ["Rechazar", "", (b) => responderCotizacion("rechazar", cot, b)]] };
   if (e === "aceptado" && !(a && ["pendiente", "por_confirmar"].includes(a.estado))) return { info: S("Agendado: ", "Confirmado: ") + cita, botones: [] };
   if (e === "en_elaboracion") {
+    if (restante && esComida() && !r.ultimoRechazo) return pagoAlRecibir()
+      ? { info: "En preparación · pagarás " + dinero(r.monto) + " en efectivo al recibir", botones: [["Mejor pago ya", "", () => abrirDatosPago("restante")], ["Ya pagué", "", (b) => subirComprobante("restante", b)]] }
+      : { info: "En preparación · faltan " + dinero(r.monto) + ": ¿cómo pagas?", botones: [["Pagar ya", "primary", () => abrirDatosPago("restante")], ["En efectivo al recibir", "", (b) => elegirPagoAlRecibir(r, b)]] };
     if (restante) return r.ultimoRechazo ? { info: "El vendedor no encontró tu pago: " + r.ultimoRechazo.motivo, tono: "bad", botones: btnPago("restante") }
       : { info: S("Servicio en curso", "En preparación") + " · paga " + dinero(r.monto) + " en efectivo o por transferencia", botones: btnPago("restante") };
     if (r && r.estado === "por_confirmar") return { info: "Comprobante enviado · esperando confirmación", thumb: r.comprobante, botones: [] };
