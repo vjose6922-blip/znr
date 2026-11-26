@@ -1,6 +1,6 @@
 # Pendientes Z&R: lista única (znr + CONTROL + znr-backend)
 
-Actualizado: 5 nov 2026. **Este es el único archivo de pendientes.** Los `PENDIENTES.md` de CONTROL y znr-backend
+Actualizado: 26 nov 2026. **Este es el único archivo de pendientes.** Los `PENDIENTES.md` de CONTROL y znr-backend
 apuntan aquí. Al terminar algo, cambia `[ ]` por `[x]`. Para pedir ayuda a Claude, cita el código (ej. "haz S2").
 
 Fuentes unificadas: `PENDIENTES.md` de los 3 repos, `PRUEBAS-PENDIENTES.md` y la lista de pruebas de
@@ -23,7 +23,12 @@ Todo el código ya está en `main` de los 3 repos (sin PRs abiertos). Solo falta
    - **Chat de pedidos:** X1–X5 (sección 3.7). Hacer un **pedido nuevo**: solo los pedidos creados desde el 5 nov
      tienen el chat automático.
 3. **Pagos con dinero real:** P2–P11 (sección 3.1). Montos chicos y reembolsar después.
-4. **Opcional (consola, 2 min):** C11, la transferencia `storage-continuo`.
+4. **El día del lanzamiento (Cloud Shell, 1 min): subir de 1 a 5 el mínimo de vendedores del aviso diario por zona**
+   (`avisar-zonas`; con 1 era para pruebas y con 5 no se mandan avisos de zonas casi vacías):
+   ```bash
+   gcloud scheduler jobs update http avisar-zonas --location=us-central1 --message-body="{\"action\":\"avisarNovedadesZonas\",\"token\":\"$(gcloud secrets versions access latest --secret=ADMIN_TOKEN)\",\"minVendedores\":5}"
+   ```
+   Si rotas `ADMIN_TOKEN`, este trabajo también se actualiza con el mismo comando.
 
 Después de lanzar: sección 4 (seguridad) y 5 (mejoras).
 
