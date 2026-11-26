@@ -944,13 +944,13 @@ const BANNERS_AUTO = {
   temporada: (l) => ({ titulo: 'Podría', subtitulo: 'interesarte', descripcion: `${[...new Set(l.map(p => p.temporada))].slice(0, 2).join(' y ')}: artículos para esta fecha.`, boton: 'Ver más', fondo: 'linear-gradient(135deg,#6a3093,#e0457b)' }),
   recomendado: () => ({ titulo: 'Recomendado', subtitulo: 'para ti', descripcion: 'Artículos según lo que más has visto.', boton: 'Ver más', fondo: 'linear-gradient(135deg,#f0566f,#f7a072)' })
 };
-// Orden: banners de temporada y después los automáticos. Si alguno está marcado "solo este" (campañas fuertes), solo esos.
+// Orden: banners de temporada, tu zona y después los automáticos. Si alguno está marcado "solo este" (campañas fuertes), solo esos.
 function pintarBanners() {
   const cont = document.getElementById('com-banners');
   if (!cont || !window.znrBanner) return; // HTML viejo en caché sin #com-banners o banner-temporada.js sin cargar
   const exclusivos = bannersVigentes.filter(b => b.exclusivo === 'si');
   const html = (exclusivos.length ? exclusivos : bannersVigentes).map(b => window.znrBanner.html(b, 'role="listitem" data-vista="temporada"'))
-    .concat(exclusivos.length ? [] : Object.keys(BANNERS_AUTO).filter(v => listasCarrusel[v]?.length).map(v => window.znrBanner.html(
+    .concat(exclusivos.length || !tarjetaZona ? [] : tarjetaZona).concat(exclusivos.length ? [] : Object.keys(BANNERS_AUTO).filter(v => listasCarrusel[v]?.length).map(v => window.znrBanner.html(
       { ...BANNERS_AUTO[v](listasCarrusel[v]), tema: 'claro', degradado: 'no', fotos: listasCarrusel[v].slice(0, 3).map(p => p.imagen1).filter(Boolean) },
       `role="listitem" data-vista="${v}"`)));
   cont.innerHTML = html.join('');
@@ -1235,15 +1235,15 @@ async function accionZona(a) {
     else navigator.clipboard?.writeText(`${texto}\n${url}`).then(() => showTemporaryMessage('Enlace copiado', 'success'));
   }
 }
-// Tarjeta grande de tu zona arriba de "Para ti" (antes de la fila de nuevos en tu zona).
+// Diapositiva de tu zona en el carrusel de banners (después de los de temporada); pintarBanners la usa.
+let tarjetaZona = '';
 function pintarTarjetaZona(base) {
-  const t = document.getElementById('zona-tarjeta'), z = window.znrMiZona();
-  if (!t) return;
-  if (!z) { t.innerHTML = ''; return; }
+  const z = window.znrMiZona();
+  if (!z) { tarjetaZona = ''; return; }
   const lista = productosDeZona(base, z.cp), vend = vecinosQueVenden(lista), nuevos = lista.filter((p) => esNuevo(p)).length;
-  t.innerHTML = `<div class="zh-tarjeta zt-${TEMA_ZONA}" data-zona-entrar>${DECO_ZONA[TEMA_ZONA]}<span class="zh-pill">${icz(TEMA_ZONA === 'a' ? 'casa' : TEMA_ZONA === 'b' ? 'pin' : 'users', 13)} TU ZONA · CP ${z.cp}</span><div class="zh-nombre" style="font-size:26px">${escZ(nombreZona(z.cp) || 'Zona ' + z.cp)}</div>
+  tarjetaZona = `<div class="com-banner zh-tarjeta zt-${TEMA_ZONA}" role="listitem" data-zona-entrar>${DECO_ZONA[TEMA_ZONA]}<span class="zh-pill">${icz(TEMA_ZONA === 'a' ? 'casa' : TEMA_ZONA === 'b' ? 'pin' : 'users', 13)} TU ZONA · CP ${z.cp}</span><div class="zh-nombre" style="font-size:24px;margin-top:6px">${escZ(nombreZona(z.cp) || 'Zona ' + z.cp)}</div>
     <div class="zh-sub">${icz('users', 15)} ${vend.length} vecino${vend.length === 1 ? '' : 's'} vende${vend.length === 1 ? '' : 'n'} aquí${nuevos ? ` · <b>${nuevos} nuevo${nuevos === 1 ? '' : 's'} hoy</b>` : ''}</div>
-    <div style="display:flex;align-items:center;margin-top:12px"><span class="zh-avs">${vend.slice(0, 3).map(avatarZ).join('')}${vend.length > 3 ? `<span class="zh-av" style="background:#111">+${vend.length - 3}</span>` : ''}</span>
+    <div style="display:flex;align-items:center;margin-top:auto"><span class="zh-avs">${vend.slice(0, 3).map(avatarZ).join('')}${vend.length > 3 ? `<span class="zh-av" style="background:#111">+${vend.length - 3}</span>` : ''}</span>
     <span class="zh-entrar">Entrar ${icz('flecha', 15)}</span></div></div>`;
 }
 
