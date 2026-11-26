@@ -194,7 +194,7 @@ Usa montos chicos ($149 de Plus o ~$10) y reembolsa si no quieres conservarlos. 
 - [x] **F3 Scroll infinito** en Catálogo, Comunidad y Perfil de vendedor (`scroll-infinito.js`): tandas de 30, "Ver más" cada 150, restaura posición al regresar.
 - [x] **F4 Mapas**: "Reordenar" ahora es vecino más cercano en el teléfono, sin límite de paradas. Nominatim: cambiar solo si falla seguido.
 - [x] **F5 Ahorro de cuota** (25 nov): Comunidad guarda en el teléfono el catálogo de la ciudad (RTDB `catalogo/snapshot_ciudad`)
-      y en cada visita solo lee su `generadoEn`; lo baja completo solo si cambió. Revisado y no hizo falta: las lecturas
+      y en cada visita solo lee sus fechas (`?shallow=true`); lo baja completo solo si cambió `datosEn` (`generadoEn` es un latido). Revisado y no hizo falta: las lecturas
       públicas ya tienen caché (historias `max-age=30`, beneficiarios y lives en memoria), Algolia-lite ya cachea búsquedas
       iguales en la sesión, y `obtenerBeneficiarios`/`obtenerDonaciones` son solo de CONTROL (paginar si crecen mucho).
 - [ ] **F6 Pago de pedidos dentro de la página** (Stripe Embedded Checkout / Mercado Pago Bricks), como ya hace Plan Plus.
@@ -226,7 +226,14 @@ Ya existían: 3 (pedido + chat antes de WhatsApp), 10 (chat por pedido/consulta)
       Al aprobar se manda contraseña temporal por WhatsApp como siempre (confirma que el número es suyo): su contraseña y su
       sesión en revisión dejan de servir, y sus productos se publican cuando entra con la del WhatsApp (`publicarAlEntrar`).
       Registro: máx. 3 por conexión al día, y el número de una solicitud rechazada queda libre (se borra con lo que subió).
-- [ ] Más adelante (cuando haya volumen): 11–14 (colonia), 17–18 (puntaje/renovar), 5 (soporte), 6 (selfie).
+- [x] **M11a "Cerca de ti"** (26 nov, colonias paso 1): cada producto lleva el punto de entrega del vendedor redondeado a ~500 m
+      (`_geoloc`); en Comunidad "Ordenar por → Más cerca de mí" (pide la ubicación una vez, solo se guarda en el teléfono) y
+      "📍 a 1.2 km" en las tarjetas. Sirve en cualquier país. Tras desplegar: CONTROL → "Resincronizar todo Comunidad con
+      Algolia"; el catálogo de Comunidad lo toma en ≤1 h. Vendedores sin coordenadas van al final (pedirles "Usar mi ubicación").
+- [ ] **M11b Colonia con nombre** (paso 2): CP → colonia (SEPOMEX por estado, archivo estático; ZIP en EE. UU.), insignia
+      "📍 De tu colonia" y filtro. Paso 3 / grupos por colonia: fila "Vecinos de tu colonia", aviso diario por colonia (≥5
+      vendedores) y "Recoger en la colonia".
+- [ ] Más adelante (cuando haya volumen): 17–18 (puntaje/renovar), 5 (soporte), 6 (selfie).
       Descartadas por ahora: 15 (canales) y 19–21 (impulsos).
 
 ## Limpieza

@@ -752,6 +752,26 @@ window.znrPrecioServicio = (p, fmt) => {
 };
 window.znrLugaresServicio = (p) => [].concat(p.lugaresServicio || p.LugaresServicio || []).map((l) => (esComida(p) ? LUGARES_COMIDA : LUGARES_SERVICIO)[l]).filter(Boolean).join(' · ');
 
+// "Cerca de ti" (colonias, paso 1): la ubicación del comprador se guarda solo en este teléfono (redondeada) y se compara con
+// el punto de entrega del vendedor que trae cada producto (_geoloc, redondeado a ~500 m). Funciona en cualquier país.
+window.znrMiUbicacion = () => { try { return JSON.parse(localStorage.getItem('znr_mi_ubicacion') || 'null'); } catch (_) { return null; } };
+window.znrPedirUbicacion = () => new Promise((ok) => {
+  if (!navigator.geolocation) return ok(null);
+  navigator.geolocation.getCurrentPosition(({ coords }) => {
+    const u = { lat: Math.round(coords.latitude * 1000) / 1000, lng: Math.round(coords.longitude * 1000) / 1000 };
+    try { localStorage.setItem('znr_mi_ubicacion', JSON.stringify(u)); } catch (_) {}
+    ok(u);
+  }, () => ok(null), { timeout: 10000, maximumAge: 600000 });
+});
+window.znrDistanciaKm = (p, u = window.znrMiUbicacion()) => {
+  const g = p && p._geoloc, rad = Math.PI / 180;
+  if (!u || !g) return null;
+  const a = Math.sin((g.lat - u.lat) * rad / 2) ** 2 + Math.cos(u.lat * rad) * Math.cos(g.lat * rad) * Math.sin((g.lng - u.lng) * rad / 2) ** 2;
+  return 12742 * Math.asin(Math.sqrt(a));
+};
+window.znrTextoDistancia = (p) => { const d = window.znrDistanciaKm(p); return d == null ? '' : d < 1 ? 'a menos de 1 km' : `a ${d < 10 ? d.toFixed(1) : Math.round(d)} km`; };
+window.znrOrdenarPorCercania = (lista) => lista.sort((a, b) => (window.znrDistanciaKm(a) ?? 1e9) - (window.znrDistanciaKm(b) ?? 1e9));
+
 // Estadísticas por producto (mejora 8): v = vista, c = carrito/pedido, s = compartido. Una por tipo y producto al día en
 // este teléfono; no cuenta las del propio vendedor.
 window.znrEventoProducto = (id, tipo, vendedorUid) => {
