@@ -1159,6 +1159,9 @@ const avatarZ = (v, i) => v.logo ? `<img class="zh-av" src="${escZ(typeof urlIma
 const filaZona = (z) => `<div class="zh-fila" data-ir-zona="${z.cp}"><span class="zh-ficon">${icz('casa', 18)}</span><span><b>${escZ(z.nombre || 'Zona ' + z.cp)}</b><br>
   <small style="opacity:.7">${z.vendedores} vecino${z.vendedores === 1 ? '' : 's'} vende${z.vendedores === 1 ? '' : 'n'} · ${z.cp}${z.nombre ? '' : ' · ¡ponle nombre!'}</small></span>${z.nuevos ? `<span class="zh-nuevos">${z.nuevos} nuevo${z.nuevos === 1 ? '' : 's'}</span>` : ''}</div>`;
 
+// Zona como burbuja (igual que los vecinos) para el carrusel de arriba.
+const burbujaZona = (z) => `<a data-ir-zona="${z.cp}" title="${escZ(z.nombre || 'Zona ' + z.cp)}"><span class="zh-av zh-avz">${icz('casa', 20)}</span><b class="zh-bn">${escZ(z.nombre || z.cp)}</b>
+  <small style="opacity:.7">${z.vendedores} vende${z.vendedores === 1 ? '' : 'n'}</small>${z.nuevos ? `<br><span class="zh-tag" style="background:#ffe4e6;color:#e8456b">${z.nuevos} nuevo${z.nuevos === 1 ? '' : 's'}</span>` : ''}</a>`;
 function marcarTab(t) { document.querySelectorAll('.com-tabs [data-tab]').forEach((b) => b.classList.toggle('on', b.dataset.tab === t)); }
 async function abrirZona(cp) {
   zonaVista = cp; zonaChip = ''; vistaActiva = 'zona'; vistaCache = null;
@@ -1189,7 +1192,7 @@ function pintarHubZona() {
     <div class="zh-acc">${mia ? `<button type="button" class="zh-pri" data-zh="avisos">${avisos ? icz('sinCampana') + ' No avisarme' : icz('campana') + ' Avisarme'}</button><button type="button" class="zh-sec" data-zh="proponer">${icz('lapiz')} Proponer nombre</button>`
       : `<button type="button" class="zh-pri" data-zh="hacerMia">${icz('pin')} Es mi zona</button>`}<button type="button" class="zh-sec" data-zh="compartir" style="flex:none" aria-label="Compartir zona">${icz('compartir')}</button></div>
     ${vend.length || zonasHub.length ? `<div class="zh-carr">${vend.length ? `<div class="zh-card"><h3>${icz('users', 18)} Tus vecinos que venden${vend.length > 4 ? '<button type="button" class="zh-vermas" data-zh="verVecinos">Ver más</button>' : ''}</h3>${htmlVecinos(vecinosHub.slice(0, 4))}</div>` : ''}
-      ${zonasHub.length ? `<div class="zh-card" style="background:#f5f3ff"><h3>${icz('mapa', 18)} Zonas vecinas${zonasHub.length > 3 ? '<button type="button" class="zh-vermas" data-zh="verZonas">Ver más</button>' : ''}</h3>${zonasHub.slice(0, 3).map(filaZona).join('')}</div>` : ''}</div>` : ''}
+      ${zonasHub.length ? `<div class="zh-card" style="background:#f5f3ff"><h3>${icz('mapa', 18)} Zonas vecinas${zonasHub.length > 4 ? '<button type="button" class="zh-vermas" data-zh="verZonas">Ver más</button>' : ''}</h3><div class="zh-vecinos">${zonasHub.slice(0, 4).map(burbujaZona).join('')}</div></div>` : ''}</div>` : ''}
     <div class="zh-chips">${[['', 'Todo'], ['nuevos', icz('reloj', 14) + ' Nuevos'], ['comida', icz('comida', 14) + ' Comida'], ['servicios', icz('llave', 14) + ' Servicios']]
       .map(([k, t]) => `<button type="button" data-zchip="${k}" class="${zonaChip === k ? 'on' : ''}">${t}</button>`).join('')}</div>
     ${!lista.length ? '<div class="zh-card" style="text-align:center">Todavía nadie vende en esta zona. ¡Invita a tus vecinos!</div>' : ''}
