@@ -1086,7 +1086,6 @@ function createVendorProductCard(product) {
     rech.textContent = '❌ No aprobado' + (product.motivo_rechazo ? ': ' + product.motivo_rechazo : '');
     info.appendChild(rech);
   }
-  info.insertAdjacentHTML('beforeend', '<p class="vp-stats" style="margin:4px 0;font-size:.72rem;color:#7c3aed;font-weight:600"></p>');
   info.appendChild(descEl);
   info.appendChild(sizesEl);
 
@@ -1210,7 +1209,6 @@ function applyMyProducts(myProducts, container, total = null, currentPage = 1, t
 applyLayoutGlobal(savedLayout);
 
   renderPagination(container, currentPage, totalPages, realTotal);
-  window.cargarStatsProd().then(pintarStatsProd);
 }
 
 // ── Mejora 8: estadísticas por producto (7 días; Plus/Pro también 30 días y la semana anterior) ──
@@ -1220,10 +1218,6 @@ window.cargarStatsProd = async (forzar) => {
   if (r && r.ok) { window._statsProd = r; window._statsProdEn = Date.now(); }
   return window._statsProd;
 };
-const statsTxt = (d) => `👁 ${d.v} · 🛒 ${d.c} · ↗ ${d.s} · ✅ ${d.e}`;
-function pintarStatsProd(st) {
-  (st && st.productos || []).forEach((p) => { const el = document.querySelector(`#producto-${CSS.escape(p.id)} .vp-stats`); if (el) el.textContent = statsTxt(p.d7) + ' · 7 días'; });
-}
 window.abrirRankingStats = async function() {
   const st = await window.cargarStatsProd(true);
   if (!st) return showTemporaryMessage(' No se pudieron cargar las estadísticas', 'error');
@@ -1310,7 +1304,6 @@ window.loadMyProducts = async function loadMyProducts(force = false, page = 1) {
       window._vendorProducts = lista;
       container.innerHTML = lista.length ? '' : '<p style="color:#aaa;text-align:center">Sin resultados para tu búsqueda.</p>';
       lista.forEach(p => container.appendChild(createVendorProductCard(p)));
-      window.cargarStatsProd().then(pintarStatsProd);
       applyLayoutGlobal(localStorage.getItem('products_layout') || 'grid');
       document.getElementById('vendor-pagination')?.remove();
     } catch (err) {
@@ -1614,8 +1607,7 @@ const pedirLote = (titulo, campos) => new Promise((ok) => {
 window.entrarSeleccion = function() {
   const cont = document.getElementById('products-container');
   if (!cont || document.getElementById('vp-bar')) return salirSeleccion();
-  if (!document.getElementById('vp-sel-style')) document.head.insertAdjacentHTML('beforeend', `<style id="vp-sel-style">.vp-sel{display:none;position:absolute;top:8px;left:8px;width:24px;height:24px;z-index:3;accent-color:#7c3aed}
-    #products-container.sel-mode .vp-sel{display:block}#vp-bar{position:fixed;left:8px;right:8px;bottom:calc(76px + env(safe-area-inset-bottom,0px));z-index:10050;display:flex;flex-wrap:wrap;gap:6px;align-items:center;
+  if (!document.getElementById('vp-sel-style')) document.head.insertAdjacentHTML('beforeend', `<style id="vp-sel-style">.vp-sel{position:absolute;top:8px;left:8px;width:24px;height:24px;z-index:3;accent-color:#7c3aed}#vp-bar{position:fixed;left:8px;right:8px;bottom:calc(76px + env(safe-area-inset-bottom,0px));z-index:10050;display:flex;flex-wrap:wrap;gap:6px;align-items:center;
     padding:10px 12px;border-radius:14px;background:#1e2128;color:#fff;box-shadow:0 8px 24px rgba(0,0,0,.25)}#vp-bar button{padding:7px 12px;border-radius:18px;border:1px solid #555;background:transparent;color:#fff;font-weight:600;cursor:pointer}
     #vp-bar b{flex:1;min-width:110px;font-size:13px}</style>`);
   cont.classList.add('sel-mode');

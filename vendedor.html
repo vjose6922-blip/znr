@@ -75,6 +75,8 @@
   [style*="background:#e6e6ee"] { background: var(--color-surface-3) !important; }
   .filter-status-btn:not(.active) { color: var(--color-text-main) !important; border-color: var(--color-border) !important; }
   #vendor-search { background: var(--color-surface); color: var(--color-text-main); border-color: var(--color-border) !important; }
+  /* Casilla de selección: solo en modo "Seleccionar varios" */
+  .vp-sel { display: none; } #products-container.sel-mode .vp-sel { display: block; }
 </style>
 <link rel="preload" href="styles.css" as="style">
  <link rel="stylesheet" href="styles.css">
