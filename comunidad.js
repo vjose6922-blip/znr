@@ -1765,6 +1765,7 @@ updateURLWithFilters();
 };
 if (searchInput) {
 searchInput.addEventListener('input', () => {
+document.body.classList.toggle('buscando', !!searchInput.value.trim());
 if (debounceTimer) clearTimeout(debounceTimer);
 debounceTimer = setTimeout(updateHandler, 400);
 });
