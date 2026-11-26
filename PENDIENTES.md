@@ -230,9 +230,13 @@ Ya existían: 3 (pedido + chat antes de WhatsApp), 10 (chat por pedido/consulta)
       (`_geoloc`); en Comunidad "Ordenar por → Más cerca de mí" (pide la ubicación una vez, solo se guarda en el teléfono) y
       "📍 a 1.2 km" en las tarjetas. Sirve en cualquier país. Tras desplegar: CONTROL → "Resincronizar todo Comunidad con
       Algolia"; el catálogo de Comunidad lo toma en ≤1 h. Vendedores sin coordenadas van al final; su panel les muestra "📍 Agrega la ubicación de tu punto de entrega".
-- [ ] **M11b Colonia con nombre** (paso 2): CP → colonia (SEPOMEX por estado, archivo estático; ZIP en EE. UU.), insignia
-      "📍 De tu colonia" y filtro. Paso 3 / grupos por colonia: fila "Vecinos de tu colonia", aviso diario por colonia (≥5
-      vendedores) y "Recoger en la colonia".
+- [x] **M11b "Tu zona" por código postal** (26 nov, todos los países): el vendedor pone su código postal en Ajustes → Punto
+      de entrega (los productos llevan `vendedor_cp`); el comprador lo escribe al tocar 📍 en Comunidad (se guarda en su
+      teléfono). Vista "📍 Tu zona" con encabezado y "📍 De tu zona" en las tarjetas. Nombre de la zona: los vecinos con sesión
+      y ese código postal lo proponen; con 2 iguales (sin acentos) avisa al staff y el de esa ciudad lo aprueba o edita en
+      CONTROL → Notificaciones → Pendientes ("Nombres de zona propuestos"). Votos necesarios: `VOTOS_NOMBRE_ZONA` en catalogo-api.
+- [ ] **Paso 3 (grupos por zona, con volumen):** aviso diario por zona (≥5 vendedores), fila "Vecinos de tu zona" arriba en
+      Comunidad y "Recoger en tu zona".
 - [ ] Más adelante (cuando haya volumen): 17–18 (puntaje/renovar), 5 (soporte), 6 (selfie).
       Descartadas por ahora: 15 (canales) y 19–21 (impulsos).
 

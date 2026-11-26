@@ -770,6 +770,56 @@ window.znrDistanciaKm = (p, u = window.znrMiUbicacion()) => {
   return 12742 * Math.asin(Math.sqrt(a));
 };
 window.znrTextoDistancia = (p) => { const d = window.znrDistanciaKm(p); return d == null ? '' : d < 1 ? 'a menos de 1 km' : `a ${d < 10 ? d.toFixed(1) : Math.round(d)} km`; };
+// "Tu zona" (colonias, paso 2): el grupo de vecinos es el código postal en todos los países. El del comprador se guarda
+// en su teléfono (y en su perfil si propone un nombre); si es vendedor y no ha puesto otro, se usa el de su punto de entrega.
+window.znrPaisCiudad = (c = localStorage.getItem('buyer_ciudad')) => ((window.ZNR_CIUDADES || []).find((x) => x.ciudad === c) || {}).pais || 'México';
+window.znrMiZona = () => {
+  try {
+    const z = JSON.parse(localStorage.getItem('znr_mi_cp') || 'null'), v = JSON.parse(localStorage.getItem('vendor_session') || 'null');
+    return z && z.cp ? z : v && v.cp ? { cp: v.cp, pais: window.znrPaisCiudad(v.ciudad) } : null;
+  } catch (_) { return null; }
+};
+window.znrEsDeTuZona = (p) => { const z = window.znrMiZona(); return !!(z && p && p.vendedor_cp && String(p.vendedor_cp) === z.cp); };
+// Ventanita con un campo de texto; resuelve el texto o null si cancela.
+window.znrPedirTexto = (titulo, ayuda, placeholder, valor = '', modo = 'text') => new Promise((ok) => {
+  const m = document.createElement('div');
+  m.className = 'custom-alert-modal';
+  m.innerHTML = `<div class="custom-alert-content"><div class="custom-alert-header"><h3></h3></div><div class="custom-alert-body"><p></p>
+    <input class="custom-alert-input" style="width:100%;box-sizing:border-box" maxlength="40"></div>
+    <div class="custom-alert-footer"><button class="custom-alert-btn cancel">Cancelar</button><button class="custom-alert-btn confirm">Aceptar</button></div></div>`;
+  m.querySelector('h3').textContent = titulo; m.querySelector('p').textContent = ayuda;
+  const i = m.querySelector('input'); Object.assign(i, { placeholder, value: valor, inputMode: modo });
+  document.body.appendChild(m); setTimeout(() => i.focus(), 50);
+  const fin = (v) => { document.body.removeChild(m); ok(v); };
+  m.querySelector('.cancel').onclick = () => fin(null);
+  m.querySelector('.confirm').onclick = () => fin(i.value.trim());
+});
+window.znrElegirZona = async () => {
+  const cp = await window.znrPedirTexto('📍 Tu zona', 'Escribe tu código postal para ver lo que venden tus vecinos.', 'Código postal', (window.znrMiZona() || {}).cp || '', 'numeric');
+  if (cp === null) return null;
+  if (!/^\d{4,6}$/.test(cp)) { showTemporaryMessage('Escribe un código postal válido', 'error'); return null; }
+  const z = { cp, pais: window.znrPaisCiudad() };
+  try { localStorage.setItem('znr_mi_cp', JSON.stringify(z)); } catch (_) {}
+  return z;
+};
+window.znrProponerNombreZona = async () => {
+  const z = window.znrMiZona();
+  if (!z) return;
+  const telefono = await asegurarComprador('Para proponer el nombre de tu zona');
+  if (!telefono) return;
+  const nombre = await window.znrPedirTexto('Proponer nombre', `¿Cómo le dicen a tu zona (código postal ${z.cp})? Si otro vecino propone lo mismo, lo revisa el equipo de tu ciudad.`, 'Ej: Las Torres');
+  if (!nombre) return;
+  const post = (url, datos) => fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams(datos) }).then((r) => r.json());
+  const compradorToken = localStorage.getItem('comprador_token') || '';
+  try {
+    // Su código postal queda en su perfil: así el servidor sabe que es vecino de esa zona
+    await post('https://auth-api-1038143238323.us-central1.run.app', { action: 'guardarPerfilComprador', telefono, compradorToken, cp: z.cp, cpPais: z.pais });
+    const r = await post(window.CATALOGO_API_URL || 'https://catalogo-api-1038143238323.us-central1.run.app',
+      { action: 'proponerNombreZona', telefono, compradorToken, cp: z.cp, pais: z.pais, ciudad: localStorage.getItem('buyer_ciudad') || '', nombre });
+    showTemporaryMessage(!r.ok ? ' ' + (r.error || 'No se pudo enviar') : r.faltan ? '¡Gracias! Cuando otro vecino proponga el mismo nombre, lo revisará el equipo de tu ciudad.'
+      : '¡Gracias! El equipo de tu ciudad revisará el nombre.', r.ok ? 'success' : 'error');
+  } catch (_) { showTemporaryMessage(' Sin conexión. Intenta de nuevo.', 'error'); }
+};
 window.znrOrdenarPorCercania = (lista) => lista.sort((a, b) => (window.znrDistanciaKm(a) ?? 1e9) - (window.znrDistanciaKm(b) ?? 1e9));
 
 // Estadísticas por producto (mejora 8): v = vista, c = carrito/pedido, s = compartido. Una por tipo y producto al día en

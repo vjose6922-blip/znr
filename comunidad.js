@@ -130,7 +130,7 @@ let totalPagesGlobal = 1;         // total de páginas devuelto por el backend
 let vistaActiva = '';             // '' | 'ofertas' | 'recomendado' | 'temporada'
 let vistaCache = null;            // { vista, lista } para que la paginación no cambie al reordenar
 let carruselesPintados = false;   // true cuando los carruseles ya se dibujaron (vista por defecto o entrada directa a un "Ver más")
-const VISTA_LABELS = { ofertas: 'Ofertas destacadas', recomendado: 'Recomendado para ti', temporada: 'Podría interesarte' };
+const VISTA_LABELS = { ofertas: 'Ofertas destacadas', recomendado: 'Recomendado para ti', temporada: 'Podría interesarte', zona: '📍 Tu zona' };
 let currentFilters = {};          // filtros activos (para mantenerlos al cambia00000
 let isLoading = false;
 let gridContainer, catSelect, vendorSelect, temporadaSelect, paginationDiv;
@@ -780,6 +780,7 @@ function updateComunidadChips(filters) {
   if (filters.orden)     chips.push({ label: ordenLabels[filters.orden] || filters.orden, clear: () => { const el = document.getElementById('comunidad-orden'); if (el) el.value = ''; applyFilters(); } });
 
   if (!chips.length) { bar.style.display = 'none'; bar.innerHTML = ''; return; }
+  if (filters.vista === 'zona') setTimeout(() => pintarEncabezadoZona(bar), 0); // después de pintar los chips
   bar.style.display = 'flex';
   bar.innerHTML = chips.map((c, i) =>
     `<button class="filter-chip" data-chip="${i}">${c.label} <span class="chip-x"></span></button>`
@@ -1021,6 +1022,7 @@ function calcularVista(vista, base) {
   if (vista === 'ofertas') return calcularOfertas(base);
   if (vista === 'recomendado') return calcularRecomendados(base);
   if (vista === 'temporada') return calcularTemporadaActual(base);
+  if (vista === 'zona') return (base || []).filter(window.znrEsDeTuZona);
   return base || [];
 }
 
@@ -1074,7 +1076,26 @@ function abrirVistaComunidad(vista) {
   setTimeout(() => (document.querySelector('.comunidad-toolbar') || gridContainer)?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 60);
 }
 
+// "📍 Tu zona": pide el código postal la primera vez y abre la vista con su encabezado (nombre de la zona + proponer).
+async function abrirTuZona(cambiar) {
+  if ((cambiar || !window.znrMiZona()) && !(await window.znrElegirZona())) return;
+  abrirVistaComunidad('zona');
+}
+async function pintarEncabezadoZona(bar) {
+  const z = window.znrMiZona();
+  if (!z) return;
+  bar.insertAdjacentHTML('beforeend', `<div id="zona-header" style="flex-basis:100%;display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:6px;padding:10px 12px;border-radius:12px;background:var(--color-surface-2,#f3f4f6);font-size:13px">
+    <span style="flex:1;min-width:160px">📍 <b id="zona-nombre">Zona ${z.cp}</b><br><small style="opacity:.75">Lo que venden tus vecinos del código postal ${z.cp}</small></span>
+    <button type="button" class="filter-chip" id="zona-proponer">Proponer nombre</button><button type="button" class="filter-chip" id="zona-cambiar">Cambiar código postal</button></div>`);
+  bar.querySelector('#zona-proponer').onclick = () => window.znrProponerNombreZona();
+  bar.querySelector('#zona-cambiar').onclick = () => abrirTuZona(true);
+  const r = await fetch(`${window.CATALOGO_API_URL || 'https://catalogo-api-1038143238323.us-central1.run.app'}?action=infoZona&cp=${z.cp}&pais=${encodeURIComponent(z.pais)}`).then((x) => x.json()).catch(() => null);
+  const el = document.getElementById('zona-nombre');
+  if (r && r.nombre && el) el.textContent = r.nombre;
+}
+
 function initVistasComunidad() {
+  document.getElementById('btn-tu-zona')?.addEventListener('click', () => abrirTuZona(false));
   document.addEventListener('click', (e) => {
     const b = e.target.closest('[data-vista]');
     if (!b) return;
@@ -1416,7 +1437,8 @@ ${esServ
 ? (product.apartado === true ? '<span style="color:#d97706;font-size:11px;font-weight:600;">🔖 Apartado</span>' : '<span style="color:var(--color-error,#ef4444);font-size:11px;font-weight:600;">Sin stock</span>')
 : `<span style="color:var(--color-success,#22c55e);font-size:11px;">Stock: ${stockNum}</span>`}
 ${product.categoria ? `<span style="font-size:10px;color:var(--color-text-muted,#aaa);">· ${esc(safeString(product.categoria))}</span>` : ''}
-${window.znrTextoDistancia(product) ? `<span style="font-size:10px;color:var(--color-text-muted,#aaa);">· 📍 ${window.znrTextoDistancia(product)}</span>` : ''}
+${window.znrEsDeTuZona(product) ? '<span style="font-size:10px;font-weight:700;color:#ea580c;">· 📍 De tu zona</span>'
+  : window.znrTextoDistancia(product) ? `<span style="font-size:10px;color:var(--color-text-muted,#aaa);">· 📍 ${window.znrTextoDistancia(product)}</span>` : ''}
 </div>
 <div class="product-actions" style="margin-top:8px;display:flex;gap:6px;">
 <button class="primary-button comunidad-add-btn"
