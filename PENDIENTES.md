@@ -243,6 +243,11 @@ Ya existían: 3 (pedido + chat antes de WhatsApp), 10 (chat por pedido/consulta)
       los más cercanos); "🔔 Avisarme" en la vista de la zona (compradores.zonaAvisos) y aviso diario `avisarNovedadesZonas`
       (Cloud Scheduler `avisar-zonas`, `minVendedores` 1 para pruebas → **subirlo a 5 al lanzar**); "Entrego en mi zona sin
       costo" en Ajustes del vendedor (sale como "De tu zona · entrega sin costo").
+- [x] **Mi zona como sección propia** (26 nov): pestañas en Comunidad "✨ Para ti · 📍 Mi zona · 🔥 Ofertas"; en Para ti, tarjeta
+      grande de tu zona (nombre, vecinos, nuevos hoy, "Entrar"); página de la zona `comunidad.html?zona=CP` (enlace corto para
+      compartir `zona.html?cp=CP`) con encabezado, números, Avisarme / Proponer nombre / Compartir, "Tus vecinos que venden",
+      filtros rápidos (Nuevos, Sin envío, Comida, Servicios) y zonas vecinas; sin código postal, invitación + "Zonas activas en
+      tu ciudad". Los nombres aprobados viajan en el catálogo (`snapshot.zonas`) y aprobar uno lo regenera.
 - [ ] Más adelante (cuando haya volumen): 17–18 (puntaje/renovar), 5 (soporte), 6 (selfie).
       Descartadas por ahora: 15 (canales) y 19–21 (impulsos).
 

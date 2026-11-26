@@ -464,6 +464,33 @@
  display: none;
  }
  </style>
+<style>
+/* ── Pestañas de Comunidad y página "Mi zona" (grupo de vecinos por código postal) ── */
+.com-tabs{display:flex;gap:4px;margin:10px 16px 4px;padding:4px;border-radius:14px;background:var(--color-surface-2,#f3f4f6)}
+.com-tabs button{flex:1;border:none;background:none;padding:9px 0;border-radius:10px;font:inherit;font-weight:700;font-size:14px;color:var(--color-text-muted,#6b7280);cursor:pointer}
+.com-tabs button.on{background:var(--color-surface,#fff);color:#e8456b;box-shadow:0 2px 8px rgba(0,0,0,.12)}
+.modo-zona #com-hero-wrap,.modo-zona #live-banner-slot,.modo-zona #comunidad-filter-chips,.modo-zona-invita #comunidad-grid,.modo-zona-invita #comunidad-pagination{display:none!important}
+#zona-hub{margin:8px 16px 12px}
+.zh-hero{position:relative;overflow:hidden;border-radius:22px;padding:18px 18px 56px;color:#fff;background:linear-gradient(150deg,#7c3aed,#e8456b 65%,#ff9f6e)}
+.zh-hero:after{content:"🏘️";position:absolute;right:-18px;top:6px;font-size:130px;opacity:.13}
+.zh-pill{display:inline-flex;align-items:center;gap:4px;padding:5px 10px;border-radius:20px;font-size:11px;font-weight:700;background:rgba(255,255,255,.22);white-space:nowrap}
+.zh-nombre{font-size:30px;font-weight:900;line-height:1.05;margin-top:8px}
+.zh-stats{position:relative;z-index:1;display:flex;text-align:center;margin:-40px 10px 0;padding:12px 6px;border-radius:18px;background:var(--color-surface,#fff);box-shadow:0 6px 18px rgba(0,0,0,.08)}
+.zh-stats div{flex:1}.zh-stats div+div{border-left:1px solid var(--color-border-subtle,#eee)}.zh-stats b{display:block;font-size:22px;font-weight:900}.zh-stats small{font-size:11px;color:var(--color-text-muted,#888)}
+.zh-acc{display:flex;gap:8px;margin-top:12px}.zh-acc button{flex:1;border:none;border-radius:22px;padding:11px 10px;font:inherit;font-weight:800;font-size:13px;cursor:pointer}
+.zh-pri{background:linear-gradient(135deg,#7c3aed,#e8456b);color:#fff}.zh-sec{background:var(--color-surface,#fff);color:#7c3aed;box-shadow:0 2px 8px rgba(0,0,0,.08)}
+.zh-card{margin-top:12px;padding:14px;border-radius:18px;background:var(--color-surface,#fff);box-shadow:0 4px 16px rgba(0,0,0,.06)}
+.zh-card h3{margin:0 0 10px;font-size:16px;font-weight:800}
+.zh-vecinos{display:flex;gap:14px;overflow-x:auto;scrollbar-width:none}.zh-vecinos a{flex:none;width:66px;text-align:center;color:inherit;text-decoration:none;font-size:11px}
+.zh-av{width:56px;height:56px;margin:0 auto 4px;border-radius:50%;display:grid;place-items:center;font-weight:800;color:#fff;background:#e8456b;object-fit:cover;border:3px solid var(--color-surface,#fff);box-shadow:0 2px 6px rgba(0,0,0,.15)}
+.zh-tag{display:inline-block;margin-top:3px;padding:1px 6px;border-radius:10px;font-size:9px;font-weight:700;background:#ecfdf5;color:#047857}
+.zh-chips{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;margin-top:12px}.zh-chips button{flex:none;border:1px solid var(--color-border-subtle,#e5e7eb);background:var(--color-surface,#fff);color:inherit;border-radius:20px;padding:7px 12px;font:inherit;font-size:12px;font-weight:700;cursor:pointer}
+.zh-chips button.on{background:#1f1a1c;color:#fff;border-color:#1f1a1c}
+.zh-fila{display:flex;align-items:center;gap:10px;padding:8px 0;border-top:1px solid var(--color-border-subtle,#f1f1f1);cursor:pointer}.zh-fila:first-of-type{border-top:none}
+.zh-nuevos{margin-left:auto;padding:3px 8px;border-radius:12px;font-size:11px;font-weight:700;background:#ffe4e6;color:#e8456b;white-space:nowrap}
+.zh-tarjeta{position:relative;overflow:hidden;margin:0 16px 10px;border-radius:20px;padding:16px;color:#fff;background:linear-gradient(135deg,#7c3aed,#e8456b 70%,#ff9f6e);cursor:pointer}
+.zh-tarjeta .zh-avs{display:flex}.zh-tarjeta .zh-av{width:38px;height:38px;margin:0 0 0 -10px;font-size:12px}.zh-tarjeta .zh-av:first-child{margin-left:0}
+</style>
 </head>
 <body class="theme-aeromexico">
 
@@ -493,13 +520,17 @@
  <input type="text" id="comunidad-search" aria-label="Buscar en comunidad" class="comunidad-search-input" placeholder="Buscar productos, marcas o categorías" autocomplete="off">
  <button type="button" id="busqueda-visual-btn" aria-label="Buscar por foto" title="Buscar por foto" class="comunidad-visual-search-btn"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" aria-hidden="true"><use href="#ic-camera"/></svg></button>
  <input type="file" id="busqueda-visual-input" accept="image/*" style="display:none">
- <button type="button" id="btn-tu-zona" aria-label="Tu zona: lo que venden tus vecinos" title="Tu zona" class="comunidad-visual-search-btn"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s7-6.2 7-12a7 7 0 1 0-14 0c0 5.8 7 12 7 12z"/><circle cx="12" cy="10" r="2.5"/></svg></button>
  <button type="button" id="btn-abrir-filtros" class="comunidad-filtros-btn" aria-haspopup="dialog" aria-expanded="false">
  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/><circle cx="9" cy="6" r="2.2" fill="var(--color-surface-2,#fff)"/><circle cx="15" cy="12" r="2.2" fill="var(--color-surface-2,#fff)"/><circle cx="8" cy="18" r="2.2" fill="var(--color-surface-2,#fff)"/></svg>
  <span>Filtros</span>
  <span id="filtros-badge" class="comunidad-filtros-badge" style="display:none">0</span>
  </button>
  </div>
+
+ <div class="com-tabs" role="tablist" aria-label="Secciones de Comunidad">
+ <button type="button" role="tab" data-tab="parati" class="on">✨ Para ti</button><button type="button" role="tab" data-tab="zona">📍 Mi zona</button><button type="button" role="tab" data-tab="ofertas">🔥 Ofertas</button>
+ </div>
+ <div id="zona-hub" hidden></div>
 
  <div class="community-hero" id="com-hero-wrap" hidden>
   <div class="m-hero" id="com-hero">
@@ -514,7 +545,8 @@
  <!-- Carruseles: comunidad.js los intercala en la cuadrícula (vecinos arriba; los demás después de 6, 12 y 18 artículos). -->
  <div id="comunidad-carruseles" hidden>
  <div id="comunidad-zona-wrap" class="carr-wrap" style="display:none;">
- <div class="carr-head"><h2 id="comunidad-zona-titulo">📍 Vecinos de tu zona</h2><button type="button" class="carr-vermas" data-vista="zona">Ver más</button></div>
+ <div id="zona-tarjeta"></div>
+ <div class="carr-head"><h2 id="comunidad-zona-titulo">🆕 Nuevos en tu zona</h2><button type="button" class="carr-vermas" data-zona-entrar>Ver todo</button></div>
  <div id="comunidad-zona-track" class="carr-track"></div>
  </div>
  <div id="comunidad-ofertas-wrap" class="carr-wrap" style="display:none;">
