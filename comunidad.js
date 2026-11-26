@@ -461,16 +461,17 @@ async function intentarCatalogoDesdeSnapshot(ciudad) {
   // Primero el feed de la ciudad del comprador; si no existe, el global (se filtra por ciudad después).
   for (const url of [window.urlSnapshotCatalogo ? window.urlSnapshotCatalogo(ciudad) : CATALOGO_SNAPSHOT_URL, CATALOGO_SNAPSHOT_URL]) {
     try {
-      // Ahorro de descarga (F5): el catálogo se guarda en el teléfono y solo se baja otra vez si cambió su `generadoEn`
-      // (leer ese campo cuesta unos bytes; el catálogo completo, cientos de KB por visita).
+      // Ahorro de descarga (F5): el catálogo se guarda en el teléfono y solo se baja otra vez si cambió `datosEn` (los
+      // productos). `generadoEn` es un latido que el servidor renueva cada pocos minutos aunque nada cambie: se toma fresco.
+      // ?shallow=true trae solo esas fechas (unos bytes); el catálogo completo pesa cientos de KB por visita.
       const clave = 'znr_snap_' + url, guardado = (() => { try { return JSON.parse(localStorage.getItem(clave) || 'null'); } catch (_) { return null; } })();
       const controller = new AbortController();
       const tid = setTimeout(() => controller.abort(), 4000);
-      const gen = guardado && await fetch(url.replace(/\.json$/, '/generadoEn.json'), { signal: controller.signal }).then((r) => r.ok ? r.json() : null).catch(() => null);
-      const res = gen && gen === guardado.generadoEn ? null : await fetch(url, { signal: controller.signal });
+      const meta = guardado && guardado.datosEn && await fetch(url + '?shallow=true', { signal: controller.signal }).then((r) => r.ok ? r.json() : null).catch(() => null);
+      const res = meta && meta.datosEn === guardado.datosEn ? null : await fetch(url, { signal: controller.signal });
       clearTimeout(tid);
       if (res && !res.ok) continue;
-      const data = res ? await res.json() : guardado;
+      const data = res ? await res.json() : { ...guardado, generadoEn: meta.generadoEn };
       if (res && data && data.generadoEn) try { // solo se guarda el último (cambiar de ciudad no llena el espacio)
         Object.keys(localStorage).filter((k) => k.startsWith('znr_snap_') && k !== clave).forEach((k) => localStorage.removeItem(k));
         localStorage.setItem(clave, JSON.stringify(data));
@@ -534,7 +535,7 @@ async function loadComunidadPageAlgolia(page, filters, opts = {}) {
 
       if (page === 1) { setComunidadCache(allCommunityProducts); renderCarruseles(communityRandomOrder); }
 
-    } else if (!filters.busqueda && !filters.orden) {
+    } else if (!filters.busqueda && (!filters.orden || filters.orden === 'cerca')) {
       // ── Filtro de categoría/temporada/vendedor sin búsqueda: sobre el catálogo base de la ciudad, que ya viene
       // mezclado con prioridad a Plus/Pro y Z&R (Algolia los regresaba por fecha). Además no gasta búsquedas. ──
       loadComunidadFilterOptionsAlgolia();
@@ -542,6 +543,7 @@ async function loadComunidadPageAlgolia(page, filters, opts = {}) {
       const coincide = (campo, v, p) => !v || [].concat(p[campo] ?? []).some((x) => filtrarPor(campo, v).includes(x));
       const lista = communityRandomOrder.filter((p) => coincide('categoria', filters.categoria, p) && coincide('temporada', filters.temporada, p) && (!filters.condicion || p.condicion === filters.condicion)
         && (!filters.vendedor || String(p.vendedor_uid) === String(filters.vendedor)));
+      if (filters.orden === 'cerca') window.znrOrdenarPorCercania(lista); // los que no tienen ubicación van al final
       currentPage      = page;
       totalPagesGlobal = Math.max(1, Math.ceil(lista.length / PAGE_SIZE));
       allCommunityProducts = lista.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
@@ -593,6 +595,7 @@ async function loadComunidadPageAlgolia(page, filters, opts = {}) {
       currentPage      = page;
       totalPagesGlobal = searchResult.nbPages || 1;
       allCommunityProducts = searchResult.hits || [];
+      if (filters.orden === 'cerca') window.znrOrdenarPorCercania(allCommunityProducts);
       filteredProducts     = [...allCommunityProducts];
       aplicarOrdenLocal(filters.orden);
       window.allCommunityProductsIndexed = allCommunityProducts;
@@ -764,6 +767,7 @@ function updateComunidadChips(filters) {
   const ordenLabels = {
     verificados:  `${Icon('check')} Verificados`,
     calificacion: `${Icon('star')} Mejor calificado`,
+    cerca:        '📍 Más cerca de mí',
     precio_asc:   `${Icon('dollar')} Menor a mayor precio`
   };
   const chips = [];
@@ -1412,6 +1416,7 @@ ${esServ
 ? (product.apartado === true ? '<span style="color:#d97706;font-size:11px;font-weight:600;">🔖 Apartado</span>' : '<span style="color:var(--color-error,#ef4444);font-size:11px;font-weight:600;">Sin stock</span>')
 : `<span style="color:var(--color-success,#22c55e);font-size:11px;">Stock: ${stockNum}</span>`}
 ${product.categoria ? `<span style="font-size:10px;color:var(--color-text-muted,#aaa);">· ${esc(safeString(product.categoria))}</span>` : ''}
+${window.znrTextoDistancia(product) ? `<span style="font-size:10px;color:var(--color-text-muted,#aaa);">· 📍 ${window.znrTextoDistancia(product)}</span>` : ''}
 </div>
 <div class="product-actions" style="margin-top:8px;display:flex;gap:6px;">
 <button class="primary-button comunidad-add-btn"
@@ -1583,7 +1588,14 @@ if (vendorSelectEl) vendorSelectEl.addEventListener('change', updateHandler);
 const temporadaSelectEl = document.getElementById('comunidad-temporada');
 if (temporadaSelectEl) temporadaSelectEl.addEventListener('change', updateHandler);
 document.getElementById('comunidad-condicion')?.addEventListener('change', updateHandler);
-if (ordenEl) ordenEl.addEventListener('change', updateHandler);
+// "Más cerca de mí" pide la ubicación una vez (se guarda solo en este teléfono); sin permiso vuelve al orden normal.
+if (ordenEl) ordenEl.addEventListener('change', async () => {
+  if (ordenEl.value === 'cerca' && !window.znrMiUbicacion() && !(await window.znrPedirUbicacion())) {
+    ordenEl.value = '';
+    showTemporaryMessage('Activa tu ubicación para ver lo más cerca de ti', 'error');
+  }
+  updateHandler();
+});
 }
 function initCartAndUI() {
 if (typeof window.loadCartFromStorage === 'function') window.loadCartFromStorage();
