@@ -471,7 +471,7 @@
 .com-tabs button{flex:1;display:flex;align-items:center;justify-content:center;gap:6px;border:none;background:none;padding:9px 0;border-radius:10px;font:inherit;font-weight:700;font-size:14px;color:var(--color-text-muted,#6b7280);cursor:pointer}
 .com-tabs button.on{background:var(--color-surface,#fff);color:#e8456b;box-shadow:0 2px 8px rgba(0,0,0,.12)}
 .modo-zona #com-hero-wrap,.modo-zona #live-banner-slot,.modo-zona #comunidad-filter-chips,.modo-zona-invita #comunidad-grid,.modo-zona-invita #comunidad-pagination{display:none!important}
-#zona-hub{margin:8px 16px 12px}
+#zona-hub{margin:8px 16px 12px}#zona-vecinas{margin:0 16px 12px}
 /* 3 diseños de "tu zona" (se elige uno al azar por sesión): A vecindario, B comunidad, C plaza */
 .zt-a{--zt-bg:#fff7ef;--zt-fg:#7c2d12;--zt-sub:#9a5b3f;--zt-pill:#ffe4d3;--zt-pillfg:#c2410c;--zt-acc:#ea580c;--zt-btn:#ea580c;--zt-btnfg:#fff;--zt-borde:1px solid #ffe2cf}
 .zt-b{--zt-bg:linear-gradient(135deg,#fffaf0,#ffedd1);--zt-fg:#78350f;--zt-sub:#92603a;--zt-pill:#ffe8c2;--zt-pillfg:#b45309;--zt-acc:#d97706;--zt-btn:#f59e0b;--zt-btnfg:#fff;--zt-borde:1px solid #fde3b8}
@@ -498,7 +498,7 @@
 .zh-tag{display:inline-block;white-space:nowrap;margin-top:3px;padding:1px 6px;border-radius:10px;font-size:9px;font-weight:700;background:#ecfdf5;color:#047857}
 .zh-chips{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;margin-top:10px}
 /* Buscando: se ocultan banner y cabecera de la zona (quedan los filtros) para ver los resultados sin bajar */
-.buscando #com-hero-wrap,.buscando #zona-hub>:not(.zh-chips){display:none!important}.zh-chips button{flex:1 0 auto;justify-content:center;border:1px solid var(--color-border-subtle,#e5e7eb);background:var(--color-surface,#fff);color:inherit;border-radius:20px;padding:7px 10px;font:inherit;font-size:12px;font-weight:700;cursor:pointer}
+.buscando #com-hero-wrap,.buscando #zona-vecinas,.buscando #zona-hub>:not(.zh-chips){display:none!important}.zh-chips button{flex:1 0 auto;justify-content:center;border:1px solid var(--color-border-subtle,#e5e7eb);background:var(--color-surface,#fff);color:inherit;border-radius:20px;padding:7px 10px;font:inherit;font-size:12px;font-weight:700;cursor:pointer}
 .zh-chips button.on{background:#1f1a1c;color:#fff;border-color:#1f1a1c}
 .zh-fila{display:flex;align-items:center;gap:10px;padding:8px 0;border-top:1px solid var(--color-border-subtle,#f1f1f1);cursor:pointer}.zh-fila:first-of-type{border-top:none}
 .zh-nuevos{margin-left:auto;padding:3px 8px;border-radius:12px;font-size:11px;font-weight:700;background:#ffe4e6;color:#e8456b;white-space:nowrap}
@@ -630,6 +630,7 @@
  </div>
 
  <div id="comunidad-pagination" class="comunidad-pagination admin-pagination"></div>
+ <div id="zona-vecinas"></div>
 
  </div>
 

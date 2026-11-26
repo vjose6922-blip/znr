@@ -1173,6 +1173,7 @@ function salirZona() {
   zonaVista = ''; zonaChip = '';
   document.body.classList.remove('modo-zona', 'modo-zona-invita');
   const hub = document.getElementById('zona-hub'); if (hub) { hub.hidden = true; hub.innerHTML = ''; }
+  const zv = document.getElementById('zona-vecinas'); if (zv) zv.innerHTML = '';
 }
 function pintarHubZona() {
   const hub = document.getElementById('zona-hub');
@@ -1194,8 +1195,10 @@ function pintarHubZona() {
     <div class="zh-chips">${[['', 'Todo'], ['nuevos', icz('reloj', 14) + ' Nuevos'], ['comida', icz('comida', 14) + ' Comida'], ['servicios', icz('llave', 14) + ' Servicios']]
       .map(([k, t]) => `<button type="button" data-zchip="${k}" class="${zonaChip === k ? 'on' : ''}">${t}</button>`).join('')}</div>
     ${!lista.length ? '<div class="zh-card" style="text-align:center">Todavía nadie vende en esta zona. ¡Invita a tus vecinos!</div>' : ''}
-    ${vecinas.length ? `<div class="zh-card" style="background:#f5f3ff"><h3>${icz('mapa', 18)} Zonas vecinas</h3>${vecinas.map(filaZona).join('')}</div>` : ''}`;
+`;
   hub.hidden = false;
+  const zv = document.getElementById('zona-vecinas'); // al final, debajo de los productos
+  if (zv) zv.innerHTML = vecinas.length ? `<div class="zh-card" style="background:#f5f3ff"><h3>${icz('mapa', 18)} Zonas vecinas</h3>${vecinas.map(filaZona).join('')}</div>` : '';
 }
 // Sin código postal: invitación (código postal o "usar mi ubicación") y las zonas activas de la ciudad.
 async function invitarZona() {
