@@ -1,6 +1,6 @@
 # Pendientes Z&R: lista única (znr + CONTROL + znr-backend)
 
-Actualizado: 5 nov 2026. **Este es el único archivo de pendientes.** Los `PENDIENTES.md` de CONTROL y znr-backend
+Actualizado: 26 nov 2026. **Este es el único archivo de pendientes.** Los `PENDIENTES.md` de CONTROL y znr-backend
 apuntan aquí. Al terminar algo, cambia `[ ]` por `[x]`. Para pedir ayuda a Claude, cita el código (ej. "haz S2").
 
 Fuentes unificadas: `PENDIENTES.md` de los 3 repos, `PRUEBAS-PENDIENTES.md` y la lista de pruebas de
@@ -23,7 +23,12 @@ Todo el código ya está en `main` de los 3 repos (sin PRs abiertos). Solo falta
    - **Chat de pedidos:** X1–X5 (sección 3.7). Hacer un **pedido nuevo**: solo los pedidos creados desde el 5 nov
      tienen el chat automático.
 3. **Pagos con dinero real:** P2–P11 (sección 3.1). Montos chicos y reembolsar después.
-4. **Opcional (consola, 2 min):** C11, la transferencia `storage-continuo`.
+4. **El día del lanzamiento (Cloud Shell, 1 min): subir de 1 a 5 el mínimo de vendedores del aviso diario por zona**
+   (`avisar-zonas`; con 1 era para pruebas y con 5 no se mandan avisos de zonas casi vacías):
+   ```bash
+   gcloud scheduler jobs update http avisar-zonas --location=us-central1 --message-body="{\"action\":\"avisarNovedadesZonas\",\"token\":\"$(gcloud secrets versions access latest --secret=ADMIN_TOKEN)\",\"minVendedores\":5}"
+   ```
+   Si rotas `ADMIN_TOKEN`, este trabajo también se actualiza con el mismo comando.
 
 Después de lanzar: sección 4 (seguridad) y 5 (mejoras).
 
@@ -154,11 +159,10 @@ Usa montos chicos ($149 de Plus o ~$10) y reembolsa si no quieres conservarlos. 
 - [x] **S4 Código antes de `APP_CHECK=bloquear`** (hecho en znr-backend, rama `claude/busy-turing-3kwzsb`):
   - `catalogo-api`: `LIBRES_APP_CHECK = { body: ["cronMantenimientoCatalogo"] }` (el Scheduler usa `CRON_SECRET`, no `ADMIN_TOKEN`).
   - `appCheckOk` en los 11 servicios: parsear el body cuando llega como texto (igual que los handlers), o se rechazan jobs de Scheduler.
-- [ ] **S5 App Check en APIs** (25 nov): `APP_CHECK=bloquear` activo en los 11 (admin, auth, beneficiarios, catálogo,
-      historias, live, pedidos, registrar-token-fcm, tienda, vendedores, ventas); sin rechazos salvo bots. El Scheduler
-      `limpiar-historias` ahora manda `token` (antes `adminToken`). **Falta**: probar lives L1–L5 con `live-api` bloqueando y revisar 24 h. Revisar con `s5_401 <servicio> 1440` (en `~/s6.sh`) que no haya Stripe/MP/Scheduler; `s5_estado` lista cuáles
-      bloquean. Emergencia: `gcloud run services update <servicio> --region=us-central1 --remove-env-vars=APP_CHECK`.
-      **No** aplicar App Check en Storage (las `<img>` no llevan token).
+- [x] **S5 App Check en APIs** (26 nov): `APP_CHECK=bloquear` en los 11 servicios; en 24 h solo se rechazan bots y llamadas
+      sueltas sin token. Arreglado el Scheduler `limpiar-historias` (tenía la clave vieja de antes de rotar `ADMIN_TOKEN`); los 13
+      trabajos revisados. Revisar: `s5_401 <servicio> 1440` (en `~/s6.sh`). Emergencia: `gcloud run services update <servicio>
+      --region=us-central1 --remove-env-vars=APP_CHECK`. **No** aplicar App Check en Storage (las `<img>` no llevan token).
 - [x] **S6 Cuentas de servicio por API** (25 nov): los 17 servicios corren con su cuenta `<servicio>-sa@…`; a `…-compute@`
       se le quitó **Editor** (ahora: cloudbuild.builds.builder, run.admin, artifactregistry.writer, Cloud Tasks, eventarc,
       logWriter y `run.invoker` en los 3 servicios de Eventarc y push-send-worker). Si algo da 403/PERMISSION_DENIED, volver a darle
