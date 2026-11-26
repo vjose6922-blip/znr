@@ -99,7 +99,7 @@
   .community-hero {
  background: transparent;
  border-radius: 0;
- margin-bottom: 20px;
+ margin-bottom: 6px;
  padding: 6px 16px 0;
  text-align: left;
  color: var(--ink-title);
@@ -125,6 +125,7 @@
  .carr-track { display: flex; gap: 10px; overflow-x: auto; overflow-y: hidden; padding: 0 16px 8px; scroll-snap-type: x proximity; scrollbar-width: none; }
  .carr-track::-webkit-scrollbar { display: none; }
  #comunidad-grid > .carr-wrap { grid-column: 1 / -1; min-width: 0; margin: 8px -16px; }
+ #comunidad-grid > .carr-wrap:first-child { margin-top: 0; }
  .vendor-buttons { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
  .btn-outline-light {
  background: transparent;
@@ -499,7 +500,8 @@
 .zh-chips button.on{background:#1f1a1c;color:#fff;border-color:#1f1a1c}
 .zh-fila{display:flex;align-items:center;gap:10px;padding:8px 0;border-top:1px solid var(--color-border-subtle,#f1f1f1);cursor:pointer}.zh-fila:first-of-type{border-top:none}
 .zh-nuevos{margin-left:auto;padding:3px 8px;border-radius:12px;font-size:11px;font-weight:700;background:#ffe4e6;color:#e8456b;white-space:nowrap}
-.zh-tarjeta{position:relative;overflow:hidden;margin:0 16px 10px;border-radius:20px;padding:16px;min-height:160px;cursor:pointer}
+.zh-tarjeta{position:relative;overflow:hidden;box-sizing:border-box;border-radius:20px;padding:14px 16px;display:flex;flex-direction:column;align-items:flex-start;cursor:pointer}
+.com-banner.zh-tarjeta{color:var(--zt-fg)}.zh-tarjeta>div:last-child{width:100%}
 .zh-tarjeta .zh-avs{display:flex}.zh-tarjeta .zh-av{width:38px;height:38px;margin:0 0 0 -10px;font-size:12px}.zh-tarjeta .zh-av:first-child{margin-left:0}
 </style>
 </head>
@@ -556,7 +558,6 @@
  <!-- Carruseles: comunidad.js los intercala en la cuadrícula (vecinos arriba; los demás después de 6, 12 y 18 artículos). -->
  <div id="comunidad-carruseles" hidden>
  <div id="comunidad-zona-wrap" class="carr-wrap" style="display:none;">
- <div id="zona-tarjeta"></div>
  <div class="carr-head"><h2 id="comunidad-zona-titulo">Nuevos en tu zona</h2><button type="button" class="carr-vermas" data-zona-entrar>Ver todo</button></div>
  <div id="comunidad-zona-track" class="carr-track"></div>
  </div>
