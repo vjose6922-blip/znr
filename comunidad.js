@@ -1042,7 +1042,7 @@ function calcularVista(vista, base) {
   if (vista === 'temporada') return calcularTemporadaActual(base);
   if (vista === 'zona') {
     const l = productosDeZona(base, zonaVista || (window.znrMiZona() || {}).cp);
-    return zonaChip === 'nuevos' ? l.filter((p) => esNuevo(p, 3)) : zonaChip === 'sinenvio' ? l.filter((p) => p.vendedor_entrega_zona)
+    return zonaChip === 'nuevos' ? l.filter((p) => esNuevo(p, 3))
       : zonaChip === 'comida' ? l.filter((p) => p.tipoVenta === 'comida') : zonaChip === 'servicios' ? l.filter((p) => p.tipoVenta === 'servicio') : l;
   }
   return base || [];
@@ -1191,7 +1191,7 @@ function pintarHubZona() {
       : `<button type="button" class="zh-pri" data-zh="hacerMia">${icz('pin')} Es mi zona</button>`}<button type="button" class="zh-sec" data-zh="compartir" style="flex:none" aria-label="Compartir zona">${icz('compartir')}</button></div>
     ${vend.length ? `<div class="zh-card"><h3>${icz('users', 18)} Tus vecinos que venden</h3><div class="zh-vecinos">${vend.map((v, i) => `<a href="perfil-vendedor.html?vendedor=${encodeURIComponent(v.uid)}">${avatarZ(v, i)}${escZ(v.nombre)}
       ${v.entrega ? `<br><span class="zh-tag">${icz('moto', 11)} sin costo</span>` : v.comida ? `<br><span class="zh-tag" style="background:#fef3c7;color:#92400e">${icz('comida', 11)} comida</span>` : ''}</a>`).join('')}</div></div>` : ''}
-    <div class="zh-chips">${[['', 'Todo'], ['nuevos', icz('reloj', 14) + ' Nuevos'], ['sinenvio', icz('moto', 14) + ' Sin envío'], ['comida', icz('comida', 14) + ' Comida'], ['servicios', icz('llave', 14) + ' Servicios']]
+    <div class="zh-chips">${[['', 'Todo'], ['nuevos', icz('reloj', 14) + ' Nuevos'], ['comida', icz('comida', 14) + ' Comida'], ['servicios', icz('llave', 14) + ' Servicios']]
       .map(([k, t]) => `<button type="button" data-zchip="${k}" class="${zonaChip === k ? 'on' : ''}">${t}</button>`).join('')}</div>
     ${!lista.length ? '<div class="zh-card" style="text-align:center">Todavía nadie vende en esta zona. ¡Invita a tus vecinos!</div>' : ''}
     ${vecinas.length ? `<div class="zh-card" style="background:#f5f3ff"><h3>${icz('mapa', 18)} Zonas vecinas</h3>${vecinas.map(filaZona).join('')}</div>` : ''}`;
