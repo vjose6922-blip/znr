@@ -49,6 +49,7 @@ const LIVE_API_URL =
   "https://live-api-1038143238323.us-central1.run.app";
 const MAPA_ACCIONES_MIGRADAS = {
   registrarVendedor: VENDEDORES_API_URL,
+  verificarSesionVendedor: VENDEDORES_API_URL,
   loginVendedor: VENDEDORES_API_URL,
   sesionCompradorDesdeVendedor: VENDEDORES_API_URL,
   webauthnLoginOpciones: VENDEDORES_API_URL,
@@ -152,6 +153,7 @@ window.apiFetch = async function(data, method = 'POST') {
   }
 
   function checkTokenInvalid(parsed) {
+  if (vendorSession && vendorSession.enRevision) return parsed; // cuenta en revisión: lo bloqueado responde "No autorizado" (no es sesión vencida)
   if (parsed && parsed.ok === false &&
       typeof parsed.error === 'string' &&
       (parsed.error.toLowerCase().includes('token') ||
@@ -367,6 +369,8 @@ if (!nombre || phone.length !== 10 || !pais || !ciudad) {
 showTemporaryMessage(' Completa todos los campos correctamente', 'error');
 return;
 }
+const nuevaPassword = document.getElementById('reg-pass')?.value || '';
+if (nuevaPassword !== (document.getElementById('reg-pass2')?.value || '')) { showTemporaryMessage(' Las contraseñas no coinciden', 'error'); return; }
 const btn = document.getElementById('register-btn');
 if (btn) {
 btn.disabled = true;
@@ -374,7 +378,7 @@ btn.textContent = 'Enviando...';
 }
 try {
 const sesionOk = localStorage.getItem('client_phone') === phone;
-const res = await apiFetch({ action: 'registrarVendedor', nombre, telefono: phone, pais, ciudad,
+const res = await apiFetch({ action: 'registrarVendedor', nombre, telefono: phone, pais, ciudad, nuevaPassword,
   compradorToken: sesionOk ? localStorage.getItem('comprador_token') : undefined,
   password: document.getElementById('reg-comprador-pass')?.value || undefined });
 if (res.requiereComprador) {
@@ -382,6 +386,14 @@ if (res.requiereComprador) {
   return;
 }
 if (!res.ok) throw new Error(res.error);
+if (res.enRevision) { // entra ya con su contraseña (cuenta en revisión)
+  document.getElementById('login-phone').value = phone;
+  document.getElementById('login-password').value = nuevaPassword;
+  ['reg-pass', 'reg-pass2'].forEach((id) => { document.getElementById(id).value = ''; });
+  showTemporaryMessage(' ¡Listo! Completa tu perfil y sube tus productos mientras revisamos tu cuenta.', 'success');
+  await vendorLogin();
+  return;
+}
 showTemporaryMessage(' Registro exitoso. Espera a que el administrador active tu cuenta.', 'success');
 document.getElementById('reg-nombre').value = '';
 document.getElementById('reg-phone').value = '';
@@ -431,6 +443,7 @@ tiktok: res.tiktok || '',
 horario: res.horario || '',
 puntoEntrega: res.puntoEntrega || '',
 reglasRenta: res.reglasRenta || '',
+enRevision: res.enRevision === true,
 puntoEntregaLat: (res.puntoEntregaLat === null || res.puntoEntregaLat === undefined) ? null : res.puntoEntregaLat,
 puntoEntregaLng: (res.puntoEntregaLng === null || res.puntoEntregaLng === undefined) ? null : res.puntoEntregaLng,
 montoMinimoEnvio: (res.montoMinimoEnvio === null || res.montoMinimoEnvio === undefined) ? null : res.montoMinimoEnvio,
@@ -914,6 +927,8 @@ function renderVendorPlanPanel() {
       <div style="background:#e6e6ee;border-radius:999px;height:6px;margin-top:8px;overflow:hidden;">
         <div style="background:${pct >= 100 ? '#c62828' : '#7c3aed'};height:100%;width:${pct}%;"></div>
       </div>
+      ${vendorSession && vendorSession.enRevision ? `<div style="margin-top:8px;background:#e0f2fe;color:#075985;font-size:12px;border-radius:10px;padding:8px 12px;">
+        🕓 <b>Tu cuenta está en revisión.</b> Completa tu perfil (Ajustes → punto de entrega) y sube hasta ${limite} productos: nadie los ve todavía. Al aprobar tu cuenta te mandamos por WhatsApp una contraseña nueva para confirmar tu número; al entrar con ella se publican. Lives, historias, ventas y planes se activan al aprobarla.</div>` : ''}
       ${renovacionHTML}${graciaHTML}${ocultosHTML}
       ${statusFilterHTML}
     </div>
@@ -2039,7 +2054,11 @@ vendorSession = JSON.parse(stored);
 if (vendorSession.telefono) localStorage.setItem('client_phone', vendorSession.telefono);
 vincularComprador(false);
 showPanel();
-sincronizarPlanVendedor(showPanel);
+if (vendorSession.enRevision) apiFetch({ action: 'verificarSesionVendedor', vendorToken: vendorSession.token }).then((r) => {
+  if (r && r.ok === false && /sesi|autoriz/i.test(r.error || '')) return vendorLogout();
+  if (r && r.ok && !r.enRevision) { vendorSession.enRevision = false; vendorSession.limiteProductos = 20; localStorage.setItem('vendor_session', JSON.stringify(vendorSession)); showPanel(); }
+}).catch(() => {});
+else sincronizarPlanVendedor(showPanel);
 apiFetch({ action: 'misProductosComunidad', vendorToken: vendorSession.token, limit: 1 }, 'GET').then(resp => {
   // Solo se cierra la sesión si el token de verdad es inválido; un error
   // temporal del servidor (500, arranque en frío, etc.) no debe sacar al vendedor.

@@ -220,8 +220,13 @@ Ya existían: 3 (pedido + chat antes de WhatsApp), 10 (chat por pedido/consulta)
 - [x] **M8 Estadísticas por producto** (25 nov): por día en `stats_producto/{id}` (vistas, carrito/pedidos, compartidos; 1 por
       celular al día y no las del vendedor) + piezas entregadas de `ventas_historial`. Panel: línea "👁 · 🛒 · ↗ · ✅ · 7 días"
       en cada producto y icono 📊 con el ranking (gratis 7 días; Plus/Pro 30 días y vistas vs semana anterior).
-- [ ] Siguientes recomendadas: 22 simple (subir productos
-      mientras se aprueba la cuenta). Más adelante: 11–14 (colonia), 17–18 (puntaje/renovar), 5 (soporte), 6 (selfie).
+- [x] **M22 Vendedor en revisión** (25 nov): al registrarse crea su contraseña y entra enseguida con la cuenta en revisión
+      (`passwordPropia`): perfil, punto de entrega, seguridad y hasta 10 productos ocultos (`enRevisionVendedor`, no salen en
+      Pendientes). Lives, historias, ventas, pagos y planes siguen bloqueados. En CONTROL "Ver sus productos" en la solicitud.
+      Al aprobar se manda contraseña temporal por WhatsApp como siempre (confirma que el número es suyo): su contraseña y su
+      sesión en revisión dejan de servir, y sus productos se publican cuando entra con la del WhatsApp (`publicarAlEntrar`).
+      Registro: máx. 3 por conexión al día, y el número de una solicitud rechazada queda libre (se borra con lo que subió).
+- [ ] Más adelante (cuando haya volumen): 11–14 (colonia), 17–18 (puntaje/renovar), 5 (soporte), 6 (selfie).
       Descartadas por ahora: 15 (canales) y 19–21 (impulsos).
 
 ## Limpieza
