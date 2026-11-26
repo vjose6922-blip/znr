@@ -929,6 +929,9 @@ function renderVendorPlanPanel() {
       </div>
       ${vendorSession && vendorSession.enRevision ? `<div style="margin-top:8px;background:#e0f2fe;color:#075985;font-size:12px;border-radius:10px;padding:8px 12px;">
         🕓 <b>Tu cuenta está en revisión.</b> Completa tu perfil (Ajustes → punto de entrega) y sube hasta ${limite} productos: nadie los ve todavía. Al aprobar tu cuenta te mandamos por WhatsApp una contraseña nueva para confirmar tu número; al entrar con ella se publican. Lives, historias, ventas y planes se activan al aprobarla.</div>` : ''}
+      ${vendorSession && vendorSession.puntoEntregaLat == null ? `<div style="margin-top:8px;background:#fff7ed;color:#9a3412;font-size:12px;border-radius:10px;padding:8px 12px;display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;">
+        <span>📍 <b>Agrega la ubicación de tu punto de entrega</b> para salir en "Más cerca de mí" y mostrar a qué distancia estás.</span>
+        <button type="button" onclick="window.irAUbicacionPunto()" style="padding:6px 14px;border:none;border-radius:20px;background:#ea580c;color:#fff;font-weight:700;font-size:12px;cursor:pointer;">Agregar</button></div>` : ''}
       ${renovacionHTML}${graciaHTML}${ocultosHTML}
       ${statusFilterHTML}
     </div>
@@ -2134,6 +2137,19 @@ window.addEventListener('layoutChanged', (e) => {
 });
 
 window.openSettingsModal  = function() { openSettingsModal(); };
+// Aviso "Agrega la ubicación de tu punto de entrega": abre Ajustes, despliega la sección y lleva al botón "📍 Usar mi ubicación".
+window.irAUbicacionPunto = function() {
+  openSettingsModal();
+  setTimeout(() => {
+    const b = document.getElementById('btn-gps-punto-entrega');
+    for (let el = b; el && el !== document.body; el = el.parentElement) { // "Perfil del negocio" y "Punto de entrega" pueden ir plegados
+      if (el.tagName === 'DETAILS') el.open = true;
+      if (getComputedStyle(el).display === 'none' && el.classList.contains('settings-section-body')) window.toggleSettingsSection(el.previousElementSibling);
+    }
+    b?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    b?.focus();
+  }, 350);
+};
 window.closeSettingsModal = function() { closeSettingsModal(); };
 window.guardarPerfil      = function() { guardarPerfil(); };
 window.guardarPassword    = function() { guardarPassword(); };

@@ -229,7 +229,7 @@ Ya existían: 3 (pedido + chat antes de WhatsApp), 10 (chat por pedido/consulta)
 - [x] **M11a "Cerca de ti"** (26 nov, colonias paso 1): cada producto lleva el punto de entrega del vendedor redondeado a ~500 m
       (`_geoloc`); en Comunidad "Ordenar por → Más cerca de mí" (pide la ubicación una vez, solo se guarda en el teléfono) y
       "📍 a 1.2 km" en las tarjetas. Sirve en cualquier país. Tras desplegar: CONTROL → "Resincronizar todo Comunidad con
-      Algolia"; el catálogo de Comunidad lo toma en ≤1 h. Vendedores sin coordenadas van al final (pedirles "Usar mi ubicación").
+      Algolia"; el catálogo de Comunidad lo toma en ≤1 h. Vendedores sin coordenadas van al final; su panel les muestra "📍 Agrega la ubicación de tu punto de entrega".
 - [ ] **M11b Colonia con nombre** (paso 2): CP → colonia (SEPOMEX por estado, archivo estático; ZIP en EE. UU.), insignia
       "📍 De tu colonia" y filtro. Paso 3 / grupos por colonia: fila "Vecinos de tu colonia", aviso diario por colonia (≥5
       vendedores) y "Recoger en la colonia".
