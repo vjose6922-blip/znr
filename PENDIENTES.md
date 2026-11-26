@@ -225,6 +225,7 @@ Ya existían: 3 (pedido + chat antes de WhatsApp), 10 (chat por pedido/consulta)
       Pendientes). Lives, historias, ventas, pagos y planes siguen bloqueados. En CONTROL "Ver sus productos" en la solicitud.
       Al aprobar se manda contraseña temporal por WhatsApp como siempre (confirma que el número es suyo): su contraseña y su
       sesión en revisión dejan de servir, y sus productos se publican cuando entra con la del WhatsApp (`publicarAlEntrar`).
+      Registro: máx. 3 por conexión al día, y el número de una solicitud rechazada queda libre (se borra con lo que subió).
 - [ ] Más adelante (cuando haya volumen): 11–14 (colonia), 17–18 (puntaje/renovar), 5 (soporte), 6 (selfie).
       Descartadas por ahora: 15 (canales) y 19–21 (impulsos).
 
