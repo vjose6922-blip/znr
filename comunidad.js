@@ -1009,7 +1009,17 @@ function renderCarrusel(vista, lista) {
   iniciarAutoScrollCarrusel(track);
 }
 const pctDescuento = p => p.precio_original > 0 ? Math.round((1 - p.precio / p.precio_original) * 100) : 0;
+// Fila "Vecinos de tu zona" (colonias, paso 3): primero los de tu código postal; si son menos de 6 se completa con los más
+// cercanos (si diste tu ubicación) y el título cambia. Sin código postal ni ubicación no se muestra.
+function calcularVecinos(products) {
+  const zona = products.filter(window.znrEsDeTuZona), ids = new Set(zona.map((p) => p.id));
+  const cerca = zona.length >= 6 || !window.znrMiUbicacion() ? [] : window.znrOrdenarPorCercania(products.filter((p) => !ids.has(p.id) && p._geoloc)).slice(0, 10 - zona.length);
+  const titulo = document.getElementById('comunidad-zona-titulo');
+  if (titulo) titulo.textContent = !cerca.length ? '📍 Vecinos de tu zona' : zona.length ? '📍 Vecinos y cerca de ti' : '📍 Cerca de ti';
+  return zona.concat(cerca);
+}
 function renderCarruseles(products) {
+  renderCarrusel('zona', calcularVecinos(products));
   renderCarrusel('ofertas', calcularOfertas(products));
   renderCarrusel('temporada', calcularTemporadaActual(products));
   renderCarrusel('recomendado', calcularRecomendados(products, 10));
@@ -1086,7 +1096,12 @@ async function pintarEncabezadoZona(bar) {
   if (!z) return;
   bar.insertAdjacentHTML('beforeend', `<div id="zona-header" style="flex-basis:100%;display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:6px;padding:10px 12px;border-radius:12px;background:var(--color-surface-2,#f3f4f6);font-size:13px">
     <span style="flex:1;min-width:160px">📍 <b id="zona-nombre">Zona ${z.cp}</b><br><small style="opacity:.75">Lo que venden tus vecinos del código postal ${z.cp}</small></span>
+    <button type="button" class="filter-chip" id="zona-avisos">${localStorage.getItem('znr_zona_avisos') === '1' ? '🔕 Dejar de avisarme' : '🔔 Avisarme'}</button>
     <button type="button" class="filter-chip" id="zona-proponer">Proponer nombre</button><button type="button" class="filter-chip" id="zona-cambiar">Cambiar código postal</button></div>`);
+  bar.querySelector('#zona-avisos').onclick = async (e) => {
+    const activar = localStorage.getItem('znr_zona_avisos') !== '1';
+    if (await window.znrSeguirZona(activar)) e.target.textContent = activar ? '🔕 Dejar de avisarme' : '🔔 Avisarme';
+  };
   bar.querySelector('#zona-proponer').onclick = () => window.znrProponerNombreZona();
   bar.querySelector('#zona-cambiar').onclick = () => abrirTuZona(true);
   const r = await fetch(`${window.CATALOGO_API_URL || 'https://catalogo-api-1038143238323.us-central1.run.app'}?action=infoZona&cp=${z.cp}&pais=${encodeURIComponent(z.pais)}`).then((x) => x.json()).catch(() => null);
@@ -1125,7 +1140,7 @@ try {
     return;
   }
   const espera = document.getElementById('comunidad-carruseles');
-  ['ofertas', 'temporada', 'recomendado'].forEach(v => wrapCarrusel(v) && espera.appendChild(wrapCarrusel(v)));
+  ['zona', 'ofertas', 'temporada', 'recomendado'].forEach(v => wrapCarrusel(v) && espera.appendChild(wrapCarrusel(v)));
   gridContainer.innerHTML = '';
   visibles.forEach(product => {
     const card = createCommunityCard(product);
@@ -1138,7 +1153,7 @@ try {
   // (redondeado a filas completas si la cuadrícula tiene más columnas, ej. 4 en escritorio).
   if (currentPage === 1 && esVistaComunidadPorDefecto(currentFilters || {})) {
     const cols = getComputedStyle(gridContainer).gridTemplateColumns.split(' ').length || 1;
-    [['ofertas', 6], ['temporada', 12], ['recomendado', 18]].forEach(([v, n], k) => { // k: carruseles ya insertados antes
+    [['zona', 0], ['ofertas', 6], ['temporada', 12], ['recomendado', 18]].forEach(([v, n], k) => { // k: carruseles ya insertados antes
       if (wrapCarrusel(v)) gridContainer.insertBefore(wrapCarrusel(v), gridContainer.children[Math.ceil(n / cols) * cols + k] || null);
     });
   }
@@ -1437,7 +1452,7 @@ ${esServ
 ? (product.apartado === true ? '<span style="color:#d97706;font-size:11px;font-weight:600;">🔖 Apartado</span>' : '<span style="color:var(--color-error,#ef4444);font-size:11px;font-weight:600;">Sin stock</span>')
 : `<span style="color:var(--color-success,#22c55e);font-size:11px;">Stock: ${stockNum}</span>`}
 ${product.categoria ? `<span style="font-size:10px;color:var(--color-text-muted,#aaa);">· ${esc(safeString(product.categoria))}</span>` : ''}
-${window.znrEsDeTuZona(product) ? '<span style="font-size:10px;font-weight:700;color:#ea580c;">· 📍 De tu zona</span>'
+${window.znrEsDeTuZona(product) ? `<span style="font-size:10px;font-weight:700;color:#ea580c;">· 📍 De tu zona${product.vendedor_entrega_zona ? ' · entrega sin costo' : ''}</span>`
   : window.znrTextoDistancia(product) ? `<span style="font-size:10px;color:var(--color-text-muted,#aaa);">· 📍 ${window.znrTextoDistancia(product)}</span>` : ''}
 </div>
 <div class="product-actions" style="margin-top:8px;display:flex;gap:6px;">

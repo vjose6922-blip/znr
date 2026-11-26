@@ -511,8 +511,12 @@
  <div id="live-banner-slot"></div>
 
  
- <!-- Carruseles: comunidad.js los intercala en la cuadrícula (después de 6, 12 y 18 artículos); aquí solo esperan. -->
+ <!-- Carruseles: comunidad.js los intercala en la cuadrícula (vecinos arriba; los demás después de 6, 12 y 18 artículos). -->
  <div id="comunidad-carruseles" hidden>
+ <div id="comunidad-zona-wrap" class="carr-wrap" style="display:none;">
+ <div class="carr-head"><h2 id="comunidad-zona-titulo">📍 Vecinos de tu zona</h2><button type="button" class="carr-vermas" data-vista="zona">Ver más</button></div>
+ <div id="comunidad-zona-track" class="carr-track"></div>
+ </div>
  <div id="comunidad-ofertas-wrap" class="carr-wrap" style="display:none;">
  <div class="carr-head"><h2>🔥 Ofertas destacadas</h2><button type="button" class="carr-vermas" data-vista="ofertas">Ver más</button></div>
  <div id="comunidad-ofertas-track" class="carr-track"></div>

@@ -802,6 +802,19 @@ window.znrElegirZona = async () => {
   try { localStorage.setItem('znr_mi_cp', JSON.stringify(z)); } catch (_) {}
   return z;
 };
+// "🔔 Avisarme": un aviso al día cuando sus vecinos publican (avisarNovedadesZonas). Se guarda en su perfil de comprador.
+window.znrSeguirZona = async (activar) => {
+  const z = window.znrMiZona(), telefono = z && await asegurarComprador('Para avisarte de tu zona');
+  if (!telefono) return false;
+  if (activar) window.solicitarPermisoNotificacionesSiFalta?.('cliente', telefono);
+  const r = await fetch('https://auth-api-1038143238323.us-central1.run.app', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({ action: 'guardarPerfilComprador', telefono, compradorToken: localStorage.getItem('comprador_token') || '', cp: z.cp, cpPais: z.pais, zonaAvisos: activar ? '1' : '0' }) })
+    .then((x) => x.json()).catch(() => null);
+  if (!r || !r.ok) { showTemporaryMessage(' No se pudo guardar. Intenta de nuevo.', 'error'); return false; }
+  try { localStorage.setItem('znr_zona_avisos', activar ? '1' : '0'); } catch (_) {}
+  showTemporaryMessage(activar ? '🔔 Te avisaremos una vez al día cuando tus vecinos publiquen algo.' : 'Ya no te avisaremos de tu zona.', 'success');
+  return true;
+};
 window.znrProponerNombreZona = async () => {
   const z = window.znrMiZona();
   if (!z) return;
