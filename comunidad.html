@@ -467,18 +467,29 @@
 <style>
 /* ── Pestañas de Comunidad y página "Mi zona" (grupo de vecinos por código postal) ── */
 .com-tabs{display:flex;gap:4px;margin:10px 16px 4px;padding:4px;border-radius:14px;background:var(--color-surface-2,#f3f4f6)}
-.com-tabs button{flex:1;border:none;background:none;padding:9px 0;border-radius:10px;font:inherit;font-weight:700;font-size:14px;color:var(--color-text-muted,#6b7280);cursor:pointer}
+.com-tabs button{flex:1;display:flex;align-items:center;justify-content:center;gap:6px;border:none;background:none;padding:9px 0;border-radius:10px;font:inherit;font-weight:700;font-size:14px;color:var(--color-text-muted,#6b7280);cursor:pointer}
 .com-tabs button.on{background:var(--color-surface,#fff);color:#e8456b;box-shadow:0 2px 8px rgba(0,0,0,.12)}
 .modo-zona #com-hero-wrap,.modo-zona #live-banner-slot,.modo-zona #comunidad-filter-chips,.modo-zona-invita #comunidad-grid,.modo-zona-invita #comunidad-pagination{display:none!important}
 #zona-hub{margin:8px 16px 12px}
-.zh-hero{position:relative;overflow:hidden;border-radius:22px;padding:18px 18px 56px;color:#fff;background:linear-gradient(150deg,#7c3aed,#e8456b 65%,#ff9f6e)}
-.zh-hero:after{content:"🏘️";position:absolute;right:-18px;top:6px;font-size:130px;opacity:.13}
-.zh-pill{display:inline-flex;align-items:center;gap:4px;padding:5px 10px;border-radius:20px;font-size:11px;font-weight:700;background:rgba(255,255,255,.22);white-space:nowrap}
+/* 3 diseños de "tu zona" (se elige uno al azar por sesión): A vecindario, B comunidad, C plaza */
+.zt-a{--zt-bg:#fff7ef;--zt-fg:#7c2d12;--zt-sub:#9a5b3f;--zt-pill:#ffe4d3;--zt-pillfg:#c2410c;--zt-acc:#ea580c;--zt-btn:#ea580c;--zt-btnfg:#fff;--zt-borde:1px solid #ffe2cf}
+.zt-b{--zt-bg:linear-gradient(135deg,#0f766e,#14b8a6 70%,#5eead4);--zt-fg:#fff;--zt-sub:rgba(255,255,255,.92);--zt-pill:rgba(255,255,255,.18);--zt-pillfg:#fff;--zt-acc:#0f766e;--zt-btn:#fff;--zt-btnfg:#0f766e;--zt-borde:0}
+.zt-c{--zt-bg:linear-gradient(135deg,#ff5f7a,#ff8a6a 60%,#ffb07a);--zt-fg:#fff;--zt-sub:rgba(255,255,255,.95);--zt-pill:rgba(255,255,255,.2);--zt-pillfg:#fff;--zt-acc:#e8456b;--zt-btn:#fff;--zt-btnfg:#e8456b;--zt-borde:0}
+.zh-hero,.zh-tarjeta{background:var(--zt-bg);color:var(--zt-fg);border:var(--zt-borde)}
+.zh-hero{position:relative;overflow:hidden;border-radius:22px;padding:18px 18px 56px}
+.zh-hero>*:not(.zh-deco),.zh-tarjeta>*:not(.zh-deco){position:relative;z-index:1}
+.zh-deco{position:absolute;pointer-events:none}
+.zh-pill{display:inline-flex;align-items:center;gap:5px;padding:5px 10px;border-radius:20px;font-size:11px;font-weight:800;letter-spacing:.03em;background:var(--zt-pill);color:var(--zt-pillfg);white-space:nowrap}
+.zh-sub{display:flex;align-items:center;gap:5px;font-size:13px;margin-top:4px;color:var(--zt-sub)}
+.zh-entrar{margin-left:auto;display:flex;align-items:center;gap:4px;background:var(--zt-btn);color:var(--zt-btnfg);border-radius:20px;padding:8px 14px;font-weight:800;font-size:13px}
+.zh-card h3,.zh-chips button,.zh-acc button,.zh-tag{display:inline-flex;align-items:center;gap:6px}
+.zh-ficon{display:grid;place-items:center;width:36px;height:36px;border-radius:12px;background:#f5f3ff;color:#7c3aed;flex:none}
+.zh-ilustra{display:grid;place-items:center;width:76px;height:76px;margin:0 auto;border-radius:50%;background:linear-gradient(135deg,#ccfbf1,#ffe4e6);color:#0f766e}
 .zh-nombre{font-size:30px;font-weight:900;line-height:1.05;margin-top:8px}
 .zh-stats{position:relative;z-index:1;display:flex;text-align:center;margin:-40px 10px 0;padding:12px 6px;border-radius:18px;background:var(--color-surface,#fff);box-shadow:0 6px 18px rgba(0,0,0,.08)}
 .zh-stats div{flex:1}.zh-stats div+div{border-left:1px solid var(--color-border-subtle,#eee)}.zh-stats b{display:block;font-size:22px;font-weight:900}.zh-stats small{font-size:11px;color:var(--color-text-muted,#888)}
-.zh-acc{display:flex;gap:8px;margin-top:12px}.zh-acc button{flex:1;border:none;border-radius:22px;padding:11px 10px;font:inherit;font-weight:800;font-size:13px;cursor:pointer}
-.zh-pri{background:linear-gradient(135deg,#7c3aed,#e8456b);color:#fff}.zh-sec{background:var(--color-surface,#fff);color:#7c3aed;box-shadow:0 2px 8px rgba(0,0,0,.08)}
+.zh-acc{display:flex;gap:8px;margin-top:12px}.zh-acc button{flex:1;border:none;border-radius:22px;padding:11px 8px;font:inherit;font-weight:800;font-size:13px;white-space:nowrap;cursor:pointer}
+.zh-pri{background:var(--zt-acc,#0f766e);color:#fff;justify-content:center}.zh-sec{background:var(--color-surface,#fff);color:var(--zt-acc,#0f766e);box-shadow:0 2px 8px rgba(0,0,0,.08);justify-content:center}
 .zh-card{margin-top:12px;padding:14px;border-radius:18px;background:var(--color-surface,#fff);box-shadow:0 4px 16px rgba(0,0,0,.06)}
 .zh-card h3{margin:0 0 10px;font-size:16px;font-weight:800}
 .zh-vecinos{display:flex;gap:14px;overflow-x:auto;scrollbar-width:none}.zh-vecinos a{flex:none;width:66px;text-align:center;color:inherit;text-decoration:none;font-size:11px}
@@ -488,7 +499,7 @@
 .zh-chips button.on{background:#1f1a1c;color:#fff;border-color:#1f1a1c}
 .zh-fila{display:flex;align-items:center;gap:10px;padding:8px 0;border-top:1px solid var(--color-border-subtle,#f1f1f1);cursor:pointer}.zh-fila:first-of-type{border-top:none}
 .zh-nuevos{margin-left:auto;padding:3px 8px;border-radius:12px;font-size:11px;font-weight:700;background:#ffe4e6;color:#e8456b;white-space:nowrap}
-.zh-tarjeta{position:relative;overflow:hidden;margin:0 16px 10px;border-radius:20px;padding:16px;color:#fff;background:linear-gradient(135deg,#7c3aed,#e8456b 70%,#ff9f6e);cursor:pointer}
+.zh-tarjeta{position:relative;overflow:hidden;margin:0 16px 10px;border-radius:20px;padding:16px;min-height:160px;cursor:pointer}
 .zh-tarjeta .zh-avs{display:flex}.zh-tarjeta .zh-av{width:38px;height:38px;margin:0 0 0 -10px;font-size:12px}.zh-tarjeta .zh-av:first-child{margin-left:0}
 </style>
 </head>
@@ -528,7 +539,7 @@
  </div>
 
  <div class="com-tabs" role="tablist" aria-label="Secciones de Comunidad">
- <button type="button" role="tab" data-tab="parati" class="on">✨ Para ti</button><button type="button" role="tab" data-tab="zona">📍 Mi zona</button><button type="button" role="tab" data-tab="ofertas">🔥 Ofertas</button>
+ <button type="button" role="tab" data-tab="parati" class="on"><svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"/></svg>Para ti</button><button type="button" role="tab" data-tab="zona"><svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>Mi zona</button><button type="button" role="tab" data-tab="ofertas"><svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg>Ofertas</button>
  </div>
  <div id="zona-hub" hidden></div>
 
@@ -546,7 +557,7 @@
  <div id="comunidad-carruseles" hidden>
  <div id="comunidad-zona-wrap" class="carr-wrap" style="display:none;">
  <div id="zona-tarjeta"></div>
- <div class="carr-head"><h2 id="comunidad-zona-titulo">🆕 Nuevos en tu zona</h2><button type="button" class="carr-vermas" data-zona-entrar>Ver todo</button></div>
+ <div class="carr-head"><h2 id="comunidad-zona-titulo">Nuevos en tu zona</h2><button type="button" class="carr-vermas" data-zona-entrar>Ver todo</button></div>
  <div id="comunidad-zona-track" class="carr-track"></div>
  </div>
  <div id="comunidad-ofertas-wrap" class="carr-wrap" style="display:none;">

@@ -247,7 +247,9 @@ Ya existían: 3 (pedido + chat antes de WhatsApp), 10 (chat por pedido/consulta)
       grande de tu zona (nombre, vecinos, nuevos hoy, "Entrar"); página de la zona `comunidad.html?zona=CP` (enlace corto para
       compartir `zona.html?cp=CP`) con encabezado, números, Avisarme / Proponer nombre / Compartir, "Tus vecinos que venden",
       filtros rápidos (Nuevos, Sin envío, Comida, Servicios) y zonas vecinas; sin código postal, invitación + "Zonas activas en
-      tu ciudad". Los nombres aprobados viajan en el catálogo (`snapshot.zonas`) y aprobar uno lo regenera.
+      tu ciudad". Los nombres aprobados viajan en el catálogo (`snapshot.zonas`) y aprobar uno lo regenera. Íconos SVG (sin emojis) y
+      3 diseños de "tu zona" (vecindario crema con casitas, comunidad verde azulado con siluetas, plaza coral con círculo de
+      vecinos) que se eligen al azar por sesión (`TEMA_ZONA` en comunidad.js).
 - [ ] Más adelante (cuando haya volumen): 17–18 (puntaje/renovar), 5 (soporte), 6 (selfie).
       Descartadas por ahora: 15 (canales) y 19–21 (impulsos).
 
