@@ -235,8 +235,10 @@ Ya existían: 3 (pedido + chat antes de WhatsApp), 10 (chat por pedido/consulta)
       teléfono). Vista "📍 Tu zona" con encabezado y "📍 De tu zona" en las tarjetas. Nombre de la zona: los vecinos con sesión
       y ese código postal lo proponen; con 2 iguales (sin acentos) avisa al staff y el de esa ciudad lo aprueba o edita en
       CONTROL → Notificaciones → Pendientes ("Nombres de zona propuestos"). Votos necesarios: `VOTOS_NOMBRE_ZONA` en catalogo-api.
-- [ ] **Paso 3 (grupos por zona, con volumen):** aviso diario por zona (≥5 vendedores), fila "Vecinos de tu zona" arriba en
-      Comunidad y "Recoger en tu zona".
+- [x] **Paso 3 grupos por zona** (26 nov): fila "📍 Vecinos de tu zona" arriba en Comunidad (si hay menos de 6, se completa con
+      los más cercanos); "🔔 Avisarme" en la vista de la zona (compradores.zonaAvisos) y aviso diario `avisarNovedadesZonas`
+      (Cloud Scheduler `avisar-zonas`, `minVendedores` 1 para pruebas → **subirlo a 5 al lanzar**); "Entrego en mi zona sin
+      costo" en Ajustes del vendedor (sale como "De tu zona · entrega sin costo").
 - [ ] Más adelante (cuando haya volumen): 17–18 (puntaje/renovar), 5 (soporte), 6 (selfie).
       Descartadas por ahora: 15 (canales) y 19–21 (impulsos).
 

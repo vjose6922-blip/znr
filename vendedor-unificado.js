@@ -445,6 +445,7 @@ puntoEntrega: res.puntoEntrega || '',
 reglasRenta: res.reglasRenta || '',
 enRevision: res.enRevision === true,
 cp: res.cp || '',
+entregaZona: res.entregaZona === true,
 puntoEntregaLat: (res.puntoEntregaLat === null || res.puntoEntregaLat === undefined) ? null : res.puntoEntregaLat,
 puntoEntregaLng: (res.puntoEntregaLng === null || res.puntoEntregaLng === undefined) ? null : res.puntoEntregaLng,
 montoMinimoEnvio: (res.montoMinimoEnvio === null || res.montoMinimoEnvio === undefined) ? null : res.montoMinimoEnvio,
@@ -2282,6 +2283,8 @@ function openSettingsModal(expandirPlan) {
   if (puntoLatInput) puntoLatInput.value = (vendorSession.puntoEntregaLat === null || vendorSession.puntoEntregaLat === undefined) ? '' : vendorSession.puntoEntregaLat;
   const cpInput = document.getElementById('settings-cp');
   if (cpInput) cpInput.value = vendorSession.cp || '';
+  const ezInput = document.getElementById('settings-entrega-zona');
+  if (ezInput) ezInput.checked = vendorSession.entregaZona === true;
   if (puntoLngInput) puntoLngInput.value = (vendorSession.puntoEntregaLng === null || vendorSession.puntoEntregaLng === undefined) ? '' : vendorSession.puntoEntregaLng;
   _actualizarPreviewMapsPuntoEntrega();
   const reglasRentaInput = document.getElementById('settings-reglas-renta');
@@ -2753,6 +2756,7 @@ async function guardarPerfil() {
       montoMinimoEnvio,
       reglasRenta,
       cp: (document.getElementById('settings-cp')?.value || '').replace(/\D/g, ''),
+      entregaZona: !!document.getElementById('settings-entrega-zona')?.checked,
       puntoEntregaLat,
       puntoEntregaLng
     });
@@ -2777,6 +2781,7 @@ async function guardarPerfil() {
     vendorSession.reglasRenta = reglasRenta;
     vendorSession.puntoEntregaLat  = puntoEntregaLat === '' ? null : Number(puntoEntregaLat);
     vendorSession.cp = (document.getElementById('settings-cp')?.value || '').replace(/\D/g, '');
+    vendorSession.entregaZona = !!document.getElementById('settings-entrega-zona')?.checked;
     vendorSession.puntoEntregaLng  = puntoEntregaLng === '' ? null : Number(puntoEntregaLng);
     try { localStorage.setItem('vendor_session', JSON.stringify(vendorSession)); } catch(e) {}
     renderChecklistVendedor();
