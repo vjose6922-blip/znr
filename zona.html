@@ -1,0 +1,10 @@
+<!DOCTYPE html>
+<html lang="es"><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Z&amp;R · Mi zona</title>
+<meta name="description" content="Lo que venden los vecinos de tu zona en Z&amp;R Comunidad">
+<meta property="og:title" content="Z&amp;R · El mercado de tus vecinos">
+<meta property="og:description" content="Mira lo que venden los vecinos de esta zona en Z&amp;R">
+<!-- Enlace corto para compartir una zona: abre la página "Mi zona" de Comunidad -->
+<script>location.replace('comunidad.html?zona=' + encodeURIComponent((new URLSearchParams(location.search).get('cp') || '').replace(/\D/g, '')));</script>
+</head><body><a href="comunidad.html">Abrir Z&amp;R Comunidad</a></body></html>
