@@ -1159,6 +1159,9 @@ const avatarZ = (v, i) => v.logo ? `<img class="zh-av" src="${escZ(typeof urlIma
 const filaZona = (z) => `<div class="zh-fila" data-ir-zona="${z.cp}"><span class="zh-ficon">${icz('casa', 18)}</span><span><b>${escZ(z.nombre || 'Zona ' + z.cp)}</b><br>
   <small style="opacity:.7">${z.vendedores} vecino${z.vendedores === 1 ? '' : 's'} vende${z.vendedores === 1 ? '' : 'n'} · ${z.cp}${z.nombre ? '' : ' · ¡ponle nombre!'}</small></span>${z.nuevos ? `<span class="zh-nuevos">${z.nuevos} nuevo${z.nuevos === 1 ? '' : 's'}</span>` : ''}</div>`;
 
+// Zona como burbuja (igual que los vecinos) para el carrusel de arriba.
+const burbujaZona = (z) => `<a data-ir-zona="${z.cp}" title="${escZ(z.nombre || 'Zona ' + z.cp)}"><span class="zh-av zh-avz">${icz('casa', 20)}</span><b class="zh-bn">${escZ(z.nombre || z.cp)}</b>
+  <small style="opacity:.7">${z.vendedores} vende${z.vendedores === 1 ? '' : 'n'}</small>${z.nuevos ? `<br><span class="zh-tag" style="background:#ffe4e6;color:#e8456b">${z.nuevos} nuevo${z.nuevos === 1 ? '' : 's'}</span>` : ''}</a>`;
 function marcarTab(t) { document.querySelectorAll('.com-tabs [data-tab]').forEach((b) => b.classList.toggle('on', b.dataset.tab === t)); }
 async function abrirZona(cp) {
   zonaVista = cp; zonaChip = ''; vistaActiva = 'zona'; vistaCache = null;
@@ -1179,9 +1182,8 @@ function pintarHubZona() {
   if (!hub || !zonaVista) return;
   const base = communityRandomOrder || [], lista = productosDeZona(base, zonaVista), vend = vecinosQueVenden(lista);
   const mia = (window.znrMiZona() || {}).cp === zonaVista, nombre = nombreZona(zonaVista) || `Zona ${zonaVista}`;
-  const zonas = zonasDeCiudad(base), yo = zonas.find((z) => z.cp === zonaVista);
-  const vecinas = zonas.filter((z) => z.cp !== zonaVista && (!yo || !yo.centro || z.centro))
-    .sort((a, b) => (yo && yo.centro ? (window.znrDistanciaKm({ _geoloc: a.centro }, yo.centro) ?? 1e9) - (window.znrDistanciaKm({ _geoloc: b.centro }, yo.centro) ?? 1e9) : 0)).slice(0, 3);
+  const zonas = zonasDeCiudad(base);
+  vecinosHub = alAzar(vend, 'uid'); zonasHub = alAzar(zonas.filter((z) => z.cp !== zonaVista), 'cp');
   const avisos = localStorage.getItem('znr_zona_avisos') === '1';
   hub.className = 'zt-' + TEMA_ZONA;
   hub.innerHTML = `<div class="zh-hero">${DECO_ZONA[TEMA_ZONA]}<span class="zh-pill">${icz('pin', 13)} CP ${zonaVista}${(localStorage.getItem('buyer_ciudad') || '') ? ' · ' + escZ(localStorage.getItem('buyer_ciudad').split(',')[0]) : ''}</span>
@@ -1189,12 +1191,12 @@ function pintarHubZona() {
     <div class="zh-stats"><div><b style="color:#7c3aed">${vend.length}</b><small>vendedores</small></div><div><b style="color:#e8456b">${lista.length}</b><small>artículos</small></div><div><b style="color:#10b981">${lista.filter((p) => esNuevo(p)).length}</b><small>nuevos hoy</small></div></div>
     <div class="zh-acc">${mia ? `<button type="button" class="zh-pri" data-zh="avisos">${avisos ? icz('sinCampana') + ' No avisarme' : icz('campana') + ' Avisarme'}</button><button type="button" class="zh-sec" data-zh="proponer">${icz('lapiz')} Proponer nombre</button>`
       : `<button type="button" class="zh-pri" data-zh="hacerMia">${icz('pin')} Es mi zona</button>`}<button type="button" class="zh-sec" data-zh="compartir" style="flex:none" aria-label="Compartir zona">${icz('compartir')}</button></div>
-    ${vend.length ? `<div class="zh-card"><h3>${icz('users', 18)} Tus vecinos que venden</h3><div class="zh-vecinos">${vend.map((v, i) => `<a href="perfil-vendedor.html?vendedor=${encodeURIComponent(v.uid)}">${avatarZ(v, i)}${escZ(v.nombre)}
-      ${v.entrega ? `<br><span class="zh-tag">${icz('moto', 11)} sin costo</span>` : v.comida ? `<br><span class="zh-tag" style="background:#fef3c7;color:#92400e">${icz('comida', 11)} comida</span>` : ''}</a>`).join('')}</div></div>` : ''}
+    ${vend.length || zonasHub.length ? `<div class="zh-carr">${vend.length ? `<div class="zh-card"><h3>${icz('users', 18)} Tus vecinos que venden${vend.length > 4 ? '<button type="button" class="zh-vermas" data-zh="verVecinos">Ver más</button>' : ''}</h3>${htmlVecinos(vecinosHub.slice(0, 4))}</div>` : ''}
+      ${zonasHub.length ? `<div class="zh-card" style="background:#f5f3ff"><h3>${icz('mapa', 18)} Zonas vecinas${zonasHub.length > 4 ? '<button type="button" class="zh-vermas" data-zh="verZonas">Ver más</button>' : ''}</h3><div class="zh-vecinos">${zonasHub.slice(0, 4).map(burbujaZona).join('')}</div></div>` : ''}</div>` : ''}
     <div class="zh-chips">${[['', 'Todo'], ['nuevos', icz('reloj', 14) + ' Nuevos'], ['comida', icz('comida', 14) + ' Comida'], ['servicios', icz('llave', 14) + ' Servicios']]
       .map(([k, t]) => `<button type="button" data-zchip="${k}" class="${zonaChip === k ? 'on' : ''}">${t}</button>`).join('')}</div>
     ${!lista.length ? '<div class="zh-card" style="text-align:center">Todavía nadie vende en esta zona. ¡Invita a tus vecinos!</div>' : ''}
-    ${vecinas.length ? `<div class="zh-card" style="background:#f5f3ff"><h3>${icz('mapa', 18)} Zonas vecinas</h3>${vecinas.map(filaZona).join('')}</div>` : ''}`;
+`;
   hub.hidden = false;
 }
 // Sin código postal: invitación (código postal o "usar mi ubicación") y las zonas activas de la ciudad.
@@ -1217,7 +1219,21 @@ function guardarMiZona(cp) {
   try { localStorage.setItem('znr_mi_cp', JSON.stringify({ cp, pais: window.znrPaisCiudad() })); } catch (_) {}
   return true;
 }
+// Vecinos y zonas en orden al azar (el mismo durante la visita), para que a todos les toque salir primero.
+const ORDEN_AZAR = {}, alAzar = (l, k) => [...l].sort((a, b) => (ORDEN_AZAR[a[k]] ??= Math.random()) - (ORDEN_AZAR[b[k]] ??= Math.random()));
+let vecinosHub = [], zonasHub = [];
+const htmlVecinos = (l) => `<div class="zh-vecinos">${l.map((v, i) => `<a href="perfil-vendedor.html?vendedor=${encodeURIComponent(v.uid)}">${avatarZ(v, i)}${escZ(v.nombre)}
+  ${v.entrega ? `<br><span class="zh-tag">${icz('moto', 11)} sin costo</span>` : v.comida ? `<br><span class="zh-tag" style="background:#fef3c7;color:#92400e">${icz('comida', 11)} comida</span>` : ''}</a>`).join('')}</div>`;
+// "Ver más": ventana desde abajo con la lista completa; se cierra al tocar fuera, la ✕ o un elemento.
+function hojaZona(titulo, html) {
+  const m = Object.assign(document.createElement('div'), { className: 'zh-hoja zt-' + TEMA_ZONA });
+  m.innerHTML = `<div class="zh-hoja-in"><h3>${titulo}<button type="button" class="zh-vermas" data-cerrar aria-label="Cerrar">✕</button></h3>${html}</div>`;
+  m.onclick = (e) => { if (e.target === m || e.target.closest('[data-cerrar],[data-ir-zona],a')) m.remove(); };
+  document.body.appendChild(m);
+}
 async function accionZona(a) {
+  if (a === 'verVecinos') return hojaZona(`${icz('users', 18)} Tus vecinos que venden (${vecinosHub.length})`, htmlVecinos(vecinosHub));
+  if (a === 'verZonas') return hojaZona(`${icz('mapa', 18)} Zonas de tu ciudad (${zonasHub.length})`, zonasHub.map(filaZona).join(''));
   if (a === 'verCp') { const cp = (document.getElementById('zh-cp')?.value || '').replace(/\D/g, ''); if (guardarMiZona(cp)) abrirZona(cp); }
   if (a === 'ubicacion') {
     const u = await window.znrPedirUbicacion();
@@ -1765,6 +1781,7 @@ updateURLWithFilters();
 };
 if (searchInput) {
 searchInput.addEventListener('input', () => {
+document.body.classList.toggle('buscando', !!searchInput.value.trim());
 if (debounceTimer) clearTimeout(debounceTimer);
 debounceTimer = setTimeout(updateHandler, 400);
 });
