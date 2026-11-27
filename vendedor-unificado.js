@@ -918,7 +918,7 @@ function renderVendorPlanPanel() {
     <div style="background:#f8f8fc;border-radius:14px;padding:12px 14px;color:#000;">
       <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
         <div style="font-size:13px;font-weight:600;color:#000;display:flex;align-items:center;gap:6px;white-space:nowrap;">${actuales}/${limite} productos usados
-          <button type="button" onclick="window.abrirRankingStats()" title="Estadísticas de tus productos" aria-label="Estadísticas de tus productos" style="display:inline-flex;padding:3px;border:none;border-radius:6px;background:transparent;color:#7c3aed;cursor:pointer;">
+          <button type="button" onclick="window.ordenarProductos('v')" title="Ordenar por más vistos" aria-label="Ver estadísticas: ordenar por más vistos" style="display:inline-flex;padding:3px;border:none;border-radius:6px;background:transparent;color:#7c3aed;cursor:pointer;">
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-8M22 20H2"/></svg>
           </button>
           <button type="button" onclick="window.entrarSeleccion()" title="Seleccionar varios" aria-label="Seleccionar varios productos" style="display:inline-flex;padding:3px;border:none;border-radius:6px;background:transparent;color:#7c3aed;cursor:pointer;">
@@ -936,6 +936,8 @@ function renderVendorPlanPanel() {
         <button type="button" onclick="window.irAUbicacionPunto()" style="padding:6px 14px;border:none;border-radius:20px;background:#ea580c;color:#fff;font-weight:700;font-size:12px;cursor:pointer;">Agregar</button></div>` : ''}
       ${renovacionHTML}${graciaHTML}${ocultosHTML}
       ${statusFilterHTML}
+      <div style="display:flex;align-items:center;gap:8px;margin-top:10px"><select id="vendor-orden" class="${window.vendorOrden ? 'on' : ''}" onchange="window.ordenarProductos(this.value)" aria-label="Ordenar productos">
+        ${Object.entries(ORDENES).map(([k, t]) => `<option value="${k}"${k === (window.vendorOrden || '') ? ' selected' : ''}>Ordenar: ${t}</option>`).join('')}</select>${window.vendorOrden ? '<span id="vp-per" class="vp-per"></span>' : ''}</div>
     </div>
   `;
 
@@ -1086,7 +1088,7 @@ function createVendorProductCard(product) {
     rech.textContent = '❌ No aprobado' + (product.motivo_rechazo ? ': ' + product.motivo_rechazo : '');
     info.appendChild(rech);
   }
-  info.insertAdjacentHTML('beforeend', '<p class="vp-stats" style="margin:4px 0;font-size:.72rem;color:#7c3aed;font-weight:600"></p>');
+  info.insertAdjacentHTML('beforeend', '<div class="vp-st"></div>'); // estadísticas al ordenar por ellas
   info.appendChild(descEl);
   info.appendChild(sizesEl);
 
@@ -1210,7 +1212,6 @@ function applyMyProducts(myProducts, container, total = null, currentPage = 1, t
 applyLayoutGlobal(savedLayout);
 
   renderPagination(container, currentPage, totalPages, realTotal);
-  window.cargarStatsProd().then(pintarStatsProd);
 }
 
 // ── Mejora 8: estadísticas por producto (7 días; Plus/Pro también 30 días y la semana anterior) ──
@@ -1220,36 +1221,25 @@ window.cargarStatsProd = async (forzar) => {
   if (r && r.ok) { window._statsProd = r; window._statsProdEn = Date.now(); }
   return window._statsProd;
 };
-const statsTxt = (d) => `👁 ${d.v} · 🛒 ${d.c} · ↗ ${d.s} · ✅ ${d.e}`;
-function pintarStatsProd(st) {
-  (st && st.productos || []).forEach((p) => { const el = document.querySelector(`#producto-${CSS.escape(p.id)} .vp-stats`); if (el) el.textContent = statsTxt(p.d7) + ' · 7 días'; });
+// Ordenar por estadísticas: el mismo panel (con buscador y filtros) se ordena y cada tarjeta muestra sus números.
+const ORDENES = { '': 'Recientes', v: 'Más vistos', c: 'Más en carrito', s: 'Más compartidos', e: 'Más vendidos', menos: 'Menos vistos' };
+const STAT_IC = { v: ['Vistas', '<path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>'],
+  c: ['Carrito o pedidos', '<circle cx="9" cy="20" r="1.5"/><circle cx="18" cy="20" r="1.5"/><path d="M2 3h3l2.5 12h11.5l2-8H6"/>'],
+  s: ['Compartidos', '<circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"/>'],
+  e: ['Vendidos (piezas entregadas)', '<path d="M20 6 9 17l-5-5"/>'] };
+window.ordenarProductos = (o) => { window.vendorOrden = o; renderVendorPlanPanel(); loadMyProducts(true, 1); };
+async function ordenarPorStats(lista) {
+  const st = await window.cargarStatsProd(), o = window.vendorOrden, k = o === 'menos' ? 'v' : o, per = st && st.plus ? 'd30' : 'd7';
+  const m = Object.fromEntries(((st && st.productos) || []).map((p) => [p.id, p])), n = (p) => (m[p.id] || {})[per] || { v: 0, c: 0, s: 0, e: 0 };
+  const per2 = document.getElementById('vp-per'); if (per2) per2.textContent = `Últimos ${per === 'd30' ? 30 : 7} días`;
+  return { k, m, n, plus: st && st.plus, lista: [...lista].sort((a, b) => (o === 'menos' ? n(a).v - n(b).v : n(b)[k] - n(a)[k] || n(b).v - n(a).v)) };
 }
-window.abrirRankingStats = async function() {
-  const st = await window.cargarStatsProd(true);
-  if (!st) return showTemporaryMessage(' No se pudieron cargar las estadísticas', 'error');
-  const per = st.plus ? 'd30' : 'd7';
-  const caja = (icono, n, t) => `<div title="${t}" style="flex:1;min-width:0;text-align:center;background:#f5f3ff;border-radius:10px;padding:6px 2px"><div style="font-size:15px">${icono}</div><b style="font-size:15px;color:#111">${n}</b></div>`;
-  const fila = (d) => `<div style="display:flex;gap:6px">${caja('👁', d.v, 'Vistas')}${caja('🛒', d.c, 'Carrito o pedidos')}${caja('↗', d.s, 'Compartidos')}${caja('✅', d.e, 'Entregadas')}</div>`;
-  const cambio = (a, b) => (b ? `<span style="color:${a >= b ? '#16a34a' : '#dc2626'}">${a >= b ? '▲' : '▼'} ${Math.round(Math.abs(a - b) / b * 100)}% vistas vs semana anterior</span>` : a ? '<span style="color:#16a34a">▲ vistas nuevas esta semana</span>' : '');
-  const tarjetas = [...st.productos].sort((a, b) => b[per].v - a[per].v || b[per].c - a[per].c).map((p, i) => `
-    <div style="text-align:left;border:1px solid #eee;border-radius:14px;padding:10px;margin-bottom:10px">
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
-        ${p.imagen ? `<img src="${escapeHtml(urlImagen(p.imagen))}" alt="" loading="lazy" style="width:40px;height:40px;border-radius:8px;object-fit:cover;flex:none">` : ''}
-        <b style="flex:1;min-width:0;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${i + 1}. ${escapeHtml(p.nombre)}</b></div>
-      <small style="color:#888">Últimos 7 días</small>${fila(p.d7)}
-      ${st.plus ? `<small style="color:#888;display:block;margin-top:6px">Últimos 30 días</small>${fila(p.d30)}<small style="display:block;margin-top:6px">${cambio(p.d7.v, p.previa.v)}</small>` : ''}
-    </div>`).join('');
-  const m = document.createElement('div');
-  m.className = 'custom-alert-modal';
-  m.innerHTML = `<div class="custom-alert-content" style="max-width:520px;width:94vw;max-height:88vh;display:flex;flex-direction:column"><div class="custom-alert-header"><h3>📊 Tus productos</h3></div>
-    <div class="custom-alert-body" style="overflow:auto;text-align:left"><p style="font-size:12px;margin:0 0 10px;color:#666">👁 vistas · 🛒 carrito o pedidos · ↗ compartidos · ✅ piezas entregadas. Cuenta 1 por celular al día y no las tuyas.</p>
-    ${st.plus ? '' : '<p style="font-size:12px;margin:0 0 10px;color:#7c3aed">Con <a href="plan-plus.html">Plus o Pro</a> ves 30 días y la comparación con la semana anterior.</p>'}
-    ${tarjetas || '<p>Aún no tienes productos.</p>'}</div>
-    <div class="custom-alert-footer"><button class="custom-alert-btn confirm">Cerrar</button></div></div>`;
-  document.body.appendChild(m);
-  m.querySelector('.confirm').onclick = () => m.remove();
-  m.onclick = (e) => { if (e.target === m) m.remove(); };
-};
+function pintarStatsTarjeta(card, p, i, o) {
+  const d = o.n(p), x = o.m[p.id] || {}, a = x.d7 && x.d7.v, b = x.previa && x.previa.v;
+  card.insertAdjacentHTML('afterbegin', `<span class="vp-rank">${i + 1}</span>`);
+  const tend = !o.plus ? '' : b ? `<p class="vp-tend" style="color:${a >= b ? '#15803d' : '#dc2626'}">${a >= b ? '▲' : '▼'} ${Math.round(Math.abs(a - b) / b * 100)}% ${a >= b ? 'más' : 'menos'} vistas</p>` : a ? '<p class="vp-tend" style="color:#15803d">▲ Vistas nuevas</p>' : '';
+  card.querySelector('.vp-st').innerHTML = `<div class="vp-cajas">${Object.entries(STAT_IC).map(([c, [t, svg]]) => `<div class="${c === o.k ? 'on' : ''}" title="${t}"><svg viewBox="0 0 24 24" aria-hidden="true">${svg}</svg><b>${d[c] || 0}</b></div>`).join('')}</div>${tend}`;
+}
 
 function renderPagination(container, currentPage, totalPages, total) {
   const oldPagination = document.getElementById('vendor-pagination');
@@ -1298,19 +1288,20 @@ window.loadMyProducts = async function loadMyProducts(force = false, page = 1) {
   const status = window.currentStatusFilter || 'todos';
 
   const q = (window.vendorSearchQuery || '').trim().toLowerCase();
-  if (q) {
+  if (q || window.vendorOrden) { // buscar u ordenar por estadísticas: se traen todos (máx. 200) y se filtran aquí
     showVendorProductsSkeleton(container, 3);
     try {
       const res = await apiFetch({ action: 'misProductosComunidad', limit: 200, page: 1, estado: ['todos', 'sin_stock'].includes(status) ? undefined : status, vendorToken: vendorSession.token }, 'GET');
       if (!res.ok) throw new Error(res.error || 'Error al buscar');
       if ((window.vendorSearchQuery || '').trim().toLowerCase() !== q) return;
-      const lista = (res.products || []).filter(p => p.vendedor_uid === uid
+      let lista = (res.products || []).filter(p => p.vendedor_uid === uid
         && (status !== 'sin_stock' || (p.estado === 'aprobado' && p.tipoVenta !== 'personalizado' && Number(p.stock || 0) <= 0))
         && [p.nombre, p.categoria, p.talla, p.descripcion].join(' ').toLowerCase().includes(q));
+      const orden = window.vendorOrden ? await ordenarPorStats(lista) : null;
+      if (orden) lista = orden.lista;
       window._vendorProducts = lista;
-      container.innerHTML = lista.length ? '' : '<p style="color:#aaa;text-align:center">Sin resultados para tu búsqueda.</p>';
-      lista.forEach(p => container.appendChild(createVendorProductCard(p)));
-      window.cargarStatsProd().then(pintarStatsProd);
+      container.innerHTML = lista.length ? '' : `<p style="color:#aaa;text-align:center">${q ? 'Sin resultados para tu búsqueda.' : 'No hay productos con este filtro.'}</p>`;
+      lista.forEach((p, i) => { const c = createVendorProductCard(p); if (orden) pintarStatsTarjeta(c, p, i, orden); container.appendChild(c); });
       applyLayoutGlobal(localStorage.getItem('products_layout') || 'grid');
       document.getElementById('vendor-pagination')?.remove();
     } catch (err) {
@@ -1614,8 +1605,7 @@ const pedirLote = (titulo, campos) => new Promise((ok) => {
 window.entrarSeleccion = function() {
   const cont = document.getElementById('products-container');
   if (!cont || document.getElementById('vp-bar')) return salirSeleccion();
-  if (!document.getElementById('vp-sel-style')) document.head.insertAdjacentHTML('beforeend', `<style id="vp-sel-style">.vp-sel{display:none;position:absolute;top:8px;left:8px;width:24px;height:24px;z-index:3;accent-color:#7c3aed}
-    #products-container.sel-mode .vp-sel{display:block}#vp-bar{position:fixed;left:8px;right:8px;bottom:calc(76px + env(safe-area-inset-bottom,0px));z-index:10050;display:flex;flex-wrap:wrap;gap:6px;align-items:center;
+  if (!document.getElementById('vp-sel-style')) document.head.insertAdjacentHTML('beforeend', `<style id="vp-sel-style">.vp-sel{position:absolute;top:8px;left:8px;width:24px;height:24px;z-index:3;accent-color:#7c3aed}#vp-bar{position:fixed;left:8px;right:8px;bottom:calc(76px + env(safe-area-inset-bottom,0px));z-index:10050;display:flex;flex-wrap:wrap;gap:6px;align-items:center;
     padding:10px 12px;border-radius:14px;background:#1e2128;color:#fff;box-shadow:0 8px 24px rgba(0,0,0,.25)}#vp-bar button{padding:7px 12px;border-radius:18px;border:1px solid #555;background:transparent;color:#fff;font-weight:600;cursor:pointer}
     #vp-bar b{flex:1;min-width:110px;font-size:13px}</style>`);
   cont.classList.add('sel-mode');

@@ -75,6 +75,20 @@
   [style*="background:#e6e6ee"] { background: var(--color-surface-3) !important; }
   .filter-status-btn:not(.active) { color: var(--color-text-main) !important; border-color: var(--color-border) !important; }
   #vendor-search { background: var(--color-surface); color: var(--color-text-main); border-color: var(--color-border) !important; }
+  /* Casilla de selección: solo en modo "Seleccionar varios" */
+  .vp-sel { display: none; } #products-container.sel-mode .vp-sel { display: block; }
+  /* Ordenar por estadísticas: selector, número de lugar y cajitas (vistas, carrito, compartidos, vendidos) */
+  #vendor-orden { appearance: none; -webkit-appearance: none; padding: 7px 14px; border-radius: 16px; border: 1px solid #ddd; background: #fff; color: #222; font: inherit; font-size: 12px; font-weight: 700; cursor: pointer; }
+  #vendor-orden.on { background: #7c3aed; color: #fff; border-color: #7c3aed; }
+  .vp-per { margin-left: auto; font-size: 11px; font-weight: 600; color: #7c3aed; background: #f5f3ff; padding: 5px 10px; border-radius: 14px; }
+  .vp-rank { position: absolute; top: 8px; right: 8px; z-index: 3; width: 24px; height: 24px; border-radius: 50%; background: #7c3aed; color: #fff; font-size: 12px; font-weight: 800; display: grid; place-items: center; }
+  .vp-st:empty { display: none; }
+  .vp-cajas { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; margin: 8px 0 4px; }
+  .vp-cajas div { background: #f5f3ff; border-radius: 9px; padding: 5px 0 4px; text-align: center; color: #7c3aed; }
+  .vp-cajas b { display: block; font-size: 13px; color: #1f1a1c; }
+  .vp-cajas div.on { background: #7c3aed; color: #fff; } .vp-cajas div.on b { color: #fff; }
+  .vp-cajas svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .vp-tend { font-size: .7rem; font-weight: 700; margin: 0 0 4px; }
 </style>
 <link rel="preload" href="styles.css" as="style">
  <link rel="stylesheet" href="styles.css">
