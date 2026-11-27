@@ -9,7 +9,7 @@ window.znrScrollInfinito = function ({ lista, tarjetas, hayMas, cargarMas, tope 
   document.head.appendChild(st);
   const fin = document.createElement('div');
   fin.className = 'znr-si-fin';
-  fin.innerHTML = '<span hidden>Cargando…</span><button type="button" class="primary-button" hidden>Ver más</button>';
+  fin.innerHTML = '<span hidden><span class="znr-carga" role="status" aria-label="Cargando"></span></span><button type="button" class="primary-button" hidden>Ver más</button>';
   lista.after(fin);
   const [msg, btn] = fin.children;
   let limite = tope, ocupado = false, atascado = false, tandas = 0, restaurar = null;

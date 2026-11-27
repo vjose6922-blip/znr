@@ -803,7 +803,7 @@ function renderTodo() {
 
 
 function abrirDatosPago(tipo) {
-  const destino = h("div", { class: "pp-pago-datos" }, h("p", { class: "pp-hint", text: "Cargando datos…" }));
+  const destino = h("div", { class: "pp-pago-datos" }, Object.assign(document.createElement("span"), { className: "znr-carga" }));
   ventana("Datos para transferir", h("div", {}, destino, h("p", { class: "pp-hint", text: "🔒 Z&R nunca te pedirá reembolsar diferencias ni depositar a otra cuenta. Confirma el pago en tu banco, no en una captura." })), [
     ["Cerrar", "", (b, cerrar) => cerrar()],
     ["Ya pagué · subir comprobante", "primary", (b, cerrar) => { cerrar(); subirComprobante(tipo, b); }]

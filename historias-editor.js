@@ -358,7 +358,7 @@
           };
         },
         producto: async () => {
-          const sh = hoja('Agregar un producto', '<p class="zhe-hint">Cargando tus productos…</p>');
+          const sh = hoja('Agregar un producto', '<div class="znr-sk-filas" role="status" aria-label="Cargando"><i></i><i></i><i></i></div>');
           const ps = await Promise.resolve(opciones.productos ? opciones.productos() : []).catch(() => []);
           sh.querySelector('.zhe-hint').outerHTML = ps.length ? ps.map((p, i) => `<button type="button" class="zhe-op" data-i="${i}"><img src="${esc(p.imagen1 || '')}" alt=""><span>${esc(p.nombre)} · $${Number(p.precio || 0).toLocaleString('es-MX')}</span></button>`).join('')
             : '<p class="zhe-hint">No tienes productos aprobados.</p>';

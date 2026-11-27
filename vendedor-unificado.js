@@ -2391,7 +2391,7 @@ if (planInfoEl) {
     planInfoEl.innerHTML = '<div style="background:#f9f9f9;border-radius:10px;padding:12px 14px;">' +
       '<p style="margin:0;color:#374151;font-size:.85rem;">Estás en el plan <strong>Free</strong>.</p>' +
       '<p style="margin:4px 0 0;font-size:.82rem;color:#6b7280;">Con Plus obtienes foto de perfil, destacado, logo y aprobación instantánea.</p>' +
-      '<div id="settings-plus-notif" style="margin-top:10px;"><p style="color:#aaa;font-size:.78rem;margin:0;">Cargando…</p></div></div>';
+      '<div id="settings-plus-notif" style="margin-top:10px;"><span class="znr-carga" role="status" aria-label="Cargando"></span></div></div>';
   }
   loadPlusSolicitudVendedor('settings-plus-notif');
 }
@@ -3348,7 +3348,7 @@ window.verMisEstadisticas = async function(forceRefresh) {
         <button id="mis-stats-close" style="position:absolute;top:14px;right:14px;background:#f0f0f5;border:none;width:32px;height:32px;border-radius:50%;font-size:16px;cursor:pointer;color:#666;">${Icon('x')}</button>
         <h3 style="margin:0 0 16px;font-size:1.1rem;">${Icon('stats')} Mis estadísticas</h3>
         <div id="mis-stats-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;">
-          <p style="grid-column:span 2;text-align:center;color:#aaa;">Cargando...</p>
+          <div style="grid-column:span 2"><span class="znr-carga" role="status" aria-label="Cargando"></span></div>
         </div>
         <div id="mis-stats-rating"></div>
         <div id="mis-stats-ventas"></div>
@@ -3377,7 +3377,7 @@ window.verMisEstadisticas = async function(forceRefresh) {
     return;
   }
 
-  grid.innerHTML = '<p style="grid-column:span 2;text-align:center;color:#aaa;">Cargando...</p>';
+  grid.innerHTML = '<div style="grid-column:span 2"><span class="znr-carga" role="status" aria-label="Cargando"></span></div>';
   ratingSlot.innerHTML = '';
 
   const result = { stats: null, rating: null };
@@ -3649,7 +3649,7 @@ window.openDonarProductosModal = async function(productoId) {
   };
   body.innerHTML = window.cardDonar({ id: esc(prod.id), img: prod.imagen1 && esc(urlImagen(prod.imagen1)), titulo: esc(prod.nombre), precio: prod.precio, etiqueta: window.stockDonar(prod), corazon: false })
     + (donado ? '<p style="font-size:.85rem;color:#555;line-height:1.5;">Este producto ya está asignado a un beneficiario. ¿Deseas quitar la donación?</p>'
-      : window.cantidadDonar(prod) + '<p class="dr-tit">Elige a quién donar</p><div id="donar-bens"><p style="color:#aaa;text-align:center;">Cargando beneficiarios…</p></div>');
+      : window.cantidadDonar(prod) + '<p class="dr-tit">Elige a quién donar</p><div id="donar-bens"><div class="znr-sk-filas" role="status" aria-label="Cargando"><i></i><i></i><i></i></div></div>');
   if (donado) {
     cta.disabled = false; cta.classList.add('quitar');
     cta.onclick = () => enviar({ action: 'desasignarDonacion' }, 'Donación removida', 'Quitar donación');
@@ -3701,7 +3701,7 @@ window.openGestionarDonacionesModal = async function(page = 1, pestana = 'produc
     if (k !== 'productos') {
       lista.onclick = null; lista.style.cssText = '';
       const lst = (dons || []).filter(d => d.estado === k);
-      lista.innerHTML = !dons ? '<p style="text-align:center;color:#aaa;padding:24px 0;">Cargando…</p>'
+      lista.innerHTML = !dons ? '<div class="znr-sk-filas" role="status" aria-label="Cargando"><i></i><i></i><i></i></div>'
         : lst.length ? `<p class="dr-tit">${TITULO_DON[k]}</p>` + lst.map(tarjeta).join('') : `<p style="text-align:center;color:#aaa;padding:24px 0;">${VACIO_DON[k]}</p>`;
       return;
     }
@@ -3788,7 +3788,7 @@ window.openEntregasLiveModal = async function() {
         <h2 style="margin:0;font-size:1rem;font-weight:800;color:#111;">${Icon('box')} Entregas de tus transmisiones</h2>
         <button id="btn-close-entregas-live" style="background:none;border:none;font-size:22px;cursor:pointer;color:#888;line-height:1;">×</button>
       </div>
-      <div id="entregas-live-lista" style="padding:32px 20px;text-align:center;color:#aaa;">Cargando…</div>
+      <div id="entregas-live-lista" style="padding:16px 4px"><div class="znr-sk-filas" role="status" aria-label="Cargando"><i></i><i></i><i></i></div></div>
     </div>`;
   document.body.appendChild(modal);
   document.getElementById('btn-close-entregas-live').onclick = () => modal.remove();

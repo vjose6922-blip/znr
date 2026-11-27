@@ -356,7 +356,7 @@ window.openBeneficiarioModal = async function(beneficiarioId) {
       <div class="bm-head"><span class="bm-ico">${Icon('heart-fill', { size: 20 })}</span><h2>Beneficiario</h2>
         <button id="btn-report-ben" class="bm-x" title="Reportar">${Icon('flag', { size: 18 })}</button>
         <button id="btn-close-ben-det" class="bm-x" aria-label="Cerrar">${Icon('x', { size: 24 })}</button></div>
-      <div id="ben-det-body"><p style="color:#b07a5a;text-align:center;padding:24px 0;">Cargando…</p></div></div>`;
+      <div id="ben-det-body"><span class="znr-carga" role="status" aria-label="Cargando"></span></div></div>`;
   document.body.appendChild(modal);
   document.getElementById('btn-close-ben-det').onclick = () => modal.remove();
   document.getElementById('btn-report-ben').onclick = () => showReportBeneficiarioDialog(beneficiarioId);
@@ -495,7 +495,7 @@ window.openDonarARefugioModal = async function(beneficiario) {
   let elegido = null;
 
   const cargarProductos = async () => {
-    body.innerHTML = '<p style="text-align:center;color:#aaa;">Cargando tus productos…</p>';
+    body.innerHTML = '<div class="znr-sk-filas" role="status" aria-label="Cargando"><i></i><i></i><i></i></div>';
     cta.disabled = true; cta.textContent = 'Elige un artículo'; elegido = null;
     try {
       const data = await fetch(_resolverApiUrlInspector('misProductosComunidad') + '?' + new URLSearchParams({

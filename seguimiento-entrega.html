@@ -298,13 +298,13 @@ function pintarBotonPagar() {
 
 async function abrirPago(btn) {
   const textoOriginal = btn.textContent;
-  btn.disabled = true; btn.textContent = 'Cargando…';
+  btn.disabled = true; btn.innerHTML = '<span class="znr-carga mini" aria-hidden="true"></span>' + textoOriginal;
   try {
     let r = await pedirMetodosPago();
     if (r.requiereLogin) {
       btn.disabled = false; btn.textContent = textoOriginal;
       if (!(await pedirLoginComprador())) return;
-      btn.disabled = true; btn.textContent = 'Cargando…';
+      btn.disabled = true; btn.innerHTML = '<span class="znr-carga mini" aria-hidden="true"></span>' + textoOriginal;
       r = await pedirMetodosPago();
     }
     if (!r.ok) { alert(r.error || 'No se pudieron cargar las formas de pago.'); btn.disabled = false; btn.textContent = textoOriginal; return; }
