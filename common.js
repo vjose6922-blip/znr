@@ -776,10 +776,24 @@ window.znrPaisCiudad = (c = localStorage.getItem('buyer_ciudad')) => ((window.ZN
 window.znrMiZona = () => {
   try {
     const z = JSON.parse(localStorage.getItem('znr_mi_cp') || 'null'), v = JSON.parse(localStorage.getItem('vendor_session') || 'null');
-    return z && z.cp ? z : v && v.cp ? { cp: v.cp, pais: window.znrPaisCiudad(v.ciudad) } : null;
+    return z && z.cp ? z : v && v.cp ? { cp: v.cp, colonia: v.colonia || '', pais: window.znrPaisCiudad(v.ciudad) } : null;
   } catch (_) { return null; }
 };
-window.znrEsDeTuZona = (p) => { const z = window.znrMiZona(); return !!(z && p && p.vendedor_cp && String(p.vendedor_cp) === z.cp); };
+// De tu zona: mismo código postal y misma colonia (si el código postal tiene una sola, cuenta como la de todos; si uno de
+// los dos aún no elige colonia, basta el código postal).
+window.znrEsDeTuZona = (p) => {
+  const z = window.znrMiZona();
+  if (!z || !p || String(p.vendedor_cp || '') !== z.cp) return false;
+  const c = Object.keys((window.znrColonias || {})[z.cp] || {}), u = c.length === 1 ? c[0] : '', a = z.colonia || u, b = p.vendedor_colonia || u;
+  return !a || !b || a === b;
+};
+// Con sesión de comprador, guarda su código postal y colonia en su perfil (el aviso diario es por colonia). Sin sesión no pregunta.
+window.znrGuardarZonaPerfil = () => {
+  const z = window.znrMiZona(), telefono = localStorage.getItem('client_phone'), compradorToken = localStorage.getItem('comprador_token');
+  if (!z || !telefono || !compradorToken) return;
+  fetch('https://auth-api-1038143238323.us-central1.run.app', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({ action: 'guardarPerfilComprador', telefono, compradorToken, cp: z.cp, cpPais: z.pais, colonia: z.colonia || '' }) }).catch(() => {});
+};
 // Ventanita con un campo de texto; resuelve el texto o null si cancela.
 window.znrPedirTexto = (titulo, ayuda, placeholder, valor = '', modo = 'text') => new Promise((ok) => {
   const m = document.createElement('div');
@@ -808,7 +822,7 @@ window.znrSeguirZona = async (activar) => {
   if (!telefono) return false;
   if (activar) window.solicitarPermisoNotificacionesSiFalta?.('cliente', telefono);
   const r = await fetch('https://auth-api-1038143238323.us-central1.run.app', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: new URLSearchParams({ action: 'guardarPerfilComprador', telefono, compradorToken: localStorage.getItem('comprador_token') || '', cp: z.cp, cpPais: z.pais, zonaAvisos: activar ? '1' : '0' }) })
+    body: new URLSearchParams({ action: 'guardarPerfilComprador', telefono, compradorToken: localStorage.getItem('comprador_token') || '', cp: z.cp, cpPais: z.pais, colonia: z.colonia || '', zonaAvisos: activar ? '1' : '0' }) })
     .then((x) => x.json()).catch(() => null);
   if (!r || !r.ok) { showTemporaryMessage(' No se pudo guardar. Intenta de nuevo.', 'error'); return false; }
   try { localStorage.setItem('znr_zona_avisos', activar ? '1' : '0'); } catch (_) {}
@@ -818,9 +832,9 @@ window.znrSeguirZona = async (activar) => {
 window.znrProponerNombreZona = async () => {
   const z = window.znrMiZona();
   if (!z) return;
-  const telefono = await asegurarComprador('Para proponer el nombre de tu zona');
+  const telefono = await asegurarComprador('Para proponer tu colonia');
   if (!telefono) return;
-  const nombre = await window.znrPedirTexto('Proponer nombre', `¿Cómo le dicen a tu zona (código postal ${z.cp})? Si otro vecino propone lo mismo, lo revisa el equipo de tu ciudad.`, 'Ej: Las Torres');
+  const nombre = await window.znrPedirTexto('Proponer colonia', `¿Cómo se llama tu colonia (código postal ${z.cp})? Si otro vecino propone la misma, la revisa el equipo de tu ciudad y se agrega como grupo.`, 'Ej: Las Torres');
   if (!nombre) return;
   const post = (url, datos) => fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams(datos) }).then((r) => r.json());
   const compradorToken = localStorage.getItem('comprador_token') || '';
@@ -829,8 +843,8 @@ window.znrProponerNombreZona = async () => {
     await post('https://auth-api-1038143238323.us-central1.run.app', { action: 'guardarPerfilComprador', telefono, compradorToken, cp: z.cp, cpPais: z.pais });
     const r = await post(window.CATALOGO_API_URL || 'https://catalogo-api-1038143238323.us-central1.run.app',
       { action: 'proponerNombreZona', telefono, compradorToken, cp: z.cp, pais: z.pais, ciudad: localStorage.getItem('buyer_ciudad') || '', nombre });
-    showTemporaryMessage(!r.ok ? ' ' + (r.error || 'No se pudo enviar') : r.faltan ? '¡Gracias! Cuando otro vecino proponga el mismo nombre, lo revisará el equipo de tu ciudad.'
-      : '¡Gracias! El equipo de tu ciudad revisará el nombre.', r.ok ? 'success' : 'error');
+    showTemporaryMessage(!r.ok ? ' ' + (r.error || 'No se pudo enviar') : r.faltan ? '¡Gracias! Cuando otro vecino proponga la misma colonia, la revisará el equipo de tu ciudad.'
+      : '¡Gracias! El equipo de tu ciudad revisará la colonia.', r.ok ? 'success' : 'error');
   } catch (_) { showTemporaryMessage(' Sin conexión. Intenta de nuevo.', 'error'); }
 };
 window.znrOrdenarPorCercania = (lista) => lista.sort((a, b) => (window.znrDistanciaKm(a) ?? 1e9) - (window.znrDistanciaKm(b) ?? 1e9));

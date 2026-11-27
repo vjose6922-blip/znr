@@ -260,6 +260,15 @@ Ya existían: 3 (pedido + chat antes de WhatsApp), 10 (chat por pedido/consulta)
       tu ciudad". Los nombres aprobados viajan en el catálogo (`snapshot.zonas`) y aprobar uno lo regenera. Íconos SVG (sin emojis) y
       3 diseños de "tu zona" (vecindario crema con casitas, comunidad verde azulado con siluetas, plaza coral con círculo de
       vecinos) que se eligen al azar por sesión (`TEMA_ZONA` en comunidad.js).
+- [x] **Colonias** (27 nov, en rama): un código postal puede tener varias colonias y cada una es su propio grupo
+      (`comunidad.html?zona=88275.el-jardin`, enlace corto `zona.html?cp=88275&c=el-jardin`). Los vecinos proponen colonias
+      (2 votos → el staff de la ciudad la aprueba en CONTROL → Zonas; las que ya había quedan como 1ª colonia). Comprador y
+      vendedor eligen la suya (en Mi zona y en Ajustes); lo de quien no elige sale en todas las de su código postal, y con una
+      sola colonia todos quedan en ella. En "Zonas vecinas" salen primero las colonias del mismo código postal. El aviso diario
+      es por colonia. En CONTROL → Todas las zonas se editan las colonias separadas por comas. **Probar:** proponer 2 colonias
+      desde 2 cuentas del mismo CP, aprobarlas, elegir colonia como comprador y como vendedor, y abrir el enlace con `&c=`.
+- [ ] **Siguen (27 nov):** "Cuántos vecinos te vieron" (en las cajitas de estadísticas + orden "Más vistos por vecinos") y
+      "Busco…" en la zona ("Lo tengo" abre chat; dura 7 días; máx. 3 por comprador al día; se puede reportar).
 - [ ] Más adelante (cuando haya volumen): 17–18 (puntaje/renovar), 5 (soporte), 6 (selfie).
       Descartadas por ahora: 15 (canales) y 19–21 (impulsos).
 
