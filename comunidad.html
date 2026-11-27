@@ -495,6 +495,9 @@
 .zh-card h3{margin:0 0 8px;font-size:14px;font-weight:800}
 .zh-vecinos{display:flex;gap:14px;overflow-x:auto;scrollbar-width:none}.zh-vecinos a{flex:none;width:64px;text-align:center;color:inherit;text-decoration:none;font-size:11px}
 .zh-av{width:42px;height:42px;margin:0 auto 4px;border-radius:50%;display:grid;place-items:center;font-weight:800;color:#fff;background:#e8456b;object-fit:cover;border:3px solid var(--color-surface,#fff);box-shadow:0 2px 6px rgba(0,0,0,.15)}
+/* Flechas del carrusel de Mi zona: solo con mouse (en el celular se desliza con el dedo) */
+.zh-carr-w{position:relative}.zh-flecha{display:none;position:absolute;top:50%;z-index:3;transform:translateY(-50%);width:34px;height:34px;border:none;border-radius:50%;background:#fff;color:#1f1a1c;font-size:22px;line-height:1;box-shadow:0 2px 10px rgba(0,0,0,.18);cursor:pointer}
+.zh-flecha.der{right:-6px}.zh-flecha:not(.der){left:-6px}@media (hover:hover) and (pointer:fine){.zh-flecha{display:grid;place-items:center}}
 .zh-carr{display:flex;gap:10px;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;margin:10px -16px 0;padding:0 16px 4px}.zh-carr::-webkit-scrollbar{display:none}
 .zh-carr>.zh-card{flex:0 0 86%;margin:0;box-sizing:border-box;scroll-snap-align:start}.zh-carr>.zh-card:only-child{flex-basis:100%}
 .zh-carr h3{display:flex}.zh-avz{background:#ede9fe;color:#7c3aed}.zh-bn{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.zh-vecinos a[data-ir-zona]{cursor:pointer}.zh-carr .zh-vecinos{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;overflow:hidden}.zh-carr .zh-vecinos a{width:auto;min-width:0}
