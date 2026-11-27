@@ -63,12 +63,13 @@
     if (t._rotando) return;
     t._rotando = true;
     let raf, quieto = 0, enPantalla = true;
+    // Con "animaciones reducidas" (común en Windows) también avanza, pero sin desplazamiento animado.
+    const suave = () => (matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth');
     t.addEventListener('scroll', () => { cancelAnimationFrame(raf); raf = requestAnimationFrame(marcar); }, { passive: true });
     ['pointerdown', 'wheel'].forEach((ev) => t.addEventListener(ev, () => { quieto = Date.now() + 8000; }, { passive: true }));
-    if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
     if ('IntersectionObserver' in window) new IntersectionObserver((e) => { enPantalla = e[0].isIntersecting; }).observe(t);
     setInterval(() => {
-      if (enPantalla && !document.hidden && Date.now() >= quieto && t.children.length > 1) t.scrollTo({ left: ((indice() + 1) % t.children.length) * t.clientWidth, behavior: 'smooth' });
+      if (enPantalla && !document.hidden && Date.now() >= quieto && t.children.length > 1) t.scrollTo({ left: ((indice() + 1) % t.children.length) * t.clientWidth, behavior: suave() });
     }, 6000);
   }
 
