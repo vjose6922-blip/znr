@@ -143,6 +143,7 @@
       pintarBanners();
     } catch (err) {
       console.error('Error cargando refugios:', err);
+      $('com-hero-wrap').hidden = true;
       $('ref-grid').innerHTML = `<p class="ref-vacio">Error al cargar los refugios.<br><button type="button" class="ref-btn" onclick="location.reload()">${Icon('refresh')} Reintentar</button></p>`;
     }
   }

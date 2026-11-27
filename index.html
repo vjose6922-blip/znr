@@ -425,6 +425,9 @@
 .fs-prods img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 12px; background: var(--color-surface-2); }
 .fs-btn { display: flex; align-items: center; justify-content: center; gap: 6px; padding: 11px; border-radius: 999px; background: var(--gradient-accent); color: #fff; font-size: .9rem; font-weight: 700; text-decoration: none; box-shadow: 0 8px 18px rgba(var(--color-accent-rgb), .28); }
 .featured-seller .m-hero-dots { position: static; padding: 6px 0 12px; }
+/* Fantasma del vendedor destacado (mismas piezas que la tarjeta real; pintarVendedorDestacado lo reemplaza o lo esconde) */
+.fs-sk :is(.fs-avatar, .fs-prods i, .fs-btn) { background: color-mix(in srgb, currentColor 9%, transparent); box-shadow: none; animation: none; }
+.fs-sk .fs-prods i { aspect-ratio: 1; border-radius: 12px; } .fs-sk .m-hero-dots { height: 24px; box-sizing: border-box; }
 
 /* Encabezados de sección con "Ver todas ›" */
 .home-page .section-head { display: flex; align-items: center; justify-content: space-between; max-width: 1400px; margin: 0 auto 12px; padding: 0 16px; }
@@ -467,14 +470,15 @@
   padding: 4px 16px 16px !important; box-sizing: border-box; scroll-padding-inline: 16px; contain: none;
 }
 .home-page .h-carousel::-webkit-scrollbar { display: none; }
-.home-page .h-carousel > :is(.product-card, .recent-product-card, .skeleton-product-card, .look-card) { min-width: 0; margin: 0 !important; scroll-snap-align: start; }
+.home-page .h-carousel > :is(.product-card, .recent-product-card, .look-card), .home-page .h-carousel > .znr-sk > i { min-width: 0; margin: 0 !important; scroll-snap-align: start; }
 /* modo cuadrícula: compactas */
-.home-page .h-carousel.layout-grid > :is(.product-card, .recent-product-card, .skeleton-product-card) { flex: 0 0 clamp(150px, 44vw, 210px); }
+.home-page .h-carousel.layout-grid > :is(.product-card, .recent-product-card), .home-page .h-carousel.layout-grid > .znr-sk > i { flex: 0 0 clamp(150px, 44vw, 210px); }
 .home-page #home-looks-container.h-carousel.layout-grid > .look-card { flex: 0 0 clamp(210px, 62vw, 280px); max-width: none; height: auto; }
 /* modo lista: grandes, una a la vez */
-.home-page .h-carousel:not(.layout-grid) > :is(.product-card, .recent-product-card, .skeleton-product-card, .look-card) { flex: 0 0 min(calc(100% - 44px), 440px); max-width: none; }
+.home-page .h-carousel:not(.layout-grid) > :is(.product-card, .recent-product-card, .look-card), .home-page .h-carousel:not(.layout-grid) > .znr-sk > i { flex: 0 0 min(calc(100% - 44px), 440px); max-width: none; }
 /* mensajes (cargando, error, vacío) y spinners ocupan todo el ancho */
-.home-page .h-carousel > :not(.product-card):not(.recent-product-card):not(.skeleton-product-card):not(.look-card) { flex: 1 0 100%; grid-column: auto; }
+.home-page .h-carousel > :not(.product-card):not(.recent-product-card):not(.look-card):not(.znr-sk) { flex: 1 0 100%; grid-column: auto; }
+.home-page .h-carousel { --sk-p: 10px; --sk-cuerpo: 205px; } .home-page :is(#featured-products, #recent-products) { --sk-cuerpo: 130px; }
 .home-page .recent-products { padding: 0; max-width: none; text-align: left; }
 
 /* Otras secciones: mismos botones en degradado y tarjetas redondeadas */
@@ -507,12 +511,12 @@
  </div>
  </header>
 
- <section id="ini-hero" hidden>
- <div class="m-hero"><div id="ini-banners" role="list" aria-label="Novedades de Z&amp;R"></div><div class="m-hero-dots" id="ini-dots" aria-hidden="true"></div></div>
+ <section id="ini-hero">
+ <div class="m-hero"><div id="ini-banners" role="list" aria-label="Novedades de Z&amp;R"><div class="znr-sk-banner" role="status" aria-label="Cargando"></div></div><div class="m-hero-dots" id="ini-dots" aria-hidden="true"></div></div>
  </section>
  <div id="home-live-slot"></div>
 
- <section class="featured-seller" id="featured-seller" aria-label="Vendedor destacado"></section>
+ <section class="featured-seller is-on fs-sk" id="featured-seller" aria-label="Vendedor destacado"><div class="fs-card" role="status" aria-label="Cargando"><div class="fs-top"><span class="fs-avatar"></span></div><div class="fs-prods"><i></i><i></i><i></i><i></i></div><span class="fs-btn">&nbsp;</span></div><div class="m-hero-dots"><span></span></div></section>
 
  <section>
  <div class="section-head"><h2 class="section-title">Explora por Categoría</h2><a class="section-link" href="catalogo.html">Ver todas &rsaquo;</a></div>
@@ -522,11 +526,8 @@
  <section>
   <div class="section-head"><h2 class="section-title">Productos Destacados</h2><a class="section-link" href="catalogo.html">Ver todos &rsaquo;</a></div>
   <div class="featured-products">
- <div class="products-container h-carousel" id="featured-products">
-<div class="skeleton-product-card"><div class="sk-img shimmer"></div><div class="sk-body"><div class="sk-line sk-title shimmer"></div><div class="sk-line sk-price shimmer"></div><div class="sk-line sk-badge shimmer"></div></div></div>
-<div class="skeleton-product-card"><div class="sk-img shimmer"></div><div class="sk-body"><div class="sk-line sk-title shimmer"></div><div class="sk-line sk-price shimmer"></div><div class="sk-line sk-badge shimmer"></div></div></div>
-<div class="skeleton-product-card"><div class="sk-img shimmer"></div><div class="sk-body"><div class="sk-line sk-title shimmer"></div><div class="sk-line sk-price shimmer"></div><div class="sk-line sk-badge shimmer"></div></div></div>
-<div class="skeleton-product-card"><div class="sk-img shimmer"></div><div class="sk-body"><div class="sk-line sk-title shimmer"></div><div class="sk-line sk-price shimmer"></div><div class="sk-line sk-badge shimmer"></div></div></div>
+ <div class="products-container h-carousel layout-grid" id="featured-products">
+<div class="znr-sk" role="status" aria-label="Cargando"><i></i><i></i><i></i><i></i></div>
 </div>
  </div>
  </section>
@@ -556,8 +557,8 @@
  <select id="home-comunidad-temporada" aria-label="Filtrar por festividad o temporada" class="comunidad-cat-select" style="max-width:260px;"></select>
  </div>
 
- <div class="products-container h-carousel" id="home-comunidad-grid">
- <div class="znr-sk" style="grid-column:1/-1;grid-template-columns:repeat(3,minmax(130px,1fr))" role="status" aria-label="Cargando"><i></i><i></i><i></i></div>
+ <div class="products-container h-carousel layout-grid" id="home-comunidad-grid">
+ <div class="znr-sk" role="status" aria-label="Cargando"><i></i><i></i><i></i><i></i></div>
  </div>
 </section>
 
@@ -855,6 +856,7 @@
  // en carrusel (avanza solo); cada tarjeta muestra hasta 4 fotos de sus productos.
  function pintarVendedorDestacado(lista) {
  const box = document.getElementById('featured-seller');
+ box.classList.remove('fs-sk');
  if (!box) return;
  const esc = escapeHtml;
  const porVendedor = new Map();
@@ -999,6 +1001,7 @@
  console.error('Comunidad del inicio no cargó: ' + (e && e.message) + ' · App Check: ' + (window.znrAppCheckEstado || 'sin intentar') + ' · a los ' + Math.round(performance.now() / 1000) + ' s');
  const copia = guardada();
  if (copia && copia.length) { homeComunidadLista = window.allCommunityProductsIndexed = copia; pintarVendedorDestacado(copia); pintarHomeComunidad(); return; }
+ pintarVendedorDestacado([]);
  grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:24px;color:var(--color-text-muted)">No se pudo cargar la comunidad.<br><button type="button" onclick="loadHomeComunidad()" style="margin-top:10px;padding:8px 20px;border-radius:999px;border:none;background:var(--color-accent-solid);color:#fff;font-weight:700;cursor:pointer">Reintentar</button></div>';
  }
  }

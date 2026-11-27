@@ -180,7 +180,6 @@ async function ensureFullCatalog(force = false) {
   }
 
   try {
-    if (!fullCatalogCache) showLoader('Cargando catálogo...');
 
     // Firestore es la única fuente del catálogo.
     if (window.znrFirestore && window.znrFirestore.getProductosZNR) {

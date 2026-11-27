@@ -37,14 +37,13 @@ window.dispatchEvent(new CustomEvent('recentProductsUpdated'));
 } catch(e) {}
 }
 
-function showSkeletonFeatured(count = 4) {
-const container = document.getElementById('featured-products');
-if (!container) return;
-container.innerHTML = Array.from({length: count}, () => `
-<div class="skeleton-product-card"><div class="sk-img shimmer"></div><div class="sk-body"><div class="sk-line sk-title shimmer"></div><div class="sk-line sk-price shimmer"></div><div class="sk-line sk-badge shimmer"></div></div></div>`).join('');
+function showSkeletonFeatured() {
+const c = document.getElementById('featured-products');
+if (c) c.innerHTML = '<div class="znr-sk" role="status" aria-label="Cargando"><i></i><i></i><i></i><i></i></div>';
 }
 async function loadProducts() {
 showSkeletonFeatured();
+renderCategories(); renderRecentProducts(); // ya con su forma; al llegar los productos se repintan con fotos
 window.loadProductsUnified({
 onProducts(products) {
 window.dispatchEvent(new Event('znr:productos')); // banner "Novedades Z&R" (index.html)
@@ -214,9 +213,8 @@ function renderRecentProducts() {
   const savedLayout = localStorage.getItem('products_layout') || 'grid';
   container.classList.toggle('layout-grid', savedLayout === 'grid');
 
-  if (!window.allProducts.length) {
-    container.innerHTML = '<div class="znr-sk" role="status" aria-label="Cargando"><i></i><i></i><i></i><i></i></div>';
-    return;
+  if (!window.allProducts.length) { // fantasmas solo si hay vistos guardados (si no, sale directo el aviso de "No has visto")
+    if (getRecentProductIds().length) return void (container.innerHTML = '<div class="znr-sk" role="status" aria-label="Cargando"><i></i><i></i><i></i><i></i></div>');
   }
 
   const recentProducts = getRecentProductsList();

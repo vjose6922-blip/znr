@@ -86,10 +86,10 @@ a.hero-btn, a.category-card { transition: transform var(--m-fast) var(--m-ease),
 }
 
 /* 8. Skeletons: el brillo viaja con transform (compositor) y respeta el tema */
-.shimmer, .skeleton-product-card .sk-img, .skeleton-product-card .sk-line {
+.shimmer {
   position: relative; overflow: hidden; background: var(--color-surface-3); animation: none;
 }
-.shimmer::after, .skeleton-product-card .sk-img::after, .skeleton-product-card .sk-line::after {
+.shimmer::after {
   content: ""; position: absolute; inset: 0; transform: translateX(-100%);
   background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--color-text-main) 9%, transparent), transparent);
   animation: m-shimmer 1.4s linear infinite;

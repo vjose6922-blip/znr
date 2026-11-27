@@ -3348,7 +3348,7 @@ window.verMisEstadisticas = async function(forceRefresh) {
         <button id="mis-stats-close" style="position:absolute;top:14px;right:14px;background:#f0f0f5;border:none;width:32px;height:32px;border-radius:50%;font-size:16px;cursor:pointer;color:#666;">${Icon('x')}</button>
         <h3 style="margin:0 0 16px;font-size:1.1rem;">${Icon('stats')} Mis estadísticas</h3>
         <div id="mis-stats-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;">
-          <div style="grid-column:span 2"><span class="znr-carga" role="status" aria-label="Cargando"></span></div>
+          <div class="znr-sk-filas" style="display:contents;--sk-alto:68px;--sk-r:14px;--sk-av:0px" role="status" aria-label="Cargando"><i></i><i></i><i></i><i></i></div>
         </div>
         <div id="mis-stats-rating"></div>
         <div id="mis-stats-ventas"></div>
@@ -3377,7 +3377,7 @@ window.verMisEstadisticas = async function(forceRefresh) {
     return;
   }
 
-  grid.innerHTML = '<div style="grid-column:span 2"><span class="znr-carga" role="status" aria-label="Cargando"></span></div>';
+  grid.innerHTML = '<div class="znr-sk-filas" style="display:contents;--sk-alto:68px;--sk-r:14px;--sk-av:0px" role="status" aria-label="Cargando"><i></i><i></i><i></i><i></i></div>';
   ratingSlot.innerHTML = '';
 
   const result = { stats: null, rating: null };
@@ -3649,7 +3649,7 @@ window.openDonarProductosModal = async function(productoId) {
   };
   body.innerHTML = window.cardDonar({ id: esc(prod.id), img: prod.imagen1 && esc(urlImagen(prod.imagen1)), titulo: esc(prod.nombre), precio: prod.precio, etiqueta: window.stockDonar(prod), corazon: false })
     + (donado ? '<p style="font-size:.85rem;color:#555;line-height:1.5;">Este producto ya está asignado a un beneficiario. ¿Deseas quitar la donación?</p>'
-      : window.cantidadDonar(prod) + '<p class="dr-tit">Elige a quién donar</p><div id="donar-bens"><div class="znr-sk-filas" role="status" aria-label="Cargando"><i></i><i></i><i></i></div></div>');
+      : window.cantidadDonar(prod) + '<p class="dr-tit">Elige a quién donar</p><div id="donar-bens"><div class="znr-sk-filas dr" role="status" aria-label="Cargando"><i></i><i></i><i></i></div></div>');
   if (donado) {
     cta.disabled = false; cta.classList.add('quitar');
     cta.onclick = () => enviar({ action: 'desasignarDonacion' }, 'Donación removida', 'Quitar donación');
@@ -3701,11 +3701,11 @@ window.openGestionarDonacionesModal = async function(page = 1, pestana = 'produc
     if (k !== 'productos') {
       lista.onclick = null; lista.style.cssText = '';
       const lst = (dons || []).filter(d => d.estado === k);
-      lista.innerHTML = !dons ? '<div class="znr-sk-filas" role="status" aria-label="Cargando"><i></i><i></i><i></i></div>'
+      lista.innerHTML = !dons ? `<p class="dr-tit">${TITULO_DON[k]}</p><div class="znr-sk-filas dr" role="status" aria-label="Cargando"><i></i><i></i><i></i></div>`
         : lst.length ? `<p class="dr-tit">${TITULO_DON[k]}</p>` + lst.map(tarjeta).join('') : `<p style="text-align:center;color:#aaa;padding:24px 0;">${VACIO_DON[k]}</p>`;
       return;
     }
-    lista.innerHTML = '<p style="text-align:center;color:#aaa;">Actualizando productos…</p>';
+    lista.innerHTML = '<p class="dr-tit">Elige qué quieres donar</p><div class="znr-sk-filas dr" role="status" aria-label="Cargando"><i></i><i></i><i></i></div>';
     cta.disabled = true; cta.textContent = 'Elige un artículo';
     const cached = window.getVendorPageCache(uid, page, status);
     if (cached) window.renderGestionarLista(lista, cached.data, page, cached.totalPages, cached.total, status);

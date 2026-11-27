@@ -495,7 +495,7 @@ window.openDonarARefugioModal = async function(beneficiario) {
   let elegido = null;
 
   const cargarProductos = async () => {
-    body.innerHTML = '<div class="znr-sk-filas" role="status" aria-label="Cargando"><i></i><i></i><i></i></div>';
+    body.innerHTML = '<p class="dr-tit">Elige qué quieres donar</p><div class="znr-sk-filas dr" role="status" aria-label="Cargando"><i></i><i></i><i></i></div>';
     cta.disabled = true; cta.textContent = 'Elige un artículo'; elegido = null;
     try {
       const data = await fetch(_resolverApiUrlInspector('misProductosComunidad') + '?' + new URLSearchParams({

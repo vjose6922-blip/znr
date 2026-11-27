@@ -522,6 +522,8 @@ body {
 
 .products-container.layout-grid { display: grid !important; grid-template-columns: repeat(2, minmax(0, 1fr)) !important; gap: 4px !important; }
 .products-container.layout-grid .product-card { margin: 4px; padding: 4px; }
+#products-container.layout-grid { --sk-p: 4px; --sk-cuerpo: 198px; } #products-container.layout-grid .znr-sk i { margin: 4px; } /* fantasma del catálogo = .product-card */
+@media (min-width: 1024px) { #products-container.layout-grid { --sk-cuerpo: 216px; } }
 .products-container.layout-grid .product-slider { aspect-ratio: 1 / 1; }
 .products-container.layout-grid .product-name { font-size: 15px; }
 .products-container.layout-grid .product-price { font-size: 16px; padding: 2px 6px; }
@@ -2518,31 +2520,6 @@ a[data-loading="true"] {
 #saved-address-container { color: #888; }
 #saved-address-container button { font-size: 11px; }
 
-.skeleton-product-card {
-  background: var(--color-surface, #252831);
-  border-radius: 16px;
-  overflow: hidden;
-  box-shadow: 0 4px 12px rgba(0,0,0,.15);
-}
-.skeleton-product-card .sk-img {
-  width: 100%;
-  aspect-ratio: 3/4;
-  background: linear-gradient(90deg, #2a2f3a 25%, #323848 50%, #2a2f3a 75%);
-  background-size: 200% 100%;
-  animation: shimmer-animation 1.5s ease-in-out infinite;
-}
-.skeleton-product-card .sk-body { padding: 12px; }
-.skeleton-product-card .sk-line {
-  height: 14px;
-  border-radius: 6px;
-  margin-bottom: 8px;
-  background: linear-gradient(90deg, #2a2f3a 25%, #323848 50%, #2a2f3a 75%);
-  background-size: 200% 100%;
-  animation: shimmer-animation 1.5s ease-in-out infinite;
-}
-.skeleton-product-card .sk-line.sk-title  { width: 75%; height: 18px; }
-.skeleton-product-card .sk-line.sk-price  { width: 45%; }
-.skeleton-product-card .sk-line.sk-badge  { width: 30%; height: 20px; border-radius: 10px; }
 
 .share-btn {
   background: rgba(255,255,255,.06);
@@ -2776,17 +2753,22 @@ div[style*="z-index: 10001"][style*="position: fixed"] { background: var(--color
 .znr-carga{display:block;width:36px;height:36px;margin:28px auto;border-radius:50%;background:conic-gradient(from 0deg,transparent 0 15%,#ff7a59,#f0566f,#c026d3);-webkit-mask:radial-gradient(farthest-side,transparent calc(100% - 4px),#000 calc(100% - 3px));mask:radial-gradient(farthest-side,transparent calc(100% - 4px),#000 calc(100% - 3px));animation:znr-gira .8s linear infinite}
 .znr-carga.mini{display:inline-block;width:15px;height:15px;margin:0 6px -2px 0;vertical-align:baseline}
 @keyframes znr-gira{to{transform:rotate(1turn)}}
-.znr-sk,.znr-sk-filas{display:grid;gap:10px;width:100%}.znr-sk{grid-template-columns:repeat(auto-fill,minmax(150px,1fr))}
-.znr-sk i,.znr-sk-filas i{display:block;position:relative;overflow:hidden;border-radius:16px;background-color:var(--color-surface,#fff);background-image:linear-gradient(100deg,transparent 30%,rgba(255,255,255,.7) 50%,transparent 70%);background-size:200% 100%;background-repeat:no-repeat;animation:znr-brillo 1.3s linear infinite;box-shadow:0 2px 10px rgba(0,0,0,.04)}
-.znr-sk i{height:240px;padding:8px}.znr-sk i::before{content:"";display:block;height:140px;border-radius:12px;background:rgba(150,110,100,.12)}
-.znr-sk i::after{content:"";position:absolute;left:10px;right:10px;top:160px;height:60px;background:linear-gradient(rgba(150,110,100,.12) 0 14px,transparent 14px 24px,rgba(150,110,100,.12) 24px 38px,transparent 38px 48px,rgba(150,110,100,.08) 48px);background-size:70% 100%;background-repeat:no-repeat}
-.znr-sk-filas i{height:64px}.znr-sk-filas i::before{content:"";position:absolute;left:12px;top:12px;width:40px;height:40px;border-radius:50%;background:rgba(150,110,100,.12)}
-.znr-sk-filas i::after{content:"";position:absolute;left:64px;right:30%;top:16px;height:32px;background:linear-gradient(rgba(150,110,100,.12) 0 12px,transparent 12px 20px,rgba(150,110,100,.08) 20px);background-size:100% 100%}
+/* .znr-sk no tiene caja propia: sus <i> caen en la cuadrícula o carrusel real, así que toman sus columnas y ancho.
+   Cada <i> imita una .product-card: foto cuadrada + cuerpo de texto (--sk-p = relleno, --sk-cuerpo = alto bajo la foto). */
+.znr-sk{display:contents}.znr-sk-filas{display:grid;gap:10px;width:100%;box-sizing:border-box}
+.znr-sk i,.znr-sk-filas i{display:block;position:relative;overflow:hidden;border-radius:16px;background-color:var(--color-surface,#fff);background-image:linear-gradient(100deg,transparent 30%,color-mix(in srgb,currentColor 7%,transparent) 50%,transparent 70%);background-size:200% 100%;background-repeat:no-repeat;animation:znr-brillo 1.3s linear infinite;box-shadow:0 2px 10px rgba(0,0,0,.04)}
+.znr-sk i{--p:var(--sk-p,5px);min-width:0;padding:var(--p) var(--p) calc(var(--p) + var(--sk-cuerpo,240px));border:1px solid transparent;border-radius:var(--radius-lg,22px)}
+.znr-sk i::before{content:"";display:block;aspect-ratio:1;border-radius:18px;background:color-mix(in srgb,currentColor 9%,transparent)}
+.znr-sk i::after{content:"";position:absolute;left:calc(var(--p) + 10px);right:calc(var(--p) + 10px);bottom:calc(var(--p) + var(--sk-cuerpo,240px) - 80px);height:60px;background:linear-gradient(color-mix(in srgb,currentColor 9%,transparent) 0 14px,transparent 14px 24px,color-mix(in srgb,currentColor 9%,transparent) 24px 38px,transparent 38px 48px,color-mix(in srgb,currentColor 6%,transparent) 48px);background-size:70% 100%;background-repeat:no-repeat}
+/* Filas: alto, espacio, radio y miniatura configurables para imitar cada lista real (.pp = pedidos, .dr = tarjetas de donar) */
+.znr-sk-filas i{height:var(--sk-alto,64px);border-radius:var(--sk-r,16px)}.znr-sk-filas i::before{content:"";position:absolute;left:var(--sk-x,12px);top:calc(50% - var(--sk-av,40px)/2);width:var(--sk-av,40px);height:var(--sk-av,40px);border-radius:var(--sk-av-r,50%);background:color-mix(in srgb,currentColor 9%,transparent)}
+.znr-sk-filas i::after{content:"";position:absolute;left:calc(var(--sk-x,12px) + var(--sk-av,40px) + 12px);right:30%;top:calc(50% - 16px);height:32px;background:linear-gradient(color-mix(in srgb,currentColor 9%,transparent) 0 12px,transparent 12px 20px,color-mix(in srgb,currentColor 6%,transparent) 20px);background-size:100% 100%}
+.znr-sk-filas.pp{--sk-alto:69px;--sk-r:12px;--sk-av:46px;--sk-av-r:9px;--sk-x:10px;gap:6px}.znr-sk-filas.dr{--sk-alto:102px;--sk-r:14px;--sk-av:80px;--sk-av-r:10px;--sk-x:11.5px}
 @keyframes znr-brillo{from{background-position:150% 0}to{background-position:-50% 0}}
 .loader-text{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)} /* pantalla completa: solo el círculo */
 .loader-spinner{width:46px!important;height:46px!important;border:0!important;border-radius:50%;background:conic-gradient(from 0deg,transparent 0 15%,#ff7a59,#f0566f,#c026d3)!important;-webkit-mask:radial-gradient(farthest-side,transparent calc(100% - 5px),#000 calc(100% - 4px));mask:radial-gradient(farthest-side,transparent calc(100% - 5px),#000 calc(100% - 4px));animation:znr-gira .8s linear infinite!important}
 @media (prefers-reduced-motion:reduce){.znr-carga,.loader-spinner{animation-duration:2s!important}.znr-sk i,.znr-sk-filas i{animation:none}}
 /* Banner de Comunidad mientras llega el catálogo (pintarBanners lo reemplaza o esconde) */
-.znr-sk-banner{flex:0 0 100%;aspect-ratio:12/5;border-radius:20px;background-color:rgba(255,255,255,.55);background-image:linear-gradient(100deg,transparent 30%,rgba(255,255,255,.75) 50%,transparent 70%);background-size:200% 100%;background-repeat:no-repeat;animation:znr-brillo 1.3s linear infinite}
-.znr-sk-banner{position:relative}.znr-sk-banner::before{content:"";position:absolute;left:6%;top:16%;width:42%;height:40%;border-radius:6px;background:linear-gradient(rgba(150,110,100,.14) 0 30%,transparent 30% 44%,rgba(150,110,100,.14) 44% 64%,transparent 64% 80%,rgba(150,110,100,.09) 80%)}
-.znr-sk-banner::after{content:"";position:absolute;left:6%;bottom:14%;width:26%;height:15%;border-radius:999px;background:rgba(150,110,100,.14)}
+.znr-sk-banner{flex:0 0 100%;aspect-ratio:12/5;border-radius:20px;background-color:color-mix(in srgb,var(--color-surface,#fff) 55%,transparent);background-image:linear-gradient(100deg,transparent 30%,color-mix(in srgb,currentColor 7%,transparent) 50%,transparent 70%);background-size:200% 100%;background-repeat:no-repeat;animation:znr-brillo 1.3s linear infinite}
+.znr-sk-banner{position:relative}.znr-sk-banner::before{content:"";position:absolute;left:6%;top:16%;width:42%;height:40%;border-radius:6px;background:linear-gradient(color-mix(in srgb,currentColor 10%,transparent) 0 30%,transparent 30% 44%,color-mix(in srgb,currentColor 10%,transparent) 44% 64%,transparent 64% 80%,color-mix(in srgb,currentColor 7%,transparent) 80%)}
+.znr-sk-banner::after{content:"";position:absolute;left:6%;bottom:14%;width:26%;height:15%;border-radius:999px;background:color-mix(in srgb,currentColor 10%,transparent)}

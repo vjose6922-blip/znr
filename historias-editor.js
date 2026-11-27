@@ -358,9 +358,9 @@
           };
         },
         producto: async () => {
-          const sh = hoja('Agregar un producto', '<div class="znr-sk-filas" role="status" aria-label="Cargando"><i></i><i></i><i></i></div>');
+          const sh = hoja('Agregar un producto', '<div class="znr-sk-filas" style="--sk-alto:51px;--sk-r:10px;--sk-av:38px;--sk-av-r:8px;--sk-x:6px;gap:0" role="status" aria-label="Cargando"><i></i><i></i><i></i></div>');
           const ps = await Promise.resolve(opciones.productos ? opciones.productos() : []).catch(() => []);
-          sh.querySelector('.zhe-hint').outerHTML = ps.length ? ps.map((p, i) => `<button type="button" class="zhe-op" data-i="${i}"><img src="${esc(p.imagen1 || '')}" alt=""><span>${esc(p.nombre)} · $${Number(p.precio || 0).toLocaleString('es-MX')}</span></button>`).join('')
+          sh.querySelector('.znr-sk-filas').outerHTML = ps.length ? ps.map((p, i) => `<button type="button" class="zhe-op" data-i="${i}"><img src="${esc(p.imagen1 || '')}" alt=""><span>${esc(p.nombre)} · $${Number(p.precio || 0).toLocaleString('es-MX')}</span></button>`).join('')
             : '<p class="zhe-hint">No tienes productos aprobados.</p>';
           sh.querySelectorAll('.zhe-op').forEach(b => b.onclick = () => {
             const p = ps[+b.dataset.i]; sh.remove();
