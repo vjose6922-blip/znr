@@ -93,6 +93,7 @@ const MAPA_ACCIONES_MIGRADAS = {
   deleteComunidad: CATALOGO_API_URL,
   misProductosComunidad: CATALOGO_API_URL,
   misEstadisticasProductos: CATALOGO_API_URL,
+  infoZona: CATALOGO_API_URL,
   resolverNotificacionVentaComunidad: VENTAS_API_URL,
   solicitarPlanPlus: VENDEDORES_API_URL,
   getPlusSolicitudVendedor: VENDEDORES_API_URL,
@@ -446,6 +447,7 @@ reglasRenta: res.reglasRenta || '',
 enRevision: res.enRevision === true,
 cp: res.cp || '',
 entregaZona: res.entregaZona === true,
+colonia: res.colonia || '',
 puntoEntregaLat: (res.puntoEntregaLat === null || res.puntoEntregaLat === undefined) ? null : res.puntoEntregaLat,
 puntoEntregaLng: (res.puntoEntregaLng === null || res.puntoEntregaLng === undefined) ? null : res.puntoEntregaLng,
 montoMinimoEnvio: (res.montoMinimoEnvio === null || res.montoMinimoEnvio === undefined) ? null : res.montoMinimoEnvio,
@@ -1221,6 +1223,16 @@ window.cargarStatsProd = async (forzar) => {
   if (r && r.ok) { window._statsProd = r; window._statsProdEn = Date.now(); }
   return window._statsProd;
 };
+// Colonias aprobadas del código postal del vendedor (un código postal puede tener varias; cada una es un grupo).
+async function cargarColoniasVendedor(cp) {
+  const sel = document.getElementById('settings-colonia'), limpio = String(cp || '').replace(/\D/g, '');
+  if (!sel) return;
+  const r = /^\d{4,6}$/.test(limpio) ? await apiFetch({ action: 'infoZona', cp: limpio, pais: window.znrPaisCiudad?.(vendorSession.ciudad) || 'México' }, 'GET').catch(() => null) : null;
+  const cols = (r && r.ok && r.colonias) || [];
+  sel.innerHTML = `<option value="">${cols.length ? 'Tu colonia: no sé / sin elegir' : ''}</option>` + cols.map((c) => `<option value="${escapeHtml(c.slug)}">Colonia ${escapeHtml(c.nombre)}</option>`).join('');
+  sel.value = cols.some((c) => c.slug === vendorSession.colonia) ? vendorSession.colonia : '';
+  sel.style.display = cols.length > 1 ? '' : 'none'; // con una sola colonia no hace falta elegir
+}
 // Ordenar por estadísticas: el mismo panel (con buscador y filtros) se ordena y cada tarjeta muestra sus números.
 const ORDENES = { '': 'Recientes', v: 'Más vistos', c: 'Más en carrito', s: 'Más compartidos', e: 'Más vendidos', menos: 'Menos vistos' };
 const STAT_IC = { v: ['Vistas', '<path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>'],
@@ -2272,7 +2284,7 @@ function openSettingsModal(expandirPlan) {
   const puntoLngInput = document.getElementById('settings-punto-entrega-lng');
   if (puntoLatInput) puntoLatInput.value = (vendorSession.puntoEntregaLat === null || vendorSession.puntoEntregaLat === undefined) ? '' : vendorSession.puntoEntregaLat;
   const cpInput = document.getElementById('settings-cp');
-  if (cpInput) cpInput.value = vendorSession.cp || '';
+  if (cpInput) { cpInput.value = vendorSession.cp || ''; cpInput.oninput = () => cargarColoniasVendedor(cpInput.value); cargarColoniasVendedor(cpInput.value); }
   const ezInput = document.getElementById('settings-entrega-zona');
   if (ezInput) ezInput.checked = vendorSession.entregaZona === true;
   if (puntoLngInput) puntoLngInput.value = (vendorSession.puntoEntregaLng === null || vendorSession.puntoEntregaLng === undefined) ? '' : vendorSession.puntoEntregaLng;
@@ -2747,6 +2759,7 @@ async function guardarPerfil() {
       reglasRenta,
       cp: (document.getElementById('settings-cp')?.value || '').replace(/\D/g, ''),
       entregaZona: !!document.getElementById('settings-entrega-zona')?.checked,
+      colonia: document.getElementById('settings-colonia')?.value || '',
       puntoEntregaLat,
       puntoEntregaLng
     });
@@ -2772,6 +2785,7 @@ async function guardarPerfil() {
     vendorSession.puntoEntregaLat  = puntoEntregaLat === '' ? null : Number(puntoEntregaLat);
     vendorSession.cp = (document.getElementById('settings-cp')?.value || '').replace(/\D/g, '');
     vendorSession.entregaZona = !!document.getElementById('settings-entrega-zona')?.checked;
+    vendorSession.colonia = document.getElementById('settings-colonia')?.value || '';
     vendorSession.puntoEntregaLng  = puntoEntregaLng === '' ? null : Number(puntoEntregaLng);
     try { localStorage.setItem('vendor_session', JSON.stringify(vendorSession)); } catch(e) {}
     renderChecklistVendedor();
