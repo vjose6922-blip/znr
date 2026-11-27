@@ -124,7 +124,7 @@ function render() {
   });
 
   const cont = h("div", { class: "pp-list" });
-  if (!lista) cont.insertAdjacentHTML("beforeend", '<div class="znr-sk-filas" role="status" aria-label="Cargando"><i></i><i></i><i></i></div>');
+  if (!lista) cont.insertAdjacentHTML("beforeend", '<div class="znr-sk-filas pp" role="status" aria-label="Cargando"><i></i><i></i><i></i></div>');
   else if (!filtrada.length) cont.appendChild(h("div", { class: "pp-state", text: lista.length ? "No hay pedidos en este filtro." : (rolActual === "vendedor" ? "Aún no tienes solicitudes personalizadas." : "Aún no has pedido nada personalizado.") }));
   else filtrada.forEach((p) => {
     const e = estadoEfectivo(p);

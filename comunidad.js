@@ -271,20 +271,11 @@ return (value != null) ? String(value) : '';
 }
 
 function showSkeletonComunidad(container, count = 6) {
-const cards = Array.from({length: count}, () => `
-<div class="skeleton-product-card">
-<div class="sk-img shimmer"></div>
-<div class="sk-body">
-<div class="sk-line sk-title shimmer"></div>
-<div class="sk-line sk-price shimmer"></div>
-<div class="sk-line sk-badge shimmer"></div>
-</div>
-</div>`).join('');
-container.innerHTML = cards;
+  container.innerHTML = '<div class="znr-sk" role="status" aria-label="Cargando">' + '<i></i>'.repeat(count) + '</div>';
 }
 
-// ── Si la carga falla: usa la caché si existe; si no, muestra el error con botón de reintentar ──
 function mostrarErrorCargaComunidad(err) {
+  if (!document.querySelector('#com-banners .com-banner')) document.getElementById('com-hero-wrap').hidden = true; // sin catálogo no hay banner que esperar
   // Si falla y hay caché, la usamos como respaldo
   const cached = getComunidadCache();
   if (cached && cached.length > 0 && allCommunityProducts.length === 0) {
@@ -606,6 +597,7 @@ async function loadComunidadPageAlgolia(page, filters, opts = {}) {
 
     renderProducts();
     handleInitialHashComunidad();
+    if (!carruselesPintados) asegurarCatalogoBase().then(renderCarruseles).catch(() => {}); // entrada con filtro: los banners automáticos también salen
 
   } catch (err) {
     console.error('Error loadComunidadPageAlgolia:', err);
@@ -930,12 +922,13 @@ function iniciarAutoScrollCarrusel(track) {
 }
 
 // ── Banners de temporada: los sube el Master en CONTROL (imagen sin texto + texto encima + fechas) ──
-let bannerTemporadas = [], bannersVigentes = [];
+let bannerTemporadas = [], bannersVigentes = [], bannersListos = false;
 async function cargarBannersTemporada() {
   const todos = await fetch('https://znr-live-default-rtdb.firebaseio.com/banners_temporada.json').then(r => r.json()).catch(() => null);
   const hoy = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD local
   bannersVigentes = Object.values(todos || {}).filter(b => b.inicio <= hoy && hoy <= b.fin && b.donde !== 'inicio') // sin "donde" (banners viejos) = Comunidad.sort((a, b) => a.fin.localeCompare(b.fin));
   bannerTemporadas = [...new Set(bannersVigentes.map(b => b.temporada).filter(Boolean))];
+  bannersListos = true;
   if (carruselesPintados && bannerTemporadas.length) { vistaCache = null; renderCarrusel('temporada', calcularTemporadaActual(communityRandomOrder)); }
   pintarBanners();
 }
@@ -954,6 +947,7 @@ function pintarBanners() {
     .concat(exclusivos.length || !tarjetaZona ? [] : tarjetaZona).concat(exclusivos.length ? [] : Object.keys(BANNERS_AUTO).filter(v => listasCarrusel[v]?.length).map(v => window.znrBanner.html(
       { ...BANNERS_AUTO[v](listasCarrusel[v]), tema: 'claro', degradado: 'no', fotos: listasCarrusel[v].slice(0, 3).map(p => p.imagen1).filter(Boolean) },
       `role="listitem" data-vista="${v}"`)));
+  if (!html.length && !(bannersListos && carruselesPintados)) return; // el banner fantasma sigue hasta saber si de verdad no hay ninguno
   cont.innerHTML = html.join('');
   cont.scrollLeft = 0;
   document.getElementById('com-hero-wrap').hidden = !html.length;
@@ -971,7 +965,7 @@ function calcularOfertas(products) {
 function calcularRecomendados(products, limite = Infinity) {
   const categorias = obtenerCategoriasPreferidas();
   const conStock = (products || []).filter(p => Number(stockVivo(p) || 0) > 0);
-  if (!categorias.length) return conStock.filter(p => p.vendedor_plan === 'plus').slice(0, limite);
+  if (!categorias.length) { const plus = conStock.filter(p => p.vendedor_plan === 'plus'); return (plus.length ? plus : conStock).slice(0, limite); } // sin Plus: todo, así nunca queda vacío
   // Un balde por categoría preferida (más vista primero), barajado internamente
   const baldes = categorias.map(cat => shuffleArray(conStock.filter(p => p.categoria === cat)));
   const out = [];
