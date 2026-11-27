@@ -96,7 +96,7 @@ function renderFeaturedProducts() {
 const container = document.getElementById('featured-products');
 if (!container) return;
 if (!window.allProducts.length) {
-container.innerHTML = `<p style="text-align:center; padding:40px;">${window.productosListos ? 'Aún no hay productos en tu ciudad. ¡Vuelve pronto!' : 'Cargando productos...'}</p>`;
+container.innerHTML = `<p style="text-align:center; padding:40px;">${window.productosListos ? 'Aún no hay productos en tu ciudad. ¡Vuelve pronto!' : ''}</p>${window.productosListos ? '' : '<div class="znr-sk" role="status" aria-label="Cargando"><i></i><i></i><i></i><i></i></div>'}`;
 return;
 }
 let featured = window.allProducts.filter(p => p.Stock > 0 && p.Stock !== "0");
@@ -215,7 +215,7 @@ function renderRecentProducts() {
   container.classList.toggle('layout-grid', savedLayout === 'grid');
 
   if (!window.allProducts.length) {
-    container.innerHTML = '<p style="text-align: center; color: var(--color-text-muted);">Cargando productos...</p>';
+    container.innerHTML = '<div class="znr-sk" role="status" aria-label="Cargando"><i></i><i></i><i></i><i></i></div>';
     return;
   }
 
@@ -269,7 +269,7 @@ setTimeout(() => generateHomeLooksFromWishlist(), 500);
 return;
 }
 if (!window.allProducts.length) {
-container.innerHTML = `<p style="text-align: center; padding: 40px;">${window.productosListos ? 'Aún no hay productos en tu ciudad. ¡Vuelve pronto!' : 'Cargando productos...'}</p>`;
+container.innerHTML = `<p style="text-align: center; padding: 40px;">${window.productosListos ? 'Aún no hay productos en tu ciudad. ¡Vuelve pronto!' : ''}</p>${window.productosListos ? '' : '<div class="znr-sk" role="status" aria-label="Cargando"><i></i><i></i><i></i><i></i></div>'}`;
 return;
 }
 container.innerHTML = `<div style="display: flex; justify-content: center; padding: 40px;"><div class="loader-spinner"></div></div>`;

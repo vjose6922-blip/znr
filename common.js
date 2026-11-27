@@ -218,6 +218,7 @@ if (!loader) {
 loader = document.createElement("div");
 loader.id = "global-loader";
 loader.className = "global-loader";
+loader.setAttribute("role", "status");
 loader.innerHTML = `<div class="loader-spinner"></div><div class="loader-text">${text}</div>`;
 document.body.appendChild(loader);
 } else {
@@ -2699,7 +2700,7 @@ _znrPersonalizarEstilos();
 const ov = document.createElement('div');
 ov.className = 'zp-ov';
 ov.innerHTML = `<div class="zp-box" role="dialog" aria-modal="true" aria-label="Rentar"><h3>Rentar</h3>
-<div class="zp-prod">${p.Imagen1 || p.imagen1 ? `<img src="${esc(p.Imagen1 || p.imagen1)}" alt="" loading="lazy">` : ''}<div><b>${esc(p.Nombre || p.nombre || '')}</b><span id="zr-precio">Cargando…</span></div></div>
+<div class="zp-prod">${p.Imagen1 || p.imagen1 ? `<img src="${esc(p.Imagen1 || p.imagen1)}" alt="" loading="lazy">` : ''}<div><b>${esc(p.Nombre || p.nombre || '')}</b><span id="zr-precio"><span class="znr-carga mini" aria-hidden="true"></span></span></div></div>
 <div id="zr-form" hidden>
 <div class="zr-dos"><div><label for="zr-desde">Desde</label><input id="zr-desde" type="date" min="${hoy}"></div><div><label for="zr-hora1">Hora de entrega</label><input id="zr-hora1" type="time" value="09:00"></div></div>
 <div class="zr-dos"><div><label for="zr-hasta">Hasta</label><input id="zr-hasta" type="date" min="${hoy}"></div><div><label for="zr-hora2">Hora de recolección</label><input id="zr-hora2" type="time" value="20:00"></div></div>
@@ -2803,7 +2804,7 @@ _znrPersonalizarEstilos();
 const ov = document.createElement('div');
 ov.className = 'zp-ov';
 ov.innerHTML = `<div class="zp-box za-full" role="dialog" aria-modal="true" aria-label="Agendar servicio"><h3>Agendar servicio</h3>
-<div class="zp-prod">${p.Imagen1 || p.imagen1 ? `<img src="${esc(p.Imagen1 || p.imagen1)}" alt="" loading="lazy">` : ''}<div><b>${esc(p.Nombre || p.nombre || '')}</b><span id="za-precio">Cargando…</span></div></div>
+<div class="zp-prod">${p.Imagen1 || p.imagen1 ? `<img src="${esc(p.Imagen1 || p.imagen1)}" alt="" loading="lazy">` : ''}<div><b>${esc(p.Nombre || p.nombre || '')}</b><span id="za-precio"><span class="znr-carga mini" aria-hidden="true"></span></span></div></div>
 <div id="za-form" hidden>
 <div id="za-cant-box" hidden><label for="za-cant">Cantidad (piezas)</label><input id="za-cant" type="number" min="1" max="10000" value="1" inputmode="numeric"></div>
 <div class="zr-dos"><div><label for="za-fecha">Fecha</label><input id="za-fecha" type="date" min="${hoy}"></div><div><label for="za-hora">Hora</label><input id="za-hora" type="time" value="10:00"></div></div>

@@ -906,7 +906,7 @@
         if (!btn) return;
         const tel = await window.asegurarComprador('Para ver el contacto del vendedor');
         if (!tel) return;
-        btn.disabled = true; btn.textContent = 'Cargando contacto…'; btn.setAttribute('aria-busy', 'true');
+        btn.disabled = true; btn.innerHTML = '<span class="znr-carga mini" aria-hidden="true"></span>Ver contacto'; btn.setAttribute('aria-busy', 'true');
         const r = await fetch(window.VENDEDORES_API_URL, {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ action: 'obtenerContactoVendedor', vendedorUid: getVendorUid(), telefono: tel, compradorToken: localStorage.getItem('comprador_token') || '' })

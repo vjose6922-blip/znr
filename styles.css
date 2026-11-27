@@ -2770,3 +2770,23 @@ div[style*="z-index: 10001"][style*="position: fixed"] { background: var(--color
 .header-sub-row { display: flex; align-items: center; gap: 6px; min-width: 0; }
 .header-sub-row .app-subtitle { min-width: 0; margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.85rem; }
 .header-sub-row .btn-secondary { flex-shrink: 0; white-space: nowrap; }
+
+/* ── Carga (27 nov): en vez de textos "Cargando…". Círculo con el degradado ZNR (.znr-carga; .mini en botones y precios),
+   tarjetas fantasma para listas de productos (.znr-sk) y filas fantasma para otras listas (.znr-sk-filas). ── */
+.znr-carga{display:block;width:36px;height:36px;margin:28px auto;border-radius:50%;background:conic-gradient(from 0deg,transparent 0 15%,#ff7a59,#f0566f,#c026d3);-webkit-mask:radial-gradient(farthest-side,transparent calc(100% - 4px),#000 calc(100% - 3px));mask:radial-gradient(farthest-side,transparent calc(100% - 4px),#000 calc(100% - 3px));animation:znr-gira .8s linear infinite}
+.znr-carga.mini{display:inline-block;width:15px;height:15px;margin:0 6px -2px 0;vertical-align:baseline}
+@keyframes znr-gira{to{transform:rotate(1turn)}}
+.znr-sk,.znr-sk-filas{display:grid;gap:10px;width:100%}.znr-sk{grid-template-columns:repeat(auto-fill,minmax(150px,1fr))}
+.znr-sk i,.znr-sk-filas i{display:block;position:relative;overflow:hidden;border-radius:16px;background-color:var(--color-surface,#fff);background-image:linear-gradient(100deg,transparent 30%,rgba(255,255,255,.7) 50%,transparent 70%);background-size:200% 100%;background-repeat:no-repeat;animation:znr-brillo 1.3s linear infinite;box-shadow:0 2px 10px rgba(0,0,0,.04)}
+.znr-sk i{height:240px;padding:8px}.znr-sk i::before{content:"";display:block;height:140px;border-radius:12px;background:rgba(150,110,100,.12)}
+.znr-sk i::after{content:"";position:absolute;left:10px;right:10px;top:160px;height:60px;background:linear-gradient(rgba(150,110,100,.12) 0 14px,transparent 14px 24px,rgba(150,110,100,.12) 24px 38px,transparent 38px 48px,rgba(150,110,100,.08) 48px);background-size:70% 100%;background-repeat:no-repeat}
+.znr-sk-filas i{height:64px}.znr-sk-filas i::before{content:"";position:absolute;left:12px;top:12px;width:40px;height:40px;border-radius:50%;background:rgba(150,110,100,.12)}
+.znr-sk-filas i::after{content:"";position:absolute;left:64px;right:30%;top:16px;height:32px;background:linear-gradient(rgba(150,110,100,.12) 0 12px,transparent 12px 20px,rgba(150,110,100,.08) 20px);background-size:100% 100%}
+@keyframes znr-brillo{from{background-position:150% 0}to{background-position:-50% 0}}
+.loader-text{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)} /* pantalla completa: solo el círculo */
+.loader-spinner{width:46px!important;height:46px!important;border:0!important;border-radius:50%;background:conic-gradient(from 0deg,transparent 0 15%,#ff7a59,#f0566f,#c026d3)!important;-webkit-mask:radial-gradient(farthest-side,transparent calc(100% - 5px),#000 calc(100% - 4px));mask:radial-gradient(farthest-side,transparent calc(100% - 5px),#000 calc(100% - 4px));animation:znr-gira .8s linear infinite!important}
+@media (prefers-reduced-motion:reduce){.znr-carga,.loader-spinner{animation-duration:2s!important}.znr-sk i,.znr-sk-filas i{animation:none}}
+/* Banner de Comunidad mientras llega el catálogo (pintarBanners lo reemplaza o esconde) */
+.znr-sk-banner{flex:0 0 100%;aspect-ratio:12/5;border-radius:20px;background-color:rgba(255,255,255,.55);background-image:linear-gradient(100deg,transparent 30%,rgba(255,255,255,.75) 50%,transparent 70%);background-size:200% 100%;background-repeat:no-repeat;animation:znr-brillo 1.3s linear infinite}
+.znr-sk-banner{position:relative}.znr-sk-banner::before{content:"";position:absolute;left:6%;top:16%;width:42%;height:40%;border-radius:6px;background:linear-gradient(rgba(150,110,100,.14) 0 30%,transparent 30% 44%,rgba(150,110,100,.14) 44% 64%,transparent 64% 80%,rgba(150,110,100,.09) 80%)}
+.znr-sk-banner::after{content:"";position:absolute;left:6%;bottom:14%;width:26%;height:15%;border-radius:999px;background:rgba(150,110,100,.14)}

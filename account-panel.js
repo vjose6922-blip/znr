@@ -283,7 +283,7 @@ function attachLoadMoreListener() {
   if (!btn) return;
   btn.addEventListener('click', async () => {
     btn.disabled = true;
-    btn.textContent = 'Cargando…';
+    btn.innerHTML = '<span class="znr-carga mini" aria-hidden="true"></span>' + btn.textContent;
     await loadPedidosPage(false);
     const list = document.getElementById('up-orders-list');
     if (list) list.innerHTML = renderOrders();
