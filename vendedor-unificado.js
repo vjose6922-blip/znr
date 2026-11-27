@@ -1234,23 +1234,23 @@ async function cargarColoniasVendedor(cp) {
   sel.style.display = cols.length > 1 ? '' : 'none'; // con una sola colonia no hace falta elegir
 }
 // Ordenar por estadísticas: el mismo panel (con buscador y filtros) se ordena y cada tarjeta muestra sus números.
-const ORDENES = { '': 'Recientes', v: 'Más vistos', c: 'Más en carrito', s: 'Más compartidos', e: 'Más vendidos', menos: 'Menos vistos' };
-const STAT_IC = { v: ['Vistas', '<path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>'],
+const ORDENES = { '': 'Recientes', v: 'Más vistos', z: 'Más vistos por vecinos', c: 'Más en carrito', s: 'Más compartidos', e: 'Más vendidos', menos: 'Menos vistos' };
+const STAT_IC = { v: ['Vistas (abajo: cuántas fueron de vecinos de tu zona)', '<path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>'],
   c: ['Carrito o pedidos', '<circle cx="9" cy="20" r="1.5"/><circle cx="18" cy="20" r="1.5"/><path d="M2 3h3l2.5 12h11.5l2-8H6"/>'],
   s: ['Compartidos', '<circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"/>'],
   e: ['Vendidos (piezas entregadas)', '<path d="M20 6 9 17l-5-5"/>'] };
 window.ordenarProductos = (o) => { window.vendorOrden = o; renderVendorPlanPanel(); loadMyProducts(true, 1); };
 async function ordenarPorStats(lista) {
   const st = await window.cargarStatsProd(), o = window.vendorOrden, k = o === 'menos' ? 'v' : o, per = st && st.plus ? 'd30' : 'd7';
-  const m = Object.fromEntries(((st && st.productos) || []).map((p) => [p.id, p])), n = (p) => (m[p.id] || {})[per] || { v: 0, c: 0, s: 0, e: 0 };
+  const m = Object.fromEntries(((st && st.productos) || []).map((p) => [p.id, p])), n = (p) => (m[p.id] || {})[per] || { v: 0, c: 0, s: 0, z: 0, e: 0 };
   const per2 = document.getElementById('vp-per'); if (per2) per2.textContent = `Últimos ${per === 'd30' ? 30 : 7} días`;
-  return { k, m, n, plus: st && st.plus, lista: [...lista].sort((a, b) => (o === 'menos' ? n(a).v - n(b).v : n(b)[k] - n(a)[k] || n(b).v - n(a).v)) };
+  return { k, m, n, plus: st && st.plus, lista: [...lista].sort((a, b) => (o === 'menos' ? n(a).v - n(b).v : (n(b)[k] || 0) - (n(a)[k] || 0) || n(b).v - n(a).v)) };
 }
 function pintarStatsTarjeta(card, p, i, o) {
   const d = o.n(p), x = o.m[p.id] || {}, a = x.d7 && x.d7.v, b = x.previa && x.previa.v;
   card.insertAdjacentHTML('afterbegin', `<span class="vp-rank">${i + 1}</span>`);
   const tend = !o.plus ? '' : b ? `<p class="vp-tend" style="color:${a >= b ? '#15803d' : '#dc2626'}">${a >= b ? '▲' : '▼'} ${Math.round(Math.abs(a - b) / b * 100)}% ${a >= b ? 'más' : 'menos'} vistas</p>` : a ? '<p class="vp-tend" style="color:#15803d">▲ Vistas nuevas</p>' : '';
-  card.querySelector('.vp-st').innerHTML = `<div class="vp-cajas">${Object.entries(STAT_IC).map(([c, [t, svg]]) => `<div class="${c === o.k ? 'on' : ''}" title="${t}"><svg viewBox="0 0 24 24" aria-hidden="true">${svg}</svg><b>${d[c] || 0}</b></div>`).join('')}</div>${tend}`;
+  card.querySelector('.vp-st').innerHTML = `<div class="vp-cajas">${Object.entries(STAT_IC).map(([c, [t, svg]]) => `<div class="${c === o.k || (c === 'v' && o.k === 'z') ? 'on' : ''}" title="${t}"><svg viewBox="0 0 24 24" aria-hidden="true">${svg}</svg><b>${d[c] || 0}</b>${c === 'v' ? `<small>${d.z || 0} vecino${d.z === 1 ? '' : 's'}</small>` : ''}</div>`).join('')}</div>${tend}`;
 }
 
 function renderPagination(container, currentPage, totalPages, total) {
