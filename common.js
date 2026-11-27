@@ -903,6 +903,23 @@ function animateCartAdd() {
 const btn = document.getElementById("floating-cart-btn");
 if (btn) { btn.style.transform = "translateY(-4px) scale(1.05)"; setTimeout(() => btn.style.transform = "", 180); }
 }
+// PC: arrastrar con el mouse cualquier fila que se desliza de lado (carruseles, banners, chips). En el celular ya se
+// desliza con el dedo; sin esto en PC solo se movían con trackpad o Shift + rueda. Si se arrastró, no cuenta como clic.
+document.addEventListener('mousedown', (e) => {
+  if (e.button !== 0 || e.target.closest('input, textarea, select, [contenteditable]')) return;
+  let t = e.target;
+  while (t && t !== document.body && !(/(auto|scroll)/.test(getComputedStyle(t).overflowX) && t.scrollWidth > t.clientWidth + 2)) t = t.parentElement;
+  if (!t || t === document.body) return;
+  let x = e.clientX, movido = 0;
+  const snap = t.style.scrollSnapType;
+  const mover = (ev) => { movido += Math.abs(ev.clientX - x); if (movido > 6) t.style.scrollSnapType = 'none'; t.scrollLeft -= ev.clientX - x; x = ev.clientX; };
+  const soltar = () => {
+    removeEventListener('mousemove', mover); t.style.scrollSnapType = snap;
+    if (movido > 6) { const no = (c) => { c.stopPropagation(); c.preventDefault(); }; addEventListener('click', no, true); setTimeout(() => removeEventListener('click', no, true), 60); }
+  };
+  addEventListener('mousemove', mover); addEventListener('mouseup', soltar, { once: true });
+  e.preventDefault(); // sin seleccionar texto ni "arrastrar" las fotos
+});
 addEventListener('load', () => { if (location.hash === '#carrito' && document.getElementById('cart-drawer')) openCartDrawer(); });
 function openCartDrawer() {
 const drawer = document.getElementById("cart-drawer");
