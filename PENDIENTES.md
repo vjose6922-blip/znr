@@ -264,10 +264,10 @@ Ya existían: 3 (pedido + chat antes de WhatsApp), 10 (chat por pedido/consulta)
       chip en tarjetas y filtro "Estado del artículo" en Comunidad. **Después de fusionar:** CONTROL → Herramientas →
       "Resincronizar todo Comunidad con Algolia" (agrega solo la faceta `condicion` al índice y sus réplicas). Probar: publicar tamales, pedirlos desde otra
       cuenta hasta "Entregado"; publicar un artículo usado y filtrarlo.
-- [ ] **F11 Notificaciones push con mejor aspecto** (25 nov, en rama sin fusionar): `sw.js` elige el icono PNG 192×192 de
+- [x] **F11 Notificaciones push con mejor aspecto** (25 nov, fusionado): `sw.js` elige el icono PNG 192×192 de
       `img/push/` (general 🔔, pedido 🛒, chat 💬, en vivo 🔴, promoción 🏷️) por `data.tipo` o, si no viene, por el título y la
       página de destino; agrega el emoji al título si no trae uno y el `badge` monocromo (Z) en la barra de estado. Los chats
-      siguen con la foto de quien escribe. Sin cambios en znr-backend. Probar tras fusionar: pedido, chat y live en Android y PC.
+      siguen con la foto de quien escribe. Sin cambios en znr-backend.
 - [x] **F12 Banners de temporada legibles** (25 nov): opción "Recuadro" (panel translúcido con desenfoque detrás del texto) y
       sugerencia automática en CONTROL según el brillo y la variedad de tonos de la zona del texto (se aplica sola al subir una
       imagen nueva; con un banner ya guardado solo funciona si el bucket permite leer la imagen por CORS). Ideas no hechas:
