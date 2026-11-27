@@ -903,13 +903,11 @@ function animateCartAdd() {
 const btn = document.getElementById("floating-cart-btn");
 if (btn) { btn.style.transform = "translateY(-4px) scale(1.05)"; setTimeout(() => btn.style.transform = "", 180); }
 }
+addEventListener('load', () => { if (location.hash === '#carrito' && document.getElementById('cart-drawer')) openCartDrawer(); });
 function openCartDrawer() {
 const drawer = document.getElementById("cart-drawer");
 const overlay = document.getElementById("overlay");
-if (!drawer) {
-console.error(" [CARRITO] No existe #cart-drawer");
-return;
-}
+if (!drawer) { location.href = 'comunidad.html#carrito'; return; } // página sin carrito (p. ej. panel del vendedor): se abre en Comunidad
 if (!overlay) {
 console.error(" [CARRITO] No existe #overlay");
 return;

@@ -1224,7 +1224,8 @@ window.cargarStatsProd = async (forzar) => {
   return window._statsProd;
 };
 // Colonias aprobadas del código postal del vendedor (un código postal puede tener varias; cada una es un grupo).
-async function cargarColoniasVendedor(cp) {
+// window.: esta parte del archivo está dentro de otro bloque y Ajustes (openSettingsModal) no la vería
+window.cargarColoniasVendedor = async function (cp) {
   const sel = document.getElementById('settings-colonia'), limpio = String(cp || '').replace(/\D/g, '');
   if (!sel) return;
   const r = /^\d{4,6}$/.test(limpio) ? await apiFetch({ action: 'infoZona', cp: limpio, pais: window.znrPaisCiudad?.(vendorSession.ciudad) || 'México' }, 'GET').catch(() => null) : null;
@@ -1232,7 +1233,7 @@ async function cargarColoniasVendedor(cp) {
   sel.innerHTML = `<option value="">${cols.length ? 'Tu colonia: no sé / sin elegir' : ''}</option>` + cols.map((c) => `<option value="${escapeHtml(c.slug)}">Colonia ${escapeHtml(c.nombre)}</option>`).join('');
   sel.value = cols.some((c) => c.slug === vendorSession.colonia) ? vendorSession.colonia : '';
   sel.style.display = cols.length > 1 ? '' : 'none'; // con una sola colonia no hace falta elegir
-}
+};
 // Ordenar por estadísticas: el mismo panel (con buscador y filtros) se ordena y cada tarjeta muestra sus números.
 const ORDENES = { '': 'Recientes', v: 'Más vistos', z: 'Más vistos por vecinos', c: 'Más en carrito', s: 'Más compartidos', e: 'Más vendidos', menos: 'Menos vistos' };
 const STAT_IC = { v: ['Vistas (abajo: cuántas fueron de vecinos de tu zona)', '<path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>'],
@@ -2284,7 +2285,7 @@ function openSettingsModal(expandirPlan) {
   const puntoLngInput = document.getElementById('settings-punto-entrega-lng');
   if (puntoLatInput) puntoLatInput.value = (vendorSession.puntoEntregaLat === null || vendorSession.puntoEntregaLat === undefined) ? '' : vendorSession.puntoEntregaLat;
   const cpInput = document.getElementById('settings-cp');
-  if (cpInput) { cpInput.value = vendorSession.cp || ''; cpInput.oninput = () => cargarColoniasVendedor(cpInput.value); cargarColoniasVendedor(cpInput.value); }
+  if (cpInput) { cpInput.value = vendorSession.cp || ''; cpInput.oninput = () => window.cargarColoniasVendedor(cpInput.value); window.cargarColoniasVendedor(cpInput.value); }
   const ezInput = document.getElementById('settings-entrega-zona');
   if (ezInput) ezInput.checked = vendorSession.entregaZona === true;
   if (puntoLngInput) puntoLngInput.value = (vendorSession.puntoEntregaLng === null || vendorSession.puntoEntregaLng === undefined) ? '' : vendorSession.puntoEntregaLng;
