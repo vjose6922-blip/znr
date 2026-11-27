@@ -3469,7 +3469,6 @@ async function loadProductsUnified({ onProducts, onError, force = false, page = 
   }
 
   try {
-    showLoader('Cargando productos...');
     const data = await fetchZNRCatalogo({ page, limit, filters });
     if (data.ok === false) throw new Error('No se pudieron cargar los productos');
     const products = data.products || [];

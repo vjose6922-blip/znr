@@ -505,7 +505,6 @@ async function loadComunidadPageAlgolia(page, filters, opts = {}) {
       if (typeof window.hideLoader === 'function') window.hideLoader();
     } else {
       if (gridContainer) showSkeletonComunidad(gridContainer, 6);
-      if (typeof window.showLoader === 'function') window.showLoader('Cargando comunidad...');
     }
   } else if (opts.isPageChange && !anexando) {
     if (gridContainer) showSkeletonComunidad(gridContainer, PAGE_SIZE);

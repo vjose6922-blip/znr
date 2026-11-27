@@ -426,7 +426,7 @@
 .fs-btn { display: flex; align-items: center; justify-content: center; gap: 6px; padding: 11px; border-radius: 999px; background: var(--gradient-accent); color: #fff; font-size: .9rem; font-weight: 700; text-decoration: none; box-shadow: 0 8px 18px rgba(var(--color-accent-rgb), .28); }
 .featured-seller .m-hero-dots { position: static; padding: 6px 0 12px; }
 /* Fantasma del vendedor destacado (mismas piezas que la tarjeta real; pintarVendedorDestacado lo reemplaza o lo esconde) */
-.fs-sk :is(.fs-avatar, .fs-prods i, .fs-btn) { background: rgba(150,110,100,.12); box-shadow: none; animation: none; }
+.fs-sk :is(.fs-avatar, .fs-prods i, .fs-btn) { background: color-mix(in srgb, currentColor 9%, transparent); box-shadow: none; animation: none; }
 .fs-sk .fs-prods i { aspect-ratio: 1; border-radius: 12px; } .fs-sk .m-hero-dots { height: 24px; box-sizing: border-box; }
 
 /* Encabezados de sección con "Ver todas ›" */
