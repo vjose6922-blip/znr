@@ -1117,6 +1117,7 @@ const ICZ = {
   reloj: '<circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>',
   mapa: '<path d="M14.106 5.553a2 2 0 0 0 1.788 0l3.659-1.83A1 1 0 0 1 21 4.619v12.764a1 1 0 0 1-.553.894l-4.553 2.277a2 2 0 0 1-1.788 0l-4.212-2.106a2 2 0 0 0-1.788 0l-3.659 1.83A1 1 0 0 1 3 19.381V6.618a1 1 0 0 1 .553-.894l4.553-2.277a2 2 0 0 1 1.788 0zM15 5.764v15M9 3.236v15"/>',
   flecha: '<path d="m9 18 6-6-6-6"/>',
+  lupa: '<circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>',
 };
 const icz = (n, px = 16) => `<svg xmlns="http://www.w3.org/2000/svg" width="${px}" height="${px}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-3px;flex:none">${ICZ[n]}</svg>`;
 window.znrIcz = icz;
@@ -1205,13 +1206,83 @@ function pintarHubZona() {
     <div class="zh-acc">${mia ? `<button type="button" class="zh-pri" data-zh="avisos">${avisos ? icz('sinCampana') + ' No avisarme' : icz('campana') + ' Avisarme'}</button><button type="button" class="zh-sec" data-zh="proponer">${icz('lapiz')} Proponer colonia</button>`
       : `<button type="button" class="zh-pri" data-zh="hacerMia">${icz('pin')} Es mi ${col ? 'colonia' : 'zona'}</button>`}<button type="button" class="zh-sec" data-zh="compartir" style="flex:none" aria-label="Compartir zona">${icz('compartir')}</button></div>
     ${mia && !yo.col && cols.length > 1 ? `<div class="zh-card"><h3>${icz('casa', 18)} ¿Cuál es tu colonia?</h3><div class="zh-chips" style="margin:0;flex-wrap:wrap">${cols.map((c) => `<button type="button" data-zh="col:${escZ(c)}">${escZ(coloniasCp(cp)[c])}</button>`).join('')}<button type="button" data-zh="proponer">Otra…</button></div></div>` : ''}
-    ${vend.length || zonasHub.length ? `<div class="zh-carr">${vend.length ? `<div class="zh-card"><h3>${icz('users', 18)} Tus vecinos que venden${vend.length > 4 ? '<button type="button" class="zh-vermas" data-zh="verVecinos">Ver más</button>' : ''}</h3>${htmlVecinos(vecinosHub.slice(0, 4))}</div>` : ''}
-      ${zonasHub.length ? `<div class="zh-card" style="background:#f5f3ff"><h3>${icz('mapa', 18)} Zonas vecinas${zonasHub.length > 4 ? '<button type="button" class="zh-vermas" data-zh="verZonas">Ver más</button>' : ''}</h3><div class="zh-vecinos">${zonasHub.slice(0, 4).map(burbujaZona).join('')}</div></div>` : ''}</div>` : ''}
+    <div class="zh-carr">${vend.length ? `<div class="zh-card"><h3>${icz('users', 18)} Tus vecinos que venden${vend.length > 4 ? '<button type="button" class="zh-vermas" data-zh="verVecinos">Ver más</button>' : ''}</h3>${htmlVecinos(vecinosHub.slice(0, 4))}</div>` : ''}
+      <div class="zh-card" id="zh-busco" style="background:#fff7ed">${htmlBuscoCard(mia)}</div>
+      ${zonasHub.length ? `<div class="zh-card" style="background:#f5f3ff"><h3>${icz('mapa', 18)} Zonas vecinas${zonasHub.length > 4 ? '<button type="button" class="zh-vermas" data-zh="verZonas">Ver más</button>' : ''}</h3><div class="zh-vecinos">${zonasHub.slice(0, 4).map(burbujaZona).join('')}</div></div>` : ''}</div>
     <div class="zh-chips">${[['', 'Todo'], ['nuevos', icz('reloj', 14) + ' Nuevos'], ['comida', icz('comida', 14) + ' Comida'], ['servicios', icz('llave', 14) + ' Servicios']]
       .map(([k, t]) => `<button type="button" data-zchip="${k}" class="${zonaChip === k ? 'on' : ''}">${t}</button>`).join('')}</div>
     ${!lista.length ? '<div class="zh-card" style="text-align:center">Todavía nadie vende en esta zona. ¡Invita a tus vecinos!</div>' : ''}
 `;
   hub.hidden = false;
+  cargarBuscos(zonaVista, mia);
+}
+// ── "Busco…": lo que buscan los vecinos de esta zona (pedidos-api). El comprador publica (7 días, máx. 3 al día) y les
+// llega aviso a los vendedores de su zona; "Lo tengo" del vendedor abre el chat de consulta. ──
+let buscosHub = [], buscosDe = '';
+const misBuscos = () => { try { return JSON.parse(localStorage.getItem('znr_mis_busco') || '[]'); } catch (_) { return []; } };
+const miVendedor = () => { try { return JSON.parse(localStorage.getItem('vendor_session') || 'null'); } catch (_) { return null; } };
+const postPedidos = (datos) => fetch(window.PEDIDOS_API_URL, { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams(datos) }).then((r) => r.json());
+const haceCuanto = (ms) => { const h = Math.floor((Date.now() - ms) / 36e5); return h < 1 ? 'hace un momento' : h < 24 ? `hace ${h} h` : `hace ${Math.floor(h / 24)} d`; };
+const filaBusco = (b, acciones) => `<div class="zh-busco"><b>“${escZ(b.texto)}”</b><small>${escZ(b.nombre)} · ${haceCuanto(b.creada)}${b.respuestas ? ` · ${b.respuestas} respuesta${b.respuestas === 1 ? '' : 's'}` : ''}</small>
+  ${!acciones ? '' : misBuscos().includes(b.id) ? `<button type="button" data-zh="encontre:${b.id}">Ya lo encontré</button>`
+    : `${miVendedor() ? `<button type="button" class="zh-pri" data-zh="lotengo:${b.id}">Lo tengo</button>` : ''}<button type="button" class="zh-rep" data-zh="reportar:${b.id}">Reportar</button>`}</div>`;
+function htmlBuscoCard(mia) {
+  return `<h3>${icz('lupa', 18)} Vecinos buscan${buscosHub.length ? '<button type="button" class="zh-vermas" data-zh="verBuscos">Ver más</button>' : ''}</h3>
+    ${buscosHub.length ? buscosHub.slice(0, 2).map((b) => filaBusco(b)).join('') : '<p class="zh-busco-vacio">Nadie ha pedido nada todavía. ¿Buscas algo? Tus vecinos vendedores te avisan.</p>'}
+    ${mia ? `<button type="button" class="zh-pri zh-busco-btn" data-zh="busco">${icz('lupa', 15)} Busco algo</button>` : ''}`;
+}
+async function cargarBuscos(k, mia) {
+  const { cp, col } = parteZona(k), r = await postPedidos({ action: 'listarBusquedas', cp, colonia: col }).catch(() => null);
+  if (k !== zonaVista) return;
+  buscosHub = (r && r.ok && r.busquedas) || []; buscosDe = k;
+  const card = document.getElementById('zh-busco'); if (card) card.innerHTML = htmlBuscoCard(mia);
+  const abrir = new URLSearchParams(location.search).get('busco'); // desde el aviso al vendedor
+  if (abrir && !document.querySelector('.zh-hoja')) { history.replaceState(null, '', location.href.replace(/[?&]busco=[^&]*/, '')); accionZona('verBuscos'); }
+}
+async function accionBusco(a, id) {
+  const cerrar = () => document.querySelector('.zh-hoja')?.remove(), b = buscosHub.find((x) => x.id === id) || {};
+  if (a === 'busco') {
+    const texto = await window.znrPedirTexto('¿Qué buscas?', 'Les avisamos a los vendedores de tu zona. Tu búsqueda dura 7 días.', 'Ej. carriola, pastel de 3 leches, plomero');
+    if (!texto) return;
+    const telefono = await asegurarComprador('Para publicar lo que buscas'); if (!telefono) return;
+    const { cp, col } = parteZona(zonaVista);
+    const r = await postPedidos({ action: 'crearBusqueda', telefono, compradorToken: localStorage.getItem('comprador_token') || '', nombre: localStorage.getItem('client_name') || '',
+      texto, cp, colonia: col, ciudad: localStorage.getItem('buyer_ciudad') || '' }).catch(() => ({ error: 'Sin conexión. Intenta de nuevo.' }));
+    if (!r.ok) return showTemporaryMessage(' ' + (r.error || 'No se pudo publicar'), 'error');
+    try { localStorage.setItem('znr_mis_busco', JSON.stringify([...misBuscos(), r.id].slice(-20))); } catch (_) {}
+    showTemporaryMessage(r.avisados ? `Listo: les avisamos a ${r.avisados} vecino${r.avisados === 1 ? '' : 's'} que venden.` : 'Listo: tu búsqueda ya aparece en tu zona.', 'success');
+    return cargarBuscos(zonaVista, true);
+  }
+  if (a === 'lotengo') {
+    const v = miVendedor(), mios = (communityRandomOrder || []).filter((p) => p.vendedor_uid === (v || {}).uid).slice(0, 50);
+    const elegido = await elegirProductoBusco(b.texto, mios); if (elegido === null) return;
+    const r = await postPedidos({ action: 'responderBusqueda', vendorToken: (v || {}).token || '', id, productoId: elegido.producto, mensaje: elegido.mensaje }).catch(() => ({ error: 'Sin conexión. Intenta de nuevo.' }));
+    if (!r.ok) return showTemporaryMessage(' ' + (r.error || 'No se pudo responder'), 'error');
+    location.href = 'pedido-chat.html?pedido=' + encodeURIComponent(r.pedidoId) + '&rol=vendedor';
+  }
+  if (a === 'encontre' || a === 'reportar') {
+    const v = miVendedor(), r = await postPedidos({ action: 'cerrarBusqueda', id, reportar: a === 'reportar' ? '1' : '', vendorToken: (v || {}).token || '',
+      telefono: (localStorage.getItem('client_phone') || '').replace(/\D/g, ''), compradorToken: localStorage.getItem('comprador_token') || '' }).catch(() => ({ error: 'Sin conexión' }));
+    if (!r.ok) return showTemporaryMessage(' ' + (r.error || 'No se pudo'), 'error');
+    showTemporaryMessage(a === 'reportar' ? 'Gracias, lo revisaremos.' : '¡Qué bien! Quitamos tu búsqueda.', 'success');
+    cerrar(); cargarBuscos(zonaVista, true);
+  }
+}
+// "Lo tengo": el vendedor puede proponer uno de sus productos y agregar un mensaje.
+function elegirProductoBusco(texto, mios) {
+  return new Promise((ok) => {
+    const m = document.createElement('div');
+    m.className = 'custom-alert-modal';
+    m.innerHTML = `<div class="custom-alert-content"><div class="custom-alert-header"><h3>Lo tengo</h3></div><div class="custom-alert-body"><p></p>
+      ${mios.length ? `<select class="custom-alert-input" style="width:100%;margin-bottom:8px"><option value="">Sin proponer un producto</option>${mios.map((p) => `<option value="${escZ(p.id)}">${escZ(p.nombre)} · $${Number(p.precio) || 0}</option>`).join('')}</select>` : ''}
+      <input class="custom-alert-input" maxlength="200" placeholder="Mensaje (opcional)" style="width:100%;box-sizing:border-box"></div>
+      <div class="custom-alert-footer"><button class="custom-alert-btn cancel">Cancelar</button><button class="custom-alert-btn confirm">Enviar</button></div></div>`;
+    m.querySelector('p').textContent = `Le escribirás por chat a quien busca: "${texto}".`;
+    document.body.appendChild(m);
+    const fin = (v) => { m.remove(); ok(v); };
+    m.querySelector('.cancel').onclick = () => fin(null);
+    m.querySelector('.confirm').onclick = () => fin({ producto: m.querySelector('select')?.value || '', mensaje: m.querySelector('input').value.trim() });
+  });
 }
 // Sin código postal: invitación (código postal o "usar mi ubicación") y las zonas activas de la ciudad.
 async function invitarZona() {
@@ -1248,6 +1319,8 @@ function hojaZona(titulo, html) {
 }
 async function accionZona(a) {
   if (a === 'verVecinos') return hojaZona(`${icz('users', 18)} Tus vecinos que venden (${vecinosHub.length})`, htmlVecinos(vecinosHub));
+  if (a === 'verBuscos') return hojaZona(`${icz('lupa', 18)} Vecinos buscan (${buscosHub.length})`, buscosHub.map((b) => filaBusco(b, true)).join('') || '<p>Nadie ha pedido nada todavía.</p>');
+  if (/^(busco|lotengo|encontre|reportar)/.test(a)) return accionBusco(...a.split(':'));
   if (a === 'verZonas') return hojaZona(`${icz('mapa', 18)} Zonas de tu ciudad (${zonasHub.length})`, zonasHub.map(filaZona).join(''));
   if (a === 'verCp') { const cp = (document.getElementById('zh-cp')?.value || '').replace(/\D/g, ''); if (guardarMiZona(cp)) abrirZona(cp); }
   if (a === 'ubicacion') {
