@@ -851,7 +851,8 @@ window.znrOrdenarPorCercania = (lista) => lista.sort((a, b) => (window.znrDistan
 
 // Estadísticas por producto (mejora 8): v = vista, c = carrito/pedido, s = compartido. Una por tipo y producto al día en
 // este teléfono; no cuenta las del propio vendedor.
-window.znrEventoProducto = (id, tipo, vendedorUid) => {
+// zona: quien lo ve es de la zona del vendedor (cuenta como vista de vecino en sus estadísticas)
+window.znrEventoProducto = (id, tipo, vendedorUid, zona) => {
   try {
     const yo = (JSON.parse(localStorage.getItem('vendor_session') || 'null') || {}).uid;
     if (!id || /^znr_/.test(id) || (yo && vendedorUid && String(yo) === String(vendedorUid))) return;
@@ -861,7 +862,7 @@ window.znrEventoProducto = (id, tipo, vendedorUid) => {
     vistos[k] = 1;
     localStorage.setItem('znr_ev', JSON.stringify({ d: hoy, k: vistos }));
     fetch(window.CATALOGO_API_URL || 'https://catalogo-api-1038143238323.us-central1.run.app', { method: 'POST', keepalive: true,
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams({ action: 'registrarVistaProducto', id: String(id), tipo }) }).catch(() => {});
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams({ action: 'registrarVistaProducto', id: String(id), tipo, zona: zona ? '1' : '' }) }).catch(() => {});
   } catch (_) {}
 };
 
@@ -1140,7 +1141,7 @@ function openImageModal(url, productId = null, allImages = [], productData = nul
   const overlay = document.getElementById("overlay");
   if (!modal) return;
   // Visita al producto (estadísticas del vendedor y las visitas de artículos ocultos por el plan)
-  if (productId && !(productData && (productData.es_znr || productData._modoVendedorPropio))) window.znrEventoProducto(productId, 'v', productData && (productData._vendedorUid || productData.vendedor_uid));
+  if (productId && !(productData && (productData.es_znr || productData._modoVendedorPropio))) window.znrEventoProducto(productId, 'v', productData && (productData._vendedorUid || productData.vendedor_uid), window.znrEsDeTuZona?.(productData));
   const hiResUrl = getModalImageUrl(url);
   const hiResAll = allImages.filter(u => u && u !== url).map(getModalImageUrl);
   _modalImages = [hiResUrl, ...hiResAll];

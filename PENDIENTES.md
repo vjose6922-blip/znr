@@ -267,8 +267,14 @@ Ya existían: 3 (pedido + chat antes de WhatsApp), 10 (chat por pedido/consulta)
       sola colonia todos quedan en ella. En "Zonas vecinas" salen primero las colonias del mismo código postal. El aviso diario
       es por colonia. En CONTROL → Todas las zonas se editan las colonias separadas por comas. **Probar:** proponer 2 colonias
       desde 2 cuentas del mismo CP, aprobarlas, elegir colonia como comprador y como vendedor, y abrir el enlace con `&c=`.
-- [ ] **Siguen (27 nov):** "Cuántos vecinos te vieron" (en las cajitas de estadísticas + orden "Más vistos por vecinos") y
-      "Busco…" en la zona ("Lo tengo" abre chat; dura 7 días; máx. 3 por comprador al día; se puede reportar).
+- [x] **Cuántos vecinos te vieron** (27 nov, en rama): la vista de alguien de la zona del vendedor cuenta también como `z`
+      en `stats_producto`; en Mis productos la cajita de vistas dice "N vecinos" y hay orden "Más vistos por vecinos".
+- [x] **"Busco…" en la zona** (27 nov, en rama): en Mi zona, tarjeta "Vecinos buscan" (3ª del carrusel) y "Busco algo".
+      El comprador publica (7 días, máx. 3 al día) y les llega push a los vendedores de su código postal y colonia; ellos
+      ven "Lo tengo" (pueden proponer uno de sus productos y un mensaje) y se abre el chat de consulta (el mismo de responder
+      historias). Quien la publicó la cierra con "Ya lo encontré"; con 2 reportes se oculta; las vencidas se borran solas
+      (`revisarPedidosManual`, cada hora). Colección `busquedas` (solo la usa pedidos-api). **Probar:** publicar desde un
+      comprador, ver que llega el aviso al vendedor de esa zona, tocar "Lo tengo" y escribirse en el chat.
 - [ ] Más adelante (cuando haya volumen): 17–18 (puntaje/renovar), 5 (soporte), 6 (selfie).
       Descartadas por ahora: 15 (canales) y 19–21 (impulsos).
 
