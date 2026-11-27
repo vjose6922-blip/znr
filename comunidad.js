@@ -1291,6 +1291,7 @@ async function invitarZona() {
   document.body.classList.add('modo-zona', 'modo-zona-invita');
   await asegurarCatalogoBase();
   const hub = document.getElementById('zona-hub'), zonas = zonasDeCiudad(communityRandomOrder || []);
+  hub.className = 'zt-' + TEMA_ZONA; // mismos colores que la página de la zona (sin esto salía el verde de antes)
   hub.innerHTML = `<div class="zh-card" style="text-align:center;padding:24px 18px"><div class="zh-ilustra">${icz('users', 40)}</div>
       <h3 style="font-size:21px;margin:6px 0">Descubre lo que venden tus vecinos</h3><p style="margin:0;opacity:.7;font-size:14px">Compra cerca, recoge caminando y apoya a quien vive a unas cuadras de ti.</p>
       <input id="zh-cp" inputmode="numeric" maxlength="6" placeholder="Código postal" style="width:100%;box-sizing:border-box;margin-top:14px;padding:12px;border-radius:14px;border:2px solid #f1e3e6;text-align:center;font-size:18px;letter-spacing:3px">
