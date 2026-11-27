@@ -1206,15 +1206,33 @@ function pintarHubZona() {
     <div class="zh-acc">${mia ? `<button type="button" class="zh-pri" data-zh="avisos">${avisos ? icz('sinCampana') + ' No avisarme' : icz('campana') + ' Avisarme'}</button><button type="button" class="zh-sec" data-zh="proponer">${icz('lapiz')} Proponer colonia</button>`
       : `<button type="button" class="zh-pri" data-zh="hacerMia">${icz('pin')} Es mi ${col ? 'colonia' : 'zona'}</button>`}<button type="button" class="zh-sec" data-zh="compartir" style="flex:none" aria-label="Compartir zona">${icz('compartir')}</button></div>
     ${mia && !yo.col && cols.length > 1 ? `<div class="zh-card"><h3>${icz('casa', 18)} ¿Cuál es tu colonia?</h3><div class="zh-chips" style="margin:0;flex-wrap:wrap">${cols.map((c) => `<button type="button" data-zh="col:${escZ(c)}">${escZ(coloniasCp(cp)[c])}</button>`).join('')}<button type="button" data-zh="proponer">Otra…</button></div></div>` : ''}
+    <div class="zh-carr-w"><button type="button" class="zh-flecha" data-zh="carr:-1" aria-label="Anterior">‹</button><button type="button" class="zh-flecha der" data-zh="carr:1" aria-label="Siguiente">›</button>
     <div class="zh-carr">${vend.length ? `<div class="zh-card"><h3>${icz('users', 18)} Tus vecinos que venden${vend.length > 4 ? '<button type="button" class="zh-vermas" data-zh="verVecinos">Ver más</button>' : ''}</h3>${htmlVecinos(vecinosHub.slice(0, 4))}</div>` : ''}
       <div class="zh-card" id="zh-busco" style="background:#fff7ed">${htmlBuscoCard(mia)}</div>
-      ${zonasHub.length ? `<div class="zh-card" style="background:#f5f3ff"><h3>${icz('mapa', 18)} Zonas vecinas${zonasHub.length > 4 ? '<button type="button" class="zh-vermas" data-zh="verZonas">Ver más</button>' : ''}</h3><div class="zh-vecinos">${zonasHub.slice(0, 4).map(burbujaZona).join('')}</div></div>` : ''}</div>
+      ${zonasHub.length ? `<div class="zh-card" style="background:#f5f3ff"><h3>${icz('mapa', 18)} Zonas vecinas${zonasHub.length > 4 ? '<button type="button" class="zh-vermas" data-zh="verZonas">Ver más</button>' : ''}</h3><div class="zh-vecinos">${zonasHub.slice(0, 4).map(burbujaZona).join('')}</div></div>` : ''}</div></div>
     <div class="zh-chips">${[['', 'Todo'], ['nuevos', icz('reloj', 14) + ' Nuevos'], ['comida', icz('comida', 14) + ' Comida'], ['servicios', icz('llave', 14) + ' Servicios']]
       .map(([k, t]) => `<button type="button" data-zchip="${k}" class="${zonaChip === k ? 'on' : ''}">${t}</button>`).join('')}</div>
     ${!lista.length ? '<div class="zh-card" style="text-align:center">Todavía nadie vende en esta zona. ¡Invita a tus vecinos!</div>' : ''}
 `;
   hub.hidden = false;
   cargarBuscos(zonaVista, mia);
+  avanzarCarrZona();
+}
+// El carrusel de Mi zona (vecinos, búsquedas, zonas) avanza solo cada 5 s, como los banners, para que se note que hay
+// más; se pausa 8 s al tocarlo, arrastrarlo, usar las flechas o pasar el mouse encima, y fuera de pantalla.
+let quietoZh = 0;
+function avanzarCarrZona() {
+  const c = document.querySelector('.zh-carr');
+  if (!c || c._auto) return;
+  c._auto = true;
+  ['pointerdown', 'wheel', 'touchstart', 'mouseenter'].forEach((ev) => c.parentElement.addEventListener(ev, () => { quietoZh = Date.now() + 8000; }, { passive: true }));
+  const t = setInterval(() => {
+    if (!c.isConnected) return clearInterval(t);
+    const r = c.getBoundingClientRect(), max = c.scrollWidth - c.clientWidth;
+    if (document.hidden || Date.now() < quietoZh || max < 5 || r.bottom < 0 || r.top > innerHeight || c.matches(':hover')) return;
+    const paso = (c.firstElementChild?.offsetWidth || c.clientWidth) + 10, suave = matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth';
+    c.scrollTo({ left: c.scrollLeft >= max - 5 ? 0 : Math.min(max, c.scrollLeft + paso), behavior: suave });
+  }, 5000);
 }
 // ── "Busco…": lo que buscan los vecinos de esta zona (pedidos-api). El comprador publica (7 días, máx. 3 al día) y les
 // llega aviso a los vendedores de su zona; "Lo tengo" del vendedor abre el chat de consulta. ──
@@ -1322,6 +1340,7 @@ async function accionZona(a) {
   if (a === 'verVecinos') return hojaZona(`${icz('users', 18)} Tus vecinos que venden (${vecinosHub.length})`, htmlVecinos(vecinosHub));
   if (a === 'verBuscos') return hojaZona(`${icz('lupa', 18)} Vecinos buscan (${buscosHub.length})`, buscosHub.map((b) => filaBusco(b, true)).join('') || '<p>Nadie ha pedido nada todavía.</p>');
   if (/^(busco|lotengo|encontre|reportar)/.test(a)) return accionBusco(...a.split(':'));
+  if (a.startsWith('carr:')) { const c = document.querySelector('.zh-carr'); return c && c.scrollBy({ left: Number(a.slice(5)) * c.clientWidth * 0.8, behavior: 'smooth' }); }
   if (a === 'verZonas') return hojaZona(`${icz('mapa', 18)} Zonas de tu ciudad (${zonasHub.length})`, zonasHub.map(filaZona).join(''));
   if (a === 'verCp') { const cp = (document.getElementById('zh-cp')?.value || '').replace(/\D/g, ''); if (guardarMiZona(cp)) abrirZona(cp); }
   if (a === 'ubicacion') {
