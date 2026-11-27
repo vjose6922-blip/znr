@@ -1216,6 +1216,23 @@ function pintarHubZona() {
 `;
   hub.hidden = false;
   cargarBuscos(zonaVista, mia);
+  avanzarCarrZona();
+}
+// El carrusel de Mi zona (vecinos, búsquedas, zonas) avanza solo cada 5 s, como los banners, para que se note que hay
+// más; se pausa 8 s al tocarlo, arrastrarlo, usar las flechas o pasar el mouse encima, y fuera de pantalla.
+let quietoZh = 0;
+function avanzarCarrZona() {
+  const c = document.querySelector('.zh-carr');
+  if (!c || c._auto) return;
+  c._auto = true;
+  ['pointerdown', 'wheel', 'touchstart', 'mouseenter'].forEach((ev) => c.parentElement.addEventListener(ev, () => { quietoZh = Date.now() + 8000; }, { passive: true }));
+  const t = setInterval(() => {
+    if (!c.isConnected) return clearInterval(t);
+    const r = c.getBoundingClientRect(), max = c.scrollWidth - c.clientWidth;
+    if (document.hidden || Date.now() < quietoZh || max < 5 || r.bottom < 0 || r.top > innerHeight || c.matches(':hover')) return;
+    const paso = (c.firstElementChild?.offsetWidth || c.clientWidth) + 10, suave = matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth';
+    c.scrollTo({ left: c.scrollLeft >= max - 5 ? 0 : Math.min(max, c.scrollLeft + paso), behavior: suave });
+  }, 5000);
 }
 // ── "Busco…": lo que buscan los vecinos de esta zona (pedidos-api). El comprador publica (7 días, máx. 3 al día) y les
 // llega aviso a los vendedores de su zona; "Lo tengo" del vendedor abre el chat de consulta. ──
