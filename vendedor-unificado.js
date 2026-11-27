@@ -2738,6 +2738,18 @@ async function guardarPerfil() {
     msg.style.color = '#dc2626'; msg.textContent = 'El punto de entrega es obligatorio.';
     return;
   }
+  // Aviso (no bloquea): el código postal escrito no es el del punto de entrega marcado en el mapa. Solo si cambió algo.
+  const cpInput = document.getElementById('settings-cp'), cpEscrito = (cpInput?.value || '').replace(/\D/g, '');
+  if (cpEscrito && puntoEntregaLat && puntoEntregaLng && [cpEscrito, puntoEntregaLat, puntoEntregaLng].join() !== [vendorSession.cp, vendorSession.puntoEntregaLat, vendorSession.puntoEntregaLng].join()) {
+    const geo = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${puntoEntregaLat}&lon=${puntoEntregaLng}&format=json&accept-language=es`).then((r) => r.json()).catch(() => null);
+    const cpMapa = String((geo && geo.address && geo.address.postcode) || '').replace(/\D/g, '');
+    if (/^\d{4,6}$/.test(cpMapa) && cpMapa !== cpEscrito && await new Promise((ok) => showCustomConfirm({ title: 'Revisa tu código postal',
+      message: `Tu punto de entrega está en el código postal ${cpMapa}, pero escribiste ${cpEscrito}. Tu zona decide a qué vecinos les apareces.`,
+      confirmText: `Usar ${cpMapa}`, cancelText: `Dejar ${cpEscrito}`, onConfirm: () => ok(true), onCancel: () => ok(false) }))) {
+      cpInput.value = cpMapa;
+      await window.cargarColoniasVendedor(cpMapa);
+    }
+  }
 
   btn.disabled = true; btn.textContent = 'Guardando...';
   msg.textContent = '';
