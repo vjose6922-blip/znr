@@ -69,18 +69,28 @@ Si algo falla, el error sale en pantalla y en el **Monitor de errores** de CONTR
 Usa montos chicos ($149 de Plus o ~$10) y reembolsa si no quieres conservarlos. Detalle técnico: `PAGOS-BACKEND.md` de znr-backend.
 
 ### 3.1 Pagos (dinero real)
+Organizadas por quién puede hacerlas (27 nov). Para ser comprador y vendedor a la vez en ZNR hacen falta **dos números**
+(el tuyo y uno de casa o un chip de prepago). Stripe sí acepta pagar con tu tarjeta personal a la cuenta de ZNR (montos chicos,
+reembolsar en Stripe, sin repetir mucho seguido). Mercado Pago **no** deja pagarte a ti mismo: esas van con ayuda de alguien.
+
+**A) Solo (sin otra persona):** P4, P5, P8, P11, y la parte de **Stripe** de P3 y P10.
+**B) Con alguien de confianza que pague con su Mercado Pago o tarjeta (~$10, luego reembolsar):** P2, P9 y la parte de
+**Mercado Pago** de P3 y P10.
+**C) Con un vendedor o admin de ciudad real que conecte su pasarela:** P6 y P7 (o una 2ª cuenta de Stripe: "+ Nueva cuenta"
+en el dashboard, si Stripe deja conectarla con tus mismos datos).
+
 - [x] **P1 Plus con Stripe** (`plan-plus.html` → "Suscribirme con tarjeta"): recuadro dentro de la página → plan activo,
       en "Pagos recibidos" de CONTROL y "Se cobra solo cada mes". Luego **Cancelar renovación** (sigue hasta vencer) y **Reanudar**.
-- [ ] **P2 Plus con Mercado Pago**: mismo flujo; al cancelar se corta de inmediato y dura lo pagado. En MP → Webhooks llegan con 200.
-- [ ] **P3 Pro mensual y anual** (Stripe y MP): insignia PRO, límite 1,000, sale como Pro en admin, ~2 días de Plus = 1 de Pro.
-- [ ] **P4 "← Ver otras formas de pago"** cierra el recuadro y vuelven los botones.
-- [ ] **P5 OXXO** (Plus y tienda): la ficha llega y el plan/pedido se activa al pagar en tienda.
-- [ ] **P6 Vendedor real con Stripe** (webhook B): le compran en Comunidad o live → pedido pagado, dinero en su cuenta, sin comisión.
-- [ ] **P7 Admin de ciudad con pasarela** (webhook D): conecta en CONTROL → Mi cuenta → Datos bancarios; compra en su Tienda Z&R → cobra él y Z&R recibe 5 %.
-- [ ] **P8 Admin de ciudad sin pasarela**: el link de pago muestra su CLABE o efectivo.
-- [ ] **P9 Devolución con Mercado Pago** de una compra de la tienda (Stripe ya funcionó).
-- [ ] **P10 Donación en línea** con Stripe y con MP → aparece en `donaciones_dinero` y llega aviso al beneficiario.
-- [ ] **P11 "¡Hay stock disponible!"**: botones de pago en línea y, en "Otras formas de pago", la CLABE con Copiar.
+- [ ] **P2 Plus con Mercado Pago** [B]: mismo flujo; al cancelar se corta de inmediato y dura lo pagado. En MP → Webhooks llegan con 200.
+- [ ] **P3 Pro mensual y anual** [A Stripe · B MP]: insignia PRO, límite 1,000, sale como Pro en admin, ~2 días de Plus = 1 de Pro.
+- [ ] **P4 "← Ver otras formas de pago"** [A] cierra el recuadro y vuelven los botones.
+- [ ] **P5 OXXO** [A] (Plus y tienda): la ficha llega y el plan/pedido se activa al pagar en tienda.
+- [ ] **P6 Vendedor real con Stripe** [C] (webhook B): le compran en Comunidad o live → pedido pagado, dinero en su cuenta, sin comisión.
+- [ ] **P7 Admin de ciudad con pasarela** [C] (webhook D): conecta en CONTROL → Mi cuenta → Datos bancarios; compra en su Tienda Z&R → cobra él y Z&R recibe 5 %.
+- [ ] **P8 Admin de ciudad sin pasarela** [A]: el link de pago muestra su CLABE o efectivo.
+- [ ] **P9 Devolución con Mercado Pago** [B] de una compra de la tienda (Stripe ya funcionó).
+- [ ] **P10 Donación en línea** [A Stripe · B MP] con Stripe y con MP → aparece en `donaciones_dinero` y llega aviso al beneficiario.
+- [ ] **P11 "¡Hay stock disponible!"** [A]: botones de pago en línea y, en "Otras formas de pago", la CLABE con Copiar.
 
 ### 3.2 Lives (2 teléfonos)
 - [ ] **L1** Apagar WiFi del vendedor ~30 s → el video vuelve solo (también con la 2ª cámara).
@@ -258,7 +268,7 @@ Ya existían: 3 (pedido + chat antes de WhatsApp), 10 (chat por pedido/consulta)
       a domicilio / en local / en línea, traslado, duración y zona; el cliente agenda fecha, hora y lugar; el vendedor
       confirma o propone otra; agendado → en curso → realizado. Probar: publicar uno, agendarlo desde otra cuenta y llevarlo
       hasta "Realizado". Clases y talleres y Preventa: descartados (25 nov).
-- [ ] **F10b Comida por encargo y etiqueta Nuevo/Usado** (25 nov, en rama sin fusionar): tipo de venta "comida" (precio por pieza,
+- [x] **F10b Comida por encargo y etiqueta Nuevo/Usado** (25 nov, fusionado): tipo de venta "comida" (precio por pieza,
       mínimo opcional, anticipación 0/1/2/3/7 días, "pasa a recoger" y/o a domicilio con envío; mismo flujo que Servicios:
       confirmado → en preparación → entregado) y campo `condicion` (nuevo/usado) obligatorio al publicar con stock o renta,
       chip en tarjetas y filtro "Estado del artículo" en Comunidad. **Después de fusionar:** CONTROL → Herramientas →
