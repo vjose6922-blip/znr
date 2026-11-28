@@ -364,22 +364,12 @@ function populateCategoryFilter(genderFilter) {
     return;
   }
 
-  const currentVal = select.value;
   const set = new Set();
   fullCatalogCache.forEach(p => {
     if (genderFilter && getGenderFromCategory(p.Categoria) !== genderFilter) return;
     if (p.Categoria) set.add(p.Categoria);
   });
-  const categories = Array.from(set).sort((a, b) => a.localeCompare(b, 'es'));
-
-  select.innerHTML = '<option value="">Categorías</option>';
-  categories.forEach(cat => {
-    const opt = document.createElement("option");
-    opt.value = cat;
-    opt.textContent = cat;
-    select.appendChild(opt);
-  });
-  select.value = (currentVal && categories.includes(currentVal)) ? currentVal : "";
+  window.llenarCategoriasZNR(select, Array.from(set));
 }
 
 // Pinta el select de tallas, filtrando por género y/o categoría seleccionados.

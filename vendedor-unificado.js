@@ -2268,7 +2268,10 @@ function openSettingsModal(expandirPlan) {
   const horarioInput = document.getElementById('settings-horario');
   if (horarioInput) horarioInput.value = vendorSession.horario || '';
   const catSel = document.getElementById('settings-categoria');
-  if (catSel) catSel.value = vendorSession.categoria || '';
+  // Giro guardado con la lista vieja (p. ej. "Ropa mujer"): se pasa al grupo equivalente de temporadas.js.
+  if (catSel) catSel.value = vendorSession.categoria && window.ZNR_CATEGORIAS && ![...catSel.options].some((o) => o.value === vendorSession.categoria)
+    ? window.ZNR_CATEGORIAS.grupoDe(/joyer|bolsa/i.test(vendorSession.categoria) ? 'Accesorios' : /cosm[eé]t/i.test(vendorSession.categoria) ? 'Cosméticos y maquillaje' : vendorSession.categoria)
+    : vendorSession.categoria || '';
 
   const fbInput  = document.getElementById('settings-facebook');
   if (fbInput)  fbInput.value  = vendorSession.facebook  || '';
@@ -2542,6 +2545,7 @@ async function continuarForgotPassword() {
   try {
     const res = await apiFetch({ action: 'obtenerPreguntaSecreta', telefono: phone });
     _forgotPasswordTelefono = phone;
+    if (res.ok === false && res.error) throw new Error(res.error); // tope de intentos
     if (res.ok && (res.tienePregunta || res.correo)) {
       // Con correo verificado puede pedir el código ahí; con pregunta, también por el admin.
       document.getElementById('forgot-password-pregunta').textContent = res.pregunta || '';
@@ -2556,7 +2560,7 @@ async function continuarForgotPassword() {
       _forgotMostrar('bloqueo');
     }
   } catch (err) {
-    _forgotMsg('forgot-password-msg', 'Error de red, intenta de nuevo');
+    _forgotMsg('forgot-password-msg', err.message || 'Error de red, intenta de nuevo');
   } finally {
     if (btn) { btn.disabled = false; btn.textContent = 'Continuar'; }
   }
@@ -3615,8 +3619,9 @@ async function sincronizarPlanVendedor(repintarPanel) {
   _setDailyCache('zr_vendor_plan_cache_' + vendorSession.uid, sol);
   const plan = sol && sol.estado === 'plus_activo' ? 'plus' : 'free';
   const planNivel = plan === 'plus' ? (sol.nivel || 'plus') : null;
-  if (plan === vendorSession.plan && planNivel === (vendorSession.planNivel || null)) return;
-  Object.assign(vendorSession, { plan, planNivel, planVence: plan === 'plus' ? sol.vence : null, limiteProductos: plan === 'plus' ? (planNivel === 'pro' ? 1000 : 400) : 20 });
+  const planVence = plan === 'plus' ? sol.vence : null; // también cambia al ajustar días desde CONTROL
+  if (plan === vendorSession.plan && planNivel === (vendorSession.planNivel || null) && planVence === (vendorSession.planVence || null)) return;
+  Object.assign(vendorSession, { plan, planNivel, planVence, limiteProductos: plan === 'plus' ? (planNivel === 'pro' ? 1000 : 400) : 20 });
   try { localStorage.setItem('vendor_session', JSON.stringify(vendorSession)); } catch (_) {}
   repintarPanel();
 }

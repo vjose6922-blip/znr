@@ -1,6 +1,7 @@
 /* Banner de temporada: mismo archivo en znr (comunidad.html) y CONTROL (vista previa). Si cambias uno, copia el otro.
    b = { imagen | fondo (CSS) + fotos (hasta 3 URLs, collage a la derecha), titulo, subtitulo, descripcion, boton, tema: 'oscuro'|'claro', pos, botonPos, escala, degradado: 'si'|'no'|'recuadro' }
    pos / botonPos: vertical (t|m|b) + horizontal (l|c|r), ej. 'ml' = centro-izquierda. botonPos 'txt' = debajo del texto.
+   x / y (0–100, opcional): posición libre del texto (se arrastra en la vista previa de CONTROL); 0 = pegado a la izquierda/arriba.
    Los tamaños van en cqw (% del ancho del banner), así se ve igual en el celular y en la vista previa. */
 (function () {
   const css = `
@@ -11,7 +12,7 @@
 .com-banner-capa.deg { background: linear-gradient(var(--dir, 90deg), rgba(255,255,255,.75), rgba(255,255,255,0) 70%); }
 .com-banner.claro .com-banner-capa.deg { background: linear-gradient(var(--dir, 90deg), rgba(0,0,0,.6), rgba(0,0,0,0) 70%); }
 /* Recuadro: panel translúcido con desenfoque solo detrás del texto; se lee sobre cualquier foto */
-.com-banner-capa.caja .com-banner-txt { background: rgba(255,255,255,.72); -webkit-backdrop-filter: blur(1.4cqw); backdrop-filter: blur(1.4cqw); padding: 2.2cqw 3cqw; border-radius: 3cqw; box-shadow: 0 1cqw 3cqw rgba(0,0,0,.12); }
+.com-banner-capa.caja .com-banner-txt { background: rgba(255,255,255,.72); -webkit-backdrop-filter: blur(1.4cqw); backdrop-filter: blur(1.4cqw); padding: 1.2cqw 2cqw; border-radius: 2.4cqw; box-shadow: 0 1cqw 3cqw rgba(0,0,0,.12); }
 .com-banner.claro .com-banner-capa.caja .com-banner-txt { background: rgba(0,0,0,.5); }
 .com-banner-txt { display: flex; flex-direction: column; align-items: inherit; max-width: 62%; gap: .6cqw; }
 .com-banner-t { font-family: 'ZNR Serif', Georgia, serif; font-weight: 700; font-size: calc(7cqw * var(--k)); line-height: 1; }
@@ -40,12 +41,12 @@
     const pos = okPos(b.pos) ? b.pos : 'ml', bp = okPos(b.botonPos) ? b.botonPos : 'txt';
     const boton = b.boton ? `<span class="com-banner-go"${bp === 'txt' ? '' : ` style="${posBoton(bp)}"`}>${esc(b.boton)}</span>` : '';
     const dir = { l: '90deg', c: '0deg', r: '270deg' }[pos[1]];
-    const fotos = (b.fotos || []).slice(0, 3);
+    const fotos = (b.fotos || []).slice(0, 3), libre = [b.x, b.y].every((v) => v !== '' && v != null && v >= 0 && v <= 100);
     return `<div class="com-banner ${b.tema === 'claro' ? 'claro' : ''} ${b.fondo ? 'auto' : ''}" style="--k:${Number(b.escala) || 1};${b.fondo ? `background:${esc(b.fondo)}` : ''}" ${extra}>
       ${b.imagen ? `<img src="${esc(b.imagen)}" alt="" loading="lazy">` : ''}
       ${fotos.length ? `<div class="com-banner-fotos">${fotos.map((f) => `<img src="${esc(f)}" alt="" loading="lazy">`).join('')}</div>` : ''}
       <div class="com-banner-capa${b.degradado === 'no' ? '' : b.degradado === 'recuadro' ? ' caja' : ' deg'}" style="--dir:${dir};justify-content:${V[pos[0]]};align-items:${H[pos[1]]};text-align:${A[pos[1]]}">
-        <div class="com-banner-txt"${fotos.length ? ' style="max-width:50%"' : ''}><span class="com-banner-t">${escT(b.titulo)}</span>
+        <div class="com-banner-txt" style="${fotos.length ? 'max-width:50%;' : ''}${libre ? `position:absolute;left:calc(4cqw + (100% - 8cqw) * ${b.x / 100});top:calc(3cqw + (100% - 6cqw) * ${b.y / 100});transform:translate(-${b.x}%,-${b.y}%)` : ''}"><span class="com-banner-t">${escT(b.titulo)}</span>
         ${b.subtitulo ? `<span class="com-banner-s">${escT(b.subtitulo)}</span>` : ''}${b.descripcion ? `<p class="com-banner-d">${esc(b.descripcion)}</p>` : ''}
         ${bp === 'txt' ? boton : ''}</div></div>${bp === 'txt' ? '' : boton}</div>`;
   }

@@ -327,6 +327,12 @@ panel.innerHTML = `
 <button class="up-theme-btn ${theme==='dark'?'active':''}" data-theme="dark"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" aria-hidden="true"><use href="#ic-moon"/></svg> Oscuro</button>
 <button class="up-theme-btn ${theme==='light'?'active':''}" data-theme="light"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" aria-hidden="true"><use href="#ic-sun"/></svg> Claro</button>
 </div>
+<h3 class="up-section-title" style="margin-top:24px">Idioma · Language</h3>
+<div class="up-theme-row notranslate">
+<button class="up-layout-btn up-idioma-btn ${localStorage.getItem('znr_idioma')!=='en'?'active':''}" data-idioma="es">Español</button>
+<button class="up-layout-btn up-idioma-btn ${localStorage.getItem('znr_idioma')==='en'?'active':''}" data-idioma="en">English</button>
+</div>
+<p class="up-section-hint">English usa el traductor automático de Google.</p>
 <h3 class="up-section-title" style="margin-top:24px">Vista del catálogo</h3>
 <div class="up-theme-row">
 <button class="up-layout-btn ${layout==='list'?'active':''}" data-layout="list"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" aria-hidden="true"><use href="#ic-list"/></svg> Lista</button>
@@ -512,6 +518,7 @@ showTemporaryMessage('No se pudieron activar las notificaciones.', 'error');
 }
 });
 }
+panel.querySelectorAll('.up-idioma-btn').forEach(btn=>btn.addEventListener('click',()=>window.znrCambiarIdioma&&window.znrCambiarIdioma(btn.dataset.idioma)));
 panel.querySelectorAll('.up-theme-btn').forEach(btn=>{
 btn.addEventListener('click',()=>{
 panel.querySelectorAll('.up-theme-btn').forEach(b=>b.classList.remove('active'));

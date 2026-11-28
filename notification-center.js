@@ -138,7 +138,11 @@
     }).then(r => r.json()).catch(() => {});
   }
 
+  // Leídas en esta sesión: una recarga que llegue antes de que el servidor confirme no las vuelve a mostrar sin leer.
+  const _leidas = new Set();
+  const aplicarLeidas = (items) => (items.forEach(n => { if (_leidas.has(String(n.id))) n.leida = true; }), items);
   async function marcarLeida(notif) {
+    _leidas.add(String(notif && notif.id));
     const identity = getIdentity();
     if (!identity || !notif) return;
     const body = { action: 'marcarNotificacionLeida', id: notif.id, ownerType: notif.ownerType };
@@ -522,10 +526,10 @@
     overlay.addEventListener('click', closeModal);
     document.getElementById('nc-close-btn').addEventListener('click', closeModal);
     document.getElementById('nc-markall-btn').addEventListener('click', async () => {
-      await marcarTodasLeidas();
-      cache.items.forEach(n => n.leida = true);
+      cache.items.forEach(n => { n.leida = true; _leidas.add(String(n.id)); }); // al instante en pantalla; el servidor confirma en segundo plano
       renderList();
       updateBadge();
+      marcarTodasLeidas();
     });
     modal.querySelectorAll('.nc-tab').forEach(tab => {
       tab.addEventListener('click', () => {
@@ -776,7 +780,7 @@ const PICKUP_HORAS = ['9:00 AM','10:00 AM','11:00 AM','12:00 PM','1:00 PM','2:00
     });
 
     listEl.querySelectorAll('.nc-item').forEach(el => {
-      el.addEventListener('click', async function(e) {
+      el.addEventListener('click', function(e) {
         if (e.target.closest('a')) return;
 
         const id = this.dataset.id;
@@ -785,10 +789,10 @@ const PICKUP_HORAS = ['9:00 AM','10:00 AM','11:00 AM','12:00 PM','1:00 PM','2:00
         this.classList.toggle('expanded');
 
         if (this.classList.contains('expanded') && notif && !notif.leida) {
-          notif.leida = true;
-          await marcarLeida(notif);
-          updateBadge();
+          notif.leida = true; // al instante en pantalla; el servidor confirma en segundo plano
           this.classList.remove('unread');
+          updateBadge();
+          marcarLeida(notif);
         }
       });
     });
@@ -851,7 +855,7 @@ const PICKUP_HORAS = ['9:00 AM','10:00 AM','11:00 AM','12:00 PM','1:00 PM','2:00
     alDia();
     const owner = cache.owner, data = await fetchNotificaciones();
     if (owner !== quien()) return; // cambió de cuenta mientras se pedía: esta respuesta ya no es de nadie
-    cache.items = (data && data.ok && Array.isArray(data.notificaciones)) ? data.notificaciones : [];
+    cache.items = aplicarLeidas((data && data.ok && Array.isArray(data.notificaciones)) ? data.notificaciones : []);
     cache.loaded = true;
     recordarMasReciente(cache.items);
     _baseListo = true;
@@ -897,7 +901,7 @@ const PICKUP_HORAS = ['9:00 AM','10:00 AM','11:00 AM','12:00 PM','1:00 PM','2:00
     alDia();
     const owner = cache.owner, data = await fetchNotificaciones();
     if (owner === quien() && data && data.ok && Array.isArray(data.notificaciones)) {
-      cache.items = data.notificaciones;
+      cache.items = aplicarLeidas(data.notificaciones);
       recordarMasReciente(cache.items);
       _baseListo = true;
       updateBadge();

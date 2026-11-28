@@ -4,15 +4,15 @@
   <meta charset="UTF-8" />
 <meta http-equiv="Content-Security-Policy" content="
  default-src 'self';
- script-src 'self' 'unsafe-inline' https://www.gstatic.com https://apis.google.com https://www.google.com ;
- style-src 'self' 'unsafe-inline';
+ script-src 'self' 'unsafe-inline' https://www.gstatic.com https://apis.google.com https://www.google.com  https://translate.google.com https://translate.googleapis.com https://translate-pa.googleapis.com ;
+ style-src 'self' 'unsafe-inline' https://www.gstatic.com ;
  img-src 'self' data: blob:
         https://placehold.co
         https://via.placeholder.com
         https://firebasestorage.googleapis.com
         https://*.firebasestorage.app
-        https://storage.googleapis.com ;
- connect-src 'self' https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firestore.googleapis.com https://wttr.in https://www.gstatic.com https://firebaseinstallations.googleapis.com https://fcmregistrations.googleapis.com https://registrar-token-fcm-1038143238323.us-central1.run.app https://eliminar-token-fcm-1038143238323.us-central1.run.app https://ventas-api-1038143238323.us-central1.run.app https://admin-api-1038143238323.us-central1.run.app https://auth-api-1038143238323.us-central1.run.app https://firebase.googleapis.com https://znr-live-default-rtdb.firebaseio.com https://nominatim.openstreetmap.org https://catalogo-api-1038143238323.us-central1.run.app https://tienda-znr-api-1038143238323.us-central1.run.app https://vendedores-api-1038143238323.us-central1.run.app https://beneficiarios-api-1038143238323.us-central1.run.app https://live-api-1038143238323.us-central1.run.app https://pedidos-api-1038143238323.us-central1.run.app https://historias-api-1038143238323.us-central1.run.app https://content-firebaseappcheck.googleapis.com https://www.google.com ;
+        https://storage.googleapis.com  https://www.gstatic.com https://www.google.com https://translate.google.com https://translate.googleapis.com ;
+ connect-src 'self' https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firestore.googleapis.com https://wttr.in https://www.gstatic.com https://firebaseinstallations.googleapis.com https://fcmregistrations.googleapis.com https://registrar-token-fcm-1038143238323.us-central1.run.app https://eliminar-token-fcm-1038143238323.us-central1.run.app https://ventas-api-1038143238323.us-central1.run.app https://admin-api-1038143238323.us-central1.run.app https://auth-api-1038143238323.us-central1.run.app https://firebase.googleapis.com https://znr-live-default-rtdb.firebaseio.com https://nominatim.openstreetmap.org https://catalogo-api-1038143238323.us-central1.run.app https://tienda-znr-api-1038143238323.us-central1.run.app https://vendedores-api-1038143238323.us-central1.run.app https://beneficiarios-api-1038143238323.us-central1.run.app https://live-api-1038143238323.us-central1.run.app https://pedidos-api-1038143238323.us-central1.run.app https://historias-api-1038143238323.us-central1.run.app https://content-firebaseappcheck.googleapis.com https://www.google.com  https://translate.googleapis.com https://translate-pa.googleapis.com ;
  media-src 'self' blob: https://firebasestorage.googleapis.com https://*.firebasestorage.app https://storage.googleapis.com ;
  font-src 'self';
  frame-src https://www.google.com;
@@ -189,6 +189,7 @@
     .fa-card-precio { font-size: .9rem; font-weight: 800; color: var(--color-accent-solid); margin-left: auto; flex-shrink: 0; }
     .fa-pill { position: sticky; top: 8px; z-index: 5; display: none; margin: 0 auto 4px; width: fit-content; border: none; cursor: pointer; padding: 7px 16px; border-radius: 999px; background: var(--gradient-accent); color: #fff; font-weight: 800; font-size: .78rem; box-shadow: 0 6px 16px rgba(0,0,0,.18); }
   </style>
+<script src="idioma.js"></script>
 </head>
 <body>
 
@@ -218,6 +219,7 @@
 
 
   <script src="icons.js" defer></script>
+<script src="calificar.js" defer></script>
   <script src="znr-select.js" defer></script>
   <script src="ciudades.js" defer></script>
   <script src="api-config.js" defer></script>

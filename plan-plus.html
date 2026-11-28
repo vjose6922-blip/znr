@@ -7,17 +7,17 @@
 </script>
 <meta http-equiv="Content-Security-Policy" content="
  default-src 'self';
- script-src 'self' 'unsafe-inline' https://www.gstatic.com https://apis.google.com https://js.stripe.com https://checkout.stripe.com https://sdk.mercadopago.com https://http2.mlstatic.com https://www.google.com ;
+ script-src 'self' 'unsafe-inline' https://www.gstatic.com https://apis.google.com https://js.stripe.com https://checkout.stripe.com https://sdk.mercadopago.com https://http2.mlstatic.com https://www.google.com  https://translate.google.com https://translate.googleapis.com https://translate-pa.googleapis.com ;
  frame-src https://js.stripe.com https://checkout.stripe.com https://hooks.stripe.com https://*.mercadopago.com https://*.mercadolibre.com https://*.mlstatic.com https://www.google.com ;
- style-src 'self' 'unsafe-inline';
+ style-src 'self' 'unsafe-inline' https://www.gstatic.com ;
  img-src 'self' data: blob:
         https://placehold.co
         https://via.placeholder.com
         https://firebasestorage.googleapis.com
         https://*.firebasestorage.app
         https://storage.googleapis.com
-        https://*.stripe.com https://*.mlstatic.com https://*.mercadopago.com ;
- connect-src 'self' https://znr-live-default-rtdb.firebaseio.com https://vendedores-api-1038143238323.us-central1.run.app https://admin-api-1038143238323.us-central1.run.app https://catalogo-api-1038143238323.us-central1.run.app https://tienda-znr-api-1038143238323.us-central1.run.app  https://*.stripe.com https://*.mercadopago.com https://*.mercadolibre.com https://*.mlstatic.com https://content-firebaseappcheck.googleapis.com https://www.google.com ;
+        https://*.stripe.com https://*.mlstatic.com https://*.mercadopago.com  https://www.gstatic.com https://www.google.com https://translate.google.com https://translate.googleapis.com ;
+ connect-src 'self' https://znr-live-default-rtdb.firebaseio.com https://vendedores-api-1038143238323.us-central1.run.app https://admin-api-1038143238323.us-central1.run.app https://catalogo-api-1038143238323.us-central1.run.app https://tienda-znr-api-1038143238323.us-central1.run.app  https://*.stripe.com https://*.mercadopago.com https://*.mercadolibre.com https://*.mlstatic.com https://content-firebaseappcheck.googleapis.com https://www.google.com  https://translate.googleapis.com https://translate-pa.googleapis.com https://ventas-api-1038143238323.us-central1.run.app https://pedidos-api-1038143238323.us-central1.run.app ;
  font-src 'self';
  frame-ancestors 'none';
  object-src 'none';
@@ -35,6 +35,7 @@
 <link rel="stylesheet" href="styles.css">
 <script src="api-config.js"></script>
 <script src="icons.js" defer></script>
+<script src="calificar.js" defer></script>
 <script src="pagos.js" defer></script>
 <style>
   body { background: var(--color-bg); }
@@ -163,6 +164,7 @@
 
   .pp-loading { text-align: center; padding: 60px 16px; color: var(--color-text-soft); font-size: 13px; }
 </style>
+<script src="idioma.js"></script>
 </head>
 <body>
 

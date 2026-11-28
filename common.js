@@ -169,24 +169,18 @@ function populateFilterSelects() {
   populateSizeFilterGlobal();
 }
 
+// Select de categorías del catálogo Z&R agrupado en Dama / Caballero / Unisex, sin repetir "para Dama" en cada opción.
+window.llenarCategoriasZNR = (select, cats) => {
+  const actual = select.value, grupos = { MUJER: 'Dama', HOMBRE: 'Caballero', UNISEX: 'Unisex' }, porGrupo = {};
+  cats.forEach((c) => (porGrupo[grupos[GENERO_POR_CATEGORIA[c.toLowerCase().trim()]] || 'Otras'] ||= []).push(c));
+  const op = (c) => `<option value="${escapeHtml(c)}">${escapeHtml(c.replace(/ para (Dama|Caballero)$/i, ''))}</option>`;
+  select.innerHTML = '<option value="">Categorías</option>' + ['Dama', 'Caballero', 'Unisex', 'Otras'].filter((g) => porGrupo[g])
+    .map((g) => `<optgroup label="${g}">${porGrupo[g].sort((a, b) => a.localeCompare(b, 'es')).map(op).join('')}</optgroup>`).join('');
+  select.value = cats.includes(actual) ? actual : '';
+};
 function populateCategoryFilterGlobal() {
   const select = document.getElementById("category-filter");
-  if (!select) return;
-  const currentVal = select.value;
-  if (window.globalCategories.length === 0) return;
-  
-  select.innerHTML = '<option value="">Categorías</option>';
-  window.globalCategories.forEach(cat => {
-    const opt = document.createElement("option");
-    opt.value = cat;
-    opt.textContent = cat;
-    select.appendChild(opt);
-  });
-  if (currentVal && window.globalCategories.includes(currentVal)) {
-    select.value = currentVal;
-  } else {
-    select.value = "";
-  }
+  if (select && window.globalCategories.length) window.llenarCategoriasZNR(select, window.globalCategories);
 }
 
 function populateSizeFilterGlobal() {
@@ -2674,10 +2668,10 @@ productoId, nota: texto, nombre: nom
 }).toString()
 });
 const data = await res.json();
-if (!data.ok) throw new Error(data.error || 'No se pudo enviar la solicitud');
+if (!data.ok) throw Object.assign(new Error(data.error || 'No se pudo enviar la solicitud'), { vendedor: data.limiteVendedor });
 location.href = 'pedido-chat.html?pedido=' + encodeURIComponent(data.pedidoId);
 } catch (e) {
-err.textContent = e.message || 'No se pudo enviar. Intenta de nuevo.';
+znrErrorPedido(err, e);
 ok.disabled = false; ok.textContent = 'Enviar solicitud';
 }
 });
@@ -2781,12 +2775,17 @@ ok.addEventListener('click', async () => {
       desde: $('#zr-desde').value, hasta: $('#zr-hasta').value, horaEntrega: $('#zr-hora1').value, horaRecoleccion: $('#zr-hora2').value,
       cantidad: $('#zr-cant').value, modo: modo() || '', direccion: $('#zr-dir').value.trim(), nota: $('#zr-nota').value.trim(),
       ...(gps && modo() === 'domicilio' ? { lat: gps.lat, lng: gps.lng } : {}) });
-    if (!data.ok) throw new Error(data.error || 'No se pudo enviar la solicitud');
+    if (!data.ok) throw Object.assign(new Error(data.error || 'No se pudo enviar la solicitud'), { vendedor: data.limiteVendedor });
     location.href = 'pedido-chat.html?pedido=' + encodeURIComponent(data.pedidoId);
-  } catch (e) { err.textContent = e.message || 'No se pudo enviar. Intenta de nuevo.'; ok.disabled = false; ok.textContent = 'Enviar solicitud'; }
+  } catch (e) { znrErrorPedido(err, e); ok.disabled = false; ok.textContent = 'Enviar solicitud'; }
 });
 }
 window.znrRentar = znrRentar;
+// Error al pedir; si es el límite de pedidos abiertos con el vendedor, botón a esos pedidos para terminarlos o cancelarlos.
+function znrErrorPedido(el, e) {
+  el.textContent = e.message || 'No se pudo enviar. Intenta de nuevo.';
+  if (e.vendedor) el.insertAdjacentHTML('beforeend', `<a class="im-buy-btn" style="display:flex;justify-content:center;margin-top:8px;text-decoration:none" href="mis-pedidos.html?vendedor=${encodeURIComponent(e.vendedor)}">Ver mis pedidos con este vendedor</a>`);
+}
 
 // Servicios: el cliente propone fecha, hora y dónde (a domicilio con dirección, en el local o en línea); el vendedor
 // confirma o propone otra fecha/hora y el precio en el chat. Datos del servicio desde pedidos-api (infoServicio).
@@ -2887,9 +2886,9 @@ ok.addEventListener('click', async () => {
     const data = await api({ action: 'crearPedidoPersonalizado', telefono, compradorToken: localStorage.getItem('comprador_token') || '', productoId, nombre,
       fecha: $('#za-fecha').value, hora: $('#za-hora').value, lugar: lugar(), ...(com && { cantidad: cant() }), direccion: $('#za-dir').value.trim(), nota,
       ...(gps && lugar() === 'domicilio' ? { lat: gps.lat, lng: gps.lng } : {}) });
-    if (!data.ok) throw new Error(data.error || 'No se pudo enviar la solicitud');
+    if (!data.ok) throw Object.assign(new Error(data.error || 'No se pudo enviar la solicitud'), { vendedor: data.limiteVendedor });
     location.href = 'pedido-chat.html?pedido=' + encodeURIComponent(data.pedidoId);
-  } catch (e) { err.textContent = e.message || 'No se pudo enviar. Intenta de nuevo.'; ok.disabled = false; ok.textContent = com ? 'Enviar pedido' : 'Enviar solicitud'; }
+  } catch (e) { znrErrorPedido(err, e); ok.disabled = false; ok.textContent = com ? 'Enviar pedido' : 'Enviar solicitud'; }
 });
 }
 window.znrAgendar = znrAgendar;

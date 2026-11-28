@@ -4,14 +4,14 @@
  <meta charset="UTF-8" />
 <meta http-equiv="Content-Security-Policy" content="
  default-src 'self';
- script-src 'self' 'unsafe-inline' https://www.gstatic.com https://apis.google.com https://*.googleapis.com https://www.google.com ;
- style-src 'self' 'unsafe-inline';
+ script-src 'self' 'unsafe-inline' https://www.gstatic.com https://apis.google.com https://*.googleapis.com https://www.google.com  https://translate.google.com https://translate.googleapis.com https://translate-pa.googleapis.com ;
+ style-src 'self' 'unsafe-inline' https://www.gstatic.com ;
  img-src 'self' data: blob:
         https://placehold.co
         https://via.placeholder.com
         https://firebasestorage.googleapis.com
         https://*.firebasestorage.app
-        https://storage.googleapis.com ;
+        https://storage.googleapis.com  https://www.gstatic.com https://www.google.com https://translate.google.com https://translate.googleapis.com ;
  connect-src 'self' 
    https://identitytoolkit.googleapis.com 
    https://securetoken.googleapis.com 
@@ -25,7 +25,7 @@
    https://firebase.googleapis.com 
    https://znr-live-default-rtdb.firebaseio.com 
    https://nominatim.openstreetmap.org
-   https://*.firebaseio.com https://admin-api-1038143238323.us-central1.run.app https://beneficiarios-api-1038143238323.us-central1.run.app https://catalogo-api-1038143238323.us-central1.run.app https://content-firebaseappcheck.googleapis.com https://www.google.com ;
+   https://*.firebaseio.com https://admin-api-1038143238323.us-central1.run.app https://beneficiarios-api-1038143238323.us-central1.run.app https://catalogo-api-1038143238323.us-central1.run.app https://content-firebaseappcheck.googleapis.com https://www.google.com  https://translate.googleapis.com https://translate-pa.googleapis.com https://pedidos-api-1038143238323.us-central1.run.app ;
  font-src 'self' https://www.gstatic.com;
  frame-src https://www.google.com;
  object-src 'none';
@@ -485,6 +485,7 @@
 .home-page section .hero-btn-primary { background: var(--gradient-accent); color: #fff; }
 .home-page :is(.home-feature, .home-sell) { border-radius: 22px; }
  </style>
+<script src="idioma.js"></script>
 </head>
 <body class="home-page">
 
@@ -692,6 +693,7 @@
  <script type="module" src="fcm-init.js"></script>
  <script type="module" src="firestore-init.js"></script>
  <script src="icons.js" defer></script>
+<script src="calificar.js" defer></script>
  <script src="znr-select.js" defer></script>
  <script src="ciudades.js" defer></script>
  <script src="common.js" defer></script>
