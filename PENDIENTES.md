@@ -275,6 +275,12 @@ Ya existían: 3 (pedido + chat antes de WhatsApp), 10 (chat por pedido/consulta)
       historias). Quien la publicó la cierra con "Ya lo encontré"; con 2 reportes se oculta; las vencidas se borran solas
       (`revisarPedidosManual`, cada hora). Colección `busquedas` (solo la usa pedidos-api). **Probar:** publicar desde un
       comprador, ver que llega el aviso al vendedor de esa zona, tocar "Lo tengo" y escribirse en el chat.
+- [x] **Ventajas de Plus y Pro en Zonas** (28 nov, en rama): "Vecinos buscan" les llega al momento a Plus/Pro y a los del plan
+      gratis al día siguiente si sigue abierta (`avisoGratis` en `busquedas`, lo manda `revisarPedidosManual`; responder antes
+      da error y en la página sale "Responder mañana" con invitación a Plus). En la zona (fila "Vecinos de tu zona", página de
+      la zona y "Tus vecinos que venden") van primero Plus/Pro, con aro dorado. En Para ti, después de "Tu zona", banner
+      "Tienda de tu zona" con una Plus/Pro de tu zona al azar (Pro sale el doble). Están en la tabla de plan-plus.html.
+      **Desplegar pedidos-api.** **Probar:** publicar un "Busco…" y ver que solo llega a un Plus; al día siguiente, al gratis.
 - [ ] Más adelante (cuando haya volumen): 17–18 (puntaje/renovar), 5 (soporte), 6 (selfie).
       Descartadas por ahora: 15 (canales) y 19–21 (impulsos).
 
