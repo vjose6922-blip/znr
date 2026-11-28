@@ -278,6 +278,15 @@
     for (var i = 0; i < cerrars.length; i++) cerrars[i].addEventListener('click', cerrar);
     P.buscar.addEventListener('input', function () { pintar(P.buscar.value); });
     P.lista.addEventListener('click', function (e) {
+      var g = e.target.closest('.znr-sel-group.acc');
+      if (g) {
+        var n = g.getAttribute('data-g');
+        P.abiertos.has(n) ? P.abiertos.delete(n) : P.abiertos.add(n);
+        pintar('');
+        var g2 = P.lista.querySelector('.znr-sel-group.acc[data-g="' + cssEsc(n) + '"]');
+        if (g2) g2.scrollIntoView({ block: 'nearest' });
+        return;
+      }
       var b = e.target.closest('.znr-sel-opt');
       if (!b || b.disabled || !P.sel) return;
       var sel = P.sel, idx = parseInt(b.getAttribute('data-i'), 10);
@@ -312,12 +321,21 @@
     var nq = norm((q || '').trim());
     var sIdx = P.sel.selectedIndex;
     var html = '', mostrados = 0, total = 0, grupoAct = null;
+    // Listas largas con grupos: acordeón (solo los títulos; se abre el del valor elegido). Al buscar se ve todo lo que coincide.
+    var acordeon = !nq && Object.keys(P.cuenta).length > 1 && P.items.length > 12;
     P.items.forEach(function (it) {
       if (nq && norm(it.label).indexOf(nq) === -1) return;
+      if (it.grupo && it.grupo !== grupoAct) {
+        var ab = !acordeon || P.abiertos.has(it.grupo);
+        html += acordeon
+          ? '<button type="button" class="znr-sel-group acc" data-g="' + esc(it.grupo) + '" aria-expanded="' + ab + '"><span>' + esc(it.grupo) + '</span><small>' + P.cuenta[it.grupo] + '</small>' + CHEVRON + '</button>'
+          : '<div class="znr-sel-group">' + esc(it.grupo) + '</div>';
+        grupoAct = it.grupo;
+      }
+      if (!it.grupo) grupoAct = null;
+      if (acordeon && it.grupo && !P.abiertos.has(it.grupo)) return;
       total++;
       if (mostrados >= MAX_RENDER && it.i !== sIdx) return;
-      if (it.grupo && it.grupo !== grupoAct) { html += '<div class="znr-sel-group">' + esc(it.grupo) + '</div>'; grupoAct = it.grupo; }
-      if (!it.grupo) grupoAct = null;
       var sel = it.i === sIdx;
       mostrados++;
       html += '<button type="button" class="znr-sel-opt' + (sel ? ' sel' : '') + '" role="option" aria-selected="' + sel + '"' +
@@ -363,6 +381,11 @@
     P.sel = sel;
     P.btn = st.btn;
     P.items = leerItems(sel);
+    P.cuenta = {}; P.abiertos = new Set();
+    P.items.forEach(function (it) {
+      if (it.grupo) P.cuenta[it.grupo] = (P.cuenta[it.grupo] || 0) + 1;
+      if (it.grupo && it.i === sel.selectedIndex) P.abiertos.add(it.grupo);
+    });
     P.titulo.textContent = titulo(sel) || 'Elegir';
     P.buscar.value = '';
     P.buscar.style.display = P.items.length > UMBRAL_BUSQUEDA ? '' : 'none';

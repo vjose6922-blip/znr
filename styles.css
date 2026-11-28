@@ -2639,6 +2639,15 @@ button > svg:only-child, .icon-button svg { margin-right: 0; }
 }
 .znr-sel-list { overflow-y: auto; overscroll-behavior: contain; padding: 0 12px 12px; display: flex; flex-direction: column; min-height: 0; }
 .znr-sel-group { padding: 12px 8px 4px; font-size: 11px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--color-text-muted, #777); }
+/* Grupo plegable (acordeón) en listas largas */
+.znr-sel-group.acc { display: flex; align-items: center; gap: 8px; width: 100%; padding: 14px 10px; border: none; border-bottom: 1px solid var(--color-border-subtle, #eee);
+  background: transparent; font: inherit; font-size: 15px; font-weight: 600; letter-spacing: 0; text-transform: none; color: var(--color-text-main, #1a1a2e); text-align: left; cursor: pointer; }
+.znr-sel-group.acc span { flex: 1; }
+.znr-sel-group.acc small { font-size: 12px; color: var(--color-text-muted, #777); font-weight: 600; }
+.znr-sel-group.acc svg { transition: transform .2s; color: var(--color-text-muted, #777); }
+.znr-sel-group.acc[aria-expanded="true"] { color: var(--color-primary, #6d28d9); border-bottom-color: transparent; }
+.znr-sel-group.acc[aria-expanded="true"] svg { transform: rotate(180deg); }
+.znr-sel-group.acc[aria-expanded="true"] ~ .znr-sel-opt { padding-left: 22px; }
 .znr-sel-opt {
   display: flex; align-items: center; justify-content: space-between; gap: 10px;
   padding: 13px 10px; border: none; background: transparent; color: var(--color-text-main, #1a1a2e);
