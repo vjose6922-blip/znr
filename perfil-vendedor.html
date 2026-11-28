@@ -5,14 +5,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <meta http-equiv="Content-Security-Policy" content="
  default-src 'self';
- script-src 'self' 'unsafe-inline' https://www.gstatic.com https://apis.google.com https://www.google.com ;
- style-src 'self' 'unsafe-inline';
+ script-src 'self' 'unsafe-inline' https://www.gstatic.com https://apis.google.com https://www.google.com  https://translate.google.com https://translate.googleapis.com https://translate-pa.googleapis.com ;
+ style-src 'self' 'unsafe-inline' https://www.gstatic.com ;
  img-src 'self' data: blob:
         https://placehold.co
         https://via.placeholder.com
         https://firebasestorage.googleapis.com
         https://*.firebasestorage.app
-        https://storage.googleapis.com ;
+        https://storage.googleapis.com  https://www.gstatic.com https://www.google.com https://translate.google.com https://translate.googleapis.com ;
  media-src 'self' blob: https://firebasestorage.googleapis.com https://*.firebasestorage.app https://storage.googleapis.com ;
  connect-src 'self'
    https://firestore.googleapis.com
@@ -35,7 +35,7 @@
    https://nominatim.openstreetmap.org
    https://admin-api-1038143238323.us-central1.run.app
    https://beneficiarios-api-1038143238323.us-central1.run.app
-   https://tienda-znr-api-1038143238323.us-central1.run.app https://content-firebaseappcheck.googleapis.com https://www.google.com ;
+   https://tienda-znr-api-1038143238323.us-central1.run.app https://content-firebaseappcheck.googleapis.com https://www.google.com  https://translate.googleapis.com https://translate-pa.googleapis.com ;
  font-src 'self';
  frame-src https://www.google.com;
  frame-ancestors 'none';
@@ -751,6 +751,7 @@
     .pk-body .pk-line { height: 13px; margin-bottom: 8px; }
     @media (prefers-reduced-motion: reduce) { .pk-sh::after { animation: none; } }
   </style>
+<script src="idioma.js"></script>
 </head>
 <body class="theme-aeromexico profile-page">
 

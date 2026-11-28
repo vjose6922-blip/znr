@@ -4,14 +4,14 @@
 <meta charset="UTF-8">
 <meta http-equiv="Content-Security-Policy" content="
  default-src 'self';
- script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' https://www.gstatic.com https://apis.google.com https://cdn.jsdelivr.net https://*.googleapis.com https://www.google.com ;
- style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://*.googleapis.com;
+ script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' https://www.gstatic.com https://apis.google.com https://cdn.jsdelivr.net https://*.googleapis.com https://www.google.com  https://translate.google.com https://translate.googleapis.com https://translate-pa.googleapis.com ;
+ style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://*.googleapis.com https://www.gstatic.com ;
  img-src 'self' data: blob:
         https://placehold.co
         https://via.placeholder.com
         https://firebasestorage.googleapis.com
         https://*.firebasestorage.app
-        https://storage.googleapis.com ;
+        https://storage.googleapis.com  https://www.gstatic.com https://www.google.com https://translate.google.com https://translate.googleapis.com ;
  connect-src 'self' 
    https://catalogo-api-1038143238323.us-central1.run.app 
    https://wttr.in 
@@ -31,7 +31,7 @@
    https://*.algolia.net 
    https://*.algolianet.com 
    https://cdn.jsdelivr.net
-   https://*.firebaseio.com https://admin-api-1038143238323.us-central1.run.app https://tienda-znr-api-1038143238323.us-central1.run.app https://content-firebaseappcheck.googleapis.com https://www.google.com ;
+   https://*.firebaseio.com https://admin-api-1038143238323.us-central1.run.app https://tienda-znr-api-1038143238323.us-central1.run.app https://content-firebaseappcheck.googleapis.com https://www.google.com  https://translate.googleapis.com https://translate-pa.googleapis.com ;
  font-src 'self' https://www.gstatic.com https://cdn.jsdelivr.net;
  frame-src https://www.google.com;
  object-src 'none';
@@ -522,6 +522,7 @@
 .com-banner.zh-tarjeta{color:var(--zt-fg)}.zh-tarjeta>div:last-child{width:100%}
 .zh-tarjeta .zh-avs{display:flex}.zh-tarjeta .zh-av{width:38px;height:38px;margin:0 0 0 -10px;font-size:12px}.zh-tarjeta .zh-av:first-child{margin-left:0}
 </style>
+<script src="idioma.js"></script>
 </head>
 <body class="theme-aeromexico">
 

@@ -169,24 +169,18 @@ function populateFilterSelects() {
   populateSizeFilterGlobal();
 }
 
+// Select de categorías del catálogo Z&R agrupado en Dama / Caballero / Unisex, sin repetir "para Dama" en cada opción.
+window.llenarCategoriasZNR = (select, cats) => {
+  const actual = select.value, grupos = { MUJER: 'Dama', HOMBRE: 'Caballero', UNISEX: 'Unisex' }, porGrupo = {};
+  cats.forEach((c) => (porGrupo[grupos[GENERO_POR_CATEGORIA[c.toLowerCase().trim()]] || 'Otras'] ||= []).push(c));
+  const op = (c) => `<option value="${escapeHtml(c)}">${escapeHtml(c.replace(/ para (Dama|Caballero)$/i, ''))}</option>`;
+  select.innerHTML = '<option value="">Categorías</option>' + ['Dama', 'Caballero', 'Unisex', 'Otras'].filter((g) => porGrupo[g])
+    .map((g) => `<optgroup label="${g}">${porGrupo[g].sort((a, b) => a.localeCompare(b, 'es')).map(op).join('')}</optgroup>`).join('');
+  select.value = cats.includes(actual) ? actual : '';
+};
 function populateCategoryFilterGlobal() {
   const select = document.getElementById("category-filter");
-  if (!select) return;
-  const currentVal = select.value;
-  if (window.globalCategories.length === 0) return;
-  
-  select.innerHTML = '<option value="">Categorías</option>';
-  window.globalCategories.forEach(cat => {
-    const opt = document.createElement("option");
-    opt.value = cat;
-    opt.textContent = cat;
-    select.appendChild(opt);
-  });
-  if (currentVal && window.globalCategories.includes(currentVal)) {
-    select.value = currentVal;
-  } else {
-    select.value = "";
-  }
+  if (select && window.globalCategories.length) window.llenarCategoriasZNR(select, window.globalCategories);
 }
 
 function populateSizeFilterGlobal() {

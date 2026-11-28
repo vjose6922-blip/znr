@@ -4,14 +4,14 @@
  <meta charset="UTF-8">
  <meta http-equiv="Content-Security-Policy" content="
  default-src 'self';
- script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' https://www.gstatic.com https://apis.google.com https://cdn.jsdelivr.net https://*.googleapis.com https://www.google.com ;
- style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://*.googleapis.com;
+ script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' https://www.gstatic.com https://apis.google.com https://cdn.jsdelivr.net https://*.googleapis.com https://www.google.com  https://translate.google.com https://translate.googleapis.com https://translate-pa.googleapis.com ;
+ style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://*.googleapis.com https://www.gstatic.com ;
  img-src 'self' data: blob:
         https://placehold.co
         https://via.placeholder.com
         https://firebasestorage.googleapis.com
         https://*.firebasestorage.app
-        https://storage.googleapis.com ;
+        https://storage.googleapis.com  https://www.gstatic.com https://www.google.com https://translate.google.com https://translate.googleapis.com ;
  media-src 'self' blob: https://firebasestorage.googleapis.com https://*.firebasestorage.app https://storage.googleapis.com ;
  connect-src 'self' 
    https://catalogo-api-1038143238323.us-central1.run.app 
@@ -35,7 +35,7 @@
    https://nominatim.openstreetmap.org 
    https://cdn.jsdelivr.net
    https://*.firebaseio.com
-   https://*.googleapis.com https://admin-api-1038143238323.us-central1.run.app https://beneficiarios-api-1038143238323.us-central1.run.app https://tienda-znr-api-1038143238323.us-central1.run.app https://content-firebaseappcheck.googleapis.com https://www.google.com ;
+   https://*.googleapis.com https://admin-api-1038143238323.us-central1.run.app https://beneficiarios-api-1038143238323.us-central1.run.app https://tienda-znr-api-1038143238323.us-central1.run.app https://content-firebaseappcheck.googleapis.com https://www.google.com  https://translate.googleapis.com https://translate-pa.googleapis.com ;
  font-src 'self' https://www.gstatic.com https://cdn.jsdelivr.net;
  frame-src https://www.google.com;
  object-src 'none';
@@ -284,6 +284,7 @@ h3 {
  #panel-section .product-actions { flex-wrap: wrap; }
  #panel-section .product-actions .btn-secondary { flex: 1 1 auto; min-width: 0; padding: 8px 10px; text-align: center; }
  </style>
+<script src="idioma.js"></script>
 </head>
 <body class="theme-aeromexico">
 
