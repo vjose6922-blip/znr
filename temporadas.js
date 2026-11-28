@@ -1,6 +1,6 @@
 /* Listas de festividades, festivales escolares, temporadas y categorías de ZNR (un solo lugar para editarlas).
    Lo usan: vendedor.html (formulario), comunidad.html (filtro), index.html (sección Comunidad)
-   y las tarjetas de producto (chips). CONTROL (banners-temporada.js) copia la lista de temporadas: si cambias una, cambia la otra. */
+   y las tarjetas de producto (chips). CONTROL (banners-temporada.js) carga este archivo desde znrcommunity.com. */
 (function () {
   const LISTAS = {
     festividad: [
@@ -144,8 +144,12 @@
     return g;
   };
   window.ZNR_CATEGORIAS = { grupos: gruposCategoria, grupoDe: grupoCategoria };
-  // <select data-znr-categorias> (formulario del vendedor): la lista agrupada.
-  const llenar = () => document.querySelectorAll('select[data-znr-categorias]').forEach((s) => s.insertAdjacentHTML('beforeend',
-    Object.keys(CATEGORIAS).map((g) => `<optgroup label="${esc(g)}">${CATEGORIAS[g].map((c) => `<option>${esc(c)}</option>`).join('')}</optgroup>`).join('')));
+  // <select data-znr-categorias> (formulario del producto): la lista agrupada. <select data-znr-grupos> (giro del negocio): solo los grupos.
+  // CONTROL carga este mismo archivo desde znrcommunity.com: un solo lugar para editar categorías y temporadas.
+  const llenar = () => {
+    document.querySelectorAll('select[data-znr-categorias]').forEach((s) => s.insertAdjacentHTML('beforeend',
+      Object.keys(CATEGORIAS).map((g) => `<optgroup label="${esc(g)}">${CATEGORIAS[g].map((c) => `<option>${esc(c)}</option>`).join('')}</optgroup>`).join('')));
+    document.querySelectorAll('select[data-znr-grupos]').forEach((s) => s.insertAdjacentHTML('beforeend', Object.keys(CATEGORIAS).map((g) => `<option>${esc(g)}</option>`).join('')));
+  };
   document.readyState === 'loading' ? document.addEventListener('DOMContentLoaded', llenar) : llenar();
 })();

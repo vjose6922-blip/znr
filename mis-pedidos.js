@@ -117,7 +117,11 @@ function render() {
     onclick: () => { filtro = k; render(); }
   }))));
 
+  const soloVendedor = rolActual === "comprador" && params.get("vendedor"); // desde el aviso de "3 pedidos abiertos"
+  if (soloVendedor) partes.push(h("div", { class: "pp-chips" }, h("button", { type: "button", class: "on", text: "Abiertos con este vendedor ✕",
+    onclick: () => { params.delete("vendedor"); history.replaceState(null, "", "?" + params); render(); } })));
   const filtrada = (lista || []).filter((p) => {
+    if (soloVendedor) return p.vendedorUid === soloVendedor && ["solicitado", "cotizado", "aceptado", "en_elaboracion", "listo", "en_renta"].includes(estadoEfectivo(p));
     if (filtro === "tuturno") return esMiTurno(p, rolActual);
     const f = FILTROS.find(([k]) => k === filtro);
     return f[2](estadoEfectivo(p));

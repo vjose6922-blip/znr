@@ -374,7 +374,7 @@ window.znrFirestore.getProductosZNR = async function () {
       _fsConReintentos(() => getDocs(collection(db, 'productos_znr'))),
       typeof obtenerCiudadComprador === 'function' ? obtenerCiudadComprador() : null
     ]);
-    let products = snap.docs.map(d => d.data());
+    let products = snap.docs.map(d => d.data()).filter(p => Number(p.Stock ?? p.stock) > 0); // sin stock no se muestra al público
     // Filtro por ciudad centralizado aquí — es el único origen real de los
     // datos (fetchZNRCatalogo, ensureFullCatalog y looks.js pasan los tres
     // por esta función), así que filtrar aquí cubre a cualquier página sin

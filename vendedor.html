@@ -677,6 +677,7 @@ h3 {
  <script type="module" src="firestore-init.js"></script>
  <script type="module" src="webauthn-client.js"></script>
  <script src="icons.js" defer></script>
+<script src="calificar.js" defer></script>
  <script src="znr-select.js" defer></script>
  <script src="common.js" defer></script>
  <script src="bg-remove.js" defer></script>
@@ -786,17 +787,8 @@ document.addEventListener('DOMContentLoaded', () => {
               <input id="settings-nombre" type="text" maxlength="60" placeholder="Nombre del negocio">
               <textarea id="settings-descripcion" rows="3" maxlength="200" placeholder="Descripción: ¿qué vendes? ¿qué te hace especial? (máx. 200)" style="resize:none;"></textarea>
               <label>Categoría principal</label>
-              <select id="settings-categoria">
+              <select id="settings-categoria" data-znr-grupos>
             <option value="">— Sin categoría —</option>
-            <option value="Ropa mujer">Ropa mujer</option>
-            <option value="Ropa hombre">Ropa hombre</option>
-            <option value="Ropa niños">Ropa niños</option>
-            <option value="Accesorios">Accesorios</option>
-            <option value="Calzado">Calzado</option>
-            <option value="Bolsas y carteras">Bolsas y carteras</option>
-            <option value="Joyería">Joyería</option>
-            <option value="Cosméticos">Cosméticos</option>
-            <option value="Otro">Otro</option>
               </select>
               <input id="settings-horario" type="text" maxlength="60" placeholder="Horario (opcional). Ej. Lun a Vie 9am-6pm">
               <p class="ayuda" style="font-size:.73rem;color:#aaa;">El horario solo se muestra en tu perfil si lo llenas.</p>
